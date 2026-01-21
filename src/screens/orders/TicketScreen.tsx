@@ -1,0 +1,1840 @@
+import React, { useState, useCallback, useMemo, useRef } from 'react';
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  RefreshControl,
+  Pressable,
+  ScrollView,
+  TextInput,
+  Modal,
+  Animated,
+  Keyboard,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useRoute, RouteProp, NavigationProp } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Text } from '../../components/common';
+import { colors } from '../../theme/colors';
+import { fontFamily } from '../../theme/typography';
+import { spacing, ms } from '../../utils/responsive';
+import { TAB_BAR_HEIGHT } from '../../components/navigation';
+import { RootStackParamList } from '../../navigation/types';
+
+type TicketScreenRouteProp = RouteProp<RootStackParamList, 'Ticket'>;
+
+type TicketStatus = 'at_plant' | 'in_transit' | 'at_site' | 'pouring' | 'completed' | 'returning';
+
+interface DeliveryTicket {
+  id: string;
+  ticketNumber: string;
+  truckId: string;
+  truckName: string;
+  loadQuantity: number;
+  totalOrderQuantity: number;
+  unit: string;
+  status: TicketStatus;
+  scheduledTime: string;
+  actualTime?: string;
+  driverName?: string;
+  driverPhone?: string;
+  // Product/Mix Information
+  productCode?: string;
+  productName?: string;
+  mixDesign?: string;
+  slump?: string;
+  // Delivery Location
+  deliveryAddress?: string;
+  deliveryCity?: string;
+  // Customer Information
+  customerName?: string;
+  customerPhone?: string;
+  customerCompany?: string;
+  // Additional Details
+  specialInstructions?: string;
+  plantName?: string;
+  estimatedArrival?: string;
+  distance?: string;
+}
+
+interface StatusConfig {
+  label: string;
+  icon: string;
+  bgColor: string;
+  textColor: string;
+  iconBg: string;
+  progressStep: number;
+}
+
+// Light mode status colors - using common theme colors
+const STATUS_CONFIG: Record<TicketStatus, StatusConfig> = {
+  at_plant: {
+    label: 'AT PLANT',
+    icon: 'factory',
+    bgColor: colors.ticket.status.atPlant.bg,
+    textColor: colors.ticket.status.atPlant.text,
+    iconBg: colors.ticket.status.atPlant.iconBg,
+    progressStep: 0,
+  },
+  in_transit: {
+    label: 'IN TRANSIT',
+    icon: 'truck-fast',
+    bgColor: colors.ticket.status.inTransit.bg,
+    textColor: colors.ticket.status.inTransit.text,
+    iconBg: colors.ticket.status.inTransit.iconBg,
+    progressStep: 1,
+  },
+  at_site: {
+    label: 'AT SITE',
+    icon: 'map-marker-check',
+    bgColor: colors.ticket.status.atSite.bg,
+    textColor: colors.ticket.status.atSite.text,
+    iconBg: colors.ticket.status.atSite.iconBg,
+    progressStep: 2,
+  },
+  pouring: {
+    label: 'POURING',
+    icon: 'water',
+    bgColor: colors.ticket.status.pouring.bg,
+    textColor: colors.ticket.status.pouring.text,
+    iconBg: colors.ticket.status.pouring.iconBg,
+    progressStep: 3,
+  },
+  completed: {
+    label: 'COMPLETED',
+    icon: 'check-circle',
+    bgColor: colors.ticket.status.completed.bg,
+    textColor: colors.ticket.status.completed.text,
+    iconBg: colors.ticket.status.completed.iconBg,
+    progressStep: 4,
+  },
+  returning: {
+    label: 'RETURNING',
+    icon: 'truck-delivery',
+    bgColor: colors.ticket.status.returning.bg,
+    textColor: colors.ticket.status.returning.text,
+    iconBg: colors.ticket.status.returning.iconBg,
+    progressStep: 4,
+  },
+};
+
+// Dark mode status colors - using common theme colors
+const STATUS_CONFIG_DARK: Record<TicketStatus, StatusConfig> = {
+  at_plant: {
+    label: 'AT PLANT',
+    icon: 'factory',
+    bgColor: colors.ticket.statusDark.atPlant.bg,
+    textColor: colors.ticket.statusDark.atPlant.text,
+    iconBg: colors.ticket.statusDark.atPlant.iconBg,
+    progressStep: 0,
+  },
+  in_transit: {
+    label: 'IN TRANSIT',
+    icon: 'truck-fast',
+    bgColor: colors.ticket.statusDark.inTransit.bg,
+    textColor: colors.ticket.statusDark.inTransit.text,
+    iconBg: colors.ticket.statusDark.inTransit.iconBg,
+    progressStep: 1,
+  },
+  at_site: {
+    label: 'AT SITE',
+    icon: 'map-marker-check',
+    bgColor: colors.ticket.statusDark.atSite.bg,
+    textColor: colors.ticket.statusDark.atSite.text,
+    iconBg: colors.ticket.statusDark.atSite.iconBg,
+    progressStep: 2,
+  },
+  pouring: {
+    label: 'POURING',
+    icon: 'water',
+    bgColor: colors.ticket.statusDark.pouring.bg,
+    textColor: colors.ticket.statusDark.pouring.text,
+    iconBg: colors.ticket.statusDark.pouring.iconBg,
+    progressStep: 3,
+  },
+  completed: {
+    label: 'COMPLETED',
+    icon: 'check-circle',
+    bgColor: colors.ticket.statusDark.completed.bg,
+    textColor: colors.ticket.statusDark.completed.text,
+    iconBg: colors.ticket.statusDark.completed.iconBg,
+    progressStep: 4,
+  },
+  returning: {
+    label: 'RETURNING',
+    icon: 'truck-delivery',
+    bgColor: colors.ticket.statusDark.returning.bg,
+    textColor: colors.ticket.statusDark.returning.text,
+    iconBg: colors.ticket.statusDark.returning.iconBg,
+    progressStep: 4,
+  },
+};
+
+const generateMockTickets = (_orderId: string, _orderCode: string): DeliveryTicket[] => [
+  {
+    id: 'TKT-001',
+    ticketNumber: '45613567',
+    truckId: 'T-0512',
+    truckName: 'Truck 0512-MILLWOOD',
+    loadQuantity: 3.00,
+    totalOrderQuantity: 300,
+    unit: 'CY',
+    status: 'at_plant',
+    scheduledTime: '07:45 AM',
+    driverName: 'John Smith',
+    driverPhone: '+1 (555) 123-4567',
+    productCode: 'SCCA60',
+    productName: '4000 PSI Concrete',
+    mixDesign: '4000 PSI BLD NB3',
+    slump: '4.00 IN',
+    deliveryAddress: '2 School Street',
+    deliveryCity: 'Ripley, OK 74062',
+    customerName: 'ABC Construction',
+    customerPhone: '+1 (555) 987-6543',
+    customerCompany: 'ABC Construction Co.',
+    specialInstructions: 'Enter through back gate. Contact foreman on arrival.',
+    plantName: 'Millwood Plant',
+    estimatedArrival: '08:15 AM',
+    distance: '12.5 mi',
+  },
+  {
+    id: 'TKT-002',
+    ticketNumber: '45613568',
+    truckId: 'T-0512',
+    truckName: 'Truck 0512-MILLWOOD',
+    loadQuantity: 3.00,
+    totalOrderQuantity: 300,
+    unit: 'CY',
+    status: 'pouring',
+    scheduledTime: '07:45 AM',
+    driverName: 'John Smith',
+    driverPhone: '+1 (555) 123-4567',
+    productCode: 'SCCA60',
+    productName: '4000 PSI Concrete',
+    mixDesign: '4000 PSI BLD NB3',
+    slump: '4.00 IN',
+    deliveryAddress: '2 School Street',
+    deliveryCity: 'Ripley, OK 74062',
+    customerName: 'ABC Construction',
+    customerPhone: '+1 (555) 987-6543',
+    customerCompany: 'ABC Construction Co.',
+    plantName: 'Millwood Plant',
+    estimatedArrival: '08:15 AM',
+    distance: '12.5 mi',
+  },
+  {
+    id: 'TKT-003',
+    ticketNumber: '45613569',
+    truckId: 'T-0512',
+    truckName: 'Truck 0512-MILLWOOD',
+    loadQuantity: 3.00,
+    totalOrderQuantity: 300,
+    unit: 'CY',
+    status: 'in_transit',
+    scheduledTime: '07:45 AM',
+    driverName: 'Mike Johnson',
+    driverPhone: '+1 (555) 234-5678',
+    productCode: 'SCCA60',
+    productName: '4000 PSI Concrete',
+    mixDesign: '4000 PSI BLD NB3',
+    slump: '4.00 IN',
+    deliveryAddress: '2 School Street',
+    deliveryCity: 'Ripley, OK 74062',
+    customerName: 'XYZ Builders',
+    customerPhone: '+1 (555) 876-5432',
+    customerCompany: 'XYZ Builders Inc.',
+    specialInstructions: 'Pump truck on site. Coordinate with pump operator.',
+    plantName: 'Millwood Plant',
+    estimatedArrival: '08:30 AM',
+    distance: '8.3 mi',
+  },
+  {
+    id: 'TKT-004',
+    ticketNumber: '45613570',
+    truckId: 'T-0512',
+    truckName: 'Truck 0512-MILLWOOD',
+    loadQuantity: 3.00,
+    totalOrderQuantity: 300,
+    unit: 'CY',
+    status: 'at_site',
+    scheduledTime: '07:45 AM',
+    driverName: 'Robert Davis',
+    driverPhone: '+1 (555) 345-6789',
+    productCode: 'SCCA45',
+    productName: '3500 PSI Concrete',
+    mixDesign: '3500 PSI STD',
+    slump: '5.00 IN',
+    deliveryAddress: '456 Oak Avenue',
+    deliveryCity: 'Cushing, OK 74023',
+    customerName: 'Metro Development',
+    customerPhone: '+1 (555) 765-4321',
+    customerCompany: 'Metro Development LLC',
+    plantName: 'Central Plant',
+    estimatedArrival: '08:00 AM',
+    distance: '15.2 mi',
+  },
+  {
+    id: 'TKT-005',
+    ticketNumber: '45613571',
+    truckId: 'T-0512',
+    truckName: 'Truck 0512-MILLWOOD',
+    loadQuantity: 3.00,
+    totalOrderQuantity: 300,
+    unit: 'CY',
+    status: 'completed',
+    scheduledTime: '07:45 AM',
+    driverName: 'James Wilson',
+    driverPhone: '+1 (555) 456-7890',
+    productCode: 'SCCA60',
+    productName: '4000 PSI Concrete',
+    mixDesign: '4000 PSI BLD NB3',
+    slump: '4.00 IN',
+    deliveryAddress: '789 Main Street',
+    deliveryCity: 'Stillwater, OK 74074',
+    customerName: 'Premier Concrete',
+    customerPhone: '+1 (555) 654-3210',
+    customerCompany: 'Premier Concrete Services',
+    plantName: 'Millwood Plant',
+    distance: '20.1 mi',
+  },
+  {
+    id: 'TKT-006',
+    ticketNumber: '45613572',
+    truckId: 'T-0512',
+    truckName: 'Truck 0512-MILLWOOD',
+    loadQuantity: 3.00,
+    totalOrderQuantity: 300,
+    unit: 'CY',
+    status: 'in_transit',
+    scheduledTime: '08:15 AM',
+    driverName: 'Chris Brown',
+    driverPhone: '+1 (555) 567-8901',
+    productCode: 'SCCA50',
+    productName: '3000 PSI Concrete',
+    mixDesign: '3000 PSI PUMP',
+    slump: '6.00 IN',
+    deliveryAddress: '321 Industrial Blvd',
+    deliveryCity: 'Perry, OK 73077',
+    customerName: 'Industrial Partners',
+    customerPhone: '+1 (555) 543-2109',
+    customerCompany: 'Industrial Partners Corp.',
+    specialInstructions: 'Call 30 minutes before arrival.',
+    plantName: 'Millwood Plant',
+    estimatedArrival: '09:00 AM',
+    distance: '18.7 mi',
+  },
+  {
+    id: 'TKT-007',
+    ticketNumber: '45613573',
+    truckId: 'T-0718',
+    truckName: 'Truck 0718-CENTRAL',
+    loadQuantity: 4.50,
+    totalOrderQuantity: 300,
+    unit: 'CY',
+    status: 'at_site',
+    scheduledTime: '08:30 AM',
+    driverName: 'David Lee',
+    driverPhone: '+1 (555) 678-9012',
+    productCode: 'SCCA70',
+    productName: '5000 PSI Concrete',
+    mixDesign: '5000 PSI HIGH STR',
+    slump: '3.50 IN',
+    deliveryAddress: '555 Commerce Drive',
+    deliveryCity: 'Guthrie, OK 73044',
+    customerName: 'Skyline Construction',
+    customerPhone: '+1 (555) 432-1098',
+    customerCompany: 'Skyline Construction Group',
+    specialInstructions: 'High-strength mix for foundation. Vibrate thoroughly.',
+    plantName: 'Central Plant',
+    estimatedArrival: '09:15 AM',
+    distance: '25.3 mi',
+  },
+  {
+    id: 'TKT-008',
+    ticketNumber: '45613574',
+    truckId: 'T-0923',
+    truckName: 'Truck 0923-RIVERSIDE',
+    loadQuantity: 5.00,
+    totalOrderQuantity: 300,
+    unit: 'CY',
+    status: 'completed',
+    scheduledTime: '06:30 AM',
+    driverName: 'Tom Garcia',
+    driverPhone: '+1 (555) 789-0123',
+    productCode: 'SCCA60',
+    productName: '4000 PSI Concrete',
+    mixDesign: '4000 PSI BLD NB3',
+    slump: '4.00 IN',
+    deliveryAddress: '999 River Road',
+    deliveryCity: 'Edmond, OK 73034',
+    customerName: 'Riverside Developers',
+    customerPhone: '+1 (555) 321-0987',
+    customerCompany: 'Riverside Developers LLC',
+    plantName: 'Riverside Plant',
+    distance: '30.0 mi',
+  },
+];
+
+interface StatusBadgeProps {
+  status: StatusConfig;
+}
+
+const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+  return (
+    <View style={styles.statusBadgeContainer}>
+      <View style={[styles.statusIconContainer, { backgroundColor: status.iconBg }]}>
+        <Icon name={status.icon} size={ms(14)} color={status.textColor} />
+      </View>
+      <View style={[styles.statusTextBadge, { backgroundColor: status.bgColor }]}>
+        <Text style={[styles.statusText, { color: status.textColor }]}>
+          {status.label}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+interface TruckVisualProps {
+  isDark: boolean;
+}
+
+const TruckVisual: React.FC<TruckVisualProps> = ({ isDark }) => {
+  const themeColors = isDark ? colors.dark : colors.light;
+  const iconColor = isDark ? colors.ticket.ui.dark.accentBlue : colors.primary.main;
+
+  return (
+    <View
+      style={[
+        styles.truckVisualContainer,
+        {
+          backgroundColor: themeColors.card,
+          shadowColor: isDark ? '#000' : colors.primary.main,
+        },
+      ]}>
+      <View style={[styles.truckAccentLine, { backgroundColor: iconColor }]} />
+      <Icon name="truck-delivery" size={ms(24)} color={iconColor} />
+    </View>
+  );
+};
+
+interface TicketItemProps {
+  ticket: DeliveryTicket;
+  onPress: () => void;
+  isDark: boolean;
+}
+
+const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, isDark }) => {
+  const themeColors = isDark ? colors.dark : colors.light;
+  const statusConfigMap = isDark ? STATUS_CONFIG_DARK : STATUS_CONFIG;
+  const status = statusConfigMap[ticket.status];
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.ticketItem,
+        { backgroundColor: themeColors.card },
+        pressed && styles.ticketItemPressed,
+      ]}>
+      <TruckVisual isDark={isDark} />
+
+      <View style={styles.ticketContent}>
+        <View style={styles.ticketTopRow}>
+          <Text
+            style={[styles.truckName, { color: themeColors.text.secondary }]}
+            numberOfLines={1}>
+            {ticket.truckName}
+          </Text>
+          <View style={styles.timeContainer}>
+            <Icon
+              name="clock-outline"
+              size={ms(11)}
+              color={isDark ? colors.ticket.ui.dark.timeText : colors.ticket.ui.light.timeText}
+            />
+            <Text
+              style={[
+                styles.timeText,
+                { color: isDark ? colors.ticket.ui.dark.timeText : colors.ticket.ui.light.timeText },
+              ]}>
+              {ticket.scheduledTime}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.ticketMainRow}>
+          <Text style={[styles.ticketNumber, { color: themeColors.text.primary }]}>
+            {ticket.ticketNumber}
+          </Text>
+          <Text style={[styles.ticketSeparator, { color: themeColors.text.primary }]}>:</Text>
+          <Text style={[styles.ticketQuantityInline, { color: themeColors.text.primary }]}>
+            {ticket.loadQuantity.toFixed(2)}{ticket.unit}
+          </Text>
+        </View>
+
+        <View style={styles.ticketBottomRow}>
+          <Text style={[styles.totalText, { color: themeColors.text.hint }]}>
+            {ticket.loadQuantity.toFixed(2)} OF {ticket.totalOrderQuantity} {ticket.unit}
+          </Text>
+          <StatusBadge status={status} />
+        </View>
+      </View>
+
+      <View style={styles.chevronContainer}>
+        <Icon
+          name="chevron-right"
+          size={ms(22)}
+          color={isDark ? colors.ticket.ui.dark.chevron : colors.ticket.ui.light.chevron}
+        />
+      </View>
+    </Pressable>
+  );
+};
+
+interface OrderHeaderProps {
+  orderDate: string;
+  deliveryAddress: string;
+  tickets: DeliveryTicket[];
+  isDark: boolean;
+}
+
+const OrderHeader: React.FC<OrderHeaderProps> = ({
+  orderDate,
+  deliveryAddress,
+  tickets,
+  isDark,
+}) => {
+  const themeColors = isDark ? colors.dark : colors.light;
+  const ticketUi = isDark ? colors.ticket.ui.dark : colors.ticket.ui.light;
+  const accentColor = isDark ? colors.ticket.ui.dark.accentBlue : colors.primary.main;
+  const accentColorLight = isDark ? colors.ticket.ui.dark.accentBlueLight : colors.primary.main;
+
+  const progressData = useMemo(() => {
+    const totalDelivered = tickets
+      .filter(t => t.status === 'completed' || t.status === 'returning')
+      .reduce((sum, t) => sum + t.loadQuantity, 0);
+    const totalOrdered = tickets[0]?.totalOrderQuantity || 0;
+    const percentage = totalOrdered > 0 ? (totalDelivered / totalOrdered) * 100 : 0;
+    const ticketCount = tickets.length;
+
+    return { totalDelivered, totalOrdered, percentage, ticketCount };
+  }, [tickets]);
+
+  return (
+    <View style={[styles.orderHeader, { backgroundColor: themeColors.card }]}>
+      <View style={styles.orderTopSection}>
+        <View
+          style={[
+            styles.orderIconBox,
+            {
+              backgroundColor: themeColors.card,
+              shadowColor: isDark ? colors.common.black : colors.primary.main,
+            },
+          ]}>
+          <View style={[styles.orderIconAccent, { backgroundColor: accentColor }]} />
+          <Icon name="clipboard-text-outline" size={ms(22)} color={accentColor} />
+        </View>
+
+        <View style={styles.orderDetails}>
+          <Text style={[styles.orderDate, { color: themeColors.text.primary }]}>
+            ORDER - {orderDate}
+          </Text>
+          <View style={styles.addressRow}>
+            <Icon name="map-marker-outline" size={ms(14)} color={themeColors.text.hint} />
+            <Text
+              style={[styles.orderAddress, { color: themeColors.text.secondary }]}
+              numberOfLines={1}>
+              {deliveryAddress}
+            </Text>
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.ticketCountBadge,
+            { backgroundColor: isDark ? colors.ticket.ui.dark.badgeBg : colors.primary.main + '12' },
+          ]}
+        >
+          <Text style={[styles.ticketCountNumber, { color: accentColorLight }]}>
+            {progressData.ticketCount}
+          </Text>
+          <Text style={[styles.ticketCountLabel, { color: accentColorLight }]}>
+            Loads
+          </Text>
+        </View>
+      </View>
+
+      <View style={[styles.orderDivider, { backgroundColor: themeColors.border }]} />
+
+      <View style={styles.progressSection}>
+        <View style={styles.progressHeader}>
+          <Text style={[styles.progressTitle, { color: themeColors.text.secondary }]}>
+            Delivery Progress
+          </Text>
+          <Text style={[styles.progressPercentage, { color: accentColor }]}>
+            {progressData.percentage.toFixed(0)}%
+          </Text>
+        </View>
+        <View style={[styles.progressBarContainer, { backgroundColor: ticketUi.progressBg }]}>
+          <View
+            style={[
+              styles.progressBarFill,
+              {
+                width: `${progressData.percentage}%`,
+                backgroundColor: accentColor,
+              },
+            ]}
+          />
+        </View>
+
+        <Text style={[styles.progressLabel, { color: themeColors.text.hint }]}>
+          {progressData.totalDelivered.toFixed(1)} of {progressData.totalOrdered} CY delivered
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+interface EmptyStateProps {
+  hasFilter: boolean;
+  hasSearch: boolean;
+  isDark: boolean;
+}
+
+const EmptyState: React.FC<EmptyStateProps> = ({ hasFilter, hasSearch, isDark }) => {
+  const themeColors = isDark ? colors.dark : colors.light;
+  const gradientColors = isDark
+    ? colors.ticket.emptyGradient.dark
+    : colors.ticket.emptyGradient.light;
+  const iconColor = isDark ? colors.common.white : colors.ticket.ui.light.emptyIcon;
+
+  const hasAnyFilter = hasFilter || hasSearch;
+
+  return (
+    <View style={styles.emptyState}>
+      <LinearGradient
+        colors={gradientColors}
+        style={styles.emptyIconContainer}
+      >
+        <Icon name={hasSearch ? 'magnify' : 'ticket-outline'} size={ms(48)} color={iconColor} />
+      </LinearGradient>
+      <Text style={[styles.emptyTitle, { color: themeColors.text.primary }]}>
+        {hasSearch ? 'No Results Found' : hasFilter ? 'No Matching Tickets' : 'No Tickets Yet'}
+      </Text>
+      <Text style={[styles.emptySubtitle, { color: themeColors.text.secondary }]}>
+        {hasSearch
+          ? 'Try different search terms or clear your search.'
+          : hasAnyFilter
+            ? 'Try adjusting your filters to see more tickets.'
+            : 'Delivery tickets will appear here once loads are scheduled.'}
+      </Text>
+    </View>
+  );
+};
+
+// ============================================================================
+// SEARCH BAR COMPONENT
+// ============================================================================
+
+interface SearchBarProps {
+  value: string;
+  onChangeText: (text: string) => void;
+  onClear: () => void;
+  onFilterPress: () => void;
+  isDark: boolean;
+  activeFiltersCount: number;
+}
+
+const SearchBar: React.FC<SearchBarProps> = ({
+  value,
+  onChangeText,
+  onClear,
+  onFilterPress,
+  isDark,
+  activeFiltersCount,
+}) => {
+  const themeColors = isDark ? colors.dark : colors.light;
+  const ticketUi = isDark ? colors.ticket.ui.dark : colors.ticket.ui.light;
+
+  return (
+    <View style={styles.searchContainer}>
+      <View style={[styles.searchInputWrapper, { backgroundColor: themeColors.card }]}>
+        <Icon
+          name="magnify"
+          size={ms(20)}
+          color={themeColors.text.hint}
+          style={styles.searchIcon}
+        />
+        <TextInput
+          style={[styles.searchInput, { color: themeColors.text.primary }]}
+          placeholder="Search tickets, trucks, drivers..."
+          placeholderTextColor={themeColors.text.hint}
+          value={value}
+          onChangeText={onChangeText}
+          returnKeyType="search"
+        />
+        {value.length > 0 && (
+          <TouchableOpacity onPress={onClear} style={styles.clearButton}>
+            <Icon name="close-circle" size={ms(18)} color={themeColors.text.hint} />
+          </TouchableOpacity>
+        )}
+      </View>
+      <TouchableOpacity
+        style={[
+          styles.filterButton,
+          {
+            backgroundColor: activeFiltersCount > 0 ? colors.primary.main : themeColors.card,
+          },
+        ]}
+        onPress={onFilterPress}
+        activeOpacity={0.7}>
+        <Icon
+          name="filter-variant"
+          size={ms(20)}
+          color={activeFiltersCount > 0 ? colors.common.white : themeColors.text.primary}
+        />
+        {activeFiltersCount > 0 && (
+          <View style={styles.filterBadge}>
+            <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+// ============================================================================
+// FILTER MODAL COMPONENT
+// ============================================================================
+
+interface FilterOptions {
+  statuses: TicketStatus[];
+  sortBy: 'time' | 'ticket' | 'quantity';
+  sortOrder: 'asc' | 'desc';
+  trucks: string[];
+}
+
+interface FilterModalProps {
+  visible: boolean;
+  onClose: () => void;
+  filters: FilterOptions;
+  onApply: (filters: FilterOptions) => void;
+  onReset: () => void;
+  isDark: boolean;
+  availableTrucks: string[];
+}
+
+const FilterModal: React.FC<FilterModalProps> = ({
+  visible,
+  onClose,
+  filters,
+  onApply,
+  onReset,
+  isDark,
+  availableTrucks,
+}) => {
+  const themeColors = isDark ? colors.dark : colors.light;
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const [localFilters, setLocalFilters] = useState<FilterOptions>(filters);
+
+  React.useEffect(() => {
+    if (visible) {
+      setLocalFilters(filters);
+      Animated.spring(slideAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible, filters, slideAnim]);
+
+  const toggleStatus = (status: TicketStatus) => {
+    setLocalFilters(prev => ({
+      ...prev,
+      statuses: prev.statuses.includes(status)
+        ? prev.statuses.filter(s => s !== status)
+        : [...prev.statuses, status],
+    }));
+  };
+
+  const toggleTruck = (truck: string) => {
+    setLocalFilters(prev => ({
+      ...prev,
+      trucks: prev.trucks.includes(truck)
+        ? prev.trucks.filter(t => t !== truck)
+        : [...prev.trucks, truck],
+    }));
+  };
+
+  const handleApply = () => {
+    onApply(localFilters);
+    onClose();
+  };
+
+  const handleReset = () => {
+    const resetFilters: FilterOptions = {
+      statuses: [],
+      sortBy: 'time',
+      sortOrder: 'asc',
+      trucks: [],
+    };
+    setLocalFilters(resetFilters);
+    onReset();
+  };
+
+  const statusOptions: { id: TicketStatus; label: string; color: string }[] = [
+    { id: 'at_plant', label: 'At Plant', color: colors.ticket.status.atPlant.text },
+    { id: 'in_transit', label: 'In Transit', color: colors.ticket.status.inTransit.text },
+    { id: 'at_site', label: 'At Site', color: colors.ticket.status.atSite.text },
+    { id: 'pouring', label: 'Pouring', color: colors.ticket.status.pouring.text },
+    { id: 'completed', label: 'Completed', color: colors.ticket.status.completed.text },
+    { id: 'returning', label: 'Returning', color: colors.ticket.status.returning.text },
+  ];
+
+  const sortOptions: { id: 'time' | 'ticket' | 'quantity'; label: string; icon: string }[] = [
+    { id: 'time', label: 'Scheduled Time', icon: 'clock-outline' },
+    { id: 'ticket', label: 'Ticket Number', icon: 'ticket-outline' },
+    { id: 'quantity', label: 'Load Quantity', icon: 'weight' },
+  ];
+
+  const activeFiltersCount =
+    localFilters.statuses.length +
+    localFilters.trucks.length +
+    (localFilters.sortBy !== 'time' || localFilters.sortOrder !== 'asc' ? 1 : 0);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}>
+      <Pressable style={styles.modalOverlay} onPress={onClose}>
+        <Animated.View
+          style={[
+            styles.modalContent,
+            {
+              backgroundColor: themeColors.card,
+              transform: [
+                {
+                  translateY: slideAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [300, 0],
+                  }),
+                },
+              ],
+            },
+          ]}>
+          <Pressable onPress={() => Keyboard.dismiss()}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: themeColors.text.primary }]}>
+                Filter Tickets
+              </Text>
+              <TouchableOpacity onPress={onClose} style={styles.modalCloseBtn}>
+                <Icon name="close" size={ms(24)} color={themeColors.text.primary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.modalScroll}
+              showsVerticalScrollIndicator={false}>
+              {/* Status Filter */}
+              <View style={styles.filterSection}>
+                <Text style={[styles.filterSectionTitle, { color: themeColors.text.primary }]}>
+                  Status
+                </Text>
+                <View style={styles.filterChipsGrid}>
+                  {statusOptions.map(status => {
+                    const isSelected = localFilters.statuses.includes(status.id);
+                    return (
+                      <TouchableOpacity
+                        key={status.id}
+                        style={[
+                          styles.filterChipOption,
+                          {
+                            backgroundColor: isSelected
+                              ? `${status.color}20`
+                              : isDark
+                                ? 'rgba(255,255,255,0.08)'
+                                : '#F5F5F5',
+                            borderColor: isSelected ? status.color : 'transparent',
+                          },
+                        ]}
+                        onPress={() => toggleStatus(status.id)}>
+                        {isSelected && (
+                          <Icon name="check" size={ms(14)} color={status.color} />
+                        )}
+                        <Text
+                          style={[
+                            styles.filterChipOptionText,
+                            { color: isSelected ? status.color : themeColors.text.secondary },
+                          ]}>
+                          {status.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Sort By */}
+              <View style={styles.filterSection}>
+                <Text style={[styles.filterSectionTitle, { color: themeColors.text.primary }]}>
+                  Sort By
+                </Text>
+                <View style={styles.sortOptionsContainer}>
+                  {sortOptions.map(option => {
+                    const isSelected = localFilters.sortBy === option.id;
+                    return (
+                      <TouchableOpacity
+                        key={option.id}
+                        style={[
+                          styles.sortOption,
+                          {
+                            backgroundColor: isSelected
+                              ? colors.primary.main
+                              : isDark
+                                ? 'rgba(255,255,255,0.08)'
+                                : '#F5F5F5',
+                          },
+                        ]}
+                        onPress={() =>
+                          setLocalFilters(prev => ({ ...prev, sortBy: option.id }))
+                        }>
+                        <Icon
+                          name={option.icon}
+                          size={ms(18)}
+                          color={isSelected ? colors.common.white : themeColors.text.secondary}
+                        />
+                        <Text
+                          style={[
+                            styles.sortOptionText,
+                            {
+                              color: isSelected
+                                ? colors.common.white
+                                : themeColors.text.secondary,
+                            },
+                          ]}>
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* Sort Order */}
+                <View style={styles.sortOrderContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.sortOrderBtn,
+                      {
+                        backgroundColor:
+                          localFilters.sortOrder === 'asc'
+                            ? colors.primary.main
+                            : isDark
+                              ? 'rgba(255,255,255,0.08)'
+                              : '#F5F5F5',
+                      },
+                    ]}
+                    onPress={() =>
+                      setLocalFilters(prev => ({ ...prev, sortOrder: 'asc' }))
+                    }>
+                    <Icon
+                      name="sort-ascending"
+                      size={ms(18)}
+                      color={
+                        localFilters.sortOrder === 'asc'
+                          ? colors.common.white
+                          : themeColors.text.secondary
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.sortOrderText,
+                        {
+                          color:
+                            localFilters.sortOrder === 'asc'
+                              ? colors.common.white
+                              : themeColors.text.secondary,
+                        },
+                      ]}>
+                      Ascending
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.sortOrderBtn,
+                      {
+                        backgroundColor:
+                          localFilters.sortOrder === 'desc'
+                            ? colors.primary.main
+                            : isDark
+                              ? 'rgba(255,255,255,0.08)'
+                              : '#F5F5F5',
+                      },
+                    ]}
+                    onPress={() =>
+                      setLocalFilters(prev => ({ ...prev, sortOrder: 'desc' }))
+                    }>
+                    <Icon
+                      name="sort-descending"
+                      size={ms(18)}
+                      color={
+                        localFilters.sortOrder === 'desc'
+                          ? colors.common.white
+                          : themeColors.text.secondary
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.sortOrderText,
+                        {
+                          color:
+                            localFilters.sortOrder === 'desc'
+                              ? colors.common.white
+                              : themeColors.text.secondary,
+                        },
+                      ]}>
+                      Descending
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Truck Filter */}
+              {availableTrucks.length > 0 && (
+                <View style={styles.filterSectionLast}>
+                  <Text style={[styles.filterSectionTitle, { color: themeColors.text.primary }]}>
+                    Trucks
+                  </Text>
+                  <View style={styles.filterChipsGrid}>
+                    {availableTrucks.map(truck => {
+                      const isSelected = localFilters.trucks.includes(truck);
+                      return (
+                        <TouchableOpacity
+                          key={truck}
+                          style={[
+                            styles.filterChipOption,
+                            {
+                              backgroundColor: isSelected
+                                ? `${colors.primary.main}20`
+                                : isDark
+                                  ? 'rgba(255,255,255,0.08)'
+                                  : '#F5F5F5',
+                              borderColor: isSelected ? colors.primary.main : 'transparent',
+                            },
+                          ]}
+                          onPress={() => toggleTruck(truck)}>
+                          {isSelected && (
+                            <Icon name="check" size={ms(14)} color={colors.primary.main} />
+                          )}
+                          <Text
+                            style={[
+                              styles.filterChipOptionText,
+                              {
+                                color: isSelected
+                                  ? colors.primary.main
+                                  : themeColors.text.secondary,
+                              },
+                            ]}>
+                            {truck}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              <View style={{ height: ms(80) }} />
+            </ScrollView>
+
+            {/* Modal Footer */}
+            <View style={[styles.modalFooter, { borderTopColor: themeColors.border, backgroundColor: themeColors.card }]}>
+              <TouchableOpacity
+                style={[styles.modalResetBtn, { borderColor: themeColors.border }]}
+                onPress={handleReset}>
+                <Icon name="refresh" size={ms(18)} color={themeColors.text.secondary} />
+                <Text style={[styles.modalResetText, { color: themeColors.text.secondary }]}>
+                  Reset
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalApplyBtn, { backgroundColor: colors.primary.main }]}
+                onPress={handleApply}>
+                <Text style={styles.modalApplyText}>
+                  Apply{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ''}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Animated.View>
+      </Pressable>
+    </Modal>
+  );
+};
+
+const DEFAULT_FILTERS: FilterOptions = {
+  statuses: [],
+  sortBy: 'time',
+  sortOrder: 'asc',
+  trucks: [],
+};
+
+export const TicketScreen: React.FC = () => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const route = useRoute<TicketScreenRouteProp>();
+  const { isDark } = useTheme();
+  const themeColors = isDark ? colors.dark : colors.light;
+
+  const { orderId, orderCode } = route.params;
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState<FilterOptions>(DEFAULT_FILTERS);
+
+  const allTickets = useMemo(
+    () => generateMockTickets(orderId, orderCode),
+    [orderId, orderCode]
+  );
+
+  // Get unique truck names for filter modal
+  const availableTrucks = useMemo(() => {
+    const trucks = new Set(allTickets.map(t => t.truckId));
+    return Array.from(trucks);
+  }, [allTickets]);
+
+  // Count active filters for badge
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (advancedFilters.statuses.length > 0) count += advancedFilters.statuses.length;
+    if (advancedFilters.trucks.length > 0) count += advancedFilters.trucks.length;
+    if (advancedFilters.sortBy !== 'time' || advancedFilters.sortOrder !== 'asc') count += 1;
+    return count;
+  }, [advancedFilters]);
+
+  const filteredTickets = useMemo(() => {
+    let tickets = allTickets;
+
+    // Apply status filter from modal
+    if (advancedFilters.statuses.length > 0) {
+      tickets = tickets.filter(ticket => advancedFilters.statuses.includes(ticket.status));
+    }
+
+    // Apply truck filter
+    if (advancedFilters.trucks.length > 0) {
+      tickets = tickets.filter(ticket => advancedFilters.trucks.includes(ticket.truckId));
+    }
+
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      tickets = tickets.filter(ticket =>
+        ticket.ticketNumber.toLowerCase().includes(query) ||
+        ticket.truckName.toLowerCase().includes(query) ||
+        ticket.truckId.toLowerCase().includes(query) ||
+        (ticket.driverName && ticket.driverName.toLowerCase().includes(query))
+      );
+    }
+
+    // Apply sorting
+    tickets = [...tickets].sort((a, b) => {
+      let comparison = 0;
+      switch (advancedFilters.sortBy) {
+        case 'time':
+          comparison = a.scheduledTime.localeCompare(b.scheduledTime);
+          break;
+        case 'ticket':
+          comparison = a.ticketNumber.localeCompare(b.ticketNumber);
+          break;
+        case 'quantity':
+          comparison = a.loadQuantity - b.loadQuantity;
+          break;
+      }
+      return advancedFilters.sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return tickets;
+  }, [allTickets, advancedFilters, searchQuery]);
+
+  const handleBack = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
+
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    setTimeout(() => setIsRefreshing(false), 1500);
+  }, []);
+
+  const handleTicketPress = useCallback((ticket: DeliveryTicket) => {
+    navigation.navigate('TicketDetail', {
+      ticketId: ticket.id,
+      ticketNumber: ticket.ticketNumber,
+      truckId: ticket.truckId,
+      truckName: ticket.truckName,
+      loadQuantity: ticket.loadQuantity,
+      totalOrderQuantity: ticket.totalOrderQuantity,
+      unit: ticket.unit,
+      status: ticket.status,
+      scheduledTime: ticket.scheduledTime,
+      actualTime: ticket.actualTime,
+      driverName: ticket.driverName,
+      driverPhone: ticket.driverPhone,
+      orderCode: orderCode,
+      // Product/Mix Information
+      productCode: ticket.productCode,
+      productName: ticket.productName,
+      mixDesign: ticket.mixDesign,
+      slump: ticket.slump,
+      // Delivery Location
+      deliveryAddress: ticket.deliveryAddress,
+      deliveryCity: ticket.deliveryCity,
+      // Customer Information
+      customerName: ticket.customerName,
+      customerPhone: ticket.customerPhone,
+      customerCompany: ticket.customerCompany,
+      // Additional Details
+      specialInstructions: ticket.specialInstructions,
+      plantName: ticket.plantName,
+      estimatedArrival: ticket.estimatedArrival,
+      distance: ticket.distance,
+    });
+  }, [navigation, orderCode]);
+
+  const handleSearchClear = useCallback(() => {
+    setSearchQuery('');
+  }, []);
+
+  const handleFilterPress = useCallback(() => {
+    setFilterModalVisible(true);
+  }, []);
+
+  const handleFilterApply = useCallback((filters: FilterOptions) => {
+    setAdvancedFilters(filters);
+  }, []);
+
+  const handleFilterReset = useCallback(() => {
+    setAdvancedFilters(DEFAULT_FILTERS);
+  }, []);
+
+  const renderHeader = useCallback(() => (
+    <View style={styles.listHeader}>
+      <OrderHeader
+        orderDate="11 Nov 2025"
+        deliveryAddress="2 SCHOOL STREET, RIPLEY"
+        tickets={allTickets}
+        isDark={isDark}
+      />
+      <View style={styles.listHeaderRow}>
+        <Text style={[styles.listHeaderText, { color: themeColors.text.secondary }]}>
+          {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''}
+        </Text>
+      </View>
+    </View>
+  ), [allTickets, filteredTickets.length, isDark, themeColors]);
+
+  const renderTicket = useCallback(
+    ({ item }: { item: DeliveryTicket }) => (
+      <TicketItem
+        ticket={item}
+        onPress={() => handleTicketPress(item)}
+        isDark={isDark}
+      />
+    ),
+    [isDark, handleTicketPress]
+  );
+
+  const keyExtractor = useCallback((item: DeliveryTicket) => item.id, []);
+
+  return (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: themeColors.background }]}
+      edges={['top']}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={[styles.headerBtn, { backgroundColor: themeColors.surface }]}
+          onPress={handleBack}
+          activeOpacity={0.7}>
+          <Icon name="arrow-left" size={ms(20)} color={themeColors.text.primary} />
+        </TouchableOpacity>
+
+        <View style={styles.headerCenter}>
+          <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>
+            Delivery Tickets
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: themeColors.text.hint }]}>
+            Order #{orderCode}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.headerBtn, { backgroundColor: themeColors.surface }]}
+          onPress={handleRefresh}
+          activeOpacity={0.7}>
+          <Icon name="refresh" size={ms(20)} color={themeColors.text.primary} />
+        </TouchableOpacity>
+      </View>
+
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        onClear={handleSearchClear}
+        onFilterPress={handleFilterPress}
+        isDark={isDark}
+        activeFiltersCount={activeFiltersCount}
+      />
+
+      <FlatList
+        style={styles.flatList}
+        data={filteredTickets}
+        renderItem={renderTicket}
+        keyExtractor={keyExtractor}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={
+          <EmptyState
+            hasFilter={activeFiltersCount > 0}
+            hasSearch={searchQuery.trim().length > 0}
+            isDark={isDark}
+          />
+        }
+        contentContainerStyle={
+          filteredTickets.length === 0
+            ? styles.listContentEmpty
+            : styles.listContent
+        }
+        showsVerticalScrollIndicator={false}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary.main}
+            colors={[colors.primary.main]}
+          />
+        }
+      />
+
+      <FilterModal
+        visible={filterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        filters={advancedFilters}
+        onApply={handleFilterApply}
+        onReset={handleFilterReset}
+        isDark={isDark}
+        availableTrucks={availableTrucks}
+      />
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  headerBtn: {
+    width: ms(40),
+    height: ms(40),
+    borderRadius: ms(12),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(17),
+  },
+  headerSubtitle: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+    marginTop: ms(2),
+  },
+  orderHeader: {
+    borderRadius: ms(14),
+    padding: ms(14),
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  orderTopSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  orderIconBox: {
+    width: ms(44),
+    height: ms(44),
+    borderRadius: ms(11),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: ms(12),
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  orderIconAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: ms(3),
+    borderTopLeftRadius: ms(11),
+    borderTopRightRadius: ms(11),
+  },
+  orderDetails: {
+    flex: 1,
+  },
+  orderDate: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(13),
+    marginBottom: ms(3),
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(4),
+  },
+  orderAddress: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
+    flex: 1,
+  },
+  ticketCountBadge: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: ms(12),
+    paddingVertical: ms(8),
+    borderRadius: ms(10),
+  },
+  ticketCountNumber: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(16),
+  },
+  ticketCountLabel: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(9),
+    marginTop: ms(1),
+  },
+  orderDivider: {
+    height: 1,
+    marginVertical: ms(12),
+  },
+  progressSection: {},
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: ms(6),
+  },
+  progressTitle: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(11),
+  },
+  progressPercentage: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(13),
+  },
+  progressBarContainer: {
+    height: ms(6),
+    borderRadius: ms(3),
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: ms(3),
+  },
+  progressLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+    marginTop: ms(5),
+  },
+  // FlatList takes remaining space
+  flatList: {
+    flex: 1,
+  },
+  // Content styles - no flexGrow to prevent centering
+  listContent: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: TAB_BAR_HEIGHT + spacing.xl,
+  },
+  // Only for empty state - enables vertical centering
+  listContentEmpty: {
+    flexGrow: 1,
+    paddingHorizontal: spacing.md,
+    paddingBottom: TAB_BAR_HEIGHT + spacing.xl,
+  },
+  listHeader: {
+    marginBottom: ms(4),
+  },
+  listHeaderRow: {
+    marginTop: ms(8),
+  },
+  listHeaderText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(13),
+  },
+  separator: {
+    height: ms(4),
+  },
+  ticketItem: {
+    flexDirection: 'row',
+    borderRadius: ms(12),
+    padding: ms(8),
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  ticketItemPressed: {
+    opacity: 0.95,
+    transform: [{ scale: 0.99 }],
+  },
+  truckVisualContainer: {
+    width: ms(50),
+    height: ms(50),
+    borderRadius: ms(10),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: ms(10),
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  truckAccentLine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: ms(3),
+    borderTopLeftRadius: ms(12),
+    borderTopRightRadius: ms(12),
+  },
+  ticketContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  ticketTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: ms(1),
+  },
+  truckName: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(12),
+    flex: 1,
+    marginRight: spacing.xs,
+  },
+  statusBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(4),
+  },
+  statusIconContainer: {
+    width: ms(20),
+    height: ms(20),
+    borderRadius: ms(6),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusTextBadge: {
+    width: ms(70),
+    paddingVertical: ms(4),
+    borderRadius: ms(6),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(8),
+    letterSpacing: 0.2,
+    textAlign: 'center',
+  },
+  ticketMainRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: ms(1),
+  },
+  ticketNumber: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(16),
+  },
+  ticketSeparator: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(16),
+    marginHorizontal: ms(5),
+  },
+  ticketQuantityInline: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(16),
+  },
+  ticketBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: ms(1),
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(4),
+  },
+  timeText: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+  },
+  totalText: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+  },
+  chevronContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: ms(6),
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl * 2,
+    marginTop: spacing.xl,
+  },
+  emptyIconContainer: {
+    width: ms(100),
+    height: ms(100),
+    borderRadius: ms(50),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  emptyTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(18),
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  emptySubtitle: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(14),
+    textAlign: 'center',
+    paddingHorizontal: spacing.xl,
+    lineHeight: ms(20),
+  },
+  // Search Bar Styles
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: ms(8),
+    gap: ms(10),
+  },
+  searchInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: ms(44),
+    borderRadius: ms(12),
+    paddingHorizontal: ms(12),
+  },
+  searchIcon: {
+    marginRight: ms(8),
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: fontFamily.regular,
+    fontSize: ms(14),
+    padding: 0,
+  },
+  clearButton: {
+    padding: ms(4),
+  },
+  filterButton: {
+    width: ms(44),
+    height: ms(44),
+    borderRadius: ms(12),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: ms(2),
+    right: ms(2),
+    minWidth: ms(18),
+    height: ms(18),
+    borderRadius: ms(9),
+    backgroundColor: colors.error.main,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: ms(4),
+  },
+  filterBadgeText: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(10),
+    color: colors.common.white,
+    includeFontPadding: false,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    lineHeight: ms(12),
+  },
+  // Filter Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: ms(24),
+    borderTopRightRadius: ms(24),
+    maxHeight: '85%',
+    paddingTop: ms(8),
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: ms(12),
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  modalTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(18),
+  },
+  modalCloseBtn: {
+    padding: ms(4),
+  },
+  modalScroll: {
+    paddingHorizontal: spacing.lg,
+  },
+  filterSection: {
+    marginTop: ms(14),
+  },
+  filterSectionLast: {
+    marginTop: ms(14),
+    marginBottom: ms(24),
+  },
+  filterSectionTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(14),
+    marginBottom: ms(8),
+  },
+  filterChipsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: ms(8),
+  },
+  filterChipOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(5),
+    paddingHorizontal: ms(12),
+    paddingVertical: ms(8),
+    borderRadius: ms(18),
+    borderWidth: 1.5,
+  },
+  filterChipOptionText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(13),
+  },
+  sortOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: ms(8),
+  },
+  sortOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(6),
+    paddingHorizontal: ms(12),
+    paddingVertical: ms(8),
+    borderRadius: ms(10),
+  },
+  sortOptionText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(13),
+  },
+  sortOrderContainer: {
+    flexDirection: 'row',
+    gap: ms(8),
+    marginTop: ms(8),
+  },
+  sortOrderBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: ms(5),
+    paddingVertical: ms(10),
+    borderRadius: ms(10),
+  },
+  sortOrderText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(13),
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: ms(12),
+    paddingHorizontal: spacing.lg,
+    paddingVertical: ms(16),
+    paddingBottom: ms(32),
+    borderTopWidth: 1,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  modalResetBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: ms(6),
+    paddingVertical: ms(14),
+    borderRadius: ms(12),
+    borderWidth: 1,
+  },
+  modalResetText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(14),
+  },
+  modalApplyBtn: {
+    flex: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: ms(14),
+    borderRadius: ms(12),
+  },
+  modalApplyText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(14),
+    color: colors.common.white,
+  },
+});
+
+export default TicketScreen;

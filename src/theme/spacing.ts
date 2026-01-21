@@ -1,0 +1,119 @@
+/**
+ * TruckAst Spacing System
+ * Consistent spacing throughout the app
+ */
+
+// Base spacing unit (4dp)
+const BASE_UNIT = 4;
+
+export const spacing = {
+  // Micro spacing
+  xxs: BASE_UNIT, // 4
+  xs: BASE_UNIT * 2, // 8
+  sm: BASE_UNIT * 3, // 12
+  md: BASE_UNIT * 4, // 16
+  lg: BASE_UNIT * 5, // 20
+  xl: BASE_UNIT * 6, // 24
+  '2xl': BASE_UNIT * 8, // 32
+  '3xl': BASE_UNIT * 10, // 40
+  '4xl': BASE_UNIT * 12, // 48
+  '5xl': BASE_UNIT * 16, // 64
+};
+
+// Border Radius
+export const borderRadius = {
+  none: 0,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  '2xl': 24,
+  full: 9999,
+};
+
+// Border Width
+export const borderWidth = {
+  none: 0,
+  thin: 0.5,
+  base: 1,
+  thick: 2,
+};
+
+// Icon Sizes
+export const iconSize = {
+  xs: 12,
+  sm: 16,
+  md: 20,
+  lg: 24,
+  xl: 32,
+  '2xl': 40,
+  '3xl': 48,
+  '4xl': 64,
+};
+
+// Component Heights
+export const componentHeight = {
+  buttonSmall: 32,
+  button: 44,
+  buttonLarge: 52,
+  input: 48,
+  inputLarge: 56,
+  header: 56,
+  tabBar: 64,
+  card: 'auto',
+};
+
+// Screen Padding
+export const screenPadding = {
+  horizontal: spacing.md,
+  vertical: spacing.md,
+  top: spacing.lg,
+  bottom: spacing.xl,
+};
+
+// Card Dimensions
+export const cardPadding = {
+  sm: spacing.sm,
+  md: spacing.md,
+  lg: spacing.lg,
+};
+
+// Shadow styles (iOS & Android)
+export const shadows = {
+  none: {
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  lg: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  xl: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+};

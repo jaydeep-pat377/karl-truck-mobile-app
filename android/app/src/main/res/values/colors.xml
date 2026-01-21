@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#6BB130</color>
+    <color name="primary_light">#86C543</color>
+    <color name="primary_dark">#5A9628</color>
+    <color name="secondary">#04BCEF</color>
+    <color name="splash_background">#6BB130</color>
+    <color name="bootsplash_background">#ffffff</color>
+</resources>
