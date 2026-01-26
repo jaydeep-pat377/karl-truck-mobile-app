@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { Text } from './Text';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Icon } from './Icon';
 
 interface InputProps extends TextInputProps {
   label?: string;

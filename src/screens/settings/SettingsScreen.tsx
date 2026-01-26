@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, CommonActions, NavigationProp } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { SettingsStackParamList } from '../../navigation/SettingsNavigator';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text, Card, LogoutModal } from '../../components/common';
+import { Text, Card, LogoutModal, Icon } from '../../components/common';
 import { useTranslation } from 'react-i18next';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { colors } from '../../theme/colors';
-import { spacing, ms, iconSizes } from '../../utils/responsive';
+import { spacing, ms } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
+import { useLogout } from '../../hooks/useLogout';
+import { useProfile } from '../../hooks/useProfile';
 
 interface SettingsItemProps {
   icon: string;
@@ -53,9 +53,6 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
   );
 };
 
-// ============================================
-// Theme Toggle Component - Primary Theme Control
-// ============================================
 interface ThemeToggleItemProps {
   onToggle: () => void;
 }
@@ -70,7 +67,6 @@ const ThemeToggleItem: React.FC<ThemeToggleItemProps> = ({ onToggle }) => {
       style={styles.themeToggleItem}
       onPress={onToggle}
       activeOpacity={0.7}>
-      {/* Theme Icon */}
       <View style={[
         styles.themeIconContainer,
         { backgroundColor: isDark ? colors.info.main + '20' : colors.warning.main + '20' }
@@ -82,7 +78,6 @@ const ThemeToggleItem: React.FC<ThemeToggleItemProps> = ({ onToggle }) => {
         />
       </View>
 
-      {/* Content */}
       <View style={styles.themeToggleContent}>
         <Text variant="bodySmall" style={{ fontWeight: '600' }}>
           {t('settings.theme')}
@@ -92,7 +87,6 @@ const ThemeToggleItem: React.FC<ThemeToggleItemProps> = ({ onToggle }) => {
         </Text>
       </View>
 
-      {/* Toggle Switch */}
       <TouchableOpacity
         onPress={onToggle}
         activeOpacity={0.8}
@@ -122,13 +116,21 @@ export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<SettingsStackParamList>>();
   const { toggleTheme, isDark } = useTheme();
   const { t } = useTranslation();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { logout, isLoading: isLoggingOut } = useLogout();
+  const { profile, isLoading: isProfileLoading } = useProfile();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const themeColors = isDark ? colors.dark : colors.light;
 
-  const handleNavigateToProfile = () => {
-    navigation.navigate('Profile');
+  // Get initials from name
+  const getInitials = (name: string | undefined): string => {
+    if (!name) return '';
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   const handleNavigateToEditProfile = () => {
@@ -148,28 +150,8 @@ export const SettingsScreen: React.FC = () => {
   };
 
   const performLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      // Clear stored user data
-      await AsyncStorage.multiRemove([
-        'userToken',
-        'userData',
-        'rememberMe',
-      ]);
-
-      // Reset navigation to Auth screen
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 0,
-          routes: [{ name: 'Auth' as never }],
-        })
-      );
-    } catch (error) {
-      console.error('Logout error:', error);
-      Alert.alert('Error', 'Failed to logout. Please try again.');
-    } finally {
-      setIsLoggingOut(false);
-    }
+    await logout();
+    setShowLogoutModal(false);
   };
 
   return (
@@ -181,25 +163,74 @@ export const SettingsScreen: React.FC = () => {
           <Text variant="h2">{t('settings.title')}</Text>
         </View>
 
-        <Card padding="sm" style={styles.profileCard} onPress={handleNavigateToProfile}>
-          <View style={styles.profileContent}>
-            <View style={[styles.avatar, { backgroundColor: colors.primary.main }]}>
-              <Text variant="body" color="white" style={{ fontWeight: '600' }}>
-                JS
-              </Text>
+        <TouchableOpacity activeOpacity={0.7} onPress={handleNavigateToEditProfile}>
+          <Card padding="sm" style={styles.profileCard}>
+            <View style={styles.profileContent}>
+              <View style={[styles.avatar, { backgroundColor: colors.primary.main }]}>
+                {isProfileLoading ? (
+                  <ActivityIndicator size="small" color={colors.common.white} />
+                ) : (
+                  <Text variant="body" color="white" style={{ fontWeight: '600' }}>
+                    {getInitials(profile?.fullName)}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.profileInfo}>
+                {isProfileLoading ? (
+                  <>
+                    <View style={[styles.skeletonText, { width: ms(120), backgroundColor: themeColors.border }]} />
+                    <View style={[styles.skeletonText, { width: ms(160), backgroundColor: themeColors.border }]} />
+                    <View style={[styles.skeletonText, { width: ms(80), backgroundColor: themeColors.border }]} />
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.profileNameRow}>
+                      <Text variant="body" style={{ fontWeight: '600', flex: 1 }}>
+                        {profile?.fullName || ''}
+                      </Text>
+                      {profile?.active && (
+                        <View style={[styles.activeBadge, { backgroundColor: colors.success.main + '20' }]}>
+                          <View style={[styles.activeDot, { backgroundColor: colors.success.main }]} />
+                          <Text variant="captionSmall" style={{ color: colors.success.main }}>
+                            Active
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text variant="caption" color="secondary">
+                      {profile?.email || ''}
+                    </Text>
+                    {profile?.phone ? (
+                      <View style={styles.profileDetailRow}>
+                        <Icon name="phone-outline" size={ms(12)} color={themeColors.text.hint} />
+                        <Text variant="caption" color="hint" style={{ marginLeft: ms(4) }}>
+                          {profile.phone}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {profile?.title ? (
+                      <View style={styles.profileDetailRow}>
+                        <Icon name="briefcase-outline" size={ms(12)} color={themeColors.text.hint} />
+                        <Text variant="caption" color="hint" style={{ marginLeft: ms(4) }}>
+                          {profile.title}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {profile?.company ? (
+                      <View style={styles.profileDetailRow}>
+                        <Icon name="office-building-outline" size={ms(12)} color={themeColors.text.hint} />
+                        <Text variant="caption" color="hint" style={{ marginLeft: ms(4) }}>
+                          {profile.company}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </>
+                )}
+              </View>
+              <Icon name="chevron-right" size={ms(20)} color={themeColors.text.hint} />
             </View>
-            <View style={styles.profileInfo}>
-              <Text variant="body" style={{ fontWeight: '600' }}>John Smith</Text>
-              <Text variant="caption" color="secondary">
-                john.smith@dolese.com
-              </Text>
-              <Text variant="caption" color="hint" style={{ fontSize: ms(11) }}>
-                Dispatcher
-              </Text>
-            </View>
-            <Icon name="chevron-right" size={ms(20)} color={themeColors.text.hint} />
-          </View>
-        </Card>
+          </Card>
+        </TouchableOpacity>
 
         <View style={styles.section}>
           <Text variant="label" color="secondary" style={styles.sectionTitle}>
@@ -218,11 +249,11 @@ export const SettingsScreen: React.FC = () => {
               onPress={handleNavigateToChangePassword}
             />
             <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
-            <SettingsItem
+            {/* <SettingsItem
               icon="numeric"
               title={t('settings.changePin')}
               onPress={handleNavigateToChangePIN}
-            />
+            /> */}
           </Card>
         </View>
 
@@ -231,7 +262,6 @@ export const SettingsScreen: React.FC = () => {
             {t('settings.appearance')}
           </Text>
           <Card padding="none">
-            {/* Primary Theme Control - Only place to change theme */}
             <ThemeToggleItem onToggle={toggleTheme} />
             <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
             <SettingsItem
@@ -257,7 +287,7 @@ export const SettingsScreen: React.FC = () => {
           </Card>
         </View>
 
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <Text variant="label" color="secondary" style={styles.sectionTitle}>
             {t('settings.security')}
           </Text>
@@ -268,7 +298,7 @@ export const SettingsScreen: React.FC = () => {
               onPress={() => { }}
             />
           </Card>
-        </View>
+        </View> */}
 
         <View style={styles.section}>
           <Text variant="label" color="secondary" style={styles.sectionTitle}>
@@ -308,8 +338,7 @@ export const SettingsScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.logoutButton}
               onPress={handleLogout}
-              activeOpacity={0.7}
-            >
+              activeOpacity={0.7}>
               <Icon name="logout" size={ms(18)} color={colors.error.main} />
               <Text variant="bodySmall" style={{ color: colors.error.main, marginLeft: spacing.sm, fontWeight: '500' }}>
                 {t('auth.logout')}
@@ -331,9 +360,6 @@ export const SettingsScreen: React.FC = () => {
   );
 };
 
-// ============================================
-// Compact Spacing Tokens
-// ============================================
 const COMPACT_SPACING = {
   itemPaddingVertical: ms(10),
   itemPaddingHorizontal: ms(14),
@@ -349,13 +375,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  // Header - Reduced vertical padding
   header: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
   },
-  // Profile Card - Tighter margins
   profileCard: {
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
@@ -374,9 +398,37 @@ const styles = StyleSheet.create({
   profileInfo: {
     flex: 1,
     marginLeft: spacing.md,
-    gap: ms(1),
+    gap: ms(2),
   },
-  // Sections - Reduced margins
+  profileNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  activeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: ms(6),
+    paddingVertical: ms(2),
+    borderRadius: ms(10),
+    marginLeft: ms(8),
+  },
+  activeDot: {
+    width: ms(6),
+    height: ms(6),
+    borderRadius: ms(3),
+    marginRight: ms(4),
+  },
+  profileDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: ms(1),
+  },
+  skeletonText: {
+    height: ms(14),
+    borderRadius: ms(4),
+    marginVertical: ms(2),
+  },
   section: {
     marginHorizontal: spacing.lg,
     marginBottom: COMPACT_SPACING.sectionMarginBottom,
@@ -387,7 +439,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  // Settings Items - Compact padding with min touch target
   settingsItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -395,7 +446,6 @@ const styles = StyleSheet.create({
     paddingVertical: COMPACT_SPACING.itemPaddingVertical,
     paddingHorizontal: COMPACT_SPACING.itemPaddingHorizontal,
   },
-  // Icon Container - Slightly smaller
   iconContainer: {
     width: COMPACT_SPACING.iconSize,
     height: COMPACT_SPACING.iconSize,
@@ -403,21 +453,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Item Content - Tighter spacing
   itemContent: {
     flex: 1,
     marginLeft: COMPACT_SPACING.iconTextGap,
     gap: ms(1),
   },
-  // Divider - Aligned with text (1px visible line)
   divider: {
     height: 1,
     marginLeft: COMPACT_SPACING.dividerMarginLeft,
     opacity: 0.5,
   },
-  // ============================================
-  // Theme Toggle Item Styles
-  // ============================================
   themeToggleItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -456,7 +501,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-  // Logout Button - Compact
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',

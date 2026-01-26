@@ -17,11 +17,9 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text } from '../../components/common/Text';
-import { Button } from '../../components/common/Button';
+import { Text, Button, Icon } from '../../components/common';
 import { ms, vs, spacing } from '../../utils/responsive';
 
 interface VerifyOTPScreenProps {

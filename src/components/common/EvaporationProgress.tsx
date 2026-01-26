@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Animated, Easing, StyleSheet } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Icon } from './Icon';
 import { colors } from '../../theme/colors';
 import { ms, vs, spacing, borderRadius, responsive } from '../../utils/responsive';
 import { fontFamily } from '@theme/typography';

@@ -7,17 +7,17 @@ import {
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Text } from '../../components/common';
+import { Text, Icon } from '../../components/common';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, vs, responsive } from '../../utils/responsive';
 import { RootStackParamList } from '../../navigation/types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type ProductCodeRouteProp = RouteProp<RootStackParamList, 'ProductCode'>;
 
 const GRID = {
   xs: 4,
@@ -235,7 +235,16 @@ const OrderCodeCard: React.FC<OrderCodeCardProps> = ({ orderCode, onPress, showT
 // Main Screen Component
 export const ProductCodeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<ProductCodeRouteProp>();
   const insets = useSafeAreaInsets();
+
+  // Get params from navigation
+  const {
+    orderStatus = 'Pending',
+    onJobTime = '--:--',
+    orderDate = '--/--/--',
+    rate = '0.00',
+  } = route.params || {};
 
   const handleBack = useCallback(() => {
     navigation.goBack();
@@ -272,18 +281,18 @@ export const ProductCodeScreen: React.FC = () => {
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={styles.statLabel}>Status</Text>
-            <Text style={styles.statValue}>{mockData.status}</Text>
+            <Text style={styles.statValue}>{orderStatus}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statLabel}>On Job</Text>
-            <Text style={styles.statValueLarge}>{mockData.onJobTime}</Text>
-            <Text style={styles.statSubtext}>{mockData.date}</Text>
+            <Text style={styles.statValueLarge}>{onJobTime}</Text>
+            <Text style={styles.statSubtext}>{orderDate}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statLabel}>Rate</Text>
-            <Text style={styles.statValueLarge}>{mockData.rate}</Text>
+            <Text style={styles.statValueLarge}>{rate}</Text>
           </View>
         </View>
       </LinearGradient>

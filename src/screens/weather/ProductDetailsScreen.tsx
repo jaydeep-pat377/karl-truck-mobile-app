@@ -15,10 +15,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Path, Line, Text as SvgText } from 'react-native-svg';
-import { Text } from '../../components/common';
+import { Text, Icon } from '../../components/common';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, vs, responsive } from '../../utils/responsive';

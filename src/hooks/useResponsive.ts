@@ -1,17 +1,11 @@
-/**
- * useResponsive Hook
- * Provides responsive utilities with dynamic updates on dimension changes
- */
-
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Dimensions, ScaledSize, useWindowDimensions } from 'react-native';
+import { useCallback, useMemo } from 'react';
+import { useWindowDimensions } from 'react-native';
 import {
   moderateScale,
   scale,
   verticalScale,
 } from 'react-native-size-matters';
 
-// Breakpoints
 const TABLET_BREAKPOINT = 768;
 const SMALL_DEVICE_BREAKPOINT = 375;
 
@@ -37,7 +31,7 @@ interface ResponsiveHelpers {
   columns: (phone: number, tablet: number) => number;
 }
 
-export interface UseResponsiveReturn extends ResponsiveConfig, ResponsiveHelpers {}
+export interface UseResponsiveReturn extends ResponsiveConfig, ResponsiveHelpers { }
 
 export const useResponsive = (): UseResponsiveReturn => {
   const { width, height } = useWindowDimensions();
@@ -114,9 +108,6 @@ export const useResponsive = (): UseResponsiveReturn => {
   };
 };
 
-/**
- * Hook for responsive styles that update on dimension changes
- */
 export const useResponsiveStyles = <T extends Record<string, any>>(
   phoneStyles: T,
   tabletStyles: Partial<T>
@@ -131,9 +122,6 @@ export const useResponsiveStyles = <T extends Record<string, any>>(
   }, [isTablet, phoneStyles, tabletStyles]);
 };
 
-/**
- * Hook for grid layout columns
- */
 export const useGridColumns = (phoneColumns: number = 2, tabletColumns: number = 4): number => {
   const { isTablet, orientation } = useResponsive();
 
@@ -145,15 +133,11 @@ export const useGridColumns = (phoneColumns: number = 2, tabletColumns: number =
   }, [isTablet, orientation, phoneColumns, tabletColumns]);
 };
 
-/**
- * Hook for responsive font scaling
- */
 export const useScaledFontSize = (baseSize: number, factor: number = 0.5): number => {
   const { isTablet } = useResponsive();
 
   return useMemo(() => {
     const scaled = moderateScale(baseSize, factor);
-    // Slightly increase font size on tablets for better readability
     return isTablet ? scaled * 1.1 : scaled;
   }, [baseSize, factor, isTablet]);
 };

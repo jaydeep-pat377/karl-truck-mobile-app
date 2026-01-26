@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,21 +9,23 @@ import {
   Modal,
   Pressable,
   Share,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Path, Line, Text as SvgText, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
-import { Text, EvaporationProgress } from '../../components/common';
+import { Text, EvaporationProgress, TruckLoader, Icon, AlertModal } from '../../components/common';
+import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, vs, responsive, wp, hp, isTablet } from '../../utils/responsive';
 import { RootStackParamList } from '../../navigation/types';
+import { useWeather, useAlert } from '../../hooks';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type WeatherScreenRouteProp = RouteProp<RootStackParamList, 'Weather'>;
 
 const GRID = {
   xs: 4,
@@ -44,26 +46,6 @@ const RADIUS = {
 
 const WEATHER_COLORS = colors.weatherTheme;
 
-const mockWeatherData = {
-  location: 'Charlotte',
-  orderNo: '553439',
-  orderDate: '12-9-2025',
-  temperature: 28,
-  temperatureUnit: 'F',
-  condition: 'Precipitations',
-  maxTemp: 31,
-  minTemp: 25,
-  evaporation: { value: 0.15, status: 'Low' as const, description: 'Low for the rest of the day.', progress: 15 },
-  concreteTemp: { value: 55, description: `Similar to\nthe actual\ntemperature` },
-  wind: { direction: 'NW', speed: 12, unit: 'mph' },
-  pressure: { value: 30.15, unit: 'in' },
-  dewPoint: { value: 45, description: 'Similar to the actual temperature' },
-  humidity: { value: 73, description: 'The dew point is 16° right now.' },
-  productRecommendations: [
-    { id: '1', label: 'Termal Cracking', color: colors.productChip.thermalCracking },
-    { id: '2', label: 'Plastic Cracking', color: colors.productChip.plasticCracking },
-  ],
-};
 
 const WeatherIcon: React.FC<{ size?: number }> = ({ size = 100 }) => {
   return (
@@ -110,54 +92,63 @@ interface PressureCardProps {
 }
 
 const PressureCard: React.FC<PressureCardProps> = ({ value, unit }) => {
-  const svgWidth = responsive(ms(120), ms(150));
-  const svgHeight = responsive(ms(75), ms(95));
-  const radius = responsive(ms(48), ms(60));
-  const strokeWidth = responsive(ms(3), ms(4));
+  const svgWidth = responsive(ms(130), ms(160));
+  const svgHeight = responsive(ms(95), ms(115));
+  const radius = responsive(ms(45), ms(55));
+  const strokeWidth = responsive(ms(4), ms(5));
   const centerX = svgWidth / 2;
-  const centerY = responsive(ms(5), ms(8));
+  const centerY = radius + responsive(ms(8), ms(10));
+  const dotRadius = responsive(ms(6), ms(7));
 
-  // Pressure typically ranges from 29.5 to 30.5 inches
-  const minPressure = 29.5;
-  const maxPressure = 30.5;
+  // Pressure range for normalization
+  const minPressure = 29.0;
+  const maxPressure = 31.0;
   const normalizedValue = (value - minPressure) / (maxPressure - minPressure);
   const clampedValue = Math.max(0, Math.min(1, normalizedValue));
 
-  // Arc from upper-left to upper-right, curving DOWN
-  const startAngle = 210;
-  const endAngle = 330;
-  const arcSpan = endAngle - startAngle;
-  const progressAngle = startAngle + (clampedValue * arcSpan);
+  // Arc angles: 180° (left) to 0° (right) - semi-circle opening downward
+  const startAngle = 180;
+  const endAngle = 0;
+  const arcSpan = 180;
+  const progressAngle = startAngle - (clampedValue * arcSpan);
 
   const toRad = (deg: number) => (deg * Math.PI) / 180;
 
-  // Arc endpoints
+  // Calculate arc points
   const startX = centerX + Math.cos(toRad(startAngle)) * radius;
-  const startY = centerY + Math.sin(toRad(startAngle)) * radius;
+  const startY = centerY - Math.sin(toRad(startAngle)) * radius;
   const endX = centerX + Math.cos(toRad(endAngle)) * radius;
-  const endY = centerY + Math.sin(toRad(endAngle)) * radius;
+  const endY = centerY - Math.sin(toRad(endAngle)) * radius;
 
-  // Progress indicator position
+  // Calculate progress dot position
   const progressX = centerX + Math.cos(toRad(progressAngle)) * radius;
-  const progressY = centerY + Math.sin(toRad(progressAngle)) * radius;
+  const progressY = centerY - Math.sin(toRad(progressAngle)) * radius;
+
+  // Arc path for background (full semi-circle)
+  const backgroundArc = `M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${endX} ${endY}`;
+
+  // Arc path for progress
+  const progressEndX = centerX + Math.cos(toRad(progressAngle)) * radius;
+  const progressEndY = centerY - Math.sin(toRad(progressAngle)) * radius;
+  const progressArc = `M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${progressEndX} ${progressEndY}`;
 
   return (
     <WeatherMetricCard title="PRESSURE" titleIcon="arrow-up-down">
       <View style={styles.pressureContent}>
         <Svg width={svgWidth} height={svgHeight}>
-          {/* Background arc (gray track) */}
+          {/* Background arc */}
           <Path
-            d={`M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${endX} ${endY}`}
-            stroke={WEATHER_COLORS.text.hint + '40'}
+            d={backgroundArc}
+            stroke={WEATHER_COLORS.text.hint + '50'}
             strokeWidth={strokeWidth}
             fill="none"
             strokeLinecap="round"
           />
 
-          {/* Progress arc (white) - from start to current position */}
+          {/* Progress arc */}
           {clampedValue > 0 && (
             <Path
-              d={`M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${progressX} ${progressY}`}
+              d={progressArc}
               stroke={colors.common.white}
               strokeWidth={strokeWidth}
               fill="none"
@@ -165,34 +156,32 @@ const PressureCard: React.FC<PressureCardProps> = ({ value, unit }) => {
             />
           )}
 
-          {/* Indicator dot at progress position */}
+          {/* Indicator dot */}
           <Circle
             cx={progressX}
             cy={progressY}
-            r={responsive(ms(5), ms(6))}
+            r={dotRadius}
             fill="#FF6B6B"
           />
 
-          {/* Value text centered below arc */}
+          {/* Value text */}
           <SvgText
             x={centerX}
-            y={centerY + radius - responsive(ms(5), ms(8))}
-            fontSize={responsive(ms(22), ms(28))}
-            fontWeight="600"
+            y={centerY + responsive(ms(5), ms(8))}
+            fontSize={responsive(ms(24), ms(28))}
+            fontWeight="700"
             fill={WEATHER_COLORS.text.primary}
-            textAnchor="middle"
-          >
-            {value}
+            textAnchor="middle">
+            {value.toFixed(2)}
           </SvgText>
 
-          {/* Unit text below value */}
+          {/* Unit text */}
           <SvgText
             x={centerX}
-            y={centerY + radius + responsive(ms(12), ms(16))}
-            fontSize={responsive(ms(14), ms(18))}
+            y={centerY + responsive(ms(22), ms(28))}
+            fontSize={responsive(ms(14), ms(16))}
             fill={WEATHER_COLORS.text.primary}
-            textAnchor="middle"
-          >
+            textAnchor="middle">
             {unit}
           </SvgText>
         </Svg>
@@ -200,10 +189,6 @@ const PressureCard: React.FC<PressureCardProps> = ({ value, unit }) => {
     </WeatherMetricCard>
   );
 };
-
-// ============================================
-// Reusable Weather Metric Card Component
-// ============================================
 interface WeatherMetricCardProps {
   title: string;
   titleIcon: string;
@@ -223,7 +208,6 @@ const WeatherMetricCard: React.FC<WeatherMetricCardProps> = ({
 }) => {
   return (
     <View style={[styles.metricCard, { backgroundColor: WEATHER_COLORS.cardBackground, borderColor: WEATHER_COLORS.cardBorder }]}>
-      {/* Header Row - Icon + Title (top-left) */}
       <View style={styles.metricCardHeader}>
         <Icon name={titleIcon} size={ms(14)} color={WEATHER_COLORS.text.hint} />
         <Text style={[styles.metricCardTitle, { color: WEATHER_COLORS.text.hint }]}>
@@ -231,7 +215,6 @@ const WeatherMetricCard: React.FC<WeatherMetricCardProps> = ({
         </Text>
       </View>
 
-      {/* Custom Content or Value Display (centered) */}
       {children ? (
         <View style={styles.metricCardContent}>
           {children}
@@ -251,7 +234,6 @@ const WeatherMetricCard: React.FC<WeatherMetricCardProps> = ({
         </View>
       )}
 
-      {/* Optional Description (bottom) */}
       {description && (
         <Text style={[styles.metricCardDescription, { color: WEATHER_COLORS.text.secondary }]} numberOfLines={2}>
           {description}
@@ -261,9 +243,6 @@ const WeatherMetricCard: React.FC<WeatherMetricCardProps> = ({
   );
 };
 
-// ============================================
-// Concrete Temperature Card
-// ============================================
 interface ConcreteTempCardProps {
   value: number;
   description: string;
@@ -279,7 +258,7 @@ const ConcreteTempCard: React.FC<ConcreteTempCardProps> = ({ value, description 
       <View style={styles.concreteContent}>
         <View style={styles.concreteValueContainer}>
           <Text style={[styles.concreteValue, { color: WEATHER_COLORS.text.primary }]}>
-            {value}
+            --
           </Text>
           <Text style={[styles.concreteUnit, { color: WEATHER_COLORS.text.primary }]}>
             °
@@ -290,9 +269,6 @@ const ConcreteTempCard: React.FC<ConcreteTempCardProps> = ({ value, description 
   );
 };
 
-// ============================================
-// Wind Card with Compass
-// ============================================
 interface WindCardProps {
   direction: string;
   speed: number;
@@ -304,14 +280,12 @@ const WindCard: React.FC<WindCardProps> = ({ direction, speed, unit }) => {
   const center = size / 2;
   const radius = size / 2 - responsive(8, 10);
 
-  // Direction to angle mapping
   const directionAngles: Record<string, number> = {
     'N': 0, 'NE': 45, 'E': 90, 'SE': 135,
     'S': 180, 'SW': 225, 'W': 270, 'NW': 315,
   };
   const angle = directionAngles[direction] || 0;
 
-  // Calculate needle end point
   const needleLength = radius - 4;
   const needleAngleRad = ((angle - 90) * Math.PI) / 180;
   const needleX = center + Math.cos(needleAngleRad) * needleLength;
@@ -330,7 +304,6 @@ const WindCard: React.FC<WindCardProps> = ({ direction, speed, unit }) => {
     <WeatherMetricCard title="WIND" titleIcon="weather-windy">
       <View style={styles.windContent}>
         <Svg width={size} height={size}>
-          {/* Outer circle */}
           <Circle
             cx={center}
             cy={center}
@@ -340,7 +313,6 @@ const WindCard: React.FC<WindCardProps> = ({ direction, speed, unit }) => {
             fill="transparent"
           />
 
-          {/* Inner decorative circle */}
           <Circle
             cx={center}
             cy={center}
@@ -351,7 +323,6 @@ const WindCard: React.FC<WindCardProps> = ({ direction, speed, unit }) => {
             strokeDasharray="2 2"
           />
 
-          {/* Direction labels */}
           {directions.map((dir, i) => (
             <SvgText
               key={dir}
@@ -360,13 +331,11 @@ const WindCard: React.FC<WindCardProps> = ({ direction, speed, unit }) => {
               fontSize={ms(8)}
               fontWeight={dir === 'N' ? 'bold' : 'normal'}
               fill={dir === 'N' ? colors.error.light : WEATHER_COLORS.text.hint}
-              textAnchor="middle"
-            >
+              textAnchor="middle">
               {dir}
             </SvgText>
           ))}
 
-          {/* Wind direction needle */}
           <Line
             x1={center}
             y1={center}
@@ -377,11 +346,9 @@ const WindCard: React.FC<WindCardProps> = ({ direction, speed, unit }) => {
             strokeLinecap="round"
           />
 
-          {/* Center dot */}
           <Circle cx={center} cy={center} r="3" fill={colors.common.white} />
         </Svg>
 
-        {/* Wind Speed Display */}
         <View style={styles.windSpeedContainer}>
           <Text style={[styles.windSpeedValue, { color: WEATHER_COLORS.text.primary }]}>
             {speed}
@@ -394,10 +361,6 @@ const WindCard: React.FC<WindCardProps> = ({ direction, speed, unit }) => {
     </WeatherMetricCard>
   );
 };
-
-// ============================================
-// Dew Point Card
-// ============================================
 interface DewPointCardProps {
   value: number;
   description: string;
@@ -423,10 +386,6 @@ const DewPointCard: React.FC<DewPointCardProps> = ({ value, description }) => {
     </WeatherMetricCard>
   );
 };
-
-// ============================================
-// Humidity Card with Arc Gauge
-// ============================================
 interface HumidityCardProps {
   value: number;
   description: string;
@@ -477,138 +436,123 @@ const RecommendationChip: React.FC<RecommendationChipProps> = ({ label, color, o
   );
 };
 
-// ============================================
-// Main Screen Component
-// ============================================
 export const WeatherScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<WeatherScreenRouteProp>();
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
+  const themeColors = isDark ? colors.dark : colors.light;
+  const { alertState, hideAlert, showInfo } = useAlert();
 
-  const [refreshing, setRefreshing] = useState(false);
+  const { orderCode, orderDate, orderStatus = 'Pending', startTime = '--:--' } = route.params;
+
   const [menuVisible, setMenuVisible] = useState(false);
-  const weather = mockWeatherData;
+
+  const {
+    weatherData,
+    orderInfo,
+    isLoading,
+    isRefetching,
+    refetch,
+  } = useWeather({
+    order_code: orderCode,
+    order_date: orderDate,
+  });
+
+  const weather = useMemo(() => {
+    if (!weatherData) {
+      return null;
+    }
+
+    let evaporationStatus: 'Low' | 'Moderate' | 'High' = 'Low';
+    let evaporationProgress = 15;
+    if (weatherData.evaporation_rate >= 0.3) {
+      evaporationStatus = 'High';
+      evaporationProgress = 85;
+    } else if (weatherData.evaporation_rate >= 0.15) {
+      evaporationStatus = 'Moderate';
+      evaporationProgress = 50;
+    }
+
+    return {
+      location: 'Weather Location',
+      orderNo: orderCode,
+      orderDate: orderDate,
+      temperature: weatherData.temperature_fahrenheit,
+      temperatureUnit: 'F',
+      condition: weatherData.weather_condition,
+      maxTemp: weatherData.temperature_max_fahrenheit,
+      minTemp: weatherData.temperature_min_fahrenheit,
+      evaporation: {
+        value: weatherData.evaporation_rate,
+        status: evaporationStatus,
+        description: `${weatherData.evaporation_level} evaporation rate`,
+        progress: evaporationProgress,
+      },
+      concreteTemp: {
+        value: weatherData.concrete_temperature_fahrenheit ?? weatherData.temperature_fahrenheit,
+        description: weatherData.concrete_temperature_fahrenheit
+          ? 'Measured concrete temperature'
+          : 'Similar to\nthe actual\ntemperature',
+      },
+      wind: {
+        direction: weatherData.wind_direction,
+        speed: weatherData.wind_speed_mph,
+        unit: 'mph',
+      },
+      pressure: {
+        value: weatherData.pressure_inhg,
+        unit: 'in',
+      },
+      dewPoint: {
+        value: weatherData.dew_point_fahrenheit,
+        description: 'Dew point temperature',
+      },
+      humidity: {
+        value: weatherData.humidity,
+        description: `The dew point is ${Math.round(weatherData.dew_point_fahrenheit)}° right now.`,
+      },
+      productRecommendations: [
+        { id: '1', label: 'Hot Weather Mix', color: colors.productChip.thermalCracking },
+        { id: '2', label: 'Retarder Recommended', color: colors.productChip.plasticCracking },
+      ],
+    };
+  }, [weatherData, orderCode, orderDate]);
 
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1500);
-  }, []);
+    refetch();
+  }, [refetch]);
 
   const handleBack = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
 
-  const handleProductDetailsPress = useCallback(() => {
-    navigation.navigate('ProductDetails', {
-      productId: '1',
-      productName: 'Product Recommendations',
-      weatherData: {
-        temperature: weather.temperature,
-        temperatureUnit: weather.temperatureUnit,
-        condition: weather.condition,
-        icon: 'weather-partly-cloudy',
-        humidity: weather.humidity.value,
-        windSpeed: weather.wind.speed,
-        location: weather.location,
-      },
-    });
-  }, [navigation, weather]);
-
   const handleEvaporationPress = useCallback(() => {
     navigation.navigate('EvaporationList', {
       locationName: weather.location,
       date: weather.orderDate,
+      orderCode: weather.orderNo,
       currentEvaporation: {
         value: weather.evaporation.value,
         status: weather.evaporation.status,
         description: weather.evaporation.description,
       },
-    });
-  }, [navigation, weather]);
-
-  const handleConcretePress = useCallback(() => {
-    navigation.navigate('ProductCode', {
-      cardType: 'concrete',
-      cardValue: weather.concreteTemp.value,
-      cardUnit: '°',
       weatherData: {
-        temperature: weather.temperature,
-        temperatureUnit: weather.temperatureUnit,
-        condition: weather.condition,
-        icon: 'weather-partly-cloudy',
         humidity: weather.humidity.value,
         windSpeed: weather.wind.speed,
-        location: weather.location,
-      },
-    });
-  }, [navigation, weather]);
-
-  const handleWindPress = useCallback(() => {
-    navigation.navigate('ProductCode', {
-      cardType: 'wind',
-      cardValue: weather.wind.speed,
-      cardUnit: weather.wind.unit,
-      weatherData: {
+        windDirection: weather.wind.direction,
         temperature: weather.temperature,
         temperatureUnit: weather.temperatureUnit,
+        pressure: weather.pressure.value,
+        pressureUnit: weather.pressure.unit,
+        dewPoint: weather.dewPoint.value,
+        concreteTemp: weather.concreteTemp.value,
         condition: weather.condition,
-        icon: 'weather-partly-cloudy',
-        humidity: weather.humidity.value,
-        windSpeed: weather.wind.speed,
-        location: weather.location,
+        cloudsPercentage: weatherData?.clouds_percentage ?? 0,
+        visibility: weatherData?.visibility_meters ?? 0,
       },
     });
-  }, [navigation, weather]);
-
-  const handlePressurePress = useCallback(() => {
-    navigation.navigate('ProductCode', {
-      cardType: 'pressure',
-      cardValue: weather.pressure.value,
-      cardUnit: weather.pressure.unit,
-      weatherData: {
-        temperature: weather.temperature,
-        temperatureUnit: weather.temperatureUnit,
-        condition: weather.condition,
-        icon: 'weather-partly-cloudy',
-        humidity: weather.humidity.value,
-        windSpeed: weather.wind.speed,
-        location: weather.location,
-      },
-    });
-  }, [navigation, weather]);
-
-  const handleDewPointPress = useCallback(() => {
-    navigation.navigate('ProductCode', {
-      cardType: 'dewpoint',
-      cardValue: weather.dewPoint.value,
-      cardUnit: '°',
-      weatherData: {
-        temperature: weather.temperature,
-        temperatureUnit: weather.temperatureUnit,
-        condition: weather.condition,
-        icon: 'weather-partly-cloudy',
-        humidity: weather.humidity.value,
-        windSpeed: weather.wind.speed,
-        location: weather.location,
-      },
-    });
-  }, [navigation, weather]);
-
-  const handleHumidityPress = useCallback(() => {
-    navigation.navigate('ProductCode', {
-      cardType: 'humidity',
-      cardValue: weather.humidity.value,
-      cardUnit: '%',
-      weatherData: {
-        temperature: weather.temperature,
-        temperatureUnit: weather.temperatureUnit,
-        condition: weather.condition,
-        icon: 'weather-partly-cloudy',
-        humidity: weather.humidity.value,
-        windSpeed: weather.wind.speed,
-        location: weather.location,
-      },
-    });
-  }, [navigation, weather]);
+  }, [navigation, weather, weatherData]);
 
   const handleMenuToggle = useCallback(() => {
     setMenuVisible(prev => !prev);
@@ -628,8 +572,8 @@ export const WeatherScreen: React.FC = () => {
 
   const handleViewForecast = useCallback(() => {
     setMenuVisible(false);
-    Alert.alert('7-Day Forecast', 'Extended forecast feature coming soon!');
-  }, []);
+    showInfo('7-Day Forecast', 'Extended forecast feature coming soon!');
+  }, [showInfo]);
 
   const handleSettings = useCallback(() => {
     setMenuVisible(false);
@@ -642,13 +586,62 @@ export const WeatherScreen: React.FC = () => {
     { id: '3', icon: 'cog-outline', label: 'Settings', onPress: handleSettings },
   ];
 
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { backgroundColor: WEATHER_COLORS.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={WEATHER_COLORS.background} />
+        <LinearGradient
+          colors={[...WEATHER_COLORS.gradient.colors] as string[]}
+          locations={[...WEATHER_COLORS.gradient.locations] as number[]}
+          style={styles.gradientBackground}
+        />
+        <View style={[styles.headerContent, { paddingTop: insets.top }]}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
+              <Icon name="chevron-left" size={24} color={colors.common.white} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Weather Update</Text>
+            <View style={styles.headerActions}>
+              <View style={styles.headerActionBtn} />
+            </View>
+          </View>
+        </View>
+        <View style={styles.loadingContainer} pointerEvents="box-none">
+          <TruckLoader size={120} message="Loading weather..." color="light" />
+        </View>
+      </View>
+    );
+  }
+
+  if (!weather) {
+    return (
+      <View style={[styles.container, { backgroundColor: WEATHER_COLORS.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={WEATHER_COLORS.background} />
+        <LinearGradient
+          colors={[...WEATHER_COLORS.gradient.colors] as string[]}
+          locations={[...WEATHER_COLORS.gradient.locations] as number[]}
+          style={styles.gradientBackground}
+        />
+        <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
+          <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
+            <Icon name="chevron-left" size={24} color={colors.common.white} />
+          </TouchableOpacity>
+          <Text style={styles.errorText}>Unable to load weather data</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: WEATHER_COLORS.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={WEATHER_COLORS.background} />
 
       <LinearGradient
-        colors={WEATHER_COLORS.gradient.colors}
-        locations={WEATHER_COLORS.gradient.locations}
+        colors={[...WEATHER_COLORS.gradient.colors] as string[]}
+        locations={[...WEATHER_COLORS.gradient.locations] as number[]}
         style={styles.gradientBackground}
       />
 
@@ -659,10 +652,11 @@ export const WeatherScreen: React.FC = () => {
         bounces={true}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={isRefetching}
             onRefresh={onRefresh}
             tintColor={colors.common.white}
-            colors={[colors.common.white]}
+            colors={[colors.primary.main, colors.secondary.main]}
+            progressBackgroundColor={isDark ? themeColors.cardElevated : colors.common.white}
             progressViewOffset={insets.top}
           />
         }>
@@ -687,7 +681,9 @@ export const WeatherScreen: React.FC = () => {
           <View style={styles.locationOrderRow}>
             <View style={styles.locationContainer}>
               <Icon name="map-marker" size={16} color={colors.common.white} />
-              <Text style={styles.locationText}>{weather.location}</Text>
+              <Text style={styles.locationText} numberOfLines={2} ellipsizeMode="tail">
+                {weather.location}
+              </Text>
             </View>
 
             <View style={styles.orderInfoContainer}>
@@ -717,27 +713,14 @@ export const WeatherScreen: React.FC = () => {
             </Text>
 
             <View style={styles.recommendationsRow}>
-              <View style={styles.recommendationsChipsContainer}>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.recommendationsScroll}>
-                  {weather.productRecommendations.map((item) => (
-                    <RecommendationChip
-                      key={item.id}
-                      label={item.label}
-                      color={item.color}
-                    />
-                  ))}
-                </ScrollView>
-              </View>
-
-              <TouchableOpacity
-                style={styles.recommendationsArrow}
-                activeOpacity={0.7}
-                onPress={handleProductDetailsPress}>
-                <Icon name="chevron-right" size={ms(24)} color={WEATHER_COLORS.background} />
-              </TouchableOpacity>
+              {weather.productRecommendations.map((item) => (
+                <View key={item.id} style={styles.recommendationChipWrapper}>
+                  <RecommendationChip
+                    label={item.label}
+                    color={item.color}
+                  />
+                </View>
+              ))}
             </View>
           </View>
 
@@ -752,64 +735,49 @@ export const WeatherScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
               <View style={styles.cardWrapper}>
-                <TouchableOpacity
-                  style={styles.cardTouchable}
-                  onPress={handleConcretePress}
-                  activeOpacity={0.8}>
+                <View style={styles.cardTouchable}>
                   <ConcreteTempCard
                     value={weather.concreteTemp.value}
                     description={weather.concreteTemp.description}
                   />
-                </TouchableOpacity>
+                </View>
               </View>
             </View>
             <View style={styles.cardsRow}>
               <View style={styles.cardWrapper}>
-                <TouchableOpacity
-                  style={styles.cardTouchable}
-                  onPress={handleWindPress}
-                  activeOpacity={0.8}>
+                <View style={styles.cardTouchable}>
                   <WindCard
                     direction={weather.wind.direction}
                     speed={weather.wind.speed}
                     unit={weather.wind.unit}
                   />
-                </TouchableOpacity>
+                </View>
               </View>
               <View style={styles.cardWrapper}>
-                <TouchableOpacity
-                  style={styles.cardTouchable}
-                  onPress={handlePressurePress}
-                  activeOpacity={0.8}>
+                <View style={styles.cardTouchable}>
                   <PressureCard
                     value={weather.pressure.value}
                     unit={weather.pressure.unit}
                   />
-                </TouchableOpacity>
+                </View>
               </View>
             </View>
             <View style={styles.cardsRow}>
               <View style={styles.cardWrapper}>
-                <TouchableOpacity
-                  style={styles.cardTouchable}
-                  onPress={handleDewPointPress}
-                  activeOpacity={0.8}>
+                <View style={styles.cardTouchable}>
                   <DewPointCard
                     value={weather.dewPoint.value}
                     description={weather.dewPoint.description}
                   />
-                </TouchableOpacity>
+                </View>
               </View>
               <View style={styles.cardWrapper}>
-                <TouchableOpacity
-                  style={styles.cardTouchable}
-                  onPress={handleHumidityPress}
-                  activeOpacity={0.8}>
+                <View style={styles.cardTouchable}>
                   <HumidityCard
                     value={weather.humidity.value}
                     description={weather.humidity.description}
                   />
-                </TouchableOpacity>
+                </View>
               </View>
             </View>
           </View>
@@ -828,8 +796,7 @@ export const WeatherScreen: React.FC = () => {
               <TouchableOpacity
                 style={styles.menuCloseBtn}
                 onPress={handleMenuToggle}
-                activeOpacity={0.7}
-              >
+                activeOpacity={0.7}>
                 <Icon name="close" size={ms(18)} color={WEATHER_COLORS.text.secondary} />
               </TouchableOpacity>
             </View>
@@ -855,6 +822,16 @@ export const WeatherScreen: React.FC = () => {
           </View>
         </Pressable>
       </Modal>
+
+      {/* Custom Alert Modal */}
+      <AlertModal
+        visible={alertState.visible}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={hideAlert}
+      />
     </View>
   );
 };
@@ -912,19 +889,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: GRID.lg,
+    gap: GRID.md,
   },
   locationContainer: {
+    flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: GRID.xs,
+    maxWidth: '60%',
   },
   locationText: {
+    flex: 1,
+    flexShrink: 1,
     fontFamily: fontFamily.medium,
     fontSize: ms(14),
     color: colors.common.white,
+    lineHeight: ms(20),
   },
   orderInfoContainer: {
     alignItems: 'flex-end',
+    flexShrink: 0,
+    minWidth: ms(100),
   },
   orderInfoText: {
     fontFamily: fontFamily.regular,
@@ -975,18 +960,21 @@ const styles = StyleSheet.create({
   },
   recommendationsRow: {
     flexDirection: 'row',
-    alignItems: 'center', // Vertically center all children
-    minHeight: ms(40), // Minimum height for consistent layout
+    alignItems: 'center',
+    gap: GRID.sm,
+  },
+  recommendationChipWrapper: {
+    flex: 1,
   },
   recommendationsChipsContainer: {
-    flex: 1, // Take available space, push arrow to right
+    flex: 1,
     flexShrink: 1,
   },
   recommendationsScroll: {
     flexDirection: 'row',
-    alignItems: 'center', // Center chips vertically within scroll
+    alignItems: 'center',
     gap: GRID.sm,
-    paddingVertical: ms(2), // Small vertical padding for touch area
+    paddingVertical: ms(2),
   },
   recommendationsArrow: {
     width: ms(36),
@@ -996,15 +984,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: GRID.sm,
-    flexShrink: 0, // Prevent arrow from shrinking
+    flexShrink: 0,
   },
   recommendationChip: {
     paddingHorizontal: ms(12),
-    paddingVertical: ms(6),
-    borderRadius: RADIUS.full,
-    minWidth: ms(80),
-    maxWidth: ms(140),
-    justifyContent: 'center', // Center text vertically within chip
+    paddingVertical: ms(10),
+    borderRadius: RADIUS.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
     alignItems: 'center',
   },
   recommendationChipText: {
@@ -1094,9 +1081,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // ============================================
-  // Reusable Metric Card Styles
-  // ============================================
   metricCard: {
     borderRadius: RADIUS.lg,
     padding: responsive(ms(12), ms(16)),
@@ -1145,10 +1129,6 @@ const styles = StyleSheet.create({
     lineHeight: responsive(ms(15), ms(18)),
     marginTop: ms(8),
   },
-
-  // ============================================
-  // Concrete Card Styles
-  // ============================================
   concreteContent: {
     flex: 1,
     alignItems: 'center',
@@ -1169,10 +1149,6 @@ const styles = StyleSheet.create({
     fontSize: responsive(ms(20), ms(26)),
     marginTop: ms(4),
   },
-
-  // ============================================
-  // Wind Card Styles
-  // ============================================
   windContent: {
     flex: 1,
     alignItems: 'center',
@@ -1193,19 +1169,11 @@ const styles = StyleSheet.create({
     fontSize: responsive(ms(11), ms(14)),
     marginTop: ms(2),
   },
-
-  // ============================================
-  // Pressure Card Styles
-  // ============================================
   pressureContent: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // ============================================
-  // Dew Point Card Styles
-  // ============================================
   simpleContent: {
     flex: 1,
     alignItems: 'center',
@@ -1226,10 +1194,6 @@ const styles = StyleSheet.create({
     fontSize: responsive(ms(20), ms(26)),
     marginTop: ms(4),
   },
-
-  // ============================================
-  // Humidity Card Styles
-  // ============================================
   humidityContent: {
     flex: 1,
     alignItems: 'center',
@@ -1376,6 +1340,30 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fontFamily.medium,
     fontSize: ms(14),
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(16),
+    color: colors.common.white,
+    marginTop: GRID.lg,
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: GRID.md,
+    paddingHorizontal: GRID.lg,
+    paddingVertical: GRID.sm,
+    backgroundColor: colors.common.white + '20',
+    borderRadius: RADIUS.md,
+  },
+  retryButtonText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(14),
+    color: colors.common.white,
   },
 });
 

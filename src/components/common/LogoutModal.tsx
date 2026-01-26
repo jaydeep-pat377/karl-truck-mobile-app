@@ -7,7 +7,7 @@ import {
   TouchableWithoutFeedback,
   ActivityIndicator,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Icon } from './Icon';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { Text } from './Text';
@@ -62,12 +62,16 @@ export const LogoutModal: React.FC<LogoutModalProps> = ({
                   style={[
                     styles.button,
                     styles.cancelButton,
-                    { backgroundColor: isDark ? theme.colors.surface : colors.grey[5] },
+                    {
+                      backgroundColor: isDark ? colors.modal.dark.cancelBg : colors.modal.light.cancelBg,
+                      borderWidth: 1,
+                      borderColor: isDark ? colors.modal.dark.cancelBorder : colors.modal.light.cancelBorder,
+                    },
                   ]}
                   onPress={onClose}
                   activeOpacity={0.7}
                   disabled={isLoading}>
-                  <Text variant="button" style={{ color: theme.colors.text.primary }}>
+                  <Text variant="button" style={{ color: isDark ? colors.modal.dark.cancelText : colors.modal.light.cancelText }}>
                     {t('common.cancel') || 'Cancel'}
                   </Text>
                 </TouchableOpacity>

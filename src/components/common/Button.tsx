@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { Text } from './Text';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Icon } from './Icon';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 type ButtonSize = 'small' | 'medium' | 'large';
@@ -44,7 +44,6 @@ export const Button: React.FC<ButtonProps> = ({
   const theme = useAppTheme();
 
   const getBackgroundColor = (): string => {
-    if (disabled && !loading) return theme.colors.textDisabled;
     switch (variant) {
       case 'primary':
         return theme.colors.primary.main;
@@ -61,8 +60,6 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const getTextColor = (): string => {
-    // Only change text color when disabled but NOT loading
-    if (disabled && !loading) return theme.colors.textHint;
     switch (variant) {
       case 'primary':
       case 'secondary':
@@ -78,8 +75,6 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const getBorderColor = (): string => {
-    // Only change border color when disabled but NOT loading
-    if (disabled && !loading) return theme.colors.textDisabled;
     switch (variant) {
       case 'outline':
         return theme.colors.primary.main;
@@ -121,6 +116,12 @@ export const Button: React.FC<ButtonProps> = ({
     }
   };
 
+  const getOpacity = (): number => {
+    if (disabled && !loading) return 0.5;
+    if (loading) return 0.7;
+    return 1;
+  };
+
   const buttonStyle = [
     styles.button,
     {
@@ -130,7 +131,7 @@ export const Button: React.FC<ButtonProps> = ({
       height: getHeight(),
       paddingHorizontal: getPadding(),
       borderRadius: theme.borderRadius.md,
-      opacity: loading ? 0.7 : 1,
+      opacity: getOpacity(),
     },
     fullWidth && styles.fullWidth,
     style,

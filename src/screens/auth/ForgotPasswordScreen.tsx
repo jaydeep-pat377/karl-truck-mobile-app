@@ -1,14 +1,4 @@
-/**
- * ForgotPasswordScreen
- *
- * Password recovery flow:
- * - Email input for recovery
- * - Clear instructions
- * - Success feedback
- * - Theme-aware (light/dark)
- */
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -17,13 +7,11 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text } from '../../components/common/Text';
-import { Input } from '../../components/common/Input';
-import { Button } from '../../components/common/Button';
+import { Text, Input, Button, Icon, AlertModal } from '../../components/common';
 import { ms, vs, spacing } from '../../utils/responsive';
+import { useForgotPassword } from '../../hooks';
 
 interface ForgotPasswordScreenProps {
   navigation?: any;
@@ -32,13 +20,34 @@ interface ForgotPasswordScreenProps {
 export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
   navigation,
 }) => {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const { t } = useTranslation();
+  const {
+    forgotPassword,
+    isLoading,
+    isSuccess,
+    isError,
+    error: apiError,
+    reset,
+  } = useForgotPassword();
 
   const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // Handle API success
+  useEffect(() => {
+    if (isSuccess) {
+      setShowSuccessModal(true);
+    }
+  }, [isSuccess]);
+
+  // Handle API error
+  useEffect(() => {
+    if (isError && apiError) {
+      setError(apiError);
+    }
+  }, [isError, apiError]);
 
   const validateEmail = (emailValue: string): boolean => {
     if (!emailValue.trim()) {
@@ -56,124 +65,32 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
   const handleSubmit = async () => {
     if (!validateEmail(email)) return;
 
-    setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setIsSubmitted(true);
+      await forgotPassword(email);
     } catch (err) {
-      setError(t('auth.forgotPassword.sendFailed'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    setIsLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      // Show success feedback
-    } finally {
-      setIsLoading(false);
+      // Error is handled by the hook
     }
   };
 
   const handleBack = () => {
-    navigation?.goBack();
+    if (navigation?.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation?.navigate('Login');
+    }
   };
 
-  const handleVerifyOTP = () => {
-    navigation?.navigate('VerifyOTP', { email, mode: 'forgotPassword' });
+  const handleModalClose = () => {
+    setShowSuccessModal(false);
+    reset();
+    setEmail('');
+    if (navigation?.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation?.navigate('Login');
+    }
   };
 
-  // Success State
-  if (isSubmitted) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.content}>
-          {/* Back Button */}
-          <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: theme.colors.card }]}
-            onPress={handleBack}
-            activeOpacity={0.7}
-          >
-            <Icon name="arrow-left" size={ms(24)} color={theme.colors.text} />
-          </TouchableOpacity>
-
-          {/* Success Icon */}
-          <View style={styles.successContainer}>
-            <View
-              style={[
-                styles.successIcon,
-                { backgroundColor: theme.colors.success.background },
-              ]}
-            >
-              <Icon
-                name="email-check-outline"
-                size={ms(48)}
-                color={theme.colors.success.main}
-              />
-            </View>
-
-            <Text variant="h2" color="primary" style={styles.successTitle}>
-              {t('auth.forgotPassword.checkEmail')}
-            </Text>
-
-            <Text variant="body" color="secondary" style={styles.successText}>
-              {t('auth.forgotPassword.sentResetLink')}
-            </Text>
-            <Text variant="body" style={{ color: theme.colors.primary.main, fontWeight: '600' }}>
-              {email}
-            </Text>
-
-            <View style={styles.instructionCard}>
-              <View style={styles.instructionRow}>
-                <Icon name="numeric-1-circle" size={ms(24)} color={theme.colors.primary.main} />
-                <Text variant="bodySmall" color="secondary" style={styles.instructionText}>
-                  {t('auth.forgotPassword.instruction1')}
-                </Text>
-              </View>
-              <View style={styles.instructionRow}>
-                <Icon name="numeric-2-circle" size={ms(24)} color={theme.colors.primary.main} />
-                <Text variant="bodySmall" color="secondary" style={styles.instructionText}>
-                  {t('auth.forgotPassword.instruction2')}
-                </Text>
-              </View>
-              <View style={styles.instructionRow}>
-                <Icon name="numeric-3-circle" size={ms(24)} color={theme.colors.primary.main} />
-                <Text variant="bodySmall" color="secondary" style={styles.instructionText}>
-                  {t('auth.forgotPassword.instruction3')}
-                </Text>
-              </View>
-            </View>
-
-            <Button
-              title={t('auth.forgotPassword.enterOtpCode')}
-              onPress={handleVerifyOTP}
-              size="large"
-              style={styles.otpButton}
-            />
-
-            <TouchableOpacity
-              onPress={handleResend}
-              disabled={isLoading}
-              activeOpacity={0.7}
-              style={styles.resendButton}
-            >
-              <Text variant="body" color="secondary">
-                {t('auth.forgotPassword.didntReceiveEmail')}{' '}
-              </Text>
-              <Text variant="body" style={{ color: theme.colors.primary.main, fontWeight: '600' }}>
-                {t('auth.forgotPassword.resend')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Email Input State
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <KeyboardAvoidingView
@@ -237,7 +154,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
               title={t('auth.forgotPassword.sendResetLink')}
               onPress={handleSubmit}
               loading={isLoading}
-              disabled={isLoading || !email.trim()}
+              disabled={isLoading}
               size="large"
               style={styles.submitButton}
             />
@@ -255,6 +172,21 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Success Modal */}
+      <AlertModal
+        visible={showSuccessModal}
+        type="success"
+        title="Email Sent"
+        message={`Password reset link has been sent to ${email}`}
+        buttons={[
+          {
+            text: 'OK',
+            onPress: handleModalClose,
+          },
+        ]}
+        onClose={handleModalClose}
+      />
     </SafeAreaView>
   );
 };
@@ -311,52 +243,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  // Success state styles
-  successContainer: {
-    flex: 1,
-    alignItems: 'center',
-    paddingTop: vs(24),
-  },
-  successIcon: {
-    width: ms(100),
-    height: ms(100),
-    borderRadius: ms(50),
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: vs(24),
-  },
-  successTitle: {
-    marginBottom: vs(12),
-  },
-  successText: {
-    textAlign: 'center',
-    marginBottom: vs(4),
-  },
-  instructionCard: {
-    width: '100%',
-    marginTop: vs(32),
-    marginBottom: vs(24),
-    paddingVertical: vs(16),
-  },
-  instructionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: vs(8),
-    paddingHorizontal: spacing.md,
-  },
-  instructionText: {
-    marginLeft: ms(12),
-    flex: 1,
-  },
-  otpButton: {
-    width: '100%',
-    marginBottom: vs(16),
-  },
-  resendButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: vs(12),
   },
 });
 

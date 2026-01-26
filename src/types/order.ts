@@ -110,3 +110,100 @@ export interface LocationWeather {
   longitude?: number;
   weather?: WeatherData;
 }
+
+// API Response Types
+export interface ApiOrderWeatherData {
+  source: string;
+  humidity: number;
+  latitude: number;
+  longitude: number;
+  wind_gust: number;
+  fetched_at: string;
+  wind_speed: number;
+  pressure_hpa: number;
+  weather_icon: string;
+  pressure_inhg: number;
+  wind_direction: string;
+  wind_speed_mph: number;
+  evaporation_rate: number;
+  clouds_percentage: number;
+  evaporation_level: string;
+  visibility_meters: number;
+  weather_condition: string;
+  temperature_celsius: number;
+  weather_description: string;
+  dew_point_fahrenheit: number;
+  temperature_fahrenheit: number;
+  wind_direction_degrees: number;
+  temperature_max_fahrenheit: number;
+  temperature_min_fahrenheit: number;
+  concrete_temperature_fahrenheit: number | null;
+}
+
+export interface ApiOrder {
+  order_id: string;
+  order_code: string;
+  order_date: string;
+  display_date: string;
+  start_time: string;
+  estimated_finish_time: string;
+  customer_name: string;
+  delivery_address: string;
+  ordered_qty: number;
+  delivered_qty: number;
+  remaining_qty: number;
+  remaining_display: string;
+  status: string;
+  is_removed: boolean;
+  has_notes: boolean;
+  tickets_count: number;
+  product_codes?: string;
+  weather_data: ApiOrderWeatherData | null;
+}
+
+export interface OrdersPagination {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
+export interface OrdersFilters {
+  date_filter: string;
+  status: string | null;
+  search: string | null;
+}
+
+export interface OrdersStatusCounts {
+  total: number;
+  in_process: number;
+  completed: number;
+  will_call: number;
+  pending: number;
+}
+
+export interface OrdersResponseData {
+  orders: ApiOrder[];
+  pagination: OrdersPagination;
+  filters: OrdersFilters;
+  status_counts: OrdersStatusCounts;
+}
+
+export interface OrdersApiResponse {
+  success: boolean;
+  data: OrdersResponseData;
+}
+
+export interface OrdersQueryParams {
+  date_filter?: 'today' | 'yesterday' | 'last_week' | 'next_week' | 'custom';
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+  start_date?: string;
+  end_date?: string;
+  sort_by?: 'order_date' | 'ordered_qty' | 'delivered_qty';
+  sort_order?: 'asc' | 'desc';
+}

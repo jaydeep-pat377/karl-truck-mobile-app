@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,56 +8,71 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
-  Alert,
   Modal,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import ImageCropPicker from 'react-native-image-crop-picker';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text } from '../../components/common/Text';
+import { Text, Icon, AlertModal } from '../../components/common';
 import { Input } from '../../components/common/Input';
 import { colors } from '../../theme/colors';
 import { ms, vs, spacing } from '../../utils/responsive';
+import { useProfile } from '../../hooks/useProfile';
+import { useUpdateProfile } from '../../hooks/useUpdateProfile';
+import { useAlert } from '../../hooks';
 
 interface EditProfileScreenProps {
   navigation?: any;
 }
 
-const initialData = {
-  firstName: 'John',
-  lastName: 'Anderson',
-  email: 'john.anderson@dolese.com',
-  phone: '(405) 555-0123',
-  department: 'Operations',
-  avatar: null as string | null,
-};
-
 export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
   navigation,
 }) => {
   const { theme, isDark } = useTheme();
-  const [firstName, setFirstName] = useState(initialData.firstName);
-  const [lastName, setLastName] = useState(initialData.lastName);
-  const [email, setEmail] = useState(initialData.email);
-  const [phone, setPhone] = useState(initialData.phone);
-  const [avatar, setAvatar] = useState(initialData.avatar);
-  const [isLoading, setIsLoading] = useState(false);
+  const { profile, isLoading: isProfileLoading, refetch, isRefetching } = useProfile();
+  const { updateProfile, isLoading: isUpdating, error: updateError } = useUpdateProfile();
+  const { alertState, hideAlert, showSuccess, showError } = useAlert();
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [title, setTitle] = useState('');
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showDiscardModal, setShowDiscardModal] = useState(false);
   const lastNameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const phoneRef = useRef<TextInput>(null);
+  const titleRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    if (profile && !isInitialized) {
+      console.log('Profile data loaded:', JSON.stringify(profile, null, 2));
+      setFirstName(profile.firstName ?? '');
+      setLastName(profile.lastName ?? '');
+      setEmail(profile.email ?? '');
+      setPhone(profile.phone ?? '');
+      setTitle(profile.title ?? '');
+      setAvatar(profile.avatarUrl ?? null);
+      setIsInitialized(true);
+    }
+  }, [profile, isInitialized]);
 
   const checkForChanges = () => {
+    if (!profile) return false;
     return (
-      firstName !== initialData.firstName ||
-      lastName !== initialData.lastName ||
-      email !== initialData.email ||
-      phone !== initialData.phone ||
-      avatar !== initialData.avatar
+      firstName !== (profile.firstName || '') ||
+      lastName !== (profile.lastName || '') ||
+      email !== (profile.email || '') ||
+      phone !== (profile.phone || '') ||
+      title !== (profile.title || '') ||
+      avatar !== (profile.avatarUrl || null)
     );
   };
 
@@ -77,56 +92,64 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
       newErrors.firstName = 'First name is required';
     }
 
-    if (!lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    }
-
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Please enter a valid email';
-    }
-
-    if (!phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!validateForm()) return;
+    setShowConfirmModal(true);
+  };
 
-    setIsLoading(true);
+  const performSave = async () => {
+    setShowConfirmModal(false);
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const requestData: {
+        firstName: string;
+        lastName: string;
+        phone: string;
+        title: string;
+        avatarUrl?: string | null;
+      } = {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: phone.trim(),
+        title: title.trim(),
+      };
 
-      Alert.alert(
-        'Profile Updated',
-        'Your profile has been updated successfully.',
-        [{ text: 'OK', onPress: () => navigation?.goBack() }]
-      );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
-    } finally {
-      setIsLoading(false);
+      if (avatar !== undefined) {
+        requestData.avatarUrl = avatar;
+      }
+
+      const response = await updateProfile(requestData);
+
+      if (response.success) {
+        showSuccess(
+          'Profile Updated',
+          'Your profile has been updated successfully.',
+          () => navigation?.goBack()
+        );
+      } else {
+        showError('Error', response.message || 'Failed to update profile. Please try again.');
+      }
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.message || 'Failed to update profile. Please try again.';
+      showError('Error', errorMsg);
     }
   };
 
   const handleCancel = () => {
     if (checkForChanges()) {
-      Alert.alert(
-        'Discard Changes?',
-        'You have unsaved changes. Are you sure you want to discard them?',
-        [
-          { text: 'Keep Editing', style: 'cancel' },
-          { text: 'Discard', style: 'destructive', onPress: () => navigation?.goBack() },
-        ]
-      );
+      setShowDiscardModal(true);
     } else {
       navigation?.goBack();
     }
+  };
+
+  const performDiscard = () => {
+    setShowDiscardModal(false);
+    navigation?.goBack();
   };
 
   const handleChangeAvatar = () => {
@@ -166,14 +189,37 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
       }
     } catch (error: any) {
       if (error.code !== 'E_PICKER_CANCELLED') {
-        Alert.alert('Error', 'Failed to select image. Please try again.');
+        showError('Error', 'Failed to select image. Please try again.');
       }
     }
   };
 
-  const getInitials = (): string => {
-    return `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
-  };
+  if (isProfileLoading || (!profile && !isInitialized)) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+          <TouchableOpacity
+            onPress={() => navigation?.goBack()}
+            activeOpacity={0.7}
+            style={styles.headerButton}>
+            <Text variant="body" style={{ color: theme.colors.primary.main }}>
+              Cancel
+            </Text>
+          </TouchableOpacity>
+          <Text variant="h4" color="primary">
+            Edit Profile
+          </Text>
+          <View style={styles.headerButton} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary.main} />
+          <Text variant="body" color="secondary" style={styles.loadingText}>
+            Loading profile...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -181,8 +227,9 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
         <TouchableOpacity
           onPress={handleCancel}
           activeOpacity={0.7}
+          disabled={isUpdating}
           style={styles.headerButton}>
-          <Text variant="body" style={{ color: theme.colors.primary.main }}>
+          <Text variant="body" style={{ color: isUpdating ? theme.colors.secondary.main : theme.colors.primary.main }}>
             Cancel
           </Text>
         </TouchableOpacity>
@@ -193,19 +240,23 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
 
         <TouchableOpacity
           onPress={handleSave}
-          disabled={isLoading || !checkForChanges()}
+          disabled={isUpdating || !checkForChanges()}
           activeOpacity={0.7}
           style={styles.headerButton}>
-          <Text
-            variant="body"
-            style={{
-              color: checkForChanges()
-                ? theme.colors.primary.main
-                : theme.colors.secondary.main,
-              fontWeight: '600',
-            }}>
-            Save
-          </Text>
+          {isUpdating ? (
+            <ActivityIndicator size="small" color={theme.colors.primary.main} />
+          ) : (
+            <Text
+              variant="body"
+              style={{
+                color: checkForChanges()
+                  ? theme.colors.primary.main
+                  : theme.colors.secondary.main,
+                fontWeight: '600',
+              }}>
+              Save
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -226,19 +277,21 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
               onPress={handleChangeAvatar}
               activeOpacity={0.8}
               style={styles.avatarContainer}>
-              {avatar ? (
+              {/* {avatar ? (
                 <Image source={{ uri: avatar }} style={styles.avatar} />
-              ) : (
-                <View
-                  style={[
-                    styles.avatarPlaceholder,
-                    { backgroundColor: theme.colors.primary.main },
-                  ]}>
-                  <Text variant="h1" style={{ color: theme.colors.primary.contrast }}>
-                    {getInitials()}
-                  </Text>
-                </View>
-              )}
+              ) : ( */}
+              <View
+                style={[
+                  styles.avatarPlaceholder,
+                  { backgroundColor: isDark ? colors.grey[60] : colors.grey[10] },
+                ]}>
+                <Icon
+                  name="account"
+                  size={ms(50)}
+                  color={isDark ? colors.grey[25] : colors.grey[50]}
+                />
+              </View>
+              {/* )} */}
               <View
                 style={[
                   styles.editAvatarOverlay,
@@ -295,6 +348,8 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
               autoCapitalize="none"
               returnKeyType="next"
               onSubmitEditing={() => phoneRef.current?.focus()}
+              editable={false}
+              hint="Email address cannot be changed"
             />
 
             <Input
@@ -306,35 +361,24 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
               leftIcon="phone-outline"
               error={errors.phone}
               keyboardType="phone-pad"
-              returnKeyType="done"
+              returnKeyType="next"
+              onSubmitEditing={() => titleRef.current?.focus()}
             />
 
-            <View style={styles.readOnlySection}>
-              <Text variant="label" color="secondary" style={styles.sectionLabel}>
-                COMPANY INFORMATION
-              </Text>
-              <Text variant="caption" color="hint" style={styles.readOnlyHint}>
-                Contact your administrator to update these details
-              </Text>
-
-              <View style={[styles.readOnlyField, { backgroundColor: theme.colors.card }]}>
-                <Icon name="office-building-outline" size={ms(20)} color={theme.colors.secondary.main} />
-                <View style={styles.readOnlyContent}>
-                  <Text variant="caption" color="hint">
-                    Department
-                  </Text>
-                  <Text variant="body" color="secondary">
-                    {initialData.department}
-                  </Text>
-                </View>
-                <Icon name="lock-outline" size={ms(16)} color={theme.colors.secondary.main} />
-              </View>
-            </View>
+            <Input
+              ref={titleRef}
+              label="Title"
+              value={title}
+              onChangeText={(value) => handleFieldChange(setTitle, value)}
+              placeholder="Enter your title"
+              leftIcon="briefcase-outline"
+              autoCapitalize="words"
+              returnKeyType="done"
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Photo Options Modal */}
       <Modal
         visible={showPhotoModal}
         transparent
@@ -348,7 +392,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
               styles.modalContainer,
               { backgroundColor: theme.colors.card },
             ]}
-            onPress={() => {}}>
+            onPress={() => { }}>
             <View style={styles.modalHeader}>
               <Text variant="h4" color="primary">
                 Change Profile Photo
@@ -446,17 +490,165 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
             <TouchableOpacity
               style={[
                 styles.modalCancelButton,
-                { backgroundColor: isDark ? theme.colors.surface : theme.colors.background },
+                {
+                  backgroundColor: isDark ? colors.modal.dark.cancelBg : colors.modal.light.cancelBg,
+                  borderWidth: 1,
+                  borderColor: isDark ? colors.modal.dark.cancelBorder : colors.modal.light.cancelBorder,
+                },
               ]}
               activeOpacity={0.7}
               onPress={() => setShowPhotoModal(false)}>
-              <Text variant="body" style={{ color: theme.colors.primary.main, fontWeight: '600' }}>
+              <Text variant="body" style={{ color: isDark ? colors.modal.dark.cancelText : colors.modal.light.cancelText, fontWeight: '600' }}>
                 Cancel
               </Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
+
+      <Modal
+        visible={showConfirmModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowConfirmModal(false)}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => !isUpdating && setShowConfirmModal(false)}>
+          <Pressable
+            style={[
+              styles.confirmModalContainer,
+              { backgroundColor: theme.colors.card },
+            ]}
+            onPress={() => { }}>
+            <View style={styles.confirmModalIcon}>
+              <Icon
+                name="account-check-outline"
+                size={ms(48)}
+                color={theme.colors.primary.main}
+              />
+            </View>
+
+            <Text variant="h4" color="primary" style={styles.confirmModalTitle}>
+              Save Changes?
+            </Text>
+
+            <Text variant="body" color="secondary" style={styles.confirmModalMessage}>
+              Are you sure you want to update your profile information?
+            </Text>
+
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.confirmModalButton,
+                  styles.confirmModalCancelBtn,
+                  {
+                    backgroundColor: isDark ? colors.modal.dark.cancelBg : colors.modal.light.cancelBg,
+                    borderColor: isDark ? colors.modal.dark.cancelBorder : colors.modal.light.cancelBorder,
+                  },
+                ]}
+                activeOpacity={0.7}
+                disabled={isUpdating}
+                onPress={() => setShowConfirmModal(false)}>
+                <Text variant="button" style={{ color: isDark ? colors.modal.dark.cancelText : colors.modal.light.cancelText }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.confirmModalButton,
+                  styles.confirmModalSaveBtn,
+                  { backgroundColor: theme.colors.primary.main },
+                ]}
+                activeOpacity={0.7}
+                disabled={isUpdating}
+                onPress={performSave}>
+                {isUpdating ? (
+                  <ActivityIndicator size="small" color={theme.colors.primary.contrast} />
+                ) : (
+                  <Text variant="button" style={{ color: theme.colors.primary.contrast }}>
+                    Save
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={showDiscardModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDiscardModal(false)}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowDiscardModal(false)}>
+          <Pressable
+            style={[
+              styles.confirmModalContainer,
+              { backgroundColor: theme.colors.card },
+            ]}
+            onPress={() => { }}>
+            <View style={[styles.discardModalIcon, { backgroundColor: theme.colors.error.main + '15' }]}>
+              <Icon
+                name="alert-circle-outline"
+                size={ms(32)}
+                color={theme.colors.error.main}
+              />
+            </View>
+
+            <Text variant="h4" color="primary" style={styles.confirmModalTitle}>
+              Discard Changes?
+            </Text>
+
+            <Text variant="body" color="secondary" style={styles.confirmModalMessage}>
+              You have unsaved changes. Are you sure you want to discard them?
+            </Text>
+
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.confirmModalButton,
+                  styles.confirmModalCancelBtn,
+                  {
+                    backgroundColor: isDark ? colors.modal.dark.cancelBg : colors.modal.light.cancelBg,
+                    borderColor: isDark ? colors.modal.dark.cancelBorder : colors.modal.light.cancelBorder,
+                  },
+                ]}
+                activeOpacity={0.7}
+                onPress={() => setShowDiscardModal(false)}>
+                <Text variant="button" style={{ color: isDark ? colors.modal.dark.cancelText : colors.modal.light.cancelText }}>
+                  Keep Editing
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.confirmModalButton,
+                  styles.discardBtn,
+                  { backgroundColor: theme.colors.error.main },
+                ]}
+                activeOpacity={0.7}
+                onPress={performDiscard}>
+                <Text variant="button" style={{ color: colors.common.white }}>
+                  Discard
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Custom Alert Modal */}
+      <AlertModal
+        visible={alertState.visible}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 };
@@ -464,6 +656,14 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: vs(12),
   },
   header: {
     flexDirection: 'row',
@@ -474,8 +674,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerButton: {
-    paddingVertical: vs(8),
+    paddingVertical: vs(10),
     paddingHorizontal: spacing.sm,
+    minHeight: ms(40),
+    justifyContent: 'center',
   },
   keyboardView: {
     flex: 1,
@@ -598,6 +800,50 @@ const styles = StyleSheet.create({
     marginTop: vs(8),
     borderRadius: ms(12),
   },
+  confirmModalContainer: {
+    width: '100%',
+    borderRadius: ms(16),
+    padding: spacing.lg,
+    alignItems: 'center',
+  },
+  confirmModalIcon: {
+    marginBottom: vs(16),
+  },
+  confirmModalTitle: {
+    marginBottom: vs(8),
+    textAlign: 'center',
+  },
+  confirmModalMessage: {
+    textAlign: 'center',
+    marginBottom: vs(24),
+    paddingHorizontal: spacing.md,
+  },
+  confirmModalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: ms(12),
+  },
+  confirmModalButton: {
+    flex: 1,
+    paddingVertical: vs(14),
+    borderRadius: ms(12),
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: ms(48),
+  },
+  confirmModalCancelBtn: {
+    borderWidth: 1,
+  },
+  confirmModalSaveBtn: {},
+  discardModalIcon: {
+    width: ms(64),
+    height: ms(64),
+    borderRadius: ms(32),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: vs(16),
+  },
+  discardBtn: {},
 });
 
 export default EditProfileScreen;

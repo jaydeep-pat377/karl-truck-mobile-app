@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { fontFamily } from '../../theme/typography';
 import { colors } from '../../theme/colors';
-import GreenTruck from '../../assets/svgs/GreenTruck';
+import YellowTruck from '../../assets/svgs/yellowTruck.svg';
 
 interface TruckLoaderProps {
   size?: number;
@@ -19,8 +19,6 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
   const wheelRotation = useRef(new Animated.Value(0)).current;
   // Truck bounce animation
   const truckBounce = useRef(new Animated.Value(0)).current;
-  // Truck horizontal movement
-  const truckPosition = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Wheel spinning animation - continuous
@@ -51,58 +49,40 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
       ]),
     );
 
-    // Truck horizontal movement animation
-    const moveAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(truckPosition, {
-          toValue: 10,
-          duration: 1500,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(truckPosition, {
-          toValue: -10,
-          duration: 1500,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
     wheelAnimation.start();
     bounceAnimation.start();
-    moveAnimation.start();
 
     return () => {
       wheelAnimation.stop();
       bounceAnimation.stop();
-      moveAnimation.stop();
     };
-  }, [wheelRotation, truckBounce, truckPosition]);
+  }, [wheelRotation, truckBounce]);
 
   const wheelSpin = wheelRotation.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
 
-  const textColor = color === 'light' ? colors.common.white : colors.grey[80];
+  const textColor = color === 'light' ? '#FFFFFF' : '#333333';
 
   // Calculate truck dimensions maintaining aspect ratio (157:86)
   const truckWidth = size;
   const truckHeight = (size * 86) / 157;
 
   // Calculate wheel positions based on size
+  // Front wheel center in SVG: approximately x=132, y=70
+  // Rear wheel center in SVG: approximately x=47, y=70
   const scale = size / 157;
 
   // Wheel overlay sizes
   const frontWheelSize = 16 * scale;
   const rearWheelSize = 20 * scale;
 
-  // Position calculations
+  // Position calculations - subtract half the wheel size to center it
   const frontWheelRight = (157 - 127) * scale - frontWheelSize / 2;
-  const frontWheelBottom = (86 - 71) * scale - frontWheelSize / 2;
-  const rearWheelLeft = 47 * scale - rearWheelSize / 2;
-  const rearWheelBottom = (86 - 71) * scale - rearWheelSize / 2;
+  const frontWheelBottom = (86 - 75) * scale - frontWheelSize / 2;
+  const rearWheelLeft = 43 * scale - rearWheelSize / 2;
+  const rearWheelBottom = (86 - 75) * scale - rearWheelSize / 2;
 
   return (
     <View style={styles.container}>
@@ -112,13 +92,10 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
           {
             width: truckWidth,
             height: truckHeight,
-            transform: [
-              { translateY: truckBounce },
-              { translateX: truckPosition },
-            ],
+            transform: [{ translateY: truckBounce }],
           },
         ]}>
-        <GreenTruck width={truckWidth} height={truckHeight} />
+        <YellowTruck width={truckWidth} height={truckHeight} />
 
         {/* Animated Wheel Overlays - Front Wheel */}
         <Animated.View
@@ -180,7 +157,7 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
         style={[
           styles.roadLine,
           {
-            width: truckWidth + 40,
+            width: truckWidth + 20,
             borderColor:
               color === 'light' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
           },
@@ -296,7 +273,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   message: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: fontFamily.medium,
     marginTop: 8,
   },
@@ -317,7 +294,7 @@ const styles = StyleSheet.create({
   },
   wheelSpoke: {
     position: 'absolute',
-    backgroundColor: colors.loader.wheelSpoke,
+    backgroundColor: '#3A3B4A',
     borderRadius: 1,
   },
   spokeRotated: {

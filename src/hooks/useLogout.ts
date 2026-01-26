@@ -1,0 +1,42 @@
+import { useMutation } from '@tanstack/react-query';
+import { useAuthStore } from '../store/authStore';
+import { authService } from '../api/services/authService';
+import { AxiosError } from 'axios';
+
+interface LogoutResponse {
+  success: boolean;
+  message: string;
+}
+
+interface ApiErrorResponse {
+  success?: boolean;
+  message?: string;
+}
+
+export const useLogout = () => {
+  const { logout: clearAuth } = useAuthStore();
+
+  const mutation = useMutation<LogoutResponse, AxiosError<ApiErrorResponse>, void>({
+    mutationFn: async () => {
+      return authService.logout();
+    },
+    onSettled: async () => {
+      await clearAuth();
+    },
+  });
+
+  const logout = async () => {
+    try {
+      await mutation.mutateAsync();
+    } catch (error) {
+      console.log('Logout API error:', error);
+    }
+  };
+
+  return {
+    logout,
+    isLoading: mutation.isPending,
+  };
+};
+
+export default useLogout;

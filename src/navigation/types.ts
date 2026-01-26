@@ -14,10 +14,19 @@ export type AuthStackParamList = {
   VerifyOTP: { email: string; mode: 'signup' | 'forgotPassword' };
 };
 
+// Order Status Filter Type - matches API status values
+export type OrderStatusFilter =
+  | 'Will Call'
+  | 'Hold Delivery'
+  | 'Canceled'
+  | 'Normal'
+  | 'In Progress'
+  | 'Completed';
+
 // Main Tab Navigator
 export type MainTabParamList = {
   Home: undefined;
-  Orders: undefined;
+  Orders: { statusFilter?: OrderStatusFilter } | undefined;
   Map: undefined;
   Notifications: undefined;
   Settings: undefined;
@@ -50,10 +59,10 @@ export type AppointmentsStackParamList = {
 
 // Weather Screen Params
 export type WeatherScreenParams = {
-  locationName: string;
-  latitude?: number;
-  longitude?: number;
-  orderId?: string;
+  orderCode: string;
+  orderDate: string;
+  orderStatus?: string;
+  startTime?: string;
 };
 
 // Weather Data for Product Recommendations
@@ -85,10 +94,26 @@ export type ProductDetailsScreenParams = {
 export type EvaporationListScreenParams = {
   locationName: string;
   date: string;
+  orderCode: string;
+  orderNo?: string;
   currentEvaporation?: {
     value: number;
     status: 'Low' | 'Moderate' | 'High';
     description: string;
+  };
+  weatherData?: {
+    humidity: number;
+    windSpeed: number;
+    windDirection: string;
+    temperature: number;
+    temperatureUnit: string;
+    pressure: number;
+    pressureUnit: string;
+    dewPoint: number;
+    concreteTemp: number | null;
+    condition: string;
+    cloudsPercentage: number;
+    visibility: number;
   };
 };
 
@@ -96,42 +121,32 @@ export type EvaporationListScreenParams = {
 export type TicketScreenParams = {
   orderId: string;
   orderCode: string;
+  orderDate: string;
 };
 
-// Ticket Detail Screen Params
+// API Ticket Status type
+export type TicketStatusType =
+  | 'cancelled'
+  | 'at_plant'
+  | 'to_plant'
+  | 'washing'
+  | 'pouring'
+  | 'at_job'
+  | 'to_job'
+  | 'loaded'
+  | 'loading'
+  | 'ticketed'
+  | 'pending';
+
+// Ticket Detail Screen Params - API query params for fetching details
 export type TicketDetailScreenParams = {
-  ticketId: string;
-  ticketNumber: string;
-  truckId: string;
-  truckName: string;
-  loadQuantity: number;
-  totalOrderQuantity: number;
-  unit: string;
-  status: 'at_plant' | 'in_transit' | 'at_site' | 'pouring' | 'completed' | 'returning';
-  scheduledTime: string;
-  actualTime?: string;
-  driverName?: string;
-  driverPhone?: string;
-  orderCode?: string;
-  // Product/Mix Information
-  productCode?: string;
-  productName?: string;
-  mixDesign?: string;
-  slump?: string;
-  // Delivery Location
-  deliveryAddress?: string;
-  deliveryCity?: string;
-  deliveryLatitude?: number;
-  deliveryLongitude?: number;
-  // Customer Information
-  customerName?: string;
-  customerPhone?: string;
-  customerCompany?: string;
-  // Additional Details
-  specialInstructions?: string;
-  plantName?: string;
-  estimatedArrival?: string;
-  distance?: string;
+  // Required API params
+  orderCode: string;
+  orderDate: string;
+  ticketCode: string;
+  // Optional status from TicketScreen
+  status?: TicketStatusType;
+  statusDisplay?: string;
 };
 
 // Product Code Screen Params
@@ -140,13 +155,29 @@ export type ProductCodeScreenParams = {
   cardValue?: number | string;
   cardUnit?: string;
   weatherData?: WeatherData;
+  orderStatus?: string;
+  onJobTime?: string;
+  orderDate?: string;
+  rate?: string;
+};
+
+// Map Tracking Screen Params
+export type MapTrackingScreenParams = {
+  latitude?: string;
+  longitude?: string;
+  truckCode?: string;
+  ticketCode?: string;
+  driverName?: string;
+  destination?: string;
+  orderCode?: string;
+  customerName?: string;
 };
 
 // Root Navigator
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
-  OrderDetail: { orderId: string };
+  OrderDetail: { orderId: string; orderCode: string; orderDate: string };
   Tracking: { orderId: string };
   Weather: WeatherScreenParams;
   ProductDetails: ProductDetailsScreenParams;
@@ -154,6 +185,7 @@ export type RootStackParamList = {
   EvaporationList: EvaporationListScreenParams;
   Ticket: TicketScreenParams;
   TicketDetail: TicketDetailScreenParams;
+  MapTracking: MapTrackingScreenParams;
   Appointments: NavigatorScreenParams<AppointmentsStackParamList>;
 };
 

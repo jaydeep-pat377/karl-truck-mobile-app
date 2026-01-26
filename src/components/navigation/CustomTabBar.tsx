@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Icon } from '../common';
 import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -175,12 +175,12 @@ const TabItem: React.FC<TabItemProps> = ({
 
   const getIconName = (): string => {
     switch (route.name) {
-      case 'Home':
-        return isFocused ? 'home' : 'home-outline';
       case 'Orders':
         return isFocused ? 'clipboard-text' : 'clipboard-text-outline';
       case 'Map':
         return isFocused ? 'map' : 'map-outline';
+      case 'Home':
+        return isFocused ? 'home' : 'home-outline';
       case 'Notifications':
         return isFocused ? 'bell' : 'bell-outline';
       case 'Settings':

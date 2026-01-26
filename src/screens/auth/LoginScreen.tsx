@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,13 +9,13 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text } from '../../components/common/Text';
-import { Input } from '../../components/common/Input';
-import { Button } from '../../components/common/Button';
+import { Text, Input, Button, Icon } from '../../components/common';
 import { useTranslation } from 'react-i18next';
 import { ms, vs, spacing } from '../../utils/responsive';
+import { useLogin } from '../../hooks/useLogin';
+import { STORAGE_KEYS } from '../../utils/storage';
 
 interface LoginScreenProps {
   navigation?: any;
@@ -26,20 +26,51 @@ interface LoginScreenProps {
   };
 }
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
-  const { theme, isDark } = useTheme();
-  const { t } = useTranslation();
+// Additional storage keys for remember me
+const REMEMBER_ME_EMAIL = 'rememberMeEmail';
 
+export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
+  const { theme } = useTheme();
+  const { t } = useTranslation();
+  const { login, isLoading, error: authError, reset: clearError } = useLogin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
 
   const passwordRef = useRef<TextInput>(null);
 
-  // Check if user just verified their account
+  // Load saved credentials on mount
+  const loadSavedCredentials = useCallback(async () => {
+    try {
+      const [savedEmail, savedRememberMe] = await AsyncStorage.multiGet([
+        REMEMBER_ME_EMAIL,
+        STORAGE_KEYS.REMEMBER_ME,
+      ]);
+
+      if (savedRememberMe[1] === 'true' && savedEmail[1]) {
+        setEmail(savedEmail[1]);
+        setRememberMe(true);
+      }
+    } catch (error) {
+      console.error('Error loading saved credentials:', error);
+    } finally {
+      setIsLoadingCredentials(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSavedCredentials();
+  }, [loadSavedCredentials]);
+
+  useEffect(() => {
+    if (authError) {
+      setErrors(prev => ({ ...prev, general: authError }));
+    }
+  }, [authError]);
+
   const justVerified = route?.params?.verified;
 
   const validateForm = (): boolean => {
@@ -59,19 +90,38 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
     return Object.keys(newErrors).length === 0;
   };
 
+  // Save or clear remember me credentials
+  const handleRememberMe = async (shouldRemember: boolean, userEmail: string) => {
+    try {
+      if (shouldRemember) {
+        await AsyncStorage.multiSet([
+          [REMEMBER_ME_EMAIL, userEmail],
+          [STORAGE_KEYS.REMEMBER_ME, 'true'],
+        ]);
+      } else {
+        await AsyncStorage.multiRemove([
+          REMEMBER_ME_EMAIL,
+          STORAGE_KEYS.REMEMBER_ME,
+        ]);
+      }
+    } catch (error) {
+      console.error('Error saving remember me:', error);
+    }
+  };
+
   const handleLogin = async () => {
     if (!validateForm()) return;
 
-    setIsLoading(true);
+    clearError();
+    setErrors({});
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      // Navigate to main app
-      navigation?.navigate('Main');
+      await login(email, password);
+      // Save remember me preference on successful login
+      await handleRememberMe(rememberMe, email);
+      // Navigation is automatic - RootNavigator will switch to Main when isAuthenticated becomes true
     } catch (error) {
-      setErrors({ general: t('auth.loginFailed') });
-    } finally {
-      setIsLoading(false);
+      console.log('Login error:', error);
     }
   };
 
@@ -79,29 +129,40 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
     navigation?.navigate('ForgotPassword');
   };
 
-  const handleSignup = () => {
-    navigation?.navigate('Signup');
+  const toggleRememberMe = async () => {
+    const newValue = !rememberMe;
+    setRememberMe(newValue);
+
+    // If unchecking, clear saved credentials immediately
+    if (!newValue) {
+      await handleRememberMe(false, '');
+    }
   };
+
+  if (isLoadingCredentials) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.loadingContainer} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
+        style={styles.keyboardView}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
+          showsVerticalScrollIndicator={false}>
 
           {justVerified && (
             <View
               style={[
                 styles.successBanner,
                 { backgroundColor: theme.colors.success.background },
-              ]}
-            >
+              ]}>
               <Icon name="check-circle" size={ms(20)} color={theme.colors.success.main} />
               <Text
                 variant="bodySmall"
@@ -154,7 +215,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
             />
 
             <Input
-              ref={passwordRef}
               label={t('auth.password')}
               value={password}
               onChangeText={(text) => {
@@ -175,7 +235,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
             <View style={styles.optionsRow}>
               <TouchableOpacity
                 style={styles.rememberMe}
-                onPress={() => setRememberMe(!rememberMe)}
+                onPress={toggleRememberMe}
                 activeOpacity={0.7}>
                 <View
                   style={[
@@ -188,9 +248,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
                     },
                   ]}>
                   {rememberMe && (
-                    <Icon name="check" 
-                    size={ms(12)} 
-                    color={theme.colors.primary.contrast} />
+                    <Icon name="check"
+                      size={ms(12)}
+                      color={theme.colors.primary.contrast} />
                   )}
                 </View>
                 <Text variant="bodySmall" color="secondary">
@@ -227,6 +287,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   keyboardView: {
     flex: 1,

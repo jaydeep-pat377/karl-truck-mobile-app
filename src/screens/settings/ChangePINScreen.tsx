@@ -15,27 +15,23 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
-  Alert,
   Vibration,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text } from '../../components/common/Text';
+import { Text, Icon, AlertModal } from '../../components/common';
 import { ms, vs, spacing } from '../../utils/responsive';
-
-interface ChangePINScreenProps {
-  navigation?: any;
-}
+import { useAlert } from '../../hooks';
 
 type Step = 'verify' | 'create' | 'confirm';
 
 const PIN_LENGTH = 4;
 
-export const ChangePINScreen: React.FC<ChangePINScreenProps> = ({
-  navigation,
-}) => {
+export const ChangePINScreen: React.FC = () => {
+  const navigation = useNavigation();
   const { theme, isDark } = useTheme();
+  const { alertState, hideAlert, showSuccess } = useAlert();
 
   const [step, setStep] = useState<Step>('verify');
   const [currentPIN, setCurrentPIN] = useState('');
@@ -139,10 +135,14 @@ export const ChangePINScreen: React.FC<ChangePINScreenProps> = ({
         await new Promise(resolve => setTimeout(resolve, 1000));
         setIsLoading(false);
 
-        Alert.alert(
+        showSuccess(
           'PIN Changed',
           'Your PIN has been updated successfully.',
-          [{ text: 'OK', onPress: () => navigation?.goBack() }]
+          () => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            }
+          }
         );
       } else {
         setError('PINs do not match. Please try again.');
@@ -163,7 +163,9 @@ export const ChangePINScreen: React.FC<ChangePINScreenProps> = ({
       setStep('verify');
       setNewPIN('');
     } else {
-      navigation?.goBack();
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      }
     }
   };
 
@@ -362,10 +364,9 @@ export const ChangePINScreen: React.FC<ChangePINScreenProps> = ({
       {step === 'verify' && (
         <TouchableOpacity
           onPress={() => {
-            Alert.alert(
+            showSuccess(
               'Forgot PIN?',
-              'Please contact your administrator to reset your PIN.',
-              [{ text: 'OK' }]
+              'Please contact your administrator to reset your PIN.'
             );
           }}
           activeOpacity={0.7}
@@ -376,6 +377,16 @@ export const ChangePINScreen: React.FC<ChangePINScreenProps> = ({
           </Text>
         </TouchableOpacity>
       )}
+
+      {/* Custom Alert Modal */}
+      <AlertModal
+        visible={alertState.visible}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 };

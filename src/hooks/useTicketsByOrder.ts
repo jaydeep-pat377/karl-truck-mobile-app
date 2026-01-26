@@ -1,0 +1,81 @@
+import { useQuery } from '@tanstack/react-query';
+import { ticketService } from '../api/services/ticketService';
+import {
+  TicketsByOrderApiResponse,
+  TicketsByOrderQueryParams,
+  TicketsByOrderData,
+  TicketByOrderItem,
+  TicketsByOrderOrder,
+  TicketsByOrderFilters,
+  TicketsByOrderSummary,
+} from '../types/ticket';
+import { AxiosError } from 'axios';
+
+interface ApiErrorResponse {
+  success?: boolean;
+  message?: string;
+}
+
+interface UseTicketsByOrderParams extends TicketsByOrderQueryParams {
+  orderId: string;
+}
+
+export const useTicketsByOrder = (params: UseTicketsByOrderParams) => {
+  const { orderId, ...queryParams } = params;
+
+  const query = useQuery<TicketsByOrderApiResponse, AxiosError<ApiErrorResponse>>({
+    queryKey: ['ticketsByOrder', orderId, queryParams],
+    queryFn: () => ticketService.getTicketsByOrder(orderId, queryParams),
+    enabled: !!orderId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 2,
+    refetchOnMount: 'always',
+  });
+
+  const data: TicketsByOrderData | null = query.data?.success
+    ? query.data.data
+    : null;
+
+  const order: TicketsByOrderOrder | null = data?.order || null;
+  const tickets: TicketByOrderItem[] = data?.tickets || [];
+  const filters: TicketsByOrderFilters | null = data?.filters || null;
+  const summary: TicketsByOrderSummary | null = data?.summary || null;
+
+  const errorMessage =
+    query.error?.response?.data?.message ||
+    (query.error ? 'Failed to load tickets' : null);
+
+  return {
+    // Raw data
+    data,
+    order,
+    tickets,
+    filters,
+    summary,
+    // Order info
+    orderId: order?.order_id,
+    orderCode: order?.order_code,
+    orderDate: order?.order_date,
+    customerName: order?.customer_name,
+    deliveryAddress: order?.delivery_address,
+    // Summary info
+    totalTickets: summary?.total_tickets ?? 0,
+    totalDeliveredQty: summary?.total_delivered_qty ?? 0,
+    orderedQty: summary?.ordered_qty ?? 0,
+    remainingQty: summary?.remaining_qty ?? 0,
+    progressDisplay: summary?.progress_display ?? '',
+    // Filter options
+    availableStatuses: filters?.available?.status || [],
+    availableLoads: filters?.available?.load || [],
+    totalLoads: filters?.in_order?.total_loads ?? 0,
+    // Query state
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: errorMessage,
+    refetch: query.refetch,
+    isRefetching: query.isRefetching,
+    isFetching: query.isFetching,
+  };
+};
+
+export default useTicketsByOrder;

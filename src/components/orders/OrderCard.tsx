@@ -6,16 +6,14 @@ import {
   Pressable,
   ActivityIndicator,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text, Card, StatusBadge, WeatherBadge } from '../common';
-import { Order } from '../../types';
+import { Text, Card, StatusBadge, WeatherBadge, Icon } from '../common';
 import { colors, statusColorMap } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
-import { spacing, ms, iconSizes } from '../../utils/responsive';
+import { ms } from '../../utils/responsive';
 
 interface OrderCardProps {
-  order: Order;
+  order: any;
   showDetails?: boolean;
   onPress?: () => void;
   onOrderDetails?: () => void;
@@ -115,7 +113,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <View style={styles.headerLeft}>
               <StatusBadge status={order.status} size="small" />
               <Text variant="captionSmall" color="secondary" style={styles.orderId}>
-                #{order.orderCode}
+                {order.productType || 'N/A'}
               </Text>
               <Text variant="captionSmall" color="hint" style={styles.dateTime}>
                 {formatDate(order.scheduledDate)} • {order.scheduledTime}
@@ -132,7 +130,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
           <View style={styles.titleRow}>
             <Text variant="bodySmall" numberOfLines={1} style={styles.projectName}>
-              {order.projectName || order.productType}
+              #{order.orderCode}
             </Text>
             <Text variant="captionSmall" color="secondary" numberOfLines={1}>
               {order.customerName}
@@ -143,13 +141,12 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <Icon
               name="map-marker-outline"
               size={ms(12)}
-              color={themeColors.text.hint}
+              color={themeColors.text.secondary}
             />
             <Text
               variant="captionSmall"
-              color="hint"
               numberOfLines={1}
-              style={styles.locationText}>
+              style={[styles.locationText, { color: themeColors.text.secondary }]}>
               {order.deliveryAddress}
             </Text>
             {(order.weather || isWeatherLoading) && (
@@ -213,18 +210,16 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                   </>
                 )}
 
-                {order.remainingQuantity !== undefined && order.remainingQuantity > 0 && (
-                  <View style={styles.metricItem}>
-                    <Icon
-                      name="cube-outline"
-                      size={ms(12)}
-                      color={themeColors.text.secondary}
-                    />
-                    <Text variant="captionSmall" color="secondary">
-                      {order.remainingQuantity} {order.unit}
-                    </Text>
-                  </View>
-                )}
+                <View style={styles.metricItem}>
+                  <Icon
+                    name="cube-outline"
+                    size={ms(12)}
+                    color={themeColors.text.secondary}
+                  />
+                  <Text variant="captionSmall" color="secondary">
+                    {order.quantity ?? 0} {order.unit}
+                  </Text>
+                </View>
 
                 {order.distance && (
                   <View style={styles.metricItemRight}>

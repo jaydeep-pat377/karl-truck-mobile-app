@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { RootStackParamList } from './types';
@@ -8,15 +8,28 @@ import { OrderDetailsScreen } from '../screens/orders/OrderDetailsScreen';
 import { TicketScreen } from '../screens/orders/TicketScreen';
 import { TicketDetailScreen } from '../screens/orders/TicketDetailScreen';
 import { WeatherScreen, ProductDetailsScreen, ProductCodeScreen, EvaporationListScreen } from '../screens/weather';
+import { MapTrackingScreen } from '../screens/tracking/MapTrackingScreen';
+import { useAuthStore } from '../store/authStore';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-interface RootNavigatorProps {
-  isAuthenticated?: boolean;
-}
-
-export const RootNavigator: React.FC<RootNavigatorProps> = () => {
+export const RootNavigator: React.FC = () => {
   const theme = useAppTheme();
+  const { isAuthenticated, isInitialized, isLoading, initialize } = useAuthStore();
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
+  // Show loading screen while checking auth
+  if (!isInitialized || isLoading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary.main} />
+      </View>
+    );
+  }
 
   return (
     <Stack.Navigator
@@ -27,59 +40,88 @@ export const RootNavigator: React.FC<RootNavigatorProps> = () => {
         },
         animation: 'fade',
       }}>
-      <Stack.Screen name="Auth" component={AuthNavigator} />
-      <Stack.Screen name="Main" component={MainNavigator} />
-      <Stack.Screen
-        name="OrderDetail"
-        component={OrderDetailsScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="Weather"
-        component={WeatherScreen}
-        options={{
-          animation: 'slide_from_bottom',
-        }}
-      />
-      <Stack.Screen
-        name="ProductDetails"
-        component={ProductDetailsScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="ProductCode"
-        component={ProductCodeScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="EvaporationList"
-        component={EvaporationListScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="Ticket"
-        component={TicketScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
-      <Stack.Screen
-        name="TicketDetail"
-        component={TicketDetailScreen}
-        options={{
-          animation: 'slide_from_right',
-        }}
-      />
+      {isAuthenticated ? (
+        // Authenticated routes
+        <>
+          <Stack.Screen name="Main" component={MainNavigator} />
+          <Stack.Screen
+            name="OrderDetail"
+            component={OrderDetailsScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="Weather"
+            component={WeatherScreen}
+            options={{
+              animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen
+            name="ProductDetails"
+            component={ProductDetailsScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="ProductCode"
+            component={ProductCodeScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="EvaporationList"
+            component={EvaporationListScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="Ticket"
+            component={TicketScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="TicketDetail"
+            component={TicketDetailScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="Tracking"
+            component={MapTrackingScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="MapTracking"
+            component={MapTrackingScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+        </>
+      ) : (
+        // Auth routes
+        <Stack.Screen name="Auth" component={AuthNavigator} />
+      )}
     </Stack.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
 
 export default RootNavigator;

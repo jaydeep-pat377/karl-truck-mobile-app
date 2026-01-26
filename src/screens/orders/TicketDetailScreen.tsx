@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,27 +6,33 @@ import {
   TouchableOpacity,
   StatusBar,
   Linking,
+  RefreshControl,
+  Modal,
+  Platform,
+  Text as AppText,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text } from '../../components/common';
+import { Text, Icon, TruckLoader, AlertModal } from '../../components/common';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, vs } from '../../utils/responsive';
-import { RootStackParamList, TicketDetailScreenParams } from '../../navigation/types';
+import { RootStackParamList } from '../../navigation/types';
+import { useTicketDetails, useAlert } from '../../hooks';
+import { ApiTicketStatus } from '../../types/ticket';
 
 type TicketDetailRouteProp = RouteProp<RootStackParamList, 'TicketDetail'>;
-type TicketStatus = TicketDetailScreenParams['status'];
 
 // Design constants
 const GRID = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 };
 const RADIUS = { sm: 8, md: 12, lg: 16, xl: 24 };
 
-// Gradient colors
-const HEADER_GRADIENT = ['#1565C0', '#1976D2', '#2196F3'];
+// Gradient colors for light/dark theme (green for both themes)
+const HEADER_GRADIENT_LIGHT = [colors.primary.dark, colors.primary.main, colors.primary.light];
+const HEADER_GRADIENT_DARK = [colors.primary.dark, colors.primary.main, colors.primary.light];
 
 interface StatusConfig {
   label: string;
@@ -36,57 +42,248 @@ interface StatusConfig {
   progressStep: number;
 }
 
-const STATUS_CONFIG: Record<TicketStatus, StatusConfig> = {
-  at_plant: {
-    label: 'At Plant',
-    icon: 'factory',
-    color: '#FF9800',
-    bgColor: '#FFF3E0',
+// Header badge colors - designed to be visible on green gradient header
+interface HeaderBadgeColors {
+  bgColor: string;
+  textColor: string;
+  iconColor: string;
+}
+
+const getHeaderBadgeColors = (status: ApiTicketStatus, isDark: boolean): HeaderBadgeColors => {
+  // Colors designed to be visible on green gradient header
+  const statusColors: Record<ApiTicketStatus, HeaderBadgeColors> = {
+    pending: {
+      bgColor: 'rgba(255, 255, 255, 0.95)',
+      textColor: '#666666',
+      iconColor: '#888888',
+    },
+    ticketed: {
+      bgColor: 'rgba(255, 255, 255, 0.95)',
+      textColor: '#0288D1',
+      iconColor: '#0288D1',
+    },
+    loading: {
+      bgColor: 'rgba(255, 193, 7, 0.95)',
+      textColor: '#5D4037',
+      iconColor: '#5D4037',
+    },
+    loaded: {
+      bgColor: 'rgba(255, 255, 255, 0.95)',
+      textColor: '#0277BD',
+      iconColor: '#0277BD',
+    },
+    to_job: {
+      bgColor: 'rgba(33, 150, 243, 0.95)',
+      textColor: '#FFFFFF',
+      iconColor: '#FFFFFF',
+    },
+    at_job: {
+      bgColor: 'rgba(255, 152, 0, 0.95)',
+      textColor: '#FFFFFF',
+      iconColor: '#FFFFFF',
+    },
+    pouring: {
+      bgColor: 'rgba(255, 255, 255, 0.95)',
+      textColor: '#2E7D32',
+      iconColor: '#2E7D32',
+    },
+    washing: {
+      bgColor: 'rgba(3, 169, 244, 0.95)',
+      textColor: '#FFFFFF',
+      iconColor: '#FFFFFF',
+    },
+    to_plant: {
+      bgColor: 'rgba(156, 39, 176, 0.9)',
+      textColor: '#FFFFFF',
+      iconColor: '#FFFFFF',
+    },
+    at_plant: {
+      bgColor: 'rgba(255, 255, 255, 0.95)',
+      textColor: '#546E7A',
+      iconColor: '#546E7A',
+    },
+    cancelled: {
+      bgColor: 'rgba(244, 67, 54, 0.95)',
+      textColor: '#FFFFFF',
+      iconColor: '#FFFFFF',
+    },
+  };
+
+  return statusColors[status] || statusColors.pending;
+};
+
+// Status config matching API statuses - consistent with TicketScreen
+const STATUS_CONFIG_LIGHT: Record<ApiTicketStatus, StatusConfig> = {
+  pending: {
+    label: 'PENDING',
+    icon: 'clock-outline',
+    color: colors.grey[60],
+    bgColor: colors.grey[10],
     progressStep: 0,
   },
-  in_transit: {
-    label: 'In Transit',
-    icon: 'truck-fast',
-    color: '#2196F3',
-    bgColor: '#E3F2FD',
+  ticketed: {
+    label: 'TICKETED',
+    icon: 'ticket-outline',
+    color: colors.info.main,
+    bgColor: colors.info.light,
     progressStep: 1,
   },
-  at_site: {
-    label: 'At Site',
-    icon: 'map-marker-check',
-    color: '#9C27B0',
-    bgColor: '#F3E5F5',
+  loading: {
+    label: 'LOADING',
+    icon: 'truck-loading',
+    color: colors.warning.dark,
+    bgColor: colors.warning.light,
     progressStep: 2,
   },
-  pouring: {
-    label: 'Pouring',
-    icon: 'water',
-    color: '#00BCD4',
-    bgColor: '#E0F7FA',
+  loaded: {
+    label: 'LOADED',
+    icon: 'truck-check',
+    color: colors.info.dark,
+    bgColor: colors.info.light,
     progressStep: 3,
   },
-  completed: {
-    label: 'Completed',
-    icon: 'check-circle',
-    color: '#4CAF50',
-    bgColor: '#E8F5E9',
+  to_job: {
+    label: 'TO JOB',
+    icon: 'truck-fast',
+    color: colors.ticket.status.inTransit.text,
+    bgColor: colors.ticket.status.inTransit.bg,
     progressStep: 4,
   },
-  returning: {
-    label: 'Returning',
+  at_job: {
+    label: 'AT JOB',
+    icon: 'map-marker-check',
+    color: colors.ticket.status.atSite.text,
+    bgColor: colors.ticket.status.atSite.bg,
+    progressStep: 5,
+  },
+  pouring: {
+    label: 'POURING',
+    icon: 'water',
+    color: colors.ticket.status.pouring.text,
+    bgColor: colors.ticket.status.pouring.bg,
+    progressStep: 6,
+  },
+  washing: {
+    label: 'WASHING',
+    icon: 'water-pump',
+    color: colors.info.main,
+    bgColor: colors.info.light,
+    progressStep: 7,
+  },
+  to_plant: {
+    label: 'TO PLANT',
     icon: 'truck-delivery',
-    color: '#607D8B',
-    bgColor: '#ECEFF1',
-    progressStep: 4,
+    color: colors.ticket.status.returning.text,
+    bgColor: colors.ticket.status.returning.bg,
+    progressStep: 8,
+  },
+  at_plant: {
+    label: 'AT PLANT',
+    icon: 'factory',
+    color: colors.ticket.status.atPlant.text,
+    bgColor: colors.ticket.status.atPlant.bg,
+    progressStep: 9,
+  },
+  cancelled: {
+    label: 'CANCELLED',
+    icon: 'close-circle',
+    color: colors.error.dark,
+    bgColor: colors.error.background,
+    progressStep: -1,
   },
 };
 
+const STATUS_CONFIG_DARK: Record<ApiTicketStatus, StatusConfig> = {
+  pending: {
+    label: 'PENDING',
+    icon: 'clock-outline',
+    color: colors.grey[25],
+    bgColor: colors.grey[60] + '30',
+    progressStep: 0,
+  },
+  ticketed: {
+    label: 'TICKETED',
+    icon: 'ticket-outline',
+    color: colors.info.light,
+    bgColor: colors.info.main + '30',
+    progressStep: 1,
+  },
+  loading: {
+    label: 'LOADING',
+    icon: 'truck-loading',
+    color: colors.warning.light,
+    bgColor: colors.warning.main + '30',
+    progressStep: 2,
+  },
+  loaded: {
+    label: 'LOADED',
+    icon: 'truck-check',
+    color: colors.info.light,
+    bgColor: colors.info.main + '30',
+    progressStep: 3,
+  },
+  to_job: {
+    label: 'TO JOB',
+    icon: 'truck-fast',
+    color: colors.ticket.statusDark.inTransit.text,
+    bgColor: colors.ticket.statusDark.inTransit.bg,
+    progressStep: 4,
+  },
+  at_job: {
+    label: 'AT JOB',
+    icon: 'map-marker-check',
+    color: colors.ticket.statusDark.atSite.text,
+    bgColor: colors.ticket.statusDark.atSite.bg,
+    progressStep: 5,
+  },
+  pouring: {
+    label: 'POURING',
+    icon: 'water',
+    color: colors.ticket.statusDark.pouring.text,
+    bgColor: colors.ticket.statusDark.pouring.bg,
+    progressStep: 6,
+  },
+  washing: {
+    label: 'WASHING',
+    icon: 'water-pump',
+    color: colors.info.light,
+    bgColor: colors.info.main + '30',
+    progressStep: 7,
+  },
+  to_plant: {
+    label: 'TO PLANT',
+    icon: 'truck-delivery',
+    color: colors.ticket.statusDark.returning.text,
+    bgColor: colors.ticket.statusDark.returning.bg,
+    progressStep: 8,
+  },
+  at_plant: {
+    label: 'AT PLANT',
+    icon: 'factory',
+    color: colors.ticket.statusDark.atPlant.text,
+    bgColor: colors.ticket.statusDark.atPlant.bg,
+    progressStep: 9,
+  },
+  cancelled: {
+    label: 'CANCELLED',
+    icon: 'close-circle',
+    color: colors.error.light,
+    bgColor: colors.error.dark + '20',
+    progressStep: -1,
+  },
+};
+
+// Timeline steps matching API status flow
 const TIMELINE_STEPS = [
-  { key: 'at_plant', label: 'At Plant', icon: 'factory', time: '07:30 AM' },
-  { key: 'in_transit', label: 'In Transit', icon: 'truck-fast', time: '07:45 AM' },
-  { key: 'at_site', label: 'At Site', icon: 'map-marker-check', time: '08:15 AM' },
-  { key: 'pouring', label: 'Pouring', icon: 'water', time: '08:20 AM' },
-  { key: 'completed', label: 'Completed', icon: 'check-circle', time: '08:45 AM' },
+  { key: 'ticketed', label: 'Ticketed', icon: 'ticket-outline' },
+  { key: 'loading', label: 'Loading', icon: 'truck-loading' },
+  { key: 'loaded', label: 'Loaded', icon: 'truck-check' },
+  { key: 'to_job', label: 'To Job', icon: 'truck-fast' },
+  { key: 'at_job', label: 'At Job', icon: 'map-marker-check' },
+  { key: 'pouring', label: 'Pouring', icon: 'water' },
+  { key: 'washing', label: 'Washing', icon: 'water-pump' },
+  { key: 'to_plant', label: 'To Plant', icon: 'truck-delivery' },
+  { key: 'at_plant', label: 'At Plant', icon: 'factory' },
 ];
 
 // Section Card Component
@@ -100,14 +297,23 @@ interface SectionCardProps {
 
 const SectionCard: React.FC<SectionCardProps> = ({ title, icon, iconColor, children, isDark }) => {
   const themeColors = isDark ? colors.dark : colors.light;
+  const titleColor = isDark ? colors.common.white : colors.grey[80];
 
   return (
-    <View style={[styles.sectionCard, { backgroundColor: themeColors.card }]}>
+    <View
+      style={[
+        styles.sectionCard,
+        {
+          backgroundColor: themeColors.card,
+          borderWidth: isDark ? 0 : 1,
+          borderColor: isDark ? 'transparent' : colors.grey[10],
+        },
+      ]}>
       <View style={styles.sectionHeader}>
         <View style={[styles.sectionIconBox, { backgroundColor: `${iconColor}15` }]}>
           <Icon name={icon} size={ms(18)} color={iconColor} />
         </View>
-        <Text style={[styles.sectionTitle, { color: themeColors.text.primary }]}>{title}</Text>
+        <Text style={[styles.sectionTitle, { color: titleColor }]}>{title}</Text>
       </View>
       {children}
     </View>
@@ -117,7 +323,7 @@ const SectionCard: React.FC<SectionCardProps> = ({ title, icon, iconColor, child
 // Detail Row Component
 interface DetailRowProps {
   label: string;
-  value?: string;
+  value?: string | null;
   icon?: string;
   iconColor?: string;
   isDark: boolean;
@@ -126,11 +332,14 @@ interface DetailRowProps {
 
 const DetailRow: React.FC<DetailRowProps> = ({ label, value, icon, iconColor, isDark, isLast }) => {
   const themeColors = isDark ? colors.dark : colors.light;
+  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : colors.grey[10];
+  const labelColor = isDark ? colors.grey[40] : colors.grey[60];
+  const valueColor = isDark ? colors.common.white : colors.grey[85];
 
   if (!value) return null;
 
   return (
-    <View style={[styles.detailRow, !isLast && styles.detailRowBorder]}>
+    <View style={[styles.detailRow, !isLast && [styles.detailRowBorder, { borderBottomColor: borderColor }]]}>
       {icon && (
         <Icon
           name={icon}
@@ -139,27 +348,62 @@ const DetailRow: React.FC<DetailRowProps> = ({ label, value, icon, iconColor, is
           style={styles.detailIcon}
         />
       )}
-      <Text style={[styles.detailLabel, { color: themeColors.text.hint }]}>{label}</Text>
-      <Text style={[styles.detailValue, { color: themeColors.text.primary }]}>{value}</Text>
+      <Text style={[styles.detailLabel, { color: labelColor }]}>{label}</Text>
+      <Text style={[styles.detailValue, { color: valueColor }]}>{value}</Text>
     </View>
   );
 };
 
 // Vertical Timeline Component
 interface VerticalTimelineProps {
-  currentStep: number;
+  timestamps: {
+    ticketed?: string | null;
+    loading?: string | null;
+    loaded?: string | null;
+    toJob?: string | null;
+    atJob?: string | null;
+    pouring?: string | null;
+    washing?: string | null;
+    toPlant?: string | null;
+    atPlant?: string | null;
+  };
+  currentStatus: ApiTicketStatus;
   isDark: boolean;
 }
 
-const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ currentStep, isDark }) => {
+const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, currentStatus, isDark }) => {
   const themeColors = isDark ? colors.dark : colors.light;
+  const completedColor = isDark ? colors.primary.light : colors.primary.main;
+  const activeColor = isDark ? colors.secondary.light : colors.secondary.main;
+  const completedTextColor = isDark ? colors.common.white : colors.grey[80];
+  const pendingTextColor = isDark ? colors.grey[40] : colors.grey[50];
+  const timeTextColor = isDark ? colors.grey[40] : colors.grey[60];
+
+  const getTimeForStep = (key: string): string | null => {
+    const timeMap: Record<string, string | null | undefined> = {
+      ticketed: timestamps.ticketed,
+      loading: timestamps.loading,
+      loaded: timestamps.loaded,
+      to_job: timestamps.toJob,
+      at_job: timestamps.atJob,
+      pouring: timestamps.pouring,
+      washing: timestamps.washing,
+      to_plant: timestamps.toPlant,
+      at_plant: timestamps.atPlant,
+    };
+    return timeMap[key] || null;
+  };
+
+  const statusOrder = TIMELINE_STEPS.map(s => s.key);
+  const currentIndex = statusOrder.indexOf(currentStatus);
 
   return (
     <View style={styles.verticalTimeline}>
       {TIMELINE_STEPS.map((step, index) => {
-        const isCompleted = index <= currentStep;
-        const isActive = index === currentStep;
-        const stepColor = isCompleted ? '#4CAF50' : themeColors.border;
+        const stepTime = getTimeForStep(step.key);
+        const isCompleted = stepTime !== null;
+        const isActive = step.key === currentStatus;
+        const stepColor = isCompleted ? completedColor : themeColors.border;
 
         return (
           <View key={step.key} style={styles.timelineItem}>
@@ -171,7 +415,7 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ currentStep, isDark
                     backgroundColor: isCompleted ? stepColor : themeColors.surface,
                     borderColor: stepColor,
                   },
-                  isActive && styles.timelineIconActive,
+                  isActive && [styles.timelineIconActive, { shadowColor: completedColor }],
                 ]}>
                 <Icon
                   name={isCompleted ? 'check' : step.icon}
@@ -183,7 +427,7 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ currentStep, isDark
                 <View
                   style={[
                     styles.timelineVerticalLine,
-                    { backgroundColor: index < currentStep ? '#4CAF50' : themeColors.border },
+                    { backgroundColor: index < currentIndex ? completedColor : themeColors.border },
                   ]}
                 />
               )}
@@ -193,21 +437,21 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ currentStep, isDark
                 <Text
                   style={[
                     styles.timelineStepLabel,
-                    { color: isCompleted ? themeColors.text.primary : themeColors.text.hint },
-                    isActive && { fontFamily: fontFamily.semiBold, color: '#1976D2' },
+                    { color: isCompleted ? completedTextColor : pendingTextColor },
+                    isActive && { fontFamily: fontFamily.semiBold, color: activeColor },
                   ]}>
                   {step.label}
                 </Text>
-                {isCompleted && (
-                  <Text style={[styles.timelineTime, { color: themeColors.text.hint }]}>
-                    {step.time}
+                {stepTime && (
+                  <Text style={[styles.timelineTime, { color: timeTextColor }]}>
+                    {stepTime}
                   </Text>
                 )}
               </View>
               {isActive && (
                 <View style={styles.activeIndicator}>
-                  <View style={styles.activeDot} />
-                  <Text style={styles.activeText}>Current Status</Text>
+                  <View style={[styles.activeDot, { backgroundColor: activeColor }]} />
+                  <Text style={[styles.activeText, { color: activeColor }]}>Current Status</Text>
                 </View>
               )}
             </View>
@@ -229,59 +473,100 @@ interface QuickActionProps {
 
 const QuickAction: React.FC<QuickActionProps> = ({ icon, label, color, onPress, isDark }) => {
   const themeColors = isDark ? colors.dark : colors.light;
+  const labelColor = isDark ? colors.common.white : colors.grey[60];
 
   return (
     <TouchableOpacity
-      style={[styles.quickAction, { backgroundColor: themeColors.card }]}
+      style={[
+        styles.quickAction,
+        {
+          backgroundColor: themeColors.card,
+          borderWidth: isDark ? 0 : 1,
+          borderColor: isDark ? 'transparent' : colors.grey[10],
+        },
+      ]}
       onPress={onPress}
       activeOpacity={0.7}>
       <View style={[styles.quickActionIcon, { backgroundColor: `${color}15` }]}>
         <Icon name={icon} size={ms(20)} color={color} />
       </View>
-      <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>{label}</Text>
+      <Text style={[styles.quickActionLabel, { color: labelColor }]}>{label}</Text>
     </TouchableOpacity>
   );
 };
 
 export const TicketDetailScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<TicketDetailRouteProp>();
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const themeColors = isDark ? colors.dark : colors.light;
+  const { alertState, showWarning, hideAlert } = useAlert();
 
+  // Bottom sheet state for directions menu
+  const [showDirectionsMenu, setShowDirectionsMenu] = useState(false);
+
+  const { orderCode, orderDate, ticketCode, status: passedStatus, statusDisplay: passedStatusDisplay } = route.params;
+
+  // Fetch ticket details from API
   const {
-    ticketNumber,
-    truckName,
-    loadQuantity,
-    totalOrderQuantity,
-    unit,
-    status,
-    scheduledTime,
+    ticket,
+    ticketCode: apiTicketCode,
+    orderCode: apiOrderCode,
+    customerName,
+    deliveryAddress,
+    plantName,
+    plantAddress,
+    runningQty,
+    orderedQty,
     driverName,
     driverPhone,
-    orderCode,
-    // Product/Mix Information
-    productCode,
-    productName,
-    mixDesign,
-    slump,
-    // Delivery Location
-    deliveryAddress,
-    deliveryCity,
-    // Customer Information
-    customerName,
-    customerPhone,
-    customerCompany,
-    // Additional Details
-    specialInstructions,
-    plantName,
-    estimatedArrival,
-    distance,
-  } = route.params;
+    truckCode,
+    truckDescription,
+    truckLatitude,
+    truckLongitude,
+    statusCode,
+    statusDisplay,
+    etaAtJob,
+    timestamps,
+    products,
+    isLoading,
+    isRefetching,
+    refetch,
+    error,
+  } = useTicketDetails({
+    order_code: orderCode,
+    order_date: orderDate,
+    ticket_code: ticketCode,
+  });
 
-  const statusInfo = STATUS_CONFIG[status];
-  const percentage = (loadQuantity / totalOrderQuantity) * 100;
+  const statusConfigMap = isDark ? STATUS_CONFIG_DARK : STATUS_CONFIG_LIGHT;
+  // Use API status as primary, fall back to passed status from TicketScreen
+  const currentStatus = statusCode || passedStatus || 'pending';
+  const currentStatusDisplayText = statusDisplay || passedStatusDisplay;
+  const statusInfo = statusConfigMap[currentStatus] || statusConfigMap.pending;
+  // Get header badge colors that are visible on green gradient
+  const headerBadgeColors = getHeaderBadgeColors(currentStatus, isDark);
+  console.log('statusInfo....', statusInfo);
+
+  const percentage = useMemo(() => {
+    if (!orderedQty || orderedQty === 0) return 0;
+    return Math.min((runningQty / orderedQty) * 100, 100);
+  }, [runningQty, orderedQty]);
+
+  const headerGradient = isDark ? HEADER_GRADIENT_DARK : HEADER_GRADIENT_LIGHT;
+  const accentColor = isDark ? colors.primary.light : colors.primary.main;
+
+  // Product info from API
+  const productInfo = useMemo(() => {
+    if (!products || products.length === 0) return null;
+    const product = products[0];
+    return {
+      code: product.item_code,
+      name: product.description,
+      isMix: product.is_mix,
+    };
+  }, [products]);
 
   const handleBack = useCallback(() => {
     navigation.goBack();
@@ -290,39 +575,200 @@ export const TicketDetailScreen: React.FC = () => {
   const handleCallDriver = useCallback(() => {
     if (driverPhone) {
       Linking.openURL(`tel:${driverPhone}`);
+    } else {
+      showWarning('Phone Not Available', 'Driver phone number is not available for this ticket.');
     }
-  }, [driverPhone]);
-
-  const handleCallCustomer = useCallback(() => {
-    if (customerPhone) {
-      Linking.openURL(`tel:${customerPhone}`);
-    }
-  }, [customerPhone]);
+  }, [driverPhone, showWarning]);
 
   const handleTrackTruck = useCallback(() => {
-    console.log('Track truck pressed');
-  }, []);
+    if (truckLatitude && truckLongitude) {
+      navigation.navigate('MapTracking', {
+        latitude: truckLatitude,
+        longitude: truckLongitude,
+        truckCode: truckCode || undefined,
+        ticketCode: apiTicketCode || undefined,
+        driverName: driverName || undefined,
+        destination: deliveryAddress || undefined,
+        orderCode: apiOrderCode || undefined,
+        customerName: customerName || undefined,
+      });
+    } else {
+      showWarning(
+        'Location Unavailable',
+        'Truck location coordinates are not available at the moment. The truck may not have GPS data or the location service is temporarily unavailable. Please try again later.'
+      );
+    }
+  }, [truckLatitude, truckLongitude, truckCode, apiTicketCode, driverName, deliveryAddress, apiOrderCode, customerName, navigation, showWarning]);
 
   const handleGetDirections = useCallback(() => {
-    if (deliveryAddress && deliveryCity) {
-      const address = encodeURIComponent(`${deliveryAddress}, ${deliveryCity}`);
-      Linking.openURL(`https://maps.google.com/?q=${address}`);
+    if (truckLatitude && truckLongitude) {
+      setShowDirectionsMenu(true);
+    } else {
+      showWarning(
+        'Location Unavailable',
+        'Truck location coordinates are not available at the moment. The truck may not have GPS data or the location service is temporarily unavailable. Please try again later.'
+      );
     }
-  }, [deliveryAddress, deliveryCity]);
+  }, [truckLatitude, truckLongitude, showWarning]);
 
-  const handleViewTicket = useCallback(() => {
-    console.log('View ticket document');
+  const closeDirectionsMenu = useCallback(() => {
+    setShowDirectionsMenu(false);
   }, []);
+
+  const handleOpenInAppMap = useCallback(() => {
+    closeDirectionsMenu();
+    setTimeout(() => {
+      navigation.navigate('MapTracking', {
+        latitude: truckLatitude || undefined,
+        longitude: truckLongitude || undefined,
+        truckCode: truckCode || undefined,
+        ticketCode: apiTicketCode || undefined,
+        driverName: driverName || undefined,
+        destination: deliveryAddress || undefined,
+        orderCode: apiOrderCode || undefined,
+        customerName: customerName || undefined,
+      });
+    }, 300);
+  }, [closeDirectionsMenu, navigation, truckLatitude, truckLongitude, truckCode, apiTicketCode, driverName, deliveryAddress, apiOrderCode, customerName]);
+
+  const handleOpenInGoogleMaps = useCallback(() => {
+    closeDirectionsMenu();
+    if (truckLatitude && truckLongitude) {
+      const url = Platform.select({
+        ios: `comgooglemaps://?q=${truckLatitude},${truckLongitude}`,
+        android: `geo:${truckLatitude},${truckLongitude}?q=${truckLatitude},${truckLongitude}`,
+      });
+      Linking.canOpenURL(url || '').then((supported) => {
+        if (supported) {
+          Linking.openURL(url || '');
+        } else {
+          // Fallback to web Google Maps
+          Linking.openURL(`https://maps.google.com/?q=${truckLatitude},${truckLongitude}`);
+        }
+      });
+    }
+  }, [closeDirectionsMenu, truckLatitude, truckLongitude]);
+
+  const handleOpenInAppleMaps = useCallback(() => {
+    closeDirectionsMenu();
+    if (truckLatitude && truckLongitude) {
+      const url = `maps://maps.apple.com/?ll=${truckLatitude},${truckLongitude}&q=Truck%20Location`;
+      Linking.canOpenURL(url).then((supported) => {
+        if (supported) {
+          Linking.openURL(url);
+        } else {
+          // Fallback to web
+          Linking.openURL(`https://maps.apple.com/?ll=${truckLatitude},${truckLongitude}`);
+        }
+      });
+    }
+  }, [closeDirectionsMenu, truckLatitude, truckLongitude]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={headerGradient[0]} />
+        <LinearGradient colors={headerGradient} style={[styles.header, { paddingTop: insets.top }]}>
+          <View style={styles.headerBar}>
+            <TouchableOpacity style={styles.headerBtn} onPress={handleBack} activeOpacity={0.7}>
+              <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
+            </TouchableOpacity>
+            <View style={styles.headerTitleSection}>
+              <Text style={styles.headerTitle}>Ticket Details</Text>
+            </View>
+            <View style={styles.headerBtn} />
+          </View>
+        </LinearGradient>
+        <View style={styles.loadingContainer} pointerEvents="box-none">
+          <TruckLoader size={120} message="Loading ticket details..." color={isDark ? 'light' : 'dark'} />
+        </View>
+      </View>
+    );
+  }
+
+  // Error state or No Data state
+  if (error || !ticket) {
+    const isNoData = !error && !ticket;
+    const iconName = isNoData ? 'ticket-outline' : 'alert-circle-outline';
+    const iconColor = isNoData
+      ? (isDark ? colors.grey[40] : colors.grey[50])
+      : (isDark ? colors.error.light : colors.error.main);
+    const title = isNoData ? 'No Ticket Data' : 'Something Went Wrong';
+    const message = isNoData
+      ? 'The ticket information is not available at the moment. Please try again later.'
+      : (error || 'Failed to load ticket details');
+
+    return (
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={headerGradient[0]} />
+        <LinearGradient colors={headerGradient} style={[styles.header, { paddingTop: insets.top }]}>
+          <View style={styles.headerBar}>
+            <TouchableOpacity style={styles.headerBtn} onPress={handleBack} activeOpacity={0.7}>
+              <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
+            </TouchableOpacity>
+            <View style={styles.headerTitleSection}>
+              <Text style={styles.headerTitle}>Ticket Details</Text>
+            </View>
+            <View style={styles.headerBtn} />
+          </View>
+        </LinearGradient>
+        <View style={styles.emptyStateContainer}>
+          <View
+            style={[
+              styles.emptyStateIconContainer,
+              {
+                backgroundColor: isNoData
+                  ? (isDark ? 'rgba(255,255,255,0.08)' : colors.grey[5])
+                  : (isDark ? 'rgba(239,68,68,0.15)' : colors.error.background),
+              },
+            ]}>
+            <Icon name={iconName} size={ms(48)} color={iconColor} />
+          </View>
+          <Text style={[styles.emptyStateTitle, { color: isDark ? colors.common.white : colors.grey[85] }]}>
+            {title}
+          </Text>
+          <Text style={[styles.emptyStateMessage, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
+            {message}
+          </Text>
+          <View style={styles.emptyStateActions}>
+            <TouchableOpacity
+              style={[styles.retryBtn, { backgroundColor: colors.primary.main }]}
+              onPress={() => refetch()}
+              activeOpacity={0.8}>
+              <Icon name="refresh" size={ms(18)} color={colors.common.white} />
+              <Text style={styles.retryBtnText}>Try Again</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.goBackBtn,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : colors.grey[5],
+                  borderWidth: isDark ? 0 : 1,
+                  borderColor: colors.grey[10],
+                },
+              ]}
+              onPress={handleBack}
+              activeOpacity={0.8}>
+              <Icon name="arrow-left" size={ms(18)} color={isDark ? colors.common.white : colors.grey[60]} />
+              <Text style={[styles.goBackBtnText, { color: isDark ? colors.common.white : colors.grey[60] }]}>
+                Go Back
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor={HEADER_GRADIENT[0]} />
+      <StatusBar barStyle="light-content" backgroundColor={headerGradient[0]} />
 
-      {/* Gradient Header */}
       <LinearGradient
-        colors={HEADER_GRADIENT}
+        colors={headerGradient}
         style={[styles.header, { paddingTop: insets.top }]}>
-        {/* Header Bar */}
+
         <View style={styles.headerBar}>
           <TouchableOpacity
             style={styles.headerBtn}
@@ -332,36 +778,48 @@ export const TicketDetailScreen: React.FC = () => {
           </TouchableOpacity>
           <View style={styles.headerTitleSection}>
             <Text style={styles.headerTitle}>Ticket Details</Text>
-            {orderCode && (
-              <Text style={styles.headerSubtitle}>Order #{orderCode}</Text>
+            {apiOrderCode && (
+              <Text style={styles.headerSubtitle}>Order #{apiOrderCode}</Text>
             )}
           </View>
-          <TouchableOpacity style={styles.headerBtn} onPress={handleViewTicket} activeOpacity={0.7}>
-            <Icon name="file-document-outline" size={ms(20)} color={colors.common.white} />
-          </TouchableOpacity>
+          <View style={{ width: ms(40) }} />
         </View>
 
-        {/* Hero Section */}
         <View style={styles.heroSection}>
           <View style={styles.heroLeft}>
             <View style={styles.ticketNumberRow}>
               <Icon name="ticket-confirmation" size={ms(16)} color="rgba(255,255,255,0.8)" />
               <Text style={styles.ticketLabel}>TICKET</Text>
             </View>
-            <Text style={styles.ticketNumber}>{ticketNumber}</Text>
-            <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
-              <Icon name={statusInfo.icon} size={ms(14)} color={statusInfo.color} />
-              <Text style={[styles.statusText, { color: statusInfo.color }]}>
+            <Text style={styles.ticketNumber}>{apiTicketCode}</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                alignSelf: 'flex-start',
+                backgroundColor: headerBadgeColors.bgColor,
+                paddingVertical: ms(5),
+                paddingHorizontal: ms(12),
+                borderRadius: ms(16),
+              }}>
+              <Icon name={statusInfo.icon} size={ms(14)} color={headerBadgeColors.iconColor} />
+              <AppText
+                style={{
+                  fontFamily: fontFamily.semiBold,
+                  fontSize: ms(12),
+                  color: headerBadgeColors.textColor,
+                  marginLeft: ms(6),
+                }}>
                 {statusInfo.label}
-              </Text>
+              </AppText>
             </View>
           </View>
           <View style={styles.heroRight}>
-            {/* ETA Badge */}
-            {estimatedArrival && status !== 'completed' && (
+
+            {etaAtJob && currentStatus !== 'at_plant' && (
               <View style={styles.etaBadge}>
                 <Text style={styles.etaLabel}>ETA</Text>
-                <Text style={styles.etaValue}>{estimatedArrival}</Text>
+                <Text style={styles.etaValue}>{etaAtJob}</Text>
               </View>
             )}
             <View style={styles.truckIconContainer}>
@@ -374,193 +832,207 @@ export const TicketDetailScreen: React.FC = () => {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={colors.primary.main}
+            colors={[colors.primary.main, colors.secondary.main]}
+            progressBackgroundColor={isDark ? themeColors.cardElevated : colors.common.white}
+          />
+        }>
 
-        {/* Quick Actions */}
         <View style={styles.quickActionsRow}>
           <QuickAction
             icon="map-marker-radius"
             label="Track"
-            color="#1976D2"
+            color={accentColor}
             onPress={handleTrackTruck}
             isDark={isDark}
           />
           <QuickAction
             icon="directions"
             label="Directions"
-            color="#4CAF50"
+            color={isDark ? colors.success.light : colors.success.main}
             onPress={handleGetDirections}
             isDark={isDark}
           />
           <QuickAction
             icon="phone"
             label="Call Driver"
-            color="#FF9800"
+            color={isDark ? colors.warning.light : colors.warning.main}
             onPress={handleCallDriver}
             isDark={isDark}
           />
           <QuickAction
-            icon="account-box"
-            label="Customer"
-            color="#9C27B0"
-            onPress={handleCallCustomer}
+            icon="refresh"
+            label="Refresh"
+            color={isDark ? colors.secondary.light : colors.secondary.main}
+            onPress={() => refetch()}
             isDark={isDark}
           />
         </View>
 
-        {/* Load Progress Card */}
-        <View style={[styles.progressCard, { backgroundColor: themeColors.card }]}>
+        <View
+          style={[
+            styles.progressCard,
+            {
+              backgroundColor: themeColors.card,
+              borderWidth: isDark ? 0 : 1,
+              borderColor: isDark ? 'transparent' : colors.grey[10],
+            },
+          ]}>
           <View style={styles.progressCardHeader}>
             <View style={styles.progressTitleRow}>
-              <Icon name="package-variant" size={ms(18)} color="#1976D2" />
-              <Text style={[styles.progressCardTitle, { color: themeColors.text.primary }]}>
+              <Icon name="package-variant" size={ms(18)} color={accentColor} />
+              <Text style={[styles.progressCardTitle, { color: isDark ? colors.common.white : colors.grey[80] }]}>
                 Load Details
               </Text>
             </View>
-            <View style={styles.progressBadge}>
-              <Text style={styles.progressBadgeText}>{percentage.toFixed(1)}%</Text>
+            <View style={[styles.progressBadge, { backgroundColor: isDark ? accentColor + '25' : colors.primary.main + '18' }]}>
+              <Text style={[styles.progressBadgeText, { color: isDark ? accentColor : colors.primary.dark }]}>{percentage.toFixed(1)}%</Text>
             </View>
           </View>
 
           <View style={styles.loadStatsRow}>
             <View style={styles.loadStatItem}>
-              <Text style={[styles.loadStatValue, { color: '#1976D2' }]}>
-                {loadQuantity.toFixed(2)}
+              <Text style={[styles.loadStatValue, { color: accentColor }]}>
+                {runningQty.toFixed(2)}
               </Text>
-              <Text style={[styles.loadStatLabel, { color: themeColors.text.hint }]}>
-                This Load ({unit})
-              </Text>
-            </View>
-            <View style={[styles.loadStatDivider, { backgroundColor: themeColors.border }]} />
-            <View style={styles.loadStatItem}>
-              <Text style={[styles.loadStatValue, { color: themeColors.text.primary }]}>
-                {totalOrderQuantity}
-              </Text>
-              <Text style={[styles.loadStatLabel, { color: themeColors.text.hint }]}>
-                Total Order ({unit})
+              <Text style={[styles.loadStatLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
+                Running (CY)
               </Text>
             </View>
-            <View style={[styles.loadStatDivider, { backgroundColor: themeColors.border }]} />
+            <View style={[styles.loadStatDivider, { backgroundColor: isDark ? themeColors.border : colors.grey[15] }]} />
             <View style={styles.loadStatItem}>
-              <Text style={[styles.loadStatValue, { color: '#4CAF50' }]}>
-                {(totalOrderQuantity - loadQuantity).toFixed(2)}
+              <Text style={[styles.loadStatValue, { color: isDark ? colors.common.white : colors.grey[85] }]}>
+                {orderedQty}
               </Text>
-              <Text style={[styles.loadStatLabel, { color: themeColors.text.hint }]}>
-                Remaining ({unit})
+              <Text style={[styles.loadStatLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
+                Ordered (CY)
+              </Text>
+            </View>
+            <View style={[styles.loadStatDivider, { backgroundColor: isDark ? themeColors.border : colors.grey[15] }]} />
+            <View style={styles.loadStatItem}>
+              <Text style={[styles.loadStatValue, { color: isDark ? colors.success.light : colors.success.main }]}>
+                {Math.max(orderedQty - runningQty, 0).toFixed(2)}
+              </Text>
+              <Text style={[styles.loadStatLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
+                Remaining (CY)
               </Text>
             </View>
           </View>
 
           <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBarBg, { backgroundColor: themeColors.border }]}>
-              <View style={[styles.progressBarFill, { width: `${percentage}%` }]} />
+            <View style={[styles.progressBarBg, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}>
+              <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: accentColor }]} />
             </View>
           </View>
         </View>
 
         {/* Product/Mix Information */}
-        <SectionCard
-          title="Product Information"
-          icon="beaker-outline"
-          iconColor="#00BCD4"
-          isDark={isDark}>
-          <DetailRow label="Product Code" value={productCode} isDark={isDark} />
-          <DetailRow label="Product Name" value={productName} isDark={isDark} />
-          <DetailRow label="Mix Design" value={mixDesign} isDark={isDark} />
-          <DetailRow label="Slump" value={slump} isDark={isDark} isLast />
-        </SectionCard>
+        {productInfo && (
+          <SectionCard
+            title="Product Information"
+            icon="beaker-outline"
+            iconColor={isDark ? '#4DD0E1' : '#00BCD4'}
+            isDark={isDark}>
+            <DetailRow label="Item Code" value={productInfo.code} isDark={isDark} />
+            <DetailRow label="Description" value={productInfo.name} isDark={isDark} />
+            <DetailRow label="Type" value={productInfo.isMix ? 'Mix Design' : 'Product'} isDark={isDark} isLast />
+          </SectionCard>
+        )}
 
         {/* Delivery Location */}
         <SectionCard
           title="Delivery Location"
           icon="map-marker"
-          iconColor="#E91E63"
+          iconColor={isDark ? colors.error.light : colors.error.main}
           isDark={isDark}>
           <DetailRow label="Address" value={deliveryAddress} isDark={isDark} />
-          <DetailRow label="City" value={deliveryCity} isDark={isDark} />
-          <DetailRow label="Distance" value={distance} isDark={isDark} isLast />
+          <DetailRow label="Customer" value={customerName} isDark={isDark} isLast />
 
           {/* Map Preview Placeholder */}
           <TouchableOpacity
-            style={[styles.mapPreview, { backgroundColor: isDark ? '#2A2A2A' : '#F5F5F5' }]}
+            style={[
+              styles.mapPreview,
+              {
+                backgroundColor: isDark ? themeColors.surface : colors.grey[5],
+                borderWidth: isDark ? 0 : 1,
+                borderColor: isDark ? 'transparent' : colors.grey[10],
+              },
+            ]}
             onPress={handleGetDirections}
             activeOpacity={0.8}>
-            <Icon name="map" size={ms(32)} color={themeColors.text.hint} />
-            <Text style={[styles.mapPreviewText, { color: themeColors.text.hint }]}>
+            <Icon name="map" size={ms(32)} color={isDark ? colors.grey[40] : colors.grey[50]} />
+            <Text style={[styles.mapPreviewText, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>
               Tap to open in Maps
             </Text>
           </TouchableOpacity>
-        </SectionCard>
-
-        {/* Customer Information */}
-        <SectionCard
-          title="Customer Information"
-          icon="account-group"
-          iconColor="#673AB7"
-          isDark={isDark}>
-          <DetailRow label="Company" value={customerCompany} isDark={isDark} />
-          <DetailRow label="Contact" value={customerName} isDark={isDark} />
-          <DetailRow label="Phone" value={customerPhone} isDark={isDark} isLast />
-
-          {customerPhone && (
-            <TouchableOpacity
-              style={styles.callCustomerBtn}
-              onPress={handleCallCustomer}
-              activeOpacity={0.8}>
-              <Icon name="phone" size={ms(18)} color="#673AB7" />
-              <Text style={styles.callCustomerText}>Call Customer</Text>
-            </TouchableOpacity>
-          )}
         </SectionCard>
 
         {/* Truck & Driver Information */}
         <SectionCard
           title="Truck & Driver"
           icon="truck"
-          iconColor="#FF5722"
+          iconColor={isDark ? '#FF8A65' : '#FF5722'}
           isDark={isDark}>
-          <DetailRow label="Truck" value={truckName} isDark={isDark} />
-          <DetailRow label="Plant" value={plantName} isDark={isDark} />
+          <DetailRow label="Truck Code" value={truckCode} isDark={isDark} />
+          <DetailRow label="Description" value={truckDescription} isDark={isDark} />
           <DetailRow label="Driver" value={driverName} isDark={isDark} />
-          <DetailRow label="Driver Phone" value={driverPhone} isDark={isDark} />
-          <DetailRow label="Scheduled" value={scheduledTime} isDark={isDark} />
-          {estimatedArrival && (
-            <DetailRow label="ETA" value={estimatedArrival} isDark={isDark} isLast />
+          <DetailRow label="Driver Phone" value={driverPhone} isDark={isDark} isLast />
+
+          {driverPhone && (
+            <TouchableOpacity
+              style={[
+                styles.callCustomerBtn,
+                {
+                  backgroundColor: isDark ? 'rgba(255, 138, 101, 0.15)' : 'rgba(255, 87, 34, 0.1)',
+                  borderWidth: isDark ? 0 : 1,
+                  borderColor: isDark ? 'transparent' : 'rgba(255, 87, 34, 0.2)',
+                },
+              ]}
+              onPress={handleCallDriver}
+              activeOpacity={0.8}>
+              <Icon name="phone" size={ms(18)} color={isDark ? '#FF8A65' : '#E64A19'} />
+              <Text style={[styles.callCustomerText, { color: isDark ? '#FF8A65' : '#E64A19' }]}>
+                Call Driver
+              </Text>
+            </TouchableOpacity>
           )}
         </SectionCard>
 
-        {/* Special Instructions */}
-        {specialInstructions && (
-          <SectionCard
-            title="Special Instructions"
-            icon="alert-circle-outline"
-            iconColor="#FF9800"
-            isDark={isDark}>
-            <View style={styles.instructionsBox}>
-              <Text style={[styles.instructionsText, { color: themeColors.text.primary }]}>
-                {specialInstructions}
-              </Text>
-            </View>
-          </SectionCard>
-        )}
+        {/* Plant Information */}
+        <SectionCard
+          title="Plant Information"
+          icon="factory"
+          iconColor={isDark ? '#B39DDB' : '#673AB7'}
+          isDark={isDark}>
+          <DetailRow label="Plant" value={plantName} isDark={isDark} />
+          <DetailRow label="Address" value={plantAddress} isDark={isDark} isLast />
+        </SectionCard>
 
         {/* Delivery Timeline */}
         <SectionCard
           title="Delivery Timeline"
           icon="timeline-clock"
-          iconColor="#1976D2"
+          iconColor={isDark ? '#64B5F6' : '#1976D2'}
           isDark={isDark}>
-          <VerticalTimeline currentStep={statusInfo.progressStep} isDark={isDark} />
+          <VerticalTimeline
+            timestamps={timestamps}
+            currentStatus={currentStatus}
+            isDark={isDark}
+          />
         </SectionCard>
 
-        {/* Action Buttons */}
         <View style={styles.actionSection}>
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={handleTrackTruck}
             activeOpacity={0.8}>
             <LinearGradient
-              colors={HEADER_GRADIENT}
+              colors={headerGradient}
               style={styles.primaryBtnGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}>
@@ -568,28 +1040,120 @@ export const TicketDetailScreen: React.FC = () => {
               <Text style={styles.primaryBtnText}>Track Truck on Map</Text>
             </LinearGradient>
           </TouchableOpacity>
-
-          <View style={styles.secondaryBtnsRow}>
-            <TouchableOpacity
-              style={[styles.secondaryBtn, { backgroundColor: themeColors.card }]}
-              onPress={handleViewTicket}
-              activeOpacity={0.8}>
-              <Icon name="file-document" size={ms(18)} color="#1976D2" />
-              <Text style={[styles.secondaryBtnText, { color: themeColors.text.primary }]}>
-                View Ticket
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.secondaryBtn, { backgroundColor: themeColors.card }]}
-              activeOpacity={0.8}>
-              <Icon name="alert-circle" size={ms(18)} color="#FF9800" />
-              <Text style={[styles.secondaryBtnText, { color: themeColors.text.primary }]}>
-                Report Issue
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </ScrollView>
+
+      <AlertModal
+        visible={alertState.visible}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={hideAlert}
+      />
+
+      {/* Directions Bottom Sheet Menu */}
+      <Modal
+        visible={showDirectionsMenu}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={closeDirectionsMenu}
+      >
+        <View style={styles.directionsModalContainer}>
+          {/* Backdrop - tap to close */}
+          <TouchableOpacity
+            style={styles.directionsModalBackdrop}
+            activeOpacity={1}
+            onPress={closeDirectionsMenu}
+          />
+
+          {/* Modal Content */}
+          <View style={[styles.directionsMenuContent, { backgroundColor: themeColors.card }]}>
+            <View style={styles.directionsMenuHandle}>
+              <View style={[styles.directionsMenuHandleBar, { backgroundColor: themeColors.border }]} />
+            </View>
+
+            <Text style={[styles.directionsMenuTitle, { color: themeColors.text.primary }]}>
+              Open Location In
+            </Text>
+
+            <View style={styles.directionsMenuOptions}>
+              <TouchableOpacity
+                style={[styles.directionsMenuItem, { backgroundColor: isDark ? colors.grey[60] + '20' : colors.grey[5] }]}
+                onPress={handleOpenInAppMap}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.directionsMenuIconBox, { backgroundColor: colors.primary.main + '20' }]}>
+                  <Icon name="map-marker-radius" size={ms(24)} color={colors.primary.main} />
+                </View>
+                <View style={styles.directionsMenuItemText}>
+                  <Text style={[styles.directionsMenuItemTitle, { color: themeColors.text.primary }]}>
+                    Track in App
+                  </Text>
+                  <Text style={[styles.directionsMenuItemSubtitle, { color: themeColors.text.secondary }]}>
+                    View truck location in the app
+                  </Text>
+                </View>
+                <Icon name="chevron-right" size={ms(20)} color={themeColors.text.hint} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.directionsMenuItem, { backgroundColor: isDark ? colors.grey[60] + '20' : colors.grey[5] }]}
+                onPress={handleOpenInGoogleMaps}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.directionsMenuIconBox, { backgroundColor: '#4285F4' + '20' }]}>
+                  <Icon name="google-maps" size={ms(24)} color="#4285F4" />
+                </View>
+                <View style={styles.directionsMenuItemText}>
+                  <Text style={[styles.directionsMenuItemTitle, { color: themeColors.text.primary }]}>
+                    Google Maps
+                  </Text>
+                  <Text style={[styles.directionsMenuItemSubtitle, { color: themeColors.text.secondary }]}>
+                    Open in Google Maps app
+                  </Text>
+                </View>
+                <Icon name="chevron-right" size={ms(20)} color={themeColors.text.hint} />
+              </TouchableOpacity>
+
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={[styles.directionsMenuItem, { backgroundColor: isDark ? colors.grey[60] + '20' : colors.grey[5] }]}
+                  onPress={handleOpenInAppleMaps}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.directionsMenuIconBox, { backgroundColor: '#000000' + '20' }]}>
+                    <Icon name="apple" size={ms(24)} color={isDark ? colors.common.white : '#000000'} />
+                  </View>
+                  <View style={styles.directionsMenuItemText}>
+                    <Text style={[styles.directionsMenuItemTitle, { color: themeColors.text.primary }]}>
+                      Apple Maps
+                    </Text>
+                    <Text style={[styles.directionsMenuItemSubtitle, { color: themeColors.text.secondary }]}>
+                      Open in Apple Maps app
+                    </Text>
+                  </View>
+                  <Icon name="chevron-right" size={ms(20)} color={themeColors.text.hint} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.directionsMenuCancelBtn, { borderTopColor: themeColors.border }]}
+              onPress={closeDirectionsMenu}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.directionsMenuCancelText, { color: colors.error.main }]}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
+
+            {/* Safe Area Spacer */}
+            <View style={{ height: insets.bottom }} />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -597,6 +1161,85 @@ export const TicketDetailScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: GRID.xl,
+  },
+  errorText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(16),
+    textAlign: 'center',
+    marginTop: GRID.md,
+    marginBottom: GRID.lg,
+  },
+  // Empty State / No Data UI
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: GRID.xl,
+  },
+  emptyStateIconContainer: {
+    width: ms(100),
+    height: ms(100),
+    borderRadius: ms(50),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: GRID.lg,
+  },
+  emptyStateTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(18),
+    textAlign: 'center',
+    marginBottom: GRID.sm,
+  },
+  emptyStateMessage: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(14),
+    textAlign: 'center',
+    lineHeight: ms(20),
+    marginBottom: GRID.xl,
+    paddingHorizontal: GRID.md,
+  },
+  emptyStateActions: {
+    flexDirection: 'row',
+    gap: GRID.md,
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: GRID.sm,
+    backgroundColor: colors.primary.main,
+    paddingHorizontal: GRID.lg,
+    paddingVertical: GRID.md,
+    borderRadius: RADIUS.md,
+  },
+  retryBtnText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(14),
+    color: colors.common.white,
+  },
+  goBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: GRID.sm,
+    paddingHorizontal: GRID.lg,
+    paddingVertical: GRID.md,
+    borderRadius: RADIUS.md,
+  },
+  goBackBtnText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(14),
   },
   // Header
   header: {
@@ -639,7 +1282,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: GRID.lg,
   },
-  heroLeft: {},
+  heroLeft: {
+    flex: 1,
+    marginRight: GRID.sm,
+    minWidth: 0,
+  },
   heroRight: {
     alignItems: 'center',
   },
@@ -665,14 +1312,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingVertical: GRID.xs,
-    paddingHorizontal: GRID.sm,
+    paddingVertical: GRID.xs + 2,
+    paddingLeft: GRID.sm,
+    paddingRight: GRID.md,
     borderRadius: RADIUS.xl,
-    gap: GRID.xs,
+    maxWidth: '100%',
   },
   statusText: {
     fontFamily: fontFamily.semiBold,
     fontSize: ms(11),
+    marginLeft: GRID.xs,
   },
   etaBadge: {
     backgroundColor: 'rgba(255,255,255,0.2)',
@@ -764,7 +1413,6 @@ const styles = StyleSheet.create({
     fontSize: ms(14),
   },
   progressBadge: {
-    backgroundColor: '#E3F2FD',
     paddingVertical: GRID.xs - 2,
     paddingHorizontal: GRID.sm,
     borderRadius: RADIUS.xl,
@@ -772,7 +1420,6 @@ const styles = StyleSheet.create({
   progressBadgeText: {
     fontFamily: fontFamily.semiBold,
     fontSize: ms(11),
-    color: '#1976D2',
   },
   loadStatsRow: {
     flexDirection: 'row',
@@ -806,7 +1453,6 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#1976D2',
     borderRadius: ms(3),
   },
   // Section Card
@@ -845,7 +1491,6 @@ const styles = StyleSheet.create({
   },
   detailRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   detailIcon: {
     marginRight: GRID.sm,
@@ -882,26 +1527,11 @@ const styles = StyleSheet.create({
     gap: GRID.sm,
     marginTop: GRID.md,
     paddingVertical: GRID.sm,
-    backgroundColor: '#673AB715',
     borderRadius: RADIUS.md,
   },
   callCustomerText: {
     fontFamily: fontFamily.medium,
     fontSize: ms(13),
-    color: '#673AB7',
-  },
-  // Instructions
-  instructionsBox: {
-    backgroundColor: '#FFF3E0',
-    padding: GRID.md,
-    borderRadius: RADIUS.md,
-    borderLeftWidth: 3,
-    borderLeftColor: '#FF9800',
-  },
-  instructionsText: {
-    fontFamily: fontFamily.regular,
-    fontSize: ms(13),
-    lineHeight: ms(20),
   },
   // Vertical Timeline
   verticalTimeline: {},
@@ -924,7 +1554,6 @@ const styles = StyleSheet.create({
   },
   timelineIconActive: {
     transform: [{ scale: 1.1 }],
-    shadowColor: '#4CAF50',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -962,13 +1591,11 @@ const styles = StyleSheet.create({
     width: ms(6),
     height: ms(6),
     borderRadius: ms(3),
-    backgroundColor: '#1976D2',
     marginRight: GRID.xs,
   },
   activeText: {
     fontFamily: fontFamily.medium,
     fontSize: ms(9),
-    color: '#1976D2',
   },
   // Action Buttons
   actionSection: {
@@ -1012,6 +1639,82 @@ const styles = StyleSheet.create({
   secondaryBtnText: {
     fontFamily: fontFamily.medium,
     fontSize: ms(13),
+  },
+  // Directions Menu Styles
+  directionsModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  directionsModalBackdrop: {
+    flex: 1,
+  },
+  directionsMenuContent: {
+    borderTopLeftRadius: RADIUS.xl,
+    borderTopRightRadius: RADIUS.xl,
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  directionsMenuHandle: {
+    alignItems: 'center',
+    paddingTop: GRID.sm,
+    paddingBottom: GRID.xs,
+  },
+  directionsMenuHandleBar: {
+    width: ms(36),
+    height: ms(4),
+    borderRadius: ms(2),
+  },
+  directionsMenuTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(16),
+    textAlign: 'center',
+    marginBottom: GRID.md,
+  },
+  directionsMenuOptions: {
+    paddingHorizontal: GRID.md,
+    gap: GRID.sm,
+  },
+  directionsMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: GRID.md,
+    borderRadius: RADIUS.md,
+  },
+  directionsMenuIconBox: {
+    width: ms(48),
+    height: ms(48),
+    borderRadius: RADIUS.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: GRID.md,
+  },
+  directionsMenuItemText: {
+    flex: 1,
+  },
+  directionsMenuItemTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(14),
+    marginBottom: ms(2),
+  },
+  directionsMenuItemSubtitle: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
+  },
+  directionsMenuCancelBtn: {
+    marginTop: GRID.md,
+    marginHorizontal: GRID.md,
+    paddingTop: GRID.md,
+    borderTopWidth: 1,
+    alignItems: 'center',
+    paddingVertical: GRID.md,
+  },
+  directionsMenuCancelText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(15),
   },
 });
 

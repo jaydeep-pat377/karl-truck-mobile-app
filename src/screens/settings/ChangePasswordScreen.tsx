@@ -7,16 +7,12 @@ import {
   Platform,
   TouchableOpacity,
   TextInput,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text } from '../../components/common/Text';
-import { Input } from '../../components/common/Input';
-import { Button } from '../../components/common/Button';
-import { Card } from '../../components/common/Card';
+import { Text, Input, Button, Card, Icon, AlertModal } from '../../components/common';
 import { ms, vs, spacing } from '../../utils/responsive';
+import { useAlert, useChangePassword } from '../../hooks';
 
 interface ChangePasswordScreenProps {
   navigation?: any;
@@ -26,13 +22,14 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
   navigation,
 }) => {
   const { theme, isDark } = useTheme();
+  const { alertState, hideAlert, showSuccess, showError, showConfirm } = useAlert();
+  const { changePassword, isLoading } = useChangePassword();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const newPasswordRef = useRef<TextInput>(null);
@@ -89,22 +86,37 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleChangePassword = async () => {
+  const handleChangePassword = () => {
     if (!validateForm()) return;
 
-    setIsLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+    showConfirm(
+      'Change Password',
+      'Are you sure you want to change your password? You will need to use your new password for future sign-ins.',
+      handleConfirmChangePassword,
+      undefined,
+      'Yes, Change',
+      'Cancel'
+    );
+  };
 
-      Alert.alert(
-        'Password Changed',
-        'Your password has been updated successfully. Please use your new password next time you sign in.',
-        [{ text: 'OK', onPress: () => navigation?.goBack() }]
-      );
-    } catch (error) {
-      setErrors({ currentPassword: 'Current password is incorrect' });
-    } finally {
-      setIsLoading(false);
+  const handleConfirmChangePassword = async () => {
+    try {
+      const response = await changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+        confirm_password: confirmPassword,
+      });
+
+      if (response.success) {
+        showSuccess(
+          'Password Changed',
+          response.message || 'Your password has been updated successfully. Please use your new password next time you sign in.',
+          () => navigation?.goBack()
+        );
+      }
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || 'Failed to change password';
+      showError('Error', errorMessage);
     }
   };
 
@@ -308,6 +320,16 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Custom Alert Modal */}
+      <AlertModal
+        visible={alertState.visible}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 };

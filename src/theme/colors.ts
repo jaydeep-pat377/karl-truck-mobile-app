@@ -81,8 +81,8 @@ export const colors = {
     text: {
       primary: '#FFFFFF',
       secondary: '#BFBFBF', // Black 25%
-      disabled: '#585957',  // Dark Gray
-      hint: '#585957',
+      disabled: '#808080',  // Mid Gray - improved contrast
+      hint: '#999999',      // Gray 40% - improved contrast for visibility
     },
   },
   light: {
@@ -108,6 +108,19 @@ export const colors = {
     medium: 'rgba(0, 0, 0, 0.5)',
     dark: 'rgba(0, 0, 0, 0.7)',
     modal: 'rgba(0, 0, 0, 0.6)',
+  },
+  // Modal button colors for better dark mode visibility
+  modal: {
+    light: {
+      cancelBg: '#F2F2F2',
+      cancelText: '#585957',
+      cancelBorder: '#E5E5E5',
+    },
+    dark: {
+      cancelBg: '#404040',
+      cancelText: '#FFFFFF',
+      cancelBorder: '#5A5A5A',
+    },
   },
   // Weather Screen Theme (Dark Navy Blue)
   weatherTheme: {
@@ -209,13 +222,13 @@ export const colors = {
     // Light mode status colors
     status: {
       atPlant: {
-        bg: '#F5F5F5',
-        text: '#666666',
-        iconBg: '#E0E0E0',
+        bg: '#ECEFF1',
+        text: '#546E7A',
+        iconBg: '#CFD8DC',
       },
       inTransit: {
         bg: '#E3F2FD',
-        text: '#1976D2',
+        text: '#1565C0',
         iconBg: '#BBDEFB',
       },
       atSite: {
@@ -275,13 +288,13 @@ export const colors = {
     // UI element colors
     ui: {
       light: {
-        timeText: '#888888',
-        chevron: '#AAAAAA',
-        filterBg: '#F0F0F0',
-        filterBorder: '#E8E8E8',
-        filterText: '#666666',
-        progressBg: '#E3F2FD',
-        emptyIcon: '#4CAF50',
+        timeText: '#666666',
+        chevron: '#999999',
+        filterBg: '#F5F5F5',
+        filterBorder: '#E0E0E0',
+        filterText: '#555555',
+        progressBg: '#E8F5E0',
+        emptyIcon: '#6BB130',
       },
       dark: {
         timeText: 'rgba(255,255,255,0.5)',

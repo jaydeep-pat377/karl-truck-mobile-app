@@ -20,14 +20,8 @@ export const MainNavigator: React.FC = () => {
       screenOptions={{
         headerShown: false,
       }}
+      initialRouteName="Home"
     >
-      <Tab.Screen
-        name="Home"
-        component={DashboardScreen}
-        options={{
-          tabBarLabel: t('navigation.home'),
-        }}
-      />
       <Tab.Screen
         name="Orders"
         component={OrderListScreen}
@@ -40,6 +34,13 @@ export const MainNavigator: React.FC = () => {
         component={MapTrackingScreen}
         options={{
           tabBarLabel: t('navigation.map'),
+        }}
+      />
+      <Tab.Screen
+        name="Home"
+        component={DashboardScreen}
+        options={{
+          tabBarLabel: t('navigation.home'),
         }}
       />
       <Tab.Screen

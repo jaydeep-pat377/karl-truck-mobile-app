@@ -1,25 +1,26 @@
-import React, { useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useCallback, useMemo, useEffect, useRef, useState } from 'react';
 import {
   View,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
-  FlatList,
   Animated,
+  Image,
+  Modal,
+  Pressable,
+  useWindowDimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Text } from '../../components/common/Text';
-import { Card } from '../../components/common/Card';
-import { StatusBadge } from '../../components/common/StatusBadge';
+import { Text, Card, StatusBadge, TruckLoader, Icon } from '../../components/common';
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
 import { ms, spacing, fontSizes, iconSizes } from '../../utils/responsive';
 import { useResponsive } from '../../hooks/useResponsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
+import { useDashboard } from '../../hooks/useDashboard';
 
 interface KPIData {
   id: string;
@@ -29,6 +30,7 @@ interface KPIData {
   color: string;
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
+  statusFilter?: string; // API status filter value for navigation
 }
 
 interface ActiveDelivery {
@@ -59,88 +61,109 @@ interface Alert {
   isRead: boolean;
 }
 
-const mockWeather = {
-  location: 'Charlotte, NC',
-  temperature: 28,
-  condition: 'partlyCloudy' as const,
-  humidity: 55,
-  windSpeed: 30,
-  precipitation: 0,
-  feelsLike: 24,
-};
-
-const mockKPIs: KPIData[] = [
-  { id: '1', label: 'In Process', value: 5, icon: 'truck-fast', color: colors.status.inProcess, trend: 'up', trendValue: '+2' },
-  { id: '2', label: 'Pre-Pour', value: 3, icon: 'clock-outline', color: colors.status.prePour, trend: 'neutral' },
-  { id: '3', label: 'Completed', value: 12, icon: 'check-circle', color: colors.status.completed, trend: 'up', trendValue: '+4' },
-  { id: '4', label: 'On Hold', value: 2, icon: 'pause-circle', color: colors.status.onHold, trend: 'down', trendValue: '-1' },
+const allQuickActions: QuickAction[] = [
+  {
+    id: '1',
+    label: 'Track Trucks',
+    icon: 'map-marker-radius',
+    screen: 'Map',
+    color: colors.status.enRoute,
+  },
+  {
+    id: '2',
+    label: 'Orders',
+    icon: 'clipboard-list',
+    screen: 'Orders',
+    color: colors.primary.main,
+  },
+  {
+    id: '4',
+    label: 'Settings',
+    icon: 'cog-outline',
+    screen: 'Settings',
+    color: colors.grey[50],
+  },
+  {
+    id: '5',
+    label: 'Profile',
+    icon: 'account-circle-outline',
+    screen: 'EditProfile',
+    color: colors.info.main,
+  },
+  {
+    id: '6',
+    label: 'Map View',
+    icon: 'map-outline',
+    screen: 'MapTracking',
+    color: colors.secondary.main,
+  },
+  {
+    id: '7',
+    label: 'Active Orders',
+    icon: 'truck-delivery',
+    screen: 'Orders',
+    color: '#F97316',
+  },
+  {
+    id: '8',
+    label: 'Change Password',
+    icon: 'lock-outline',
+    screen: 'ChangePassword',
+    color: colors.error.main,
+  },
 ];
 
-const mockDeliveries: ActiveDelivery[] = [
-  { id: '1', truckNumber: 'T-101', driverName: 'John Smith', customerName: 'ABC Construction', status: 'ENRT', eta: '15 min', progress: 65 },
-  { id: '2', truckNumber: 'T-102', driverName: 'Mike Johnson', customerName: 'XYZ Builders', status: 'LOADING', eta: '35 min', progress: 20 },
-  { id: '3', truckNumber: 'T-103', driverName: 'Sarah Davis', customerName: 'Metro Dev', status: 'ONSIT', eta: 'On Site', progress: 100 },
-];
-
-const mockQuickActions: QuickAction[] = [
-  { id: '1', label: 'New Order', icon: 'plus-circle', screen: 'NewOrder', color: colors.primary.main },
-  { id: '2', label: 'Track Trucks', icon: 'map-marker-radius', screen: 'MapTracking', color: colors.status.enRoute },
-  { id: '3', label: 'Schedule', icon: 'calendar-clock', screen: 'Appointments', color: colors.status.prePour },
-  { id: '4', label: 'Reports', icon: 'chart-bar', screen: 'Reports', color: colors.status.completed },
-];
-
-const mockAlerts: Alert[] = [
-  { id: '1', type: 'weather', title: 'Weather Advisory', message: 'Rain expected at 3 PM - 4 orders may be affected', time: '10 min ago', priority: 'high', isRead: false },
-  { id: '2', type: 'delivery', title: 'Truck T-101 En Route', message: 'ETA to ABC Construction: 15 minutes', time: '25 min ago', priority: 'medium', isRead: false },
-  { id: '3', type: 'order', title: 'Order #12345 Updated', message: 'Quantity changed from 10 CY to 12 CY', time: '1 hr ago', priority: 'low', isRead: true },
-];
-
-const weatherIcons: Record<string, string> = {
-  sunny: 'weather-sunny',
-  cloudy: 'weather-cloudy',
-  partlyCloudy: 'weather-partly-cloudy',
-  rainy: 'weather-rainy',
-  stormy: 'weather-lightning-rainy',
-  snowy: 'weather-snowy',
-  foggy: 'weather-fog',
-  windy: 'weather-windy',
-};
+// Default: Track Trucks, Orders, Settings (3 items)
+const defaultEnabledActionIds = ['1', '2', '4'];
+const QUICK_ACTIONS_STORAGE_KEY = '@quick_actions_enabled';
 
 interface OverviewProgressBarProps {
+  willCall: number;
+  holdDelivery: number;
+  cancelled: number;
+  normal: number;
   completed: number;
-  inProcess: number;
-  prePour: number;
-  onHold: number;
+  inProgress: number;
+  totalOrders: number;
   isDark: boolean;
   themeColors: typeof colors.dark | typeof colors.light;
 }
 
 const OverviewProgressBar: React.FC<OverviewProgressBarProps> = ({
+  willCall,
+  holdDelivery,
+  cancelled,
+  normal,
   completed,
-  inProcess,
-  prePour,
-  onHold,
+  inProgress,
+  totalOrders,
   isDark,
   themeColors,
 }) => {
-  const total = completed + inProcess + prePour + onHold;
+  const total = totalOrders || (willCall + holdDelivery + cancelled + normal + completed + inProgress);
+  const willCallPercent = total > 0 ? (willCall / total) * 100 : 0;
+  const holdDeliveryPercent = total > 0 ? (holdDelivery / total) * 100 : 0;
+  const cancelledPercent = total > 0 ? (cancelled / total) * 100 : 0;
+  const normalPercent = total > 0 ? (normal / total) * 100 : 0;
   const completedPercent = total > 0 ? (completed / total) * 100 : 0;
-  const inProcessPercent = total > 0 ? (inProcess / total) * 100 : 0;
-  const prePourPercent = total > 0 ? (prePour / total) * 100 : 0;
-  const onHoldPercent = total > 0 ? (onHold / total) * 100 : 0;
+  const inProgressPercent = total > 0 ? (inProgress / total) * 100 : 0;
 
+  const willCallAnim = useRef(new Animated.Value(0)).current;
+  const holdDeliveryAnim = useRef(new Animated.Value(0)).current;
+  const cancelledAnim = useRef(new Animated.Value(0)).current;
+  const normalAnim = useRef(new Animated.Value(0)).current;
   const completedAnim = useRef(new Animated.Value(0)).current;
-  const inProcessAnim = useRef(new Animated.Value(0)).current;
-  const prePourAnim = useRef(new Animated.Value(0)).current;
-  const onHoldAnim = useRef(new Animated.Value(0)).current;
+  const inProgressAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   useEffect(() => {
+    willCallAnim.setValue(0);
+    holdDeliveryAnim.setValue(0);
+    cancelledAnim.setValue(0);
+    normalAnim.setValue(0);
     completedAnim.setValue(0);
-    inProcessAnim.setValue(0);
-    prePourAnim.setValue(0);
-    onHoldAnim.setValue(0);
+    inProgressAnim.setValue(0);
     fadeAnim.setValue(0);
     scaleAnim.setValue(0.95);
 
@@ -158,37 +181,49 @@ const OverviewProgressBar: React.FC<OverviewProgressBarProps> = ({
           useNativeDriver: true,
         }),
       ]),
-      Animated.stagger(80, [
+      Animated.stagger(60, [
+        Animated.timing(willCallAnim, {
+          toValue: willCallPercent,
+          duration: 500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(holdDeliveryAnim, {
+          toValue: holdDeliveryPercent,
+          duration: 500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(cancelledAnim, {
+          toValue: cancelledPercent,
+          duration: 500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(normalAnim, {
+          toValue: normalPercent,
+          duration: 500,
+          useNativeDriver: false,
+        }),
         Animated.timing(completedAnim, {
           toValue: completedPercent,
-          duration: 600,
+          duration: 500,
           useNativeDriver: false,
         }),
-        Animated.timing(inProcessAnim, {
-          toValue: inProcessPercent,
-          duration: 600,
-          useNativeDriver: false,
-        }),
-        Animated.timing(prePourAnim, {
-          toValue: prePourPercent,
-          duration: 600,
-          useNativeDriver: false,
-        }),
-        Animated.timing(onHoldAnim, {
-          toValue: onHoldPercent,
-          duration: 600,
+        Animated.timing(inProgressAnim, {
+          toValue: inProgressPercent,
+          duration: 500,
           useNativeDriver: false,
         }),
       ]),
     ]).start();
-  }, [completed, inProcess, prePour, onHold, completedPercent, inProcessPercent, prePourPercent, onHoldPercent, completedAnim, inProcessAnim, prePourAnim, onHoldAnim, fadeAnim, scaleAnim]);
+  }, [willCall, holdDelivery, cancelled, normal, completed, inProgress, willCallPercent, holdDeliveryPercent, cancelledPercent, normalPercent, completedPercent, inProgressPercent, willCallAnim, holdDeliveryAnim, cancelledAnim, normalAnim, completedAnim, inProgressAnim, fadeAnim, scaleAnim]);
 
   const segments = [
+    { label: 'Will Call', value: willCall, percent: willCallPercent, anim: willCallAnim, color: '#8B5CF6', icon: 'phone-ring' }, // Purple
+    { label: 'Hold Delivery', value: holdDelivery, percent: holdDeliveryPercent, anim: holdDeliveryAnim, color: colors.status.onHold, icon: 'pause-circle' },
+    { label: 'Cancelled', value: cancelled, percent: cancelledPercent, anim: cancelledAnim, color: colors.error.main, icon: 'close-circle' },
+    { label: 'Normal', value: normal, percent: normalPercent, anim: normalAnim, color: colors.status.prePour, icon: 'checkbox-marked-circle' },
     { label: 'Completed', value: completed, percent: completedPercent, anim: completedAnim, color: colors.status.completed, icon: 'check-circle' },
-    { label: 'In Process', value: inProcess, percent: inProcessPercent, anim: inProcessAnim, color: colors.status.inProcess, icon: 'truck-fast' },
-    { label: 'Pre-Pour', value: prePour, percent: prePourPercent, anim: prePourAnim, color: colors.status.prePour, icon: 'clock-outline' },
-    { label: 'On Hold', value: onHold, percent: onHoldPercent, anim: onHoldAnim, color: colors.status.onHold, icon: 'pause-circle' },
-  ];
+    { label: 'In Progress', value: inProgress, percent: inProgressPercent, anim: inProgressAnim, color: '#F97316', icon: 'truck-fast' }, // Orange
+  ].filter(s => s.value > 0); // Only show segments with values
 
   return (
     <Animated.View
@@ -206,12 +241,12 @@ const OverviewProgressBar: React.FC<OverviewProgressBarProps> = ({
             <Icon name="chart-timeline-variant" size={ms(16)} color={colors.primary.main} />
           </View>
           <Text variant="bodySmall" style={{ fontWeight: '600', color: themeColors.text.primary }}>
-            Today's Progress
+            Today's Overview
           </Text>
         </View>
         <View style={[progressStyles.completionBadge, { backgroundColor: `${colors.status.completed}15` }]}>
           <Text style={[progressStyles.completionText, { color: colors.status.completed }]}>
-            {Math.round(completedPercent)}%
+            {total} Orders
           </Text>
         </View>
       </View>
@@ -240,10 +275,10 @@ const OverviewProgressBar: React.FC<OverviewProgressBarProps> = ({
 
       <View style={progressStyles.statsSummary}>
         <Text variant="caption" color="secondary">
-          {completed} of {total} orders completed
+          {completed} completed • <Text style={{ color: '#F97316' }}>{inProgress} in progress</Text>
         </Text>
-        <Text variant="caption" style={{ color: colors.status.inProcess }}>
-          {inProcess} active
+        <Text variant="caption" style={{ color: '#8B5CF6' }}>
+          {willCall} will call
         </Text>
       </View>
     </Animated.View>
@@ -349,20 +384,129 @@ const progressStyles = StyleSheet.create({
 });
 
 const DashboardScreen: React.FC = () => {
-  const { t } = useTranslation();
   const { isDark } = useTheme();
   const navigation = useNavigation<any>();
   const { isTablet } = useResponsive();
-  const [refreshing, setRefreshing] = React.useState(false);
+  const { width: screenWidth } = useWindowDimensions();
+
+  // Quick actions state
+  const [enabledActionIds, setEnabledActionIds] = useState<string[]>(defaultEnabledActionIds);
+  const [showQuickActionsModal, setShowQuickActionsModal] = useState(false);
+  const [tempEnabledIds, setTempEnabledIds] = useState<string[]>([]);
+
+  // Load saved quick actions from storage
+  useEffect(() => {
+    const loadSavedActions = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(QUICK_ACTIONS_STORAGE_KEY);
+        if (saved) {
+          setEnabledActionIds(JSON.parse(saved));
+        }
+      } catch (error) {
+        console.log('Error loading quick actions:', error);
+      }
+    };
+    loadSavedActions();
+  }, []);
+
+  // Save quick actions to storage
+  const saveQuickActions = useCallback(async (ids: string[]) => {
+    try {
+      await AsyncStorage.setItem(QUICK_ACTIONS_STORAGE_KEY, JSON.stringify(ids));
+      setEnabledActionIds(ids);
+    } catch (error) {
+      console.log('Error saving quick actions:', error);
+    }
+  }, []);
+
+  // Get enabled quick actions
+  const enabledQuickActions = useMemo(() => {
+    return allQuickActions.filter(action => enabledActionIds.includes(action.id));
+  }, [enabledActionIds]);
+
+  // Use dashboard API hook
+  const {
+    user,
+    notifications,
+    weather,
+    todayOverview,
+    activeDeliveries,
+    recentAlerts,
+    isLoading,
+    isError,
+    error,
+    isRefetching,
+    refetch,
+  } = useDashboard();
 
   const themeColors = isDark ? colors.dark : colors.light;
 
+  // Pull to refresh handler
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1500);
+    refetch();
+  }, [refetch]);
+
+  // Quick actions modal handlers
+  const handleOpenQuickActionsModal = useCallback(() => {
+    setTempEnabledIds([...enabledActionIds]);
+    setShowQuickActionsModal(true);
+  }, [enabledActionIds]);
+
+  const handleCloseQuickActionsModal = useCallback(() => {
+    setShowQuickActionsModal(false);
   }, []);
 
-  const styles = useMemo(() => createStyles(themeColors, isTablet, isDark), [isDark, isTablet, themeColors]);
+  const handleToggleAction = useCallback((actionId: string) => {
+    setTempEnabledIds(prev => {
+      if (prev.includes(actionId)) {
+        // Don't allow removing if only one action remains
+        if (prev.length <= 1) return prev;
+        return prev.filter(id => id !== actionId);
+      } else {
+        // Don't allow more than 3 actions
+        if (prev.length >= 3) return prev;
+        return [...prev, actionId];
+      }
+    });
+  }, []);
+
+  const handleSaveQuickActions = useCallback(() => {
+    saveQuickActions(tempEnabledIds);
+    setShowQuickActionsModal(false);
+  }, [tempEnabledIds, saveQuickActions]);
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user) return 'U';
+    const first = user.firstName?.charAt(0) || '';
+    const last = user.lastName?.charAt(0) || '';
+    return (first + last).toUpperCase() || 'U';
+  };
+
+  // Build KPI data from API response
+  // statusFilter must match the API status values used in OrderListScreen
+  const kpiData: KPIData[] = useMemo(() => [
+    { id: '1', label: 'Will Call', value: todayOverview?.will_call ?? 0, icon: 'phone-ring', color: '#8B5CF6', statusFilter: 'Will Call' }, // Purple - distinct for Will Call
+    { id: '2', label: 'Hold Delivery', value: todayOverview?.hold_delivery ?? 0, icon: 'pause-circle', color: colors.status.onHold, statusFilter: 'Hold Delivery' },
+    { id: '3', label: 'Cancelled', value: todayOverview?.cancelled ?? 0, icon: 'close-circle', color: colors.error.main, statusFilter: 'Canceled' }, // API uses 'Canceled'
+    { id: '4', label: 'Normal', value: todayOverview?.normal ?? 0, icon: 'checkbox-marked-circle', color: colors.status.prePour, statusFilter: 'Normal' },
+    { id: '5', label: 'In Progress', value: todayOverview?.in_progress ?? 0, icon: 'truck-fast', color: '#F97316', statusFilter: 'In Progress' }, // Orange - distinct for In Progress
+    { id: '6', label: 'Completed', value: todayOverview?.completed ?? 0, icon: 'check-circle', color: colors.status.completed, statusFilter: 'Completed' },
+  ], [todayOverview]);
+
+  // Get weather icon based on condition
+  const getWeatherIconName = (condition?: string) => {
+    if (!condition) return 'weather-partly-cloudy';
+    const lowerCondition = condition.toLowerCase();
+    if (lowerCondition.includes('sunny') || lowerCondition.includes('clear')) return 'weather-sunny';
+    if (lowerCondition.includes('cloud')) return 'weather-cloudy';
+    if (lowerCondition.includes('rain')) return 'weather-rainy';
+    if (lowerCondition.includes('snow')) return 'weather-snowy';
+    if (lowerCondition.includes('storm') || lowerCondition.includes('thunder')) return 'weather-lightning-rainy';
+    return 'weather-partly-cloudy';
+  };
+
+  const styles = useMemo(() => createStyles(themeColors, isTablet, isDark, screenWidth), [isDark, isTablet, themeColors, screenWidth]);
 
   const priorityColors: Record<string, string> = {
     high: colors.error.main,
@@ -374,29 +518,31 @@ const DashboardScreen: React.FC = () => {
     <Card variant="elevated" padding="md" style={[styles.weatherCard, styles.weatherCardShadow]}>
       <View style={styles.weatherHeader}>
         <View>
-          <Text variant="caption" color="secondary">{mockWeather.location}</Text>
+          <Text variant="caption" color="secondary">{weather?.location || 'Location N/A'}</Text>
           <View style={styles.weatherMain}>
-            <Text style={styles.temperatureText}>{mockWeather.temperature}°</Text>
+            <Text style={styles.temperatureText}>{weather?.avg_temperature_fahrenheit ?? weather?.temperature ?? '--'}°</Text>
             <Icon
-              name={weatherIcons[mockWeather.condition]}
+              name={getWeatherIconName(weather?.condition)}
               size={iconSizes.xxl}
               color={colors.warning.main}
             />
           </View>
-          <Text variant="bodySmall" color="secondary">Feels like {mockWeather.feelsLike}°</Text>
+          <Text variant="bodySmall" color="secondary">
+            {weather?.condition || 'Weather unavailable'}
+          </Text>
         </View>
         <View style={styles.weatherDetails}>
           <View style={styles.weatherDetailItem}>
             <Icon name="water-percent" size={iconSizes.sm} color={colors.info.main} />
-            <Text variant="caption" color="secondary">{mockWeather.humidity}%</Text>
+            <Text variant="caption" color="secondary">{weather?.avg_humidity_percent ?? weather?.humidity ?? '--'}%</Text>
           </View>
           <View style={styles.weatherDetailItem}>
             <Icon name="weather-windy" size={iconSizes.sm} color={themeColors.text.secondary} />
-            <Text variant="caption" color="secondary">{mockWeather.windSpeed} mph</Text>
+            <Text variant="caption" color="secondary">{weather?.avg_wind_speed_mph ?? weather?.windSpeed ?? '--'} mph</Text>
           </View>
           <View style={styles.weatherDetailItem}>
             <Icon name="water" size={iconSizes.sm} color={colors.primary.main} />
-            <Text variant="caption" color="secondary">{mockWeather.precipitation}%</Text>
+            <Text variant="caption" color="secondary">{weather?.avg_precipitation_percent ?? 0}%</Text>
           </View>
         </View>
       </View>
@@ -407,7 +553,7 @@ const DashboardScreen: React.FC = () => {
     <TouchableOpacity
       style={[styles.kpiCard, { backgroundColor: themeColors.card }]}
       activeOpacity={0.7}
-      onPress={() => navigation.navigate('Orders', { filter: item.label.toLowerCase().replace(' ', '_') })}>
+      onPress={() => navigation.navigate('Orders', { statusFilter: item.statusFilter })}>
       <View style={[styles.kpiIconContainer, { backgroundColor: `${item.color}20` }]}>
         <Icon name={item.icon} size={iconSizes.lg} color={item.color} />
       </View>
@@ -430,15 +576,63 @@ const DashboardScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
+  // Calculate quick action item width dynamically for all screen sizes
+  // This ensures proper responsiveness on all devices (phones, tablets, Android, iOS)
+  const quickActionLayout = useMemo(() => {
+    const horizontalPadding = spacing.lg * 2; // Left + Right container padding
+    const gapBetweenItems = spacing.sm; // Gap between each item
+    const numberOfItems = 3;
+    const totalGaps = gapBetweenItems * (numberOfItems - 1); // 2 gaps for 3 items
+
+    // Calculate available width and divide equally
+    const availableWidth = screenWidth - horizontalPadding - totalGaps;
+    const itemWidth = Math.floor(availableWidth / numberOfItems);
+
+    // Responsive height based on device size
+    const itemHeight = isTablet ? ms(130) : screenWidth < 375 ? ms(95) : ms(110);
+
+    // Responsive icon size
+    const iconContainerSize = isTablet ? ms(56) : screenWidth < 375 ? ms(40) : ms(48);
+
+    return {
+      itemWidth,
+      itemHeight,
+      iconContainerSize,
+      iconSize: isTablet ? iconSizes.xl : screenWidth < 375 ? iconSizes.md : iconSizes.lg,
+    };
+  }, [screenWidth, isTablet]);
+
   const renderQuickAction = ({ item }: { item: QuickAction }) => (
     <TouchableOpacity
-      style={[styles.quickActionItem, { backgroundColor: themeColors.card }]}
+      style={[
+        styles.quickActionItem,
+        {
+          backgroundColor: themeColors.card,
+          width: quickActionLayout.itemWidth,
+          minHeight: quickActionLayout.itemHeight,
+        },
+      ]}
       activeOpacity={0.7}
       onPress={() => navigation.navigate(item.screen)}>
-      <View style={[styles.quickActionIcon, { backgroundColor: `${item.color}20` }]}>
-        <Icon name={item.icon} size={iconSizes.lg} color={item.color} />
+      <View
+        style={[
+          styles.quickActionIcon,
+          {
+            backgroundColor: `${item.color}20`,
+            width: quickActionLayout.iconContainerSize,
+            height: quickActionLayout.iconContainerSize,
+            borderRadius: quickActionLayout.iconContainerSize / 2,
+          },
+        ]}>
+        <Icon name={item.icon} size={quickActionLayout.iconSize} color={item.color} />
       </View>
-      <Text variant="caption" color="secondary" style={styles.quickActionLabel}>{item.label}</Text>
+      <Text
+        variant={screenWidth < 375 ? 'captionSmall' : 'caption'}
+        color="secondary"
+        style={styles.quickActionLabel}
+        numberOfLines={2}>
+        {item.label}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -512,25 +706,67 @@ const DashboardScreen: React.FC = () => {
     </View>
   );
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loaderContainer, { backgroundColor: themeColors.background }]} edges={['top']}>
+        <TruckLoader message="Loading dashboard..." color="dark" size={120} />
+      </SafeAreaView>
+    );
+  }
+
+  // Show error state
+  if (isError) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loaderContainer, { backgroundColor: themeColors.background }]} edges={['top']}>
+        <Icon name="alert-circle-outline" size={48} color={colors.error.main} />
+        <Text variant="h4" style={{ marginTop: spacing.md, color: colors.error.main }}>
+          Failed to load dashboard
+        </Text>
+        <Text variant="body" color="secondary" style={{ marginTop: spacing.sm, textAlign: 'center', paddingHorizontal: spacing.xl }}>
+          {error || 'Please check your connection and try again'}
+        </Text>
+        <TouchableOpacity
+          style={{ marginTop: spacing.lg, padding: spacing.md, backgroundColor: colors.primary.main, borderRadius: ms(8) }}
+          onPress={() => refetch()}>
+          <Text variant="body" color="white">Retry</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={styles.avatar}>
-            <Text variant="h3" color="white">JS</Text>
-          </View>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Settings')}>
+            {user?.avatarUrl && user.avatarUrl !== 'https://example.com/avatar.jpg' ? (
+              <Image
+                source={{ uri: user.avatarUrl }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <View style={styles.avatar}>
+                <Text variant="h3" color="white">{getUserInitials()}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
           <View style={styles.welcomeTextContainer}>
             <Text variant="caption" color="secondary">Welcome back,</Text>
-            <Text variant="h3">John Smith</Text>
+            <Text variant="h3">{user?.fullName || 'User'}</Text>
           </View>
         </View>
         <TouchableOpacity
           style={styles.notificationButton}
           onPress={() => navigation.navigate('Notifications')}>
           <Icon name="bell-outline" size={iconSizes.lg} color={themeColors.text.primary} />
-          <View style={[styles.notificationBadge, { backgroundColor: colors.error.main }]}>
-            <Text style={styles.notificationBadgeText}>2</Text>
-          </View>
+          {(notifications?.unread_count ?? 0) > 0 && (
+            <View style={[styles.notificationBadge, { backgroundColor: colors.error.main }]}>
+              <Text style={styles.notificationBadgeText}>{notifications?.unread_count}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -540,80 +776,210 @@ const DashboardScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={isRefetching}
             onRefresh={onRefresh}
             tintColor={colors.primary.main}
+            colors={[colors.primary.main, colors.secondary.main]}
+            progressBackgroundColor={isDark ? themeColors.cardElevated : colors.common.white}
           />
         }>
-        {renderWeatherCard()}
+        {/* {renderWeatherCard()} */}
 
-        <SectionHeader title="Today's Overview" actionLabel="View All" onAction={() => navigation.navigate('Orders')} />
-        <FlatList
-          data={mockKPIs}
-          renderItem={renderKPICard}
-          keyExtractor={(item) => item.id}
+        <SectionHeader title="Today's Overview" actionLabel={`Total: ${todayOverview?.total_orders ?? 0}`} onAction={() => navigation.navigate('Orders')} />
+        <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.kpiList}
-          ItemSeparatorComponent={() => <View style={{ width: spacing.sm }} />}
-        />
+          contentContainerStyle={styles.kpiList}>
+          {kpiData.map((item, index) => (
+            <View key={item.id} style={{ flexDirection: 'row' }}>
+              {renderKPICard({ item })}
+              {index < kpiData.length - 1 && <View style={{ width: spacing.sm }} />}
+            </View>
+          ))}
+        </ScrollView>
 
         <OverviewProgressBar
-          completed={mockKPIs.find(k => k.label === 'Completed')?.value || 0}
-          inProcess={mockKPIs.find(k => k.label === 'In Process')?.value || 0}
-          prePour={mockKPIs.find(k => k.label === 'Pre-Pour')?.value || 0}
-          onHold={mockKPIs.find(k => k.label === 'On Hold')?.value || 0}
+          willCall={todayOverview?.will_call ?? 0}
+          holdDelivery={todayOverview?.hold_delivery ?? 0}
+          cancelled={todayOverview?.cancelled ?? 0}
+          normal={todayOverview?.normal ?? 0}
+          completed={todayOverview?.completed ?? 0}
+          inProgress={todayOverview?.in_progress ?? 0}
+          totalOrders={todayOverview?.total_orders ?? 0}
           isDark={isDark}
           themeColors={themeColors}
         />
 
         <SectionHeader title="Quick Actions" />
         <View style={styles.quickActionsGrid}>
-          {mockQuickActions.map((action) => (
-            <View key={action.id} style={styles.quickActionWrapper}>
+          {enabledQuickActions.map((action) => (
+            <React.Fragment key={action.id}>
               {renderQuickAction({ item: action })}
-            </View>
+            </React.Fragment>
           ))}
         </View>
 
         <SectionHeader
           title="Active Deliveries"
-          actionLabel={`${mockDeliveries.length} Active`}
+          actionLabel={`${activeDeliveries?.count ?? 0} Active`}
           onAction={() => navigation.navigate('MapTracking')}
         />
-        <FlatList
-          data={mockDeliveries}
-          renderItem={renderDeliveryCard}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.deliveryList}
-          ItemSeparatorComponent={() => <View style={{ width: spacing.sm }} />}
-        />
+        {activeDeliveries?.orders && activeDeliveries.orders.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.deliveryList}>
+            {activeDeliveries.orders.map((order, index) => {
+              const deliveryItem: ActiveDelivery = {
+                id: order.order_id,
+                truckNumber: order.order_code,
+                driverName: order.customer_name,
+                customerName: order.delivery_address || 'N/A',
+                status: order.status?.toUpperCase().substring(0, 5) as 'ENRT' | 'ONSIT' | 'LOADING',
+                eta: order.start_time || 'N/A',
+                progress: order.progress_percent || 0,
+              };
+              return (
+                <View key={order.order_id} style={{ flexDirection: 'row' }}>
+                  {renderDeliveryCard({ item: deliveryItem })}
+                  {index < activeDeliveries.orders.length - 1 && <View style={{ width: spacing.sm }} />}
+                </View>
+              );
+            })}
+          </ScrollView>
+        ) : (
+          <Card variant="default" padding="md" style={styles.emptyCard}>
+            <View style={styles.emptyState}>
+              <Icon name="truck-outline" size={32} color={themeColors.text.hint} />
+              <Text variant="body" color="secondary" style={styles.emptyText}>
+                No active deliveries
+              </Text>
+            </View>
+          </Card>
+        )}
         <SectionHeader
           title="Recent Alerts"
           actionLabel="See All"
           onAction={() => navigation.navigate('Notifications')}
         />
-        <Card variant="default" padding="none" style={styles.alertsCard}>
-          {mockAlerts.map((alert, index) => (
-            <React.Fragment key={alert.id}>
-              {renderAlertItem({ item: alert })}
-              {index < mockAlerts.length - 1 && <View style={[styles.alertDivider, { backgroundColor: themeColors.border }]} />}
-            </React.Fragment>
-          ))}
-        </Card>
+        {recentAlerts && recentAlerts.length > 0 ? (
+          <Card variant="default" padding="none" style={styles.alertsCard}>
+            {recentAlerts.map((alert, index) => (
+              <React.Fragment key={alert.id}>
+                {renderAlertItem({
+                  item: {
+                    id: alert.id,
+                    type: alert.type as 'weather' | 'order' | 'delivery' | 'system',
+                    title: alert.type.charAt(0).toUpperCase() + alert.type.slice(1),
+                    message: alert.message,
+                    time: new Date(alert.timestamp).toLocaleTimeString(),
+                    priority: 'medium' as const,
+                    isRead: false,
+                  },
+                })}
+                {index < recentAlerts.length - 1 && <View style={[styles.alertDivider, { backgroundColor: themeColors.border }]} />}
+              </React.Fragment>
+            ))}
+          </Card>
+        ) : (
+          <Card variant="default" padding="md" style={styles.alertsCard}>
+            <View style={styles.emptyState}>
+              <Icon name="bell-off-outline" size={32} color={themeColors.text.hint} />
+              <Text variant="body" color="secondary" style={styles.emptyText}>
+                No recent alerts
+              </Text>
+            </View>
+          </Card>
+        )}
 
         <View style={{ height: TAB_BAR_HEIGHT }} />
       </ScrollView>
+
+      {/* Quick Actions Edit Modal */}
+      <Modal
+        visible={showQuickActionsModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseQuickActionsModal}>
+        <Pressable style={styles.modalOverlay} onPress={handleCloseQuickActionsModal}>
+          <Pressable style={[styles.modalContainer, { backgroundColor: themeColors.card }]} onPress={e => e.stopPropagation()}>
+            <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
+              <Text variant="h4">Edit Quick Actions</Text>
+              <TouchableOpacity onPress={handleCloseQuickActionsModal} activeOpacity={0.7}>
+                <Icon name="close" size={iconSizes.lg} color={themeColors.text.secondary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text variant="caption" color="secondary" style={styles.modalSubtitle}>
+              Select up to 3 quick actions to display on your dashboard
+            </Text>
+
+            <View style={styles.actionsListContainer}>
+              {allQuickActions.map((action) => {
+                const isEnabled = tempEnabledIds.includes(action.id);
+                const isDisabled = !isEnabled && tempEnabledIds.length >= 3;
+
+                return (
+                  <TouchableOpacity
+                    key={action.id}
+                    style={[
+                      styles.actionListItem,
+                      {
+                        backgroundColor: isEnabled ? `${action.color}15` : 'transparent',
+                        borderColor: isEnabled ? action.color : themeColors.border,
+                        opacity: isDisabled ? 0.5 : 1,
+                      },
+                    ]}
+                    onPress={() => handleToggleAction(action.id)}
+                    disabled={isDisabled}
+                    activeOpacity={0.7}>
+                    <View style={[styles.actionListIcon, { backgroundColor: `${action.color}20` }]}>
+                      <Icon name={action.icon} size={iconSizes.md} color={action.color} />
+                    </View>
+                    <Text variant="body" style={styles.actionListLabel}>{action.label}</Text>
+                    <View style={[
+                      styles.checkbox,
+                      {
+                        backgroundColor: isEnabled ? colors.primary.main : 'transparent',
+                        borderColor: isEnabled ? colors.primary.main : themeColors.border,
+                      },
+                    ]}>
+                      {isEnabled && <Icon name="check" size={ms(14)} color={colors.common.white} />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel, { borderColor: themeColors.border }]}
+                onPress={handleCloseQuickActionsModal}
+                activeOpacity={0.7}>
+                <Text variant="body" color="secondary">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSave, { backgroundColor: colors.primary.main }]}
+                onPress={handleSaveQuickActions}
+                activeOpacity={0.7}>
+                <Text variant="body" style={{ color: colors.common.white }}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };
 
-const createStyles = (themeColors: typeof colors.dark | typeof colors.light, isTablet: boolean, isDark: boolean) =>
+const createStyles = (themeColors: typeof colors.dark | typeof colors.light, isTablet: boolean, isDark: boolean, screenWidth: number) =>
   StyleSheet.create({
     container: {
       flex: 1,
+    },
+    loaderContainer: {
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     header: {
       flexDirection: 'row',
@@ -634,6 +1000,12 @@ const createStyles = (themeColors: typeof colors.dark | typeof colors.light, isT
       backgroundColor: colors.primary.main,
       justifyContent: 'center',
       alignItems: 'center',
+      marginRight: spacing.md,
+    },
+    avatarImage: {
+      width: ms(48),
+      height: ms(48),
+      borderRadius: ms(24),
       marginRight: spacing.md,
     },
     welcomeTextContainer: {
@@ -757,18 +1129,17 @@ const createStyles = (themeColors: typeof colors.dark | typeof colors.light, isT
     },
     quickActionsGrid: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      paddingHorizontal: spacing.md,
+      flexWrap: 'nowrap',
+      paddingHorizontal: spacing.lg,
       paddingTop: spacing.xs,
       justifyContent: 'space-between',
-    },
-    quickActionWrapper: {
-      width: isTablet ? '23%' : '47%',
-      marginBottom: spacing.md,
+      alignItems: 'stretch',
+      gap: spacing.sm,
     },
     quickActionItem: {
       borderRadius: ms(12),
-      padding: spacing.md,
+      paddingVertical: isTablet ? spacing.lg : spacing.md,
+      paddingHorizontal: spacing.xs,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: isDark ? colors.common.black : colors.grey[100],
@@ -778,22 +1149,20 @@ const createStyles = (themeColors: typeof colors.dark | typeof colors.light, isT
       elevation: 3,
     },
     quickActionIcon: {
-      width: ms(48),
-      height: ms(48),
-      borderRadius: ms(24),
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: spacing.xs,
+      marginBottom: spacing.sm,
     },
     quickActionLabel: {
       textAlign: 'center',
+      paddingHorizontal: spacing.xs,
     },
     deliveryList: {
       paddingHorizontal: spacing.lg,
       paddingBottom: spacing.sm,
     },
     deliveryCard: {
-      width: isTablet ? ms(280) : ms(260),
+      width: screenWidth - (spacing.lg * 2), // Full screen width minus horizontal padding
       backgroundColor: themeColors.card,
       shadowColor: isDark ? colors.common.black : colors.grey[100],
       shadowOffset: { width: 0, height: 2 },
@@ -866,6 +1235,99 @@ const createStyles = (themeColors: typeof colors.dark | typeof colors.light, isT
       width: ms(8),
       height: ms(8),
       borderRadius: ms(4),
+    },
+    emptyCard: {
+      marginHorizontal: spacing.lg,
+    },
+    emptyState: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.lg,
+    },
+    emptyText: {
+      marginTop: spacing.sm,
+    },
+    // Modal styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing.lg,
+    },
+    modalContainer: {
+      width: '100%',
+      maxWidth: ms(400),
+      borderRadius: ms(16),
+      padding: spacing.lg,
+      shadowColor: colors.common.black,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      marginBottom: spacing.sm,
+    },
+    modalSubtitle: {
+      marginBottom: spacing.md,
+    },
+    actionsListContainer: {
+      gap: spacing.sm,
+    },
+    actionListItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.md,
+      borderRadius: ms(12),
+      borderWidth: 1.5,
+      gap: spacing.sm,
+    },
+    actionListIcon: {
+      width: ms(40),
+      height: ms(40),
+      borderRadius: ms(20),
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    actionListLabel: {
+      flex: 1,
+      fontWeight: '500',
+    },
+    checkbox: {
+      width: ms(24),
+      height: ms(24),
+      borderRadius: ms(6),
+      borderWidth: 2,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalFooter: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      marginTop: spacing.lg,
+    },
+    modalButton: {
+      flex: 1,
+      paddingVertical: spacing.md,
+      borderRadius: ms(10),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalButtonCancel: {
+      borderWidth: 1,
+    },
+    modalButtonSave: {
+      shadowColor: colors.primary.main,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 4,
     },
   });
 

@@ -5,9 +5,8 @@
 import React from 'react';
 import { View, StyleSheet, FlatList, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text, Card } from '../../components/common';
+import { Text, Card, Icon, EmptyViewWithPreset } from '../../components/common';
 import { useTranslation } from 'react-i18next';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { AppNotification } from '../../types';
 import { colors } from '../../theme/colors';
 import { spacing, ms, iconSizes } from '../../utils/responsive';
@@ -139,12 +138,10 @@ export const NotificationScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Icon name="bell-off-outline" size={ms(64)} color={themeColors.text.secondary} />
-            <Text variant="body" color="secondary" style={styles.emptyText}>
-              {t('notifications.noNotifications')}
-            </Text>
-          </View>
+          <EmptyViewWithPreset
+            preset="notifications"
+            subtitle={t('notifications.noNotifications')}
+          />
         }
       />
     </SafeAreaView>

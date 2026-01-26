@@ -1,3 +1,4 @@
 export { FrameSvg } from './FrameSvg';
-export { GreenTruck } from './GreenTruck';
+export { default as GreenTruck } from './GreenTruck';
 export { TruckFrame } from './TruckFrame';
+export { default as YellowTruck } from './YellowTruck';

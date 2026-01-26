@@ -11,12 +11,15 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  Modal,
+  Pressable,
+  Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import { Text } from '../../components/common';
+import { Text, Icon } from '../../components/common';
+import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, vs } from '../../utils/responsive';
@@ -47,29 +50,18 @@ const RADIUS = {
 
 const WEATHER_COLORS = colors.weatherTheme;
 
-const mockEvaporationDetails = {
-  status: 'Shrinking Cracking',
-  evaporationRate: '0.15 mm/day',
-  concreteTemp: '55°F',
-  orderNo: '553439',
-  currentTicketNo: 'TKT-2025-0892',
-  productDetails: {
-    mixDesign: '3CCC608',
-    slump: '4 inches',
-    airContent: '5.5%',
-    waterCementRatio: '0.45',
-    aggregateSize: '3/4 inch',
-    admixtures: 'Water Reducer, Retarder',
-    curingMethod: 'Wet Curing',
-    estimatedSetTime: '4-6 hours',
-  },
-  references: {
-    aci305: 'ACI 305R - Hot Weather Concreting',
-    aci308: 'ACI 308R - Curing Concrete',
-    astmC94: 'ASTM C94 - Ready-Mixed Concrete',
-    description: 'Evaporation rate calculations are based on ACI 305R guidelines. When the evaporation rate exceeds 0.25 kg/m²/hr, precautions should be taken to prevent plastic shrinkage cracking.',
-  },
+const getEvaporationStatus = (rate: number): string => {
+  if (rate >= 0.25) return 'Plastic Shrinkage Cracking Risk';
+  if (rate >= 0.15) return 'Moderate - Monitor Closely';
+  return 'Low Risk';
 };
+
+const getStatusColor = (rate: number): string => {
+  if (rate >= 0.25) return colors.error.main;
+  if (rate >= 0.15) return colors.warning.main;
+  return colors.success.main;
+};
+
 
 interface StatusTableRowProps {
   label: string;
@@ -224,11 +216,16 @@ export const EvaporationListScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<EvaporationListRouteProp>();
   const insets = useSafeAreaInsets();
-  const { locationName, date, currentEvaporation } = route.params;
+  const { isDark } = useTheme();
+  const themeColors = isDark ? colors.dark : colors.light;
+  const { locationName, date, orderCode, currentEvaporation, weatherData } = route.params;
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
-  const details = mockEvaporationDetails;
+  const evaporationRate = currentEvaporation?.value ?? 0;
+  const evaporationStatus = getEvaporationStatus(evaporationRate);
+  const statusColor = getStatusColor(evaporationRate);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -239,19 +236,50 @@ export const EvaporationListScreen: React.FC = () => {
     navigation.goBack();
   }, [navigation]);
 
-  const handleRefresh = useCallback(() => {
-    onRefresh();
-  }, [onRefresh]);
-
-  const handleMenu = useCallback(() => {
+  const handleMenuToggle = useCallback(() => {
+    setMenuVisible(prev => !prev);
   }, []);
 
+  const handleShare = useCallback(async () => {
+    setMenuVisible(false);
+    try {
+      await Share.share({
+        message: `Evaporation Details\nLocation: ${locationName}\nDate: ${date}\nEvaporation Rate: ${evaporationRate.toFixed(2)} kg/m²/hr\nStatus: ${evaporationStatus}\nTemperature: ${weatherData?.temperature ?? 'N/A'}°${weatherData?.temperatureUnit ?? 'F'}\nHumidity: ${weatherData?.humidity ?? 'N/A'}%`,
+        title: 'Evaporation Details',
+      });
+    } catch (error) {
+      console.log('Error sharing:', error);
+    }
+  }, [locationName, date, evaporationRate, evaporationStatus, weatherData]);
+
+  const handleSettings = useCallback(() => {
+    setMenuVisible(false);
+    navigation.navigate('Main' as never, { screen: 'Settings' } as never);
+  }, [navigation]);
+
+  const menuItems = [
+    { id: '1', icon: 'share-variant', label: 'Share Details', onPress: handleShare },
+    { id: '2', icon: 'cog-outline', label: 'Settings', onPress: handleSettings },
+  ];
+
   const statusData = [
-    { label: 'Status', value: details.status, valueColor: colors.warning.main },
-    { label: 'Evaporation Rate', value: currentEvaporation?.value ? `${currentEvaporation.value} mm/day` : details.evaporationRate },
-    { label: 'Concrete Temp', value: details.concreteTemp },
-    { label: 'Order No', value: details.orderNo },
-    { label: 'Current Ticket No', value: details.currentTicketNo },
+    { label: 'Status', value: evaporationStatus, valueColor: statusColor },
+    { label: 'Evaporation Rate', value: `${evaporationRate.toFixed(2)} kg/m²/hr` },
+    { label: 'Evaporation Level', value: currentEvaporation?.status ?? 'N/A' },
+    { label: 'Order No', value: orderCode ?? 'N/A' },
+  ];
+
+  const weatherDetailsData = [
+    { label: 'Temperature', value: weatherData ? `${weatherData.temperature}°${weatherData.temperatureUnit}` : 'N/A' },
+    { label: 'Humidity', value: weatherData ? `${weatherData.humidity}%` : 'N/A' },
+    { label: 'Wind Speed', value: weatherData ? `${weatherData.windSpeed} mph` : 'N/A' },
+    { label: 'Wind Direction', value: weatherData?.windDirection ?? 'N/A' },
+    { label: 'Pressure', value: weatherData ? `${weatherData.pressure.toFixed(2)} ${weatherData.pressureUnit}` : 'N/A' },
+    { label: 'Dew Point', value: weatherData ? `${weatherData.dewPoint}°F` : 'N/A' },
+    { label: 'Concrete Temp', value: weatherData?.concreteTemp ? `${weatherData.concreteTemp}°F` : 'N/A' },
+    { label: 'Condition', value: weatherData?.condition ?? 'N/A' },
+    { label: 'Clouds', value: weatherData ? `${weatherData.cloudsPercentage}%` : 'N/A' },
+    { label: 'Visibility', value: weatherData ? `${(weatherData.visibility / 1000).toFixed(1)} km` : 'N/A' },
   ];
 
   return (
@@ -280,13 +308,7 @@ export const EvaporationListScreen: React.FC = () => {
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.headerBtn}
-              onPress={handleRefresh}
-              activeOpacity={0.7}>
-              <Icon name="refresh" size={20} color={colors.common.white} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.headerBtn}
-              onPress={handleMenu}
+              onPress={handleMenuToggle}
               activeOpacity={0.7}>
               <Icon name="dots-vertical" size={20} color={colors.common.white} />
             </TouchableOpacity>
@@ -311,7 +333,8 @@ export const EvaporationListScreen: React.FC = () => {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={colors.common.white}
-            colors={[colors.common.white]}
+            colors={[colors.primary.main, colors.secondary.main]}
+            progressBackgroundColor={isDark ? themeColors.cardElevated : colors.common.white}
           />
         }>
         {isLoading ? (
@@ -319,52 +342,77 @@ export const EvaporationListScreen: React.FC = () => {
         ) : (
           <>
             <StatusTableCard
-              title="Status of Weather"
-              icon="weather-partly-cloudy"
+              title="Evaporation Status"
+              icon="water-outline"
               data={statusData}
             />
 
             <ExpandableCard
-              title="Details"
-              subtitle="You can check all the product details with weather updates."
-              icon="clipboard-text-outline"
-              defaultExpanded={false}>
-              <DetailRow label="Mix Design" value={details.productDetails.mixDesign} />
-              <DetailRow label="Slump" value={details.productDetails.slump} />
-              <DetailRow label="Air Content" value={details.productDetails.airContent} />
-              <DetailRow label="Water/Cement Ratio" value={details.productDetails.waterCementRatio} />
-              <DetailRow label="Aggregate Size" value={details.productDetails.aggregateSize} />
-              <DetailRow label="Admixtures" value={details.productDetails.admixtures} />
-              <DetailRow label="Curing Method" value={details.productDetails.curingMethod} />
-              <DetailRow label="Est. Set Time" value={details.productDetails.estimatedSetTime} isLast />
+              title="Weather Details"
+              subtitle="Current weather conditions affecting evaporation rate."
+              icon="weather-partly-cloudy"
+              defaultExpanded={true}>
+              {weatherDetailsData.map((item, index) => (
+                <DetailRow
+                  key={item.label}
+                  label={item.label}
+                  value={item.value}
+                  isLast={index === weatherDetailsData.length - 1}
+                />
+              ))}
             </ExpandableCard>
 
             <ExpandableCard
               title="References"
-              subtitle="Industry standards and guidelines for evaporation control."
               icon="book-open-variant"
               defaultExpanded={false}>
-              <View style={styles.referenceItem}>
-                <View style={styles.referenceBullet} />
-                <Text style={styles.referenceText}>{details.references.aci305}</Text>
-              </View>
-              <View style={styles.referenceItem}>
-                <View style={styles.referenceBullet} />
-                <Text style={styles.referenceText}>{details.references.aci308}</Text>
-              </View>
-              <View style={styles.referenceItem}>
-                <View style={styles.referenceBullet} />
-                <Text style={styles.referenceText}>{details.references.astmC94}</Text>
-              </View>
-              <View style={styles.referenceDescription}>
-                <Text style={styles.referenceDescText}>
-                  {details.references.description}
-                </Text>
-              </View>
+              <Text style={styles.referenceText}>
+                ACI 305, "Hot Weather Concreting," ACI Manual of Concrete Practice, Part 2. American Concrete Institute, P.O. Box 19150, Detroit, Michigan 48219.
+              </Text>
             </ExpandableCard>
           </>
         )}
       </ScrollView>
+
+      {/* Menu Modal */}
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleMenuToggle}>
+        <Pressable style={styles.modalOverlay} onPress={handleMenuToggle}>
+          <View style={styles.menuContainer}>
+            <View style={styles.menuHeader}>
+              <Text style={styles.menuTitle}>Menu</Text>
+              <TouchableOpacity
+                style={styles.menuCloseBtn}
+                onPress={handleMenuToggle}
+                activeOpacity={0.7}>
+                <Icon name="close" size={ms(18)} color={WEATHER_COLORS.text.secondary} />
+              </TouchableOpacity>
+            </View>
+
+            {menuItems.map((item, index) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[
+                  styles.menuItem,
+                  index < menuItems.length - 1 && styles.menuItemBorder,
+                ]}
+                onPress={item.onPress}
+                activeOpacity={0.7}>
+                <View style={styles.menuItemIcon}>
+                  <Icon name={item.icon} size={ms(18)} color={WEATHER_COLORS.text.secondary} />
+                </View>
+                <Text style={styles.menuItemLabel}>
+                  {item.label}
+                </Text>
+                <Icon name="chevron-right" size={ms(18)} color={WEATHER_COLORS.text.hint} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
@@ -558,34 +606,12 @@ const styles = StyleSheet.create({
     fontSize: ms(12),
     color: WEATHER_COLORS.text.primary,
   },
-  referenceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: GRID.sm,
-    gap: GRID.sm,
-  },
-  referenceBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.secondary.main,
-  },
   referenceText: {
-    fontFamily: fontFamily.medium,
-    fontSize: ms(12),
-    color: WEATHER_COLORS.text.primary,
-  },
-  referenceDescription: {
-    marginTop: GRID.sm,
-    padding: GRID.sm,
-    backgroundColor: WEATHER_COLORS.cardBorder + '30',
-    borderRadius: RADIUS.md,
-  },
-  referenceDescText: {
     fontFamily: fontFamily.regular,
-    fontSize: ms(11),
+    fontSize: ms(12),
     color: WEATHER_COLORS.text.secondary,
-    lineHeight: ms(17),
+    lineHeight: ms(18),
+    marginTop: ms(10)
   },
   levelCard: {
     backgroundColor: WEATHER_COLORS.cardBackground,
@@ -721,6 +747,74 @@ const styles = StyleSheet.create({
     fontSize: ms(14),
     color: WEATHER_COLORS.text.secondary,
     marginTop: GRID.md,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: WEATHER_COLORS.menu.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: GRID.lg,
+  },
+  menuContainer: {
+    width: '100%',
+    maxWidth: 300,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: WEATHER_COLORS.menu.border,
+    backgroundColor: WEATHER_COLORS.menu.background,
+    shadowColor: WEATHER_COLORS.menu.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  menuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: GRID.md,
+    paddingVertical: ms(12),
+    borderBottomWidth: 1,
+    borderBottomColor: WEATHER_COLORS.menu.divider,
+  },
+  menuTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(15),
+    color: WEATHER_COLORS.text.primary,
+  },
+  menuCloseBtn: {
+    width: ms(28),
+    height: ms(28),
+    borderRadius: RADIUS.full,
+    backgroundColor: WEATHER_COLORS.menu.iconBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: GRID.md,
+    paddingVertical: ms(12),
+  },
+  menuItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: WEATHER_COLORS.menu.divider,
+  },
+  menuItemIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.md,
+    backgroundColor: WEATHER_COLORS.menu.iconBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: GRID.sm,
+  },
+  menuItemLabel: {
+    flex: 1,
+    fontFamily: fontFamily.medium,
+    fontSize: ms(14),
+    color: WEATHER_COLORS.text.primary,
   },
 });
 

@@ -11,7 +11,7 @@ import {
   Pressable,
   ActivityIndicator,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Icon } from './Icon';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text } from './Text';
 import { WeatherCondition, WeatherData } from '../../types';

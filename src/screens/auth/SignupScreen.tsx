@@ -20,9 +20,9 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Icon } from '../../components/common';
 import { Text } from '../../components/common/Text';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
