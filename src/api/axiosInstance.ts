@@ -6,6 +6,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'ax
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, API_TIMEOUT } from '@env';
 import { STORAGE_KEYS } from '../utils/storage';
+import { alertService } from '../services/alertService';
 
 const FALLBACK_URL = 'http://api.truckast.ai/api';
 const BASE_URL = API_BASE_URL || FALLBACK_URL;
@@ -84,6 +85,25 @@ axiosInstance.interceptors.request.use(
   }
 );
 
+// Endpoints that should silently fail (no global alert)
+const SILENT_ERROR_ENDPOINTS = [
+  '/auth/login', // Login errors handled locally for better UX
+  '/auth/register',
+  '/auth/verify-otp',
+];
+
+const shouldShowGlobalAlert = (url: string | undefined, status: number | undefined): boolean => {
+  // Don't show alert for silent endpoints
+  if (url && SILENT_ERROR_ENDPOINTS.some(endpoint => url.includes(endpoint))) {
+    return false;
+  }
+  // Don't show alert for 401 (handled by token refresh or redirect to login)
+  if (status === 401) {
+    return false;
+  }
+  return true;
+};
+
 // Response interceptor
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
@@ -108,7 +128,7 @@ axiosInstance.interceptors.response.use(
       console.error('================================\n');
     }
 
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _silentError?: boolean };
 
     // Token refresh on 401
     if (
@@ -162,7 +182,21 @@ axiosInstance.interceptors.response.use(
           STORAGE_KEYS.REFRESH_TOKEN,
           STORAGE_KEYS.USER,
         ]);
+
+        // Show session expired alert
+        alertService.showError(
+          'Session Expired',
+          'Please log in again to continue.'
+        );
       }
+    }
+
+    // Show global error alert (unless silenced)
+    if (
+      !originalRequest._silentError &&
+      shouldShowGlobalAlert(originalRequest.url, error.response?.status)
+    ) {
+      alertService.showApiError(error);
     }
 
     return Promise.reject(error);

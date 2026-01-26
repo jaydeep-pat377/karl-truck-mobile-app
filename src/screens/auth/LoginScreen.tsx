@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Input, Button, Icon } from '../../components/common';
+import { colors } from '../../theme/colors';
 import { useTranslation } from 'react-i18next';
 import { ms, vs, spacing } from '../../utils/responsive';
 import { useLogin } from '../../hooks/useLogin';
@@ -315,7 +316,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: vs(16),
-    shadowColor: '#000',
+    shadowColor: colors.common.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,

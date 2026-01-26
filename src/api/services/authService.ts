@@ -47,6 +47,16 @@ export interface ChangePasswordResponse {
   message: string;
 }
 
+export interface UpdateDeviceTokenRequest {
+  device_token: string;
+  platform: 'ios' | 'android';
+}
+
+export interface UpdateDeviceTokenResponse {
+  success: boolean;
+  message: string;
+}
+
 export const authService = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     return apiClient.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
@@ -70,6 +80,10 @@ export const authService = {
 
   changePassword: async (data: ChangePasswordRequest): Promise<ChangePasswordResponse> => {
     return apiClient.post<ChangePasswordResponse>(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, data);
+  },
+
+  updateDeviceToken: async (data: UpdateDeviceTokenRequest): Promise<UpdateDeviceTokenResponse> => {
+    return apiClient.post<UpdateDeviceTokenResponse>(API_ENDPOINTS.AUTH.UPDATE_DEVICE_TOKEN, data);
   },
 };
 

@@ -1067,7 +1067,7 @@ export const OrderListScreen: React.FC = () => {
                   styles.calendarIconWrapper,
                   {
                     backgroundColor: isActive
-                      ? 'rgba(255,255,255,0.2)'
+                      ? colors.semiTransparent.white20
                       : (isDark ? colors.grey[60] + '30' : colors.grey[10]),
                   },
                 ]}>
@@ -1632,7 +1632,7 @@ const styles = StyleSheet.create({
     width: ms(40),
     height: ms(40),
     borderRadius: ms(20),
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: colors.accent.indigoBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1801,7 +1801,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
   },
   modalContent: {
     maxHeight: SCREEN_HEIGHT * 0.82,
@@ -1924,7 +1924,7 @@ const styles = StyleSheet.create({
     width: ms(14),
     height: ms(14),
     borderRadius: ms(7),
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: colors.semiTransparent.white30,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -102,6 +102,7 @@ export const colors = {
     white: '#FFFFFF',
     black: '#000000',
     transparent: 'transparent',
+    shadow: '#000000', // Standard shadow color
   },
   overlay: {
     light: 'rgba(255, 255, 255, 0.1)',
@@ -164,6 +165,65 @@ export const colors = {
   loader: {
     wheelSpoke: '#3A3B4A',
   },
+  // External App/Brand Colors
+  brands: {
+    googleMaps: '#4285F4',
+    appleMaps: '#000000',
+  },
+  // Action Colors (for buttons, links)
+  action: {
+    call: {
+      main: '#FF5722',
+      light: '#FF8A65',
+      dark: '#E64A19',
+      bgLight: 'rgba(255, 87, 34, 0.1)',
+      bgDark: 'rgba(255, 138, 101, 0.15)',
+      borderLight: 'rgba(255, 87, 34, 0.2)',
+    },
+  },
+  // Dashboard/Stats Colors
+  dashboard: {
+    willCall: '#8B5CF6',      // Purple
+    inProgress: '#F97316',    // Orange
+  },
+  // Map Marker Colors
+  mapMarker: {
+    jobSite: '#FF6B6B',       // Red/coral for job site
+    truck: '#04BCEF',         // Blue for truck (uses secondary.main)
+    plant: '#04BCEF',         // Blue for plant location
+  },
+  // Info Section Icon Colors
+  infoIcons: {
+    cyan: {
+      light: '#00BCD4',
+      dark: '#4DD0E1',
+    },
+    orange: {
+      light: '#FF5722',
+      dark: '#FF8A65',
+    },
+    purple: {
+      light: '#673AB7',
+      dark: '#B39DDB',
+    },
+    blue: {
+      light: '#1976D2',
+      dark: '#64B5F6',
+    },
+  },
+  // Accent Colors for various UI elements
+  accent: {
+    blue: '#3949ab',
+    indigo: '#6366F1', // Indigo for selected states
+    indigoBg: 'rgba(99, 102, 241, 0.1)', // Indigo background with opacity
+  },
+  // Card Background Colors
+  cardBg: {
+    light: '#FAFAFA',
+    dark: '#1a2a3a',
+    border: '#E0E0E0',
+    infoBg: '#E8F4FC',
+  },
   // Tab Bar Theme Colors
   tabBar: {
     light: {
@@ -216,6 +276,88 @@ export const colors = {
     storm: '#6366F1',
     snow: '#60A5FA',
     fog: '#9CA3AF',
+  },
+  // Ticket Detail Badge Status Colors (for floating status badge)
+  ticketBadge: {
+    pending: {
+      bg: 'rgba(255, 255, 255, 0.95)',
+      text: '#666666',
+      icon: '#888888',
+    },
+    ticketed: {
+      bg: 'rgba(255, 255, 255, 0.95)',
+      text: '#0288D1',
+      icon: '#0288D1',
+    },
+    loading: {
+      bg: 'rgba(255, 193, 7, 0.95)',
+      text: '#5D4037',
+      icon: '#5D4037',
+    },
+    loaded: {
+      bg: 'rgba(255, 255, 255, 0.95)',
+      text: '#0277BD',
+      icon: '#0277BD',
+    },
+    toJob: {
+      bg: 'rgba(33, 150, 243, 0.95)',
+      text: '#FFFFFF',
+      icon: '#FFFFFF',
+    },
+    atJob: {
+      bg: 'rgba(255, 152, 0, 0.95)',
+      text: '#FFFFFF',
+      icon: '#FFFFFF',
+    },
+    pouring: {
+      bg: 'rgba(255, 255, 255, 0.95)',
+      text: '#2E7D32',
+      icon: '#2E7D32',
+    },
+    washing: {
+      bg: 'rgba(3, 169, 244, 0.95)',
+      text: '#FFFFFF',
+      icon: '#FFFFFF',
+    },
+    toPlant: {
+      bg: 'rgba(156, 39, 176, 0.9)',
+      text: '#FFFFFF',
+      icon: '#FFFFFF',
+    },
+    atPlant: {
+      bg: 'rgba(255, 255, 255, 0.95)',
+      text: '#546E7A',
+      icon: '#546E7A',
+    },
+    cancelled: {
+      bg: 'rgba(244, 67, 54, 0.95)',
+      text: '#FFFFFF',
+      icon: '#FFFFFF',
+    },
+  },
+  // Header Overlay Colors (white with opacity for dark headers)
+  headerOverlay: {
+    bg: 'rgba(255,255,255,0.15)',
+    bgHover: 'rgba(255,255,255,0.2)',
+    text: 'rgba(255,255,255,0.7)',
+    textBright: 'rgba(255,255,255,0.8)',
+    textBrightest: 'rgba(255,255,255,0.9)',
+    border: 'rgba(255,255,255,0.2)',
+  },
+  // Semi-transparent white/dark overlays
+  semiTransparent: {
+    white08: 'rgba(255,255,255,0.08)',
+    white10: 'rgba(255,255,255,0.1)',
+    white15: 'rgba(255,255,255,0.15)',
+    white20: 'rgba(255,255,255,0.2)',
+    white30: 'rgba(255,255,255,0.3)',
+  },
+  // Product status colors (for weather/product screens)
+  productStatus: {
+    danger: '#EF5350',
+    safe: '#66BB6A',
+    info: '#42A5F5',
+    truckIcon: '#90CAF9',
   },
   // Ticket Screen Colors
   ticket: {

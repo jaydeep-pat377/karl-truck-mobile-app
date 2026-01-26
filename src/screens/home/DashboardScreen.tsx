@@ -103,7 +103,7 @@ const allQuickActions: QuickAction[] = [
     label: 'Active Orders',
     icon: 'truck-delivery',
     screen: 'Orders',
-    color: '#F97316',
+    color: colors.dashboard.inProgress,
   },
   {
     id: '8',
@@ -218,12 +218,12 @@ const OverviewProgressBar: React.FC<OverviewProgressBarProps> = ({
   }, [willCall, holdDelivery, cancelled, normal, completed, inProgress, willCallPercent, holdDeliveryPercent, cancelledPercent, normalPercent, completedPercent, inProgressPercent, willCallAnim, holdDeliveryAnim, cancelledAnim, normalAnim, completedAnim, inProgressAnim, fadeAnim, scaleAnim]);
 
   const segments = [
-    { label: 'Will Call', value: willCall, percent: willCallPercent, anim: willCallAnim, color: '#8B5CF6', icon: 'phone-ring' }, // Purple
+    { label: 'Will Call', value: willCall, percent: willCallPercent, anim: willCallAnim, color: colors.dashboard.willCall, icon: 'phone-ring' }, // Purple
     { label: 'Hold Delivery', value: holdDelivery, percent: holdDeliveryPercent, anim: holdDeliveryAnim, color: colors.status.onHold, icon: 'pause-circle' },
     { label: 'Cancelled', value: cancelled, percent: cancelledPercent, anim: cancelledAnim, color: colors.error.main, icon: 'close-circle' },
     { label: 'Normal', value: normal, percent: normalPercent, anim: normalAnim, color: colors.status.prePour, icon: 'checkbox-marked-circle' },
     { label: 'Completed', value: completed, percent: completedPercent, anim: completedAnim, color: colors.status.completed, icon: 'check-circle' },
-    { label: 'In Progress', value: inProgress, percent: inProgressPercent, anim: inProgressAnim, color: '#F97316', icon: 'truck-fast' }, // Orange
+    { label: 'In Progress', value: inProgress, percent: inProgressPercent, anim: inProgressAnim, color: colors.dashboard.inProgress, icon: 'truck-fast' }, // Orange
   ].filter(s => s.value > 0); // Only show segments with values
 
   return (
@@ -276,9 +276,9 @@ const OverviewProgressBar: React.FC<OverviewProgressBarProps> = ({
 
       <View style={progressStyles.statsSummary}>
         <Text variant="caption" color="secondary">
-          {completed} completed • <Text style={{ color: '#F97316' }}>{inProgress} in progress</Text>
+          {completed} completed • <Text style={{ color: colors.dashboard.inProgress }}>{inProgress} in progress</Text>
         </Text>
-        <Text variant="caption" style={{ color: '#8B5CF6' }}>
+        <Text variant="caption" style={{ color: colors.dashboard.willCall }}>
           {willCall} will call
         </Text>
       </View>
@@ -500,11 +500,11 @@ const DashboardScreen: React.FC = () => {
   // Build KPI data from API response
   // statusFilter must match the API status values used in OrderListScreen
   const kpiData: KPIData[] = useMemo(() => [
-    { id: '1', label: 'Will Call', value: todayOverview?.will_call ?? 0, icon: 'phone-ring', color: '#8B5CF6', statusFilter: 'Will Call' }, // Purple - distinct for Will Call
+    { id: '1', label: 'Will Call', value: todayOverview?.will_call ?? 0, icon: 'phone-ring', color: colors.dashboard.willCall, statusFilter: 'Will Call' }, // Purple - distinct for Will Call
     { id: '2', label: 'Hold Delivery', value: todayOverview?.hold_delivery ?? 0, icon: 'pause-circle', color: colors.status.onHold, statusFilter: 'Hold Delivery' },
     { id: '3', label: 'Cancelled', value: todayOverview?.cancelled ?? 0, icon: 'close-circle', color: colors.error.main, statusFilter: 'Canceled' }, // API uses 'Canceled'
     { id: '4', label: 'Normal', value: todayOverview?.normal ?? 0, icon: 'checkbox-marked-circle', color: colors.status.prePour, statusFilter: 'Normal' },
-    { id: '5', label: 'In Progress', value: todayOverview?.in_progress ?? 0, icon: 'truck-fast', color: '#F97316', statusFilter: 'In Progress' }, // Orange - distinct for In Progress
+    { id: '5', label: 'In Progress', value: todayOverview?.in_progress ?? 0, icon: 'truck-fast', color: colors.dashboard.inProgress, statusFilter: 'In Progress' }, // Orange - distinct for In Progress
     { id: '6', label: 'Completed', value: todayOverview?.completed ?? 0, icon: 'check-circle', color: colors.status.completed, statusFilter: 'Completed' },
   ], [todayOverview]);
 
@@ -761,6 +761,22 @@ const DashboardScreen: React.FC = () => {
         <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg }}>
           <View style={{ width: ms(150), height: ms(20), backgroundColor: shimmerColor, borderRadius: ms(4), marginBottom: spacing.sm }} />
           <View style={{ height: ms(140), backgroundColor: shimmerColor, borderRadius: ms(12) }} />
+        </View>
+
+        {/* Recent Alerts skeleton */}
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg }}>
+          <View style={{ width: ms(120), height: ms(20), backgroundColor: shimmerColor, borderRadius: ms(4), marginBottom: spacing.sm }} />
+          <View style={{ backgroundColor: shimmerColor, borderRadius: ms(12), padding: spacing.md }}>
+            {[1, 2, 3].map((i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm }}>
+                <View style={{ width: ms(40), height: ms(40), backgroundColor: isDark ? colors.grey[80] : colors.grey[15], borderRadius: ms(20), marginRight: spacing.sm }} />
+                <View style={{ flex: 1 }}>
+                  <View style={{ width: '60%', height: ms(14), backgroundColor: isDark ? colors.grey[80] : colors.grey[15], borderRadius: ms(4), marginBottom: ms(6) }} />
+                  <View style={{ width: '80%', height: ms(12), backgroundColor: isDark ? colors.grey[80] : colors.grey[15], borderRadius: ms(4) }} />
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -1306,7 +1322,7 @@ const createStyles = (themeColors: typeof colors.dark | typeof colors.light, isT
     // Modal styles
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: colors.overlay.medium,
       justifyContent: 'center',
       alignItems: 'center',
       padding: spacing.lg,

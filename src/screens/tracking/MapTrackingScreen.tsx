@@ -1103,7 +1103,7 @@ const styles = StyleSheet.create({
     borderRadius: ms(18),
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FF6B6B',
+    backgroundColor: colors.mapMarker.jobSite,
     borderWidth: 3,
     borderColor: colors.common.white,
     shadowColor: colors.common.black,
@@ -1128,7 +1128,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 8,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: '#FF6B6B',
+    borderTopColor: colors.mapMarker.jobSite,
     marginTop: -2,
   },
   jobSiteMarkerLabel: {
@@ -1418,7 +1418,7 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalBackdrop: {

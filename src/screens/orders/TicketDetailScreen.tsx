@@ -50,62 +50,62 @@ interface HeaderBadgeColors {
 }
 
 const getHeaderBadgeColors = (status: ApiTicketStatus, isDark: boolean): HeaderBadgeColors => {
-  // Colors designed to be visible on green gradient header
+  // Colors designed to be visible on green gradient header - using centralized theme colors
   const statusColors: Record<ApiTicketStatus, HeaderBadgeColors> = {
     pending: {
-      bgColor: 'rgba(255, 255, 255, 0.95)',
-      textColor: '#666666',
-      iconColor: '#888888',
+      bgColor: colors.ticketBadge.pending.bg,
+      textColor: colors.ticketBadge.pending.text,
+      iconColor: colors.ticketBadge.pending.icon,
     },
     ticketed: {
-      bgColor: 'rgba(255, 255, 255, 0.95)',
-      textColor: '#0288D1',
-      iconColor: '#0288D1',
+      bgColor: colors.ticketBadge.ticketed.bg,
+      textColor: colors.ticketBadge.ticketed.text,
+      iconColor: colors.ticketBadge.ticketed.icon,
     },
     loading: {
-      bgColor: 'rgba(255, 193, 7, 0.95)',
-      textColor: '#5D4037',
-      iconColor: '#5D4037',
+      bgColor: colors.ticketBadge.loading.bg,
+      textColor: colors.ticketBadge.loading.text,
+      iconColor: colors.ticketBadge.loading.icon,
     },
     loaded: {
-      bgColor: 'rgba(255, 255, 255, 0.95)',
-      textColor: '#0277BD',
-      iconColor: '#0277BD',
+      bgColor: colors.ticketBadge.loaded.bg,
+      textColor: colors.ticketBadge.loaded.text,
+      iconColor: colors.ticketBadge.loaded.icon,
     },
     to_job: {
-      bgColor: 'rgba(33, 150, 243, 0.95)',
-      textColor: '#FFFFFF',
-      iconColor: '#FFFFFF',
+      bgColor: colors.ticketBadge.toJob.bg,
+      textColor: colors.ticketBadge.toJob.text,
+      iconColor: colors.ticketBadge.toJob.icon,
     },
     at_job: {
-      bgColor: 'rgba(255, 152, 0, 0.95)',
-      textColor: '#FFFFFF',
-      iconColor: '#FFFFFF',
+      bgColor: colors.ticketBadge.atJob.bg,
+      textColor: colors.ticketBadge.atJob.text,
+      iconColor: colors.ticketBadge.atJob.icon,
     },
     pouring: {
-      bgColor: 'rgba(255, 255, 255, 0.95)',
-      textColor: '#2E7D32',
-      iconColor: '#2E7D32',
+      bgColor: colors.ticketBadge.pouring.bg,
+      textColor: colors.ticketBadge.pouring.text,
+      iconColor: colors.ticketBadge.pouring.icon,
     },
     washing: {
-      bgColor: 'rgba(3, 169, 244, 0.95)',
-      textColor: '#FFFFFF',
-      iconColor: '#FFFFFF',
+      bgColor: colors.ticketBadge.washing.bg,
+      textColor: colors.ticketBadge.washing.text,
+      iconColor: colors.ticketBadge.washing.icon,
     },
     to_plant: {
-      bgColor: 'rgba(156, 39, 176, 0.9)',
-      textColor: '#FFFFFF',
-      iconColor: '#FFFFFF',
+      bgColor: colors.ticketBadge.toPlant.bg,
+      textColor: colors.ticketBadge.toPlant.text,
+      iconColor: colors.ticketBadge.toPlant.icon,
     },
     at_plant: {
-      bgColor: 'rgba(255, 255, 255, 0.95)',
-      textColor: '#546E7A',
-      iconColor: '#546E7A',
+      bgColor: colors.ticketBadge.atPlant.bg,
+      textColor: colors.ticketBadge.atPlant.text,
+      iconColor: colors.ticketBadge.atPlant.icon,
     },
     cancelled: {
-      bgColor: 'rgba(244, 67, 54, 0.95)',
-      textColor: '#FFFFFF',
-      iconColor: '#FFFFFF',
+      bgColor: colors.ticketBadge.cancelled.bg,
+      textColor: colors.ticketBadge.cancelled.text,
+      iconColor: colors.ticketBadge.cancelled.icon,
     },
   };
 
@@ -332,7 +332,7 @@ interface DetailRowProps {
 
 const DetailRow: React.FC<DetailRowProps> = ({ label, value, icon, iconColor, isDark, isLast }) => {
   const themeColors = isDark ? colors.dark : colors.light;
-  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : colors.grey[10];
+  const borderColor = isDark ? colors.semiTransparent.white08 : colors.grey[10];
   const labelColor = isDark ? colors.grey[40] : colors.grey[60];
   const valueColor = isDark ? colors.common.white : colors.grey[85];
 
@@ -651,35 +651,70 @@ export const TicketDetailScreen: React.FC = () => {
   const handleOpenInGoogleMaps = useCallback(() => {
     closeDirectionsMenu();
     if (truckLatitude && truckLongitude) {
-      const url = Platform.select({
-        ios: `comgooglemaps://?q=${truckLatitude},${truckLongitude}`,
-        android: `geo:${truckLatitude},${truckLongitude}?q=${truckLatitude},${truckLongitude}`,
-      });
+      // If job location is available, show directions from truck to job site
+      // Otherwise, just show truck location as a marker
+      const hasJobLocation = orderLocationLatitude && orderLocationLongitude;
+
+      let url: string | undefined;
+      let webFallbackUrl: string;
+
+      if (hasJobLocation) {
+        // Directions mode: from truck to job site
+        url = Platform.select({
+          ios: `comgooglemaps://?saddr=${truckLatitude},${truckLongitude}&daddr=${orderLocationLatitude},${orderLocationLongitude}&directionsmode=driving`,
+          android: `google.navigation:q=${orderLocationLatitude},${orderLocationLongitude}&mode=d`,
+        });
+        webFallbackUrl = `https://www.google.com/maps/dir/?api=1&origin=${truckLatitude},${truckLongitude}&destination=${orderLocationLatitude},${orderLocationLongitude}&travelmode=driving`;
+      } else {
+        // No job location - just show truck marker
+        url = Platform.select({
+          ios: `comgooglemaps://?q=${truckLatitude},${truckLongitude}`,
+          android: `geo:${truckLatitude},${truckLongitude}?q=${truckLatitude},${truckLongitude}`,
+        });
+        webFallbackUrl = `https://maps.google.com/?q=${truckLatitude},${truckLongitude}`;
+      }
+
       Linking.canOpenURL(url || '').then((supported) => {
         if (supported) {
           Linking.openURL(url || '');
         } else {
           // Fallback to web Google Maps
-          Linking.openURL(`https://maps.google.com/?q=${truckLatitude},${truckLongitude}`);
+          Linking.openURL(webFallbackUrl);
         }
       });
     }
-  }, [closeDirectionsMenu, truckLatitude, truckLongitude]);
+  }, [closeDirectionsMenu, truckLatitude, truckLongitude, orderLocationLatitude, orderLocationLongitude]);
 
   const handleOpenInAppleMaps = useCallback(() => {
     closeDirectionsMenu();
     if (truckLatitude && truckLongitude) {
-      const url = `maps://maps.apple.com/?ll=${truckLatitude},${truckLongitude}&q=Truck%20Location`;
+      // If job location is available, show directions from truck to job site
+      // Otherwise, just show truck location as a marker
+      const hasJobLocation = orderLocationLatitude && orderLocationLongitude;
+
+      let url: string;
+      let webFallbackUrl: string;
+
+      if (hasJobLocation) {
+        // Directions mode: from truck to job site (dirflg=d for driving)
+        url = `maps://maps.apple.com/?saddr=${truckLatitude},${truckLongitude}&daddr=${orderLocationLatitude},${orderLocationLongitude}&dirflg=d`;
+        webFallbackUrl = `https://maps.apple.com/?saddr=${truckLatitude},${truckLongitude}&daddr=${orderLocationLatitude},${orderLocationLongitude}&dirflg=d`;
+      } else {
+        // No job location - just show truck marker
+        url = `maps://maps.apple.com/?ll=${truckLatitude},${truckLongitude}&q=Truck%20Location`;
+        webFallbackUrl = `https://maps.apple.com/?ll=${truckLatitude},${truckLongitude}`;
+      }
+
       Linking.canOpenURL(url).then((supported) => {
         if (supported) {
           Linking.openURL(url);
         } else {
           // Fallback to web
-          Linking.openURL(`https://maps.apple.com/?ll=${truckLatitude},${truckLongitude}`);
+          Linking.openURL(webFallbackUrl);
         }
       });
     }
-  }, [closeDirectionsMenu, truckLatitude, truckLongitude]);
+  }, [closeDirectionsMenu, truckLatitude, truckLongitude, orderLocationLatitude, orderLocationLongitude]);
 
   // Loading state
   if (isLoading) {
@@ -736,8 +771,8 @@ export const TicketDetailScreen: React.FC = () => {
               styles.emptyStateIconContainer,
               {
                 backgroundColor: isNoData
-                  ? (isDark ? 'rgba(255,255,255,0.08)' : colors.grey[5])
-                  : (isDark ? 'rgba(239,68,68,0.15)' : colors.error.background),
+                  ? (isDark ? colors.semiTransparent.white08 : colors.grey[5])
+                  : (isDark ? colors.ticket.statusDark.completed.bg : colors.error.background),
               },
             ]}>
             <Icon name={iconName} size={ms(48)} color={iconColor} />
@@ -760,7 +795,7 @@ export const TicketDetailScreen: React.FC = () => {
               style={[
                 styles.goBackBtn,
                 {
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : colors.grey[5],
+                  backgroundColor: isDark ? colors.semiTransparent.white10 : colors.grey[5],
                   borderWidth: isDark ? 0 : 1,
                   borderColor: colors.grey[10],
                 },
@@ -805,7 +840,7 @@ export const TicketDetailScreen: React.FC = () => {
         <View style={styles.heroSection}>
           <View style={styles.heroLeft}>
             <View style={styles.ticketNumberRow}>
-              <Icon name="ticket-confirmation" size={ms(16)} color="rgba(255,255,255,0.8)" />
+              <Icon name="ticket-confirmation" size={ms(16)} color={colors.headerOverlay.textBright} />
               <Text style={styles.ticketLabel}>TICKET</Text>
             </View>
             <Text style={styles.ticketNumber}>{apiTicketCode}</Text>
@@ -840,7 +875,7 @@ export const TicketDetailScreen: React.FC = () => {
               </View>
             )}
             <View style={styles.truckIconContainer}>
-              <Icon name="truck-delivery" size={ms(44)} color="rgba(255,255,255,0.9)" />
+              <Icon name="truck-delivery" size={ms(44)} color={colors.headerOverlay.textBrightest} />
             </View>
           </View>
         </View>
@@ -953,7 +988,7 @@ export const TicketDetailScreen: React.FC = () => {
           <SectionCard
             title="Product Information"
             icon="beaker-outline"
-            iconColor={isDark ? '#4DD0E1' : '#00BCD4'}
+            iconColor={isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light}
             isDark={isDark}>
             <DetailRow label="Item Code" value={productInfo.code} isDark={isDark} />
             <DetailRow label="Description" value={productInfo.name} isDark={isDark} />
@@ -993,7 +1028,7 @@ export const TicketDetailScreen: React.FC = () => {
         <SectionCard
           title="Truck & Driver"
           icon="truck"
-          iconColor={isDark ? '#FF8A65' : '#FF5722'}
+          iconColor={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light}
           isDark={isDark}>
           <DetailRow label="Truck Code" value={truckCode} isDark={isDark} />
           <DetailRow label="Description" value={truckDescription} isDark={isDark} />
@@ -1005,15 +1040,15 @@ export const TicketDetailScreen: React.FC = () => {
               style={[
                 styles.callCustomerBtn,
                 {
-                  backgroundColor: isDark ? 'rgba(255, 138, 101, 0.15)' : 'rgba(255, 87, 34, 0.1)',
+                  backgroundColor: isDark ? colors.action.call.bgDark : colors.action.call.bgLight,
                   borderWidth: isDark ? 0 : 1,
-                  borderColor: isDark ? 'transparent' : 'rgba(255, 87, 34, 0.2)',
+                  borderColor: isDark ? colors.common.transparent : colors.action.call.borderLight,
                 },
               ]}
               onPress={handleCallDriver}
               activeOpacity={0.8}>
-              <Icon name="phone" size={ms(18)} color={isDark ? '#FF8A65' : '#E64A19'} />
-              <Text style={[styles.callCustomerText, { color: isDark ? '#FF8A65' : '#E64A19' }]}>
+              <Icon name="phone" size={ms(18)} color={isDark ? colors.action.call.light : colors.action.call.dark} />
+              <Text style={[styles.callCustomerText, { color: isDark ? colors.action.call.light : colors.action.call.dark }]}>
                 Call Driver
               </Text>
             </TouchableOpacity>
@@ -1024,7 +1059,7 @@ export const TicketDetailScreen: React.FC = () => {
         <SectionCard
           title="Plant Information"
           icon="factory"
-          iconColor={isDark ? '#B39DDB' : '#673AB7'}
+          iconColor={isDark ? colors.infoIcons.purple.dark : colors.infoIcons.purple.light}
           isDark={isDark}>
           <DetailRow label="Plant" value={plantName} isDark={isDark} />
           <DetailRow label="Address" value={plantAddress} isDark={isDark} isLast />
@@ -1034,7 +1069,7 @@ export const TicketDetailScreen: React.FC = () => {
         <SectionCard
           title="Delivery Timeline"
           icon="timeline-clock"
-          iconColor={isDark ? '#64B5F6' : '#1976D2'}
+          iconColor={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light}
           isDark={isDark}>
           <VerticalTimeline
             timestamps={timestamps}
@@ -1120,15 +1155,17 @@ export const TicketDetailScreen: React.FC = () => {
                 onPress={handleOpenInGoogleMaps}
                 activeOpacity={0.7}
               >
-                <View style={[styles.directionsMenuIconBox, { backgroundColor: '#4285F4' + '20' }]}>
-                  <Icon name="google-maps" size={ms(24)} color="#4285F4" />
+                <View style={[styles.directionsMenuIconBox, { backgroundColor: colors.brands.googleMaps + '20' }]}>
+                  <Icon name="google-maps" size={ms(24)} color={colors.brands.googleMaps} />
                 </View>
                 <View style={styles.directionsMenuItemText}>
                   <Text style={[styles.directionsMenuItemTitle, { color: themeColors.text.primary }]}>
                     Google Maps
                   </Text>
                   <Text style={[styles.directionsMenuItemSubtitle, { color: themeColors.text.secondary }]}>
-                    Open in Google Maps app
+                    {orderLocationLatitude && orderLocationLongitude
+                      ? 'Get directions to job site'
+                      : 'View truck location'}
                   </Text>
                 </View>
                 <Icon name="chevron-right" size={ms(20)} color={themeColors.text.hint} />
@@ -1140,15 +1177,17 @@ export const TicketDetailScreen: React.FC = () => {
                   onPress={handleOpenInAppleMaps}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.directionsMenuIconBox, { backgroundColor: '#000000' + '20' }]}>
-                    <Icon name="apple" size={ms(24)} color={isDark ? colors.common.white : '#000000'} />
+                  <View style={[styles.directionsMenuIconBox, { backgroundColor: colors.brands.appleMaps + '20' }]}>
+                    <Icon name="apple" size={ms(24)} color={isDark ? colors.common.white : colors.brands.appleMaps} />
                   </View>
                   <View style={styles.directionsMenuItemText}>
                     <Text style={[styles.directionsMenuItemTitle, { color: themeColors.text.primary }]}>
                       Apple Maps
                     </Text>
                     <Text style={[styles.directionsMenuItemSubtitle, { color: themeColors.text.secondary }]}>
-                      Open in Apple Maps app
+                      {orderLocationLatitude && orderLocationLongitude
+                        ? 'Get directions to job site'
+                        : 'View truck location'}
                     </Text>
                   </View>
                   <Icon name="chevron-right" size={ms(20)} color={themeColors.text.hint} />
@@ -1274,7 +1313,7 @@ const styles = StyleSheet.create({
     width: ms(40),
     height: ms(40),
     borderRadius: RADIUS.md,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: colors.headerOverlay.bg,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1289,7 +1328,7 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontFamily: fontFamily.regular,
     fontSize: ms(11),
-    color: 'rgba(255,255,255,0.7)',
+    color: colors.headerOverlay.text,
     marginTop: ms(2),
   },
   // Hero Section
@@ -1316,7 +1355,7 @@ const styles = StyleSheet.create({
   ticketLabel: {
     fontFamily: fontFamily.medium,
     fontSize: ms(10),
-    color: 'rgba(255,255,255,0.7)',
+    color: colors.headerOverlay.text,
     letterSpacing: 1,
   },
   ticketNumber: {
@@ -1341,7 +1380,7 @@ const styles = StyleSheet.create({
     marginLeft: GRID.xs,
   },
   etaBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: colors.headerOverlay.bgHover,
     paddingVertical: GRID.xs,
     paddingHorizontal: GRID.sm + 2,
     borderRadius: RADIUS.md,
@@ -1351,7 +1390,7 @@ const styles = StyleSheet.create({
   etaLabel: {
     fontFamily: fontFamily.medium,
     fontSize: ms(9),
-    color: 'rgba(255,255,255,0.7)',
+    color: colors.headerOverlay.text,
   },
   etaValue: {
     fontFamily: fontFamily.bold,
@@ -1362,7 +1401,7 @@ const styles = StyleSheet.create({
     width: ms(70),
     height: ms(70),
     borderRadius: ms(35),
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: colors.headerOverlay.bg,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1660,7 +1699,7 @@ const styles = StyleSheet.create({
   // Directions Menu Styles
   directionsModalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   directionsModalBackdrop: {

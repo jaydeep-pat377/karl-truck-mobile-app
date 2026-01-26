@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import BootSplash from 'react-native-bootsplash';
 import './src/locales';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
+import { GlobalAlertProvider } from './src/contexts/GlobalAlertContext';
 import { RootNavigator } from './src/navigation';
 import { useNotifications } from './src/hooks/useNotifications';
 
@@ -85,7 +86,9 @@ const App: React.FC = () => {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider initialMode="light">
-            <AppContent />
+            <GlobalAlertProvider>
+              <AppContent />
+            </GlobalAlertProvider>
           </ThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

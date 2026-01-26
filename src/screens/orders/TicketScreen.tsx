@@ -276,7 +276,7 @@ const TruckVisual: React.FC<TruckVisualProps> = ({ isDark }) => {
         styles.truckVisualContainer,
         {
           backgroundColor: themeColors.card,
-          shadowColor: isDark ? '#000' : colors.primary.main,
+          shadowColor: isDark ? colors.common.shadow : colors.primary.main,
         },
       ]}>
       <View style={[styles.truckAccentLine, { backgroundColor: iconColor }]} />
@@ -1628,7 +1628,7 @@ const styles = StyleSheet.create({
   // Filter Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {

@@ -33,3 +33,6 @@ export { default as useTrucks } from './useTrucks';
 export * from './useNotifications';
 export * from './useDirections';
 export { default as useDirections } from './useDirections';
+
+// Re-export useGlobalAlert from context for convenience
+export { useGlobalAlert } from '../contexts/GlobalAlertContext';

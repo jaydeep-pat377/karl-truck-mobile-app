@@ -6,6 +6,7 @@ export const API_ENDPOINTS = {
     ME: '/auth/me',
     FORGOT_PASSWORD: '/auth/forgot-password',
     CHANGE_PASSWORD: '/auth/change-password',
+    UPDATE_DEVICE_TOKEN: '/auth/device-token',
   },
   USER: {
     PROFILE: '/users/profile',

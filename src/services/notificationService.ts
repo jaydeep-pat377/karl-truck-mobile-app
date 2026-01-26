@@ -2,6 +2,8 @@ import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messag
 import notifee, { AndroidImportance } from '@notifee/react-native';
 import { Platform } from 'react-native';
 import { useNotificationStore } from '../store/notificationStore';
+import { useAuthStore } from '../store/authStore';
+import { authService } from '../api/services/authService';
 import { AppNotification, NotificationType } from '../types/notification';
 
 const CHANNEL_ID = 'truckast_default';
@@ -85,6 +87,50 @@ class NotificationService {
     }
   }
 
+  /**
+   * Syncs the device token to the server.
+   * Should be called when:
+   * 1. User logs in (already handled in LoginScreen)
+   * 2. Token refreshes while user is logged in
+   * 3. App launches with an already logged-in user
+   */
+  async syncTokenToServer(token?: string): Promise<boolean> {
+    try {
+      const isAuthenticated = useAuthStore.getState().isAuthenticated;
+
+      if (!isAuthenticated) {
+        console.log('[Notifications] User not authenticated, skipping token sync');
+        return false;
+      }
+
+      const fcmToken = token || await this.getToken();
+
+      if (!fcmToken) {
+        console.log('[Notifications] No FCM token available');
+        return false;
+      }
+
+      const platform = Platform.OS as 'ios' | 'android';
+
+      console.log('[Notifications] Syncing device token to server...');
+      const response = await authService.updateDeviceToken({
+        device_token: fcmToken,
+        platform,
+      });
+
+      if (response.success) {
+        console.log('[Notifications] Device token synced successfully');
+        return true;
+      } else {
+        console.log('[Notifications] Failed to sync device token:', response.message);
+        return false;
+      }
+    } catch (error) {
+      console.error('[Notifications] Error syncing device token:', error);
+      return false;
+    }
+  }
+
   setupListeners(): void {
     this.unsubscribeOnMessage = messaging().onMessage(
       async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
@@ -112,10 +158,14 @@ class NotificationService {
       },
     );
 
-    // Token refresh
+    // Token refresh - sync to local store and server
     this.unsubscribeOnTokenRefresh = messaging().onTokenRefresh(
-      (token: string) => {
+      async (token: string) => {
+        console.log('[Notifications] Token refreshed, syncing...');
         useNotificationStore.getState().setFcmToken(token);
+
+        // Sync the new token to the server if user is logged in
+        await this.syncTokenToServer(token);
       },
     );
 
