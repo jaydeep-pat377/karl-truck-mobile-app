@@ -355,7 +355,7 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
               style={[styles.closeButton, { backgroundColor: isDark ? colors.grey[60] + '30' : colors.grey[5] }]}
               onPress={handleCancel}
               activeOpacity={0.7}>
-              <Icon name="close" size={ms(20)} color={isDark ? colors.grey[40] : colors.grey[50]} />
+              <Icon name="close" size={ms(20)} color={isDark ? colors.grey[40] : colors.grey[60]} />
             </TouchableOpacity>
           </View>
 
@@ -620,7 +620,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 style={[styles.closeButton, { backgroundColor: isDark ? colors.grey[60] + '30' : colors.grey[5] }]}
                 onPress={onClose}
                 activeOpacity={0.7}>
-                <Icon name="close" size={ms(20)} color={isDark ? colors.grey[40] : colors.grey[50]} />
+                <Icon name="close" size={ms(20)} color={isDark ? colors.grey[40] : colors.grey[60]} />
               </TouchableOpacity>
             </View>
           </View>
@@ -720,7 +720,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                           <Icon
                             name={option.icon}
                             size={ms(18)}
-                            color={isActive ? colors.primary.main : (isDark ? colors.grey[40] : colors.grey[50])}
+                            color={isActive ? colors.primary.main : (isDark ? colors.grey[40] : colors.grey[60])}
                           />
                         </View>
                         <Text
@@ -767,15 +767,15 @@ const FilterModal: React.FC<FilterModalProps> = ({
               style={[
                 styles.resetButton,
                 {
-                  borderColor: isDark ? colors.grey[60] + '40' : colors.grey[15],
-                  backgroundColor: isDark ? colors.grey[60] + '15' : colors.grey[3],
+                  borderColor: isDark ? colors.grey[60] + '40' : colors.grey[25],
+                  backgroundColor: isDark ? colors.grey[60] + '15' : colors.grey[5],
                 }
               ]}
               onPress={handleReset}
               activeOpacity={0.7}
             >
-              <Icon name="restore" size={ms(18)} color={isDark ? colors.grey[40] : colors.grey[50]} />
-              <Text style={[styles.resetButtonText, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>
+              <Icon name="restore" size={ms(18)} color={isDark ? colors.grey[40] : colors.grey[60]} />
+              <Text style={[styles.resetButtonText, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
                 Reset All
               </Text>
             </TouchableOpacity>
@@ -1051,8 +1051,8 @@ export const OrderListScreen: React.FC = () => {
             styles.filterPill,
             isIcon && styles.filterPillIcon,
             {
-              backgroundColor: isActive ? colors.primary.main : themeColors.surface,
-              borderColor: isActive ? colors.primary.main : (isDark ? themeColors.border : colors.grey[15]),
+              backgroundColor: isActive ? colors.primary.main : (isDark ? themeColors.surface : colors.common.white),
+              borderColor: isActive ? colors.primary.main : (isDark ? themeColors.border : colors.grey[25]),
             },
             isIcon && !isActive && {
               backgroundColor: isDark ? themeColors.surface : colors.grey[5],
@@ -1068,7 +1068,7 @@ export const OrderListScreen: React.FC = () => {
                   {
                     backgroundColor: isActive
                       ? colors.semiTransparent.white20
-                      : (isDark ? colors.grey[60] + '30' : colors.grey[10]),
+                      : (isDark ? colors.grey[60] + '30' : colors.grey[15]),
                   },
                 ]}>
                 <Icon
@@ -1092,8 +1092,8 @@ export const OrderListScreen: React.FC = () => {
           ) : (
             <Text
               style={{
-                color: isActive ? colors.common.white : themeColors.text.primary,
-                fontFamily: fontFamily.medium,
+                color: isActive ? colors.common.white : (isDark ? themeColors.text.primary : colors.common.black),
+                fontFamily: isActive ? fontFamily.semiBold : fontFamily.medium,
                 fontSize: ms(12),
               }}>
               {label}
@@ -1302,7 +1302,7 @@ export const OrderListScreen: React.FC = () => {
         pointerEvents={activeFilterCount > 0 ? 'auto' : 'none'}>
         <View style={styles.activeFiltersInfo}>
           <Icon name="filter-check" size={ms(16)} color={colors.primary.main} />
-          <Text style={[styles.activeFiltersText, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>
+          <Text style={[styles.activeFiltersText, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
             {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} applied
           </Text>
         </View>

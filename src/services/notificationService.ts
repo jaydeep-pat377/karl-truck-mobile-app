@@ -93,26 +93,26 @@ class NotificationService {
    * 1. User logs in (already handled in LoginScreen)
    * 2. Token refreshes while user is logged in
    * 3. App launches with an already logged-in user
+   *
+   * Note: This silently fails if the endpoint doesn't exist (404)
+   * since the backend may not have implemented this feature yet.
    */
   async syncTokenToServer(token?: string): Promise<boolean> {
     try {
       const isAuthenticated = useAuthStore.getState().isAuthenticated;
 
       if (!isAuthenticated) {
-        console.log('[Notifications] User not authenticated, skipping token sync');
         return false;
       }
 
       const fcmToken = token || await this.getToken();
 
       if (!fcmToken) {
-        console.log('[Notifications] No FCM token available');
         return false;
       }
 
       const platform = Platform.OS as 'ios' | 'android';
 
-      console.log('[Notifications] Syncing device token to server...');
       const response = await authService.updateDeviceToken({
         device_token: fcmToken,
         platform,
@@ -121,12 +121,16 @@ class NotificationService {
       if (response.success) {
         console.log('[Notifications] Device token synced successfully');
         return true;
-      } else {
-        console.log('[Notifications] Failed to sync device token:', response.message);
+      }
+      return false;
+    } catch (error: any) {
+      // Silently ignore 404 errors - endpoint may not be implemented on backend
+      if (error?.response?.status === 404) {
+        // Backend doesn't have device token endpoint yet - this is OK
         return false;
       }
-    } catch (error) {
-      console.error('[Notifications] Error syncing device token:', error);
+      // Only log non-404 errors
+      console.error('[Notifications] Error syncing device token:', error?.message || error);
       return false;
     }
   }

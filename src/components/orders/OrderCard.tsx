@@ -115,7 +115,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               <Text variant="captionSmall" color="secondary" style={styles.orderId}>
                 {order.productType || 'N/A'}
               </Text>
-              <Text variant="captionSmall" color="hint" style={styles.dateTime}>
+              <Text
+                variant="captionSmall"
+                style={[styles.dateTime, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
                 {formatDate(order.scheduledDate)} • {order.scheduledTime}
               </Text>
             </View>

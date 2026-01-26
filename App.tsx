@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { StatusBar, LogBox } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -10,6 +10,8 @@ import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { GlobalAlertProvider } from './src/contexts/GlobalAlertContext';
 import { RootNavigator } from './src/navigation';
 import { useNotifications } from './src/hooks/useNotifications';
+import { useAuthStore } from './src/store/authStore';
+import { AnimatedSplashScreen } from './src/components/AnimatedSplashScreen';
 
 // Note: Background message handlers are registered in index.js for killed state support
 
@@ -29,22 +31,48 @@ const queryClient = new QueryClient({
 
 const AppContent: React.FC = () => {
   const { theme, isDark } = useTheme();
+  const [showAnimatedSplash, setShowAnimatedSplash] = useState(true);
+  const [animationCompleted, setAnimationCompleted] = useState(false);
+  const [navigationReady, setNavigationReady] = useState(false);
+  const { isInitialized } = useAuthStore();
   useNotifications();
 
   useEffect(() => {
+    // Hide native splash immediately to show our animated splash
     const hideSplash = async () => {
-      await BootSplash.hide({ fade: true });
+      await BootSplash.hide({ fade: false }); // No fade - we handle animation ourselves
     };
     hideSplash();
+  }, []);
+
+  // Hide splash when all conditions are met
+  useEffect(() => {
+    if (animationCompleted && navigationReady && isInitialized) {
+      // Small delay to ensure smooth transition
+      const timer = setTimeout(() => {
+        setShowAnimatedSplash(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [animationCompleted, navigationReady, isInitialized]);
+
+  const handleSplashComplete = useCallback(() => {
+    setAnimationCompleted(true);
+  }, []);
+
+  const handleNavigationReady = useCallback(() => {
+    setNavigationReady(true);
   }, []);
 
   return (
     <>
       <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={theme.colors.background}
+        barStyle={showAnimatedSplash || isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={showAnimatedSplash ? 'transparent' : theme.colors.background}
+        translucent={showAnimatedSplash}
       />
       <NavigationContainer
+        onReady={handleNavigationReady}
         theme={{
           dark: isDark,
           colors: {
@@ -76,6 +104,11 @@ const AppContent: React.FC = () => {
         }}>
         <RootNavigator />
       </NavigationContainer>
+
+      {/* Animated Splash Screen - renders on top of everything */}
+      {showAnimatedSplash && (
+        <AnimatedSplashScreen onAnimationComplete={handleSplashComplete} />
+      )}
     </>
   );
 };

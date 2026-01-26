@@ -90,6 +90,9 @@ const SILENT_ERROR_ENDPOINTS = [
   '/auth/login', // Login errors handled locally for better UX
   '/auth/register',
   '/auth/verify-otp',
+  '/auth/me', // Auth verification during app init - handled locally
+  '/auth/device-token', // Device token sync - handled locally
+  '/auth/refresh', // Token refresh - handled by interceptor
 ];
 
 const shouldShowGlobalAlert = (url: string | undefined, status: number | undefined): boolean => {
