@@ -12,24 +12,13 @@ export const useDashboard = () => {
   const query = useQuery<DashboardApiResponse, AxiosError<ApiErrorResponse>>({
     queryKey: ['dashboard'],
     queryFn: () => dashboardService.getDashboard(),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    retry: 2,
+    staleTime: 2 * 60 * 1000, // 2 minutes - data considered fresh
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache
+    retry: 1, // Reduce retries for faster failure
     refetchOnMount: 'always',
+    refetchOnWindowFocus: false, // Don't refetch on app focus
+    placeholderData: (previousData) => previousData, // Show cached data while loading
   });
-
-  // Console log API response for debugging
-  console.log('==========================================');
-  console.log('DASHBOARD API RESPONSE');
-  console.log('------------------------------------------');
-  console.log('Status:', query.status);
-  console.log('isLoading:', query.isLoading);
-  console.log('isError:', query.isError);
-  console.log('Raw Response:', JSON.stringify(query.data, null, 2));
-  if (query.error) {
-    console.log('Error:', query.error.message);
-    console.log('Error Response:', JSON.stringify(query.error.response?.data, null, 2));
-  }
-  console.log('==========================================');
 
   // Extract dashboard data from API response
   const dashboardData: DashboardData | null =
@@ -38,6 +27,9 @@ export const useDashboard = () => {
   const errorMessage =
     query.error?.response?.data?.message ||
     (query.error ? 'Failed to load dashboard' : null);
+
+  // Only show full loading state when there's no cached data
+  const isInitialLoading = query.isLoading && !dashboardData;
 
   return {
     data: dashboardData,
@@ -48,7 +40,7 @@ export const useDashboard = () => {
     todayProgress: dashboardData?.today_progress ?? null,
     activeDeliveries: dashboardData?.active_deliveries ?? null,
     recentAlerts: dashboardData?.recent_alerts ?? [],
-    isLoading: query.isLoading,
+    isLoading: isInitialLoading, // Only true when no cached data
     isError: query.isError,
     error: errorMessage,
     refetch: query.refetch,

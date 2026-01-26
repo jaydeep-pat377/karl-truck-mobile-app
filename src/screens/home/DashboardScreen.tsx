@@ -21,6 +21,7 @@ import { ms, spacing, fontSizes, iconSizes } from '../../utils/responsive';
 import { useResponsive } from '../../hooks/useResponsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useDashboard } from '../../hooks/useDashboard';
+import { notificationService } from '../../services/notificationService';
 
 interface KPIData {
   id: string;
@@ -436,8 +437,21 @@ const DashboardScreen: React.FC = () => {
     isError,
     error,
     isRefetching,
+    isFetching,
     refetch,
   } = useDashboard();
+
+  // Fetch device token for notifications
+  useEffect(() => {
+    const initNotifications = async () => {
+      try {
+        const deviceToken = await notificationService.getToken();
+   } catch (error) {
+        console.log('Error fetching device token:', error);
+      }
+    };
+    initNotifications();
+  }, []);
 
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -706,13 +720,55 @@ const DashboardScreen: React.FC = () => {
     </View>
   );
 
-  // Show loading state
-  if (isLoading) {
+  // Skeleton component for faster perceived loading
+  const DashboardSkeleton = () => {
+    const shimmerColor = isDark ? colors.dark.cardElevated : colors.grey[10];
     return (
-      <SafeAreaView style={[styles.container, styles.loaderContainer, { backgroundColor: themeColors.background }]} edges={['top']}>
-        <TruckLoader message="Loading dashboard..." color="dark" size={120} />
+      <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
+        {/* Header skeleton */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <View style={[styles.avatar, { backgroundColor: shimmerColor }]} />
+            <View style={styles.welcomeTextContainer}>
+              <View style={{ width: ms(80), height: ms(12), backgroundColor: shimmerColor, borderRadius: ms(4), marginBottom: ms(4) }} />
+              <View style={{ width: ms(120), height: ms(18), backgroundColor: shimmerColor, borderRadius: ms(4) }} />
+            </View>
+          </View>
+          <View style={{ width: ms(40), height: ms(40), backgroundColor: shimmerColor, borderRadius: ms(20) }} />
+        </View>
+
+        {/* KPI cards skeleton */}
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md }}>
+          <View style={{ width: ms(140), height: ms(20), backgroundColor: shimmerColor, borderRadius: ms(4), marginBottom: spacing.sm }} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {[1, 2, 3, 4].map((i) => (
+              <View key={i} style={{ width: ms(110), height: ms(120), backgroundColor: shimmerColor, borderRadius: ms(12), marginRight: spacing.sm }} />
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Quick actions skeleton */}
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg }}>
+          <View style={{ width: ms(120), height: ms(20), backgroundColor: shimmerColor, borderRadius: ms(4), marginBottom: spacing.sm }} />
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            {[1, 2, 3].map((i) => (
+              <View key={i} style={{ flex: 1, height: ms(100), backgroundColor: shimmerColor, borderRadius: ms(12) }} />
+            ))}
+          </View>
+        </View>
+
+        {/* Deliveries skeleton */}
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg }}>
+          <View style={{ width: ms(150), height: ms(20), backgroundColor: shimmerColor, borderRadius: ms(4), marginBottom: spacing.sm }} />
+          <View style={{ height: ms(140), backgroundColor: shimmerColor, borderRadius: ms(12) }} />
+        </View>
       </SafeAreaView>
     );
+  };
+
+  // Show loading state
+  if (isLoading) {
+    return <DashboardSkeleton />;
   }
 
   // Show error state
@@ -776,7 +832,7 @@ const DashboardScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isRefetching}
+            refreshing={isFetching}
             onRefresh={onRefresh}
             tintColor={colors.primary.main}
             colors={[colors.primary.main, colors.secondary.main]}

@@ -53,7 +53,6 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
 
   useEffect(() => {
     if (profile && !isInitialized) {
-      console.log('Profile data loaded:', JSON.stringify(profile, null, 2));
       setFirstName(profile.firstName ?? '');
       setLastName(profile.lastName ?? '');
       setEmail(profile.email ?? '');

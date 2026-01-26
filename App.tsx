@@ -8,6 +8,9 @@ import BootSplash from 'react-native-bootsplash';
 import './src/locales';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { RootNavigator } from './src/navigation';
+import { useNotifications } from './src/hooks/useNotifications';
+
+// Note: Background message handlers are registered in index.js for killed state support
 
 LogBox.ignoreLogs([
   'Non-serializable values were found in the navigation state',
@@ -25,6 +28,7 @@ const queryClient = new QueryClient({
 
 const AppContent: React.FC = () => {
   const { theme, isDark } = useTheme();
+  useNotifications();
 
   useEffect(() => {
     const hideSplash = async () => {
@@ -69,7 +73,7 @@ const AppContent: React.FC = () => {
             },
           },
         }}>
-        <RootNavigator isAuthenticated={true} />
+        <RootNavigator />
       </NavigationContainer>
     </>
   );

@@ -11,46 +11,7 @@ import { AppNotification } from '../../types';
 import { colors } from '../../theme/colors';
 import { spacing, ms, iconSizes } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
-
-// Mock notifications
-const mockNotifications: AppNotification[] = [
-  {
-    id: '1',
-    type: 'delivery_update',
-    title: 'Truck En Route',
-    body: 'Truck #T-101 is on the way to your site',
-    priority: 'high',
-    isRead: false,
-    createdAt: '2026-01-16T08:30:00Z',
-  },
-  {
-    id: '2',
-    type: 'order_update',
-    title: 'Order Confirmed',
-    body: 'Order #12345 confirmed for Jan 16, 9:00 AM',
-    priority: 'medium',
-    isRead: false,
-    createdAt: '2026-01-16T08:00:00Z',
-  },
-  {
-    id: '3',
-    type: 'weather_alert',
-    title: 'Weather Advisory',
-    body: 'Rain expected this afternoon - delivery may be affected',
-    priority: 'medium',
-    isRead: true,
-    createdAt: '2026-01-15T18:00:00Z',
-  },
-  {
-    id: '4',
-    type: 'order_update',
-    title: 'Delivery Complete',
-    body: 'Order #12340 has been delivered successfully',
-    priority: 'low',
-    isRead: true,
-    createdAt: '2026-01-15T14:30:00Z',
-  },
-];
+import { useNotificationStore } from '../../store/notificationStore';
 
 const getNotificationIcon = (type: AppNotification['type']): string => {
   switch (type) {
@@ -72,6 +33,7 @@ const getNotificationIcon = (type: AppNotification['type']): string => {
 export const NotificationScreen: React.FC = () => {
   const { isDark } = useTheme();
   const { t } = useTranslation();
+  const { notifications, markAsRead, markAllAsRead } = useNotificationStore();
 
   // Get theme-specific colors
   const themeColors = isDark ? colors.dark : colors.light;
@@ -83,7 +45,7 @@ export const NotificationScreen: React.FC = () => {
         styles.notificationCard,
         !item.isRead && { borderLeftWidth: 3, borderLeftColor: colors.primary.main },
       ]}
-      onPress={() => { }}
+      onPress={() => { markAsRead(item.id); }}
     >
       <View style={styles.notificationContent}>
         <View
@@ -122,7 +84,7 @@ export const NotificationScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text variant="h2">{t('notifications.title')}</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={markAllAsRead}>
           <Text variant="bodySmall" style={{ color: colors.primary.main }}>
             {t('notifications.markAllRead')}
           </Text>
@@ -131,7 +93,7 @@ export const NotificationScreen: React.FC = () => {
 
       {/* Notification List */}
       <FlatList
-        data={mockNotifications}
+        data={notifications}
         renderItem={renderNotification}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}

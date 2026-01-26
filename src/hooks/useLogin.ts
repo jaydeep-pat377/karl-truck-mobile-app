@@ -18,7 +18,7 @@ interface ApiErrorResponse {
 }
 
 const getDeviceInfo = (deviceToken: string): DeviceInfo => ({
-  device_token: deviceToken || 'fcm-device-token-here',
+  device_token: deviceToken,
   device_type: Platform.OS as 'android' | 'ios',
   device_name: `${Platform.OS} Device`,
 });

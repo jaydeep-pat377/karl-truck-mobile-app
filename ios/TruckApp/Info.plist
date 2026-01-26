@@ -50,7 +50,7 @@
 				<key>NSIncludesSubdomains</key>
 				<true/>
 			</dict>
-			<key>192.168.1.8</key>
+			<key>192.168.1.4</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
 				<true/>

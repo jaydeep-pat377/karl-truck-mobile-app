@@ -251,11 +251,9 @@ export const ProductCodeScreen: React.FC = () => {
   }, [navigation]);
 
   const handleSchedulePress = useCallback((scheduleId: string) => {
-    console.log('Schedule pressed:', scheduleId);
   }, []);
 
   const handleOrderCodePress = useCallback((codeId: string) => {
-    console.log('Order code pressed:', codeId);
   }, []);
 
   return (

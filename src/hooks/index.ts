@@ -30,3 +30,6 @@ export * from './useChangePassword';
 export { default as useChangePassword } from './useChangePassword';
 export * from './useTrucks';
 export { default as useTrucks } from './useTrucks';
+export * from './useNotifications';
+export * from './useDirections';
+export { default as useDirections } from './useDirections';

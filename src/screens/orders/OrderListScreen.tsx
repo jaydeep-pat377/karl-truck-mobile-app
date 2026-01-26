@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,7 +8,6 @@ import {
   ScrollView,
   RefreshControl,
   Switch,
-  Platform,
   Modal,
   Animated,
   Pressable,
@@ -18,7 +17,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, MainTabParamList } from '../../navigation/types';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Calendar } from 'react-native-calendars';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card, ListFooterLoader, TruckLoader, Icon, EmptyViewWithPreset } from '../../components/common';
 import { OrderCard } from '../../components/orders';
@@ -229,44 +228,63 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
   onDateSelect,
   isDark,
 }) => {
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const themeColors = isDark ? colors.dark : colors.light;
-  const insets = useSafeAreaInsets();
 
   const [tempDate, setTempDate] = useState<Date>(selectedDate);
+
+  // Quick date options
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const isSameDay = (date1: Date, date2: Date) => {
+    return date1.toISOString().split('T')[0] === date2.toISOString().split('T')[0];
+  };
 
   React.useEffect(() => {
     if (visible) {
       setTempDate(selectedDate);
       Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          damping: 20,
-          stiffness: 150,
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          damping: 18,
+          stiffness: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 200,
           useNativeDriver: true,
         }),
         Animated.timing(backdropAnim, {
           toValue: 1,
-          duration: 300,
+          duration: 250,
           useNativeDriver: true,
         }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: SCREEN_HEIGHT,
-          duration: 250,
+        Animated.timing(scaleAnim, {
+          toValue: 0.9,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 0,
+          duration: 200,
           useNativeDriver: true,
         }),
         Animated.timing(backdropAnim, {
           toValue: 0,
-          duration: 250,
+          duration: 200,
           useNativeDriver: true,
         }),
       ]).start();
     }
-  }, [visible, selectedDate, slideAnim, backdropAnim]);
+  }, [visible, selectedDate, scaleAnim, opacityAnim, backdropAnim]);
 
   const handleConfirm = () => {
     onDateSelect(tempDate);
@@ -279,27 +297,32 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
   };
 
   const formatDisplayDate = (date: Date): string => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
+    const isToday = isSameDay(date, today);
+    const isTomorrow = isSameDay(date, tomorrow);
+
+    const dateStr = date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
       day: 'numeric',
+      year: 'numeric',
     });
+
+    if (isToday) return `Today, ${dateStr}`;
+    if (isTomorrow) return `Tomorrow, ${dateStr}`;
+    return dateStr;
   };
 
   if (!visible) return null;
 
   return (
-    <Modal transparent visible={visible} animationType="none" onRequestClose={handleCancel}>
-      <View style={styles.modalContainer}>
+    <Modal transparent visible={visible} animationType="none" onRequestClose={handleCancel} statusBarTranslucent>
+      <View style={styles.centeredModalContainer}>
+        {/* Semi-transparent backdrop overlay */}
         <Animated.View
           style={[
             styles.modalBackdrop,
             {
-              opacity: backdropAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 0.6],
-              }),
+              opacity: backdropAnim,
             },
           ]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={handleCancel} />
@@ -307,19 +330,16 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
 
         <Animated.View
           style={[
-            styles.datePickerModalContent,
+            styles.centeredDatePickerContent,
             {
               backgroundColor: themeColors.surface,
-              transform: [{ translateY: slideAnim }],
+              transform: [{ scale: scaleAnim }],
+              opacity: opacityAnim,
             },
           ]}>
-          <View style={styles.modalHandleContainer}>
-            <View style={[styles.modalHandle, { backgroundColor: isDark ? colors.grey[60] : colors.grey[25] }]} />
-          </View>
-
-          <View style={[styles.datePickerModalHeader, { borderBottomColor: isDark ? colors.grey[60] + '30' : colors.grey[10] }]}>
+          <View style={[styles.datePickerModalHeader, { borderBottomColor: 'transparent' }]}>
             <View style={styles.modalTitleRow}>
-              <View style={[styles.modalIconContainer, { backgroundColor: colors.secondary.main }]}>
+              <View style={[styles.modalIconContainer, { backgroundColor: colors.primary.main }]}>
                 <Icon name="calendar-month" size={ms(20)} color={colors.common.white} />
               </View>
               <View>
@@ -327,7 +347,7 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
                   Select Date
                 </Text>
                 <Text style={[styles.modalSubtitle, { color: themeColors.text.secondary }]}>
-                  Choose a date to filter orders
+                  Pick a date to filter orders
                 </Text>
               </View>
             </View>
@@ -339,63 +359,87 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.selectedDateDisplay, { backgroundColor: isDark ? themeColors.surface : colors.primary.main + '08' }]}>
-            <Icon name="calendar-check" size={ms(18)} color={colors.primary.main} />
-            <Text style={[styles.selectedDateText, { color: themeColors.text.primary }]}>
-              {formatDisplayDate(tempDate)}
-            </Text>
+          {/* Selected Date Display */}
+          <View style={[
+            styles.selectedDateDisplay,
+            {
+              backgroundColor: isDark ? colors.primary.main + '15' : colors.primary.main + '10',
+              borderColor: colors.primary.main + '30',
+            }
+          ]}>
+            <View style={styles.selectedDateIconWrapper}>
+              <Icon name="calendar-check" size={ms(20)} color={colors.primary.main} />
+            </View>
+            <View style={styles.selectedDateTextWrapper}>
+              <Text style={[styles.selectedDateLabel, { color: themeColors.text.secondary }]}>
+                Selected Date
+              </Text>
+              <Text style={[styles.selectedDateText, { color: themeColors.text.primary }]}>
+                {formatDisplayDate(tempDate)}
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.datePickerWrapper}>
-            <DateTimePicker
-              value={tempDate}
-              mode="date"
-              display="inline"
-              onChange={(_event, date) => {
-                if (date) setTempDate(date);
+          <View style={[
+            styles.datePickerWrapper,
+            { backgroundColor: isDark ? colors.grey[60] + '10' : colors.grey[3] }
+          ]}>
+            <Calendar
+              current={tempDate.toISOString().split('T')[0]}
+              onDayPress={(day) => {
+                setTempDate(new Date(day.dateString));
               }}
-              themeVariant={isDark ? 'dark' : 'light'}
-              accentColor={colors.primary.main}
-              textColor={themeColors.text.primary}
-              style={[
-                styles.datePickerInline,
-                { backgroundColor: isDark ? 'transparent' : 'transparent' },
-              ]}
+              markedDates={{
+                [today.toISOString().split('T')[0]]: {
+                  marked: !isSameDay(tempDate, today),
+                  dotColor: colors.primary.main,
+                },
+                [tempDate.toISOString().split('T')[0]]: {
+                  selected: true,
+                  selectedColor: colors.primary.main,
+                  selectedTextColor: colors.common.white,
+                },
+              }}
+              theme={{
+                backgroundColor: 'transparent',
+                calendarBackground: 'transparent',
+                textSectionTitleColor: themeColors.text.secondary,
+                selectedDayBackgroundColor: colors.primary.main,
+                selectedDayTextColor: colors.common.white,
+                todayTextColor: colors.primary.main,
+                todayBackgroundColor: colors.primary.main + '15',
+                dayTextColor: themeColors.text.primary,
+                textDisabledColor: isDark ? colors.grey[60] : colors.grey[25],
+                arrowColor: colors.primary.main,
+                monthTextColor: themeColors.text.primary,
+                textDayFontFamily: fontFamily.medium,
+                textMonthFontFamily: fontFamily.bold,
+                textDayHeaderFontFamily: fontFamily.semiBold,
+                textDayFontSize: ms(15),
+                textMonthFontSize: ms(17),
+                textDayHeaderFontSize: ms(12),
+              }}
+              style={styles.calendar}
+              enableSwipeMonths={true}
             />
           </View>
 
+          {/* Action Buttons */}
           <View style={[
             styles.datePickerModalActions,
             {
               borderTopColor: isDark ? colors.grey[60] + '30' : colors.grey[10],
               backgroundColor: themeColors.surface,
-              paddingBottom: Math.max(insets.bottom, spacing.md),
             }
           ]}>
             <TouchableOpacity
-              style={[
-                styles.resetButton,
-                {
-                  borderColor: isDark ? colors.grey[60] + '40' : colors.grey[15],
-                  backgroundColor: isDark ? colors.grey[60] + '15' : colors.grey[3],
-                }
-              ]}
-              onPress={handleCancel}
-              activeOpacity={0.7}
-            >
-              <Icon name="close" size={ms(18)} color={isDark ? colors.grey[40] : colors.grey[50]} />
-              <Text style={[styles.resetButtonText, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.applyButton}
+              style={[styles.applyButton, { flex: 1 }]}
               onPress={handleConfirm}
               activeOpacity={0.8}
             >
-              <Icon name="check" size={ms(18)} color={colors.common.white} />
+              <Icon name="check-circle" size={ms(18)} color={colors.common.white} />
               <Text style={styles.applyButtonText}>
-                Confirm
+                Apply Date
               </Text>
             </TouchableOpacity>
           </View>
@@ -526,16 +570,13 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const activeCount = getActiveFilterCount();
 
   return (
-    <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
+    <Modal transparent visible={visible} animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.modalContainer}>
         <Animated.View
           style={[
             styles.modalBackdrop,
             {
-              opacity: backdropAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 0.6],
-              }),
+              opacity: backdropAnim,
             },
           ]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
@@ -766,12 +807,26 @@ export const OrderListScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<DateFilterId>('today');
+  const [debouncedFilter, setDebouncedFilter] = useState<DateFilterId>('today');
   const [showMoreDetails, setShowMoreDetails] = useState(true);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Single date state for calendar filter
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [debouncedDate, setDebouncedDate] = useState<Date>(new Date());
 
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<FilterState>(defaultFilterState);
+
+  // Debounce filter changes to prevent rapid API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFilter(activeFilter);
+      setDebouncedDate(selectedDate);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [activeFilter, selectedDate]);
 
   // Apply status filter from route params when screen loads
   React.useEffect(() => {
@@ -832,13 +887,13 @@ export const OrderListScreen: React.FC = () => {
 
   const queryParams = useMemo((): Omit<OrdersQueryParams, 'page'> => {
     const params: Omit<OrdersQueryParams, 'page'> = {
-      date_filter: getApiDateFilter(activeFilter, selectedDate),
-      limit: 10,
+      date_filter: getApiDateFilter(debouncedFilter, debouncedDate),
+      limit: 10, // Reduced for faster initial load
     };
 
-    // Add date range for calendar filter
-    if (activeFilter === 'calendar') {
-      const dateStr = selectedDate.toISOString().split('T')[0];
+    // Add date for calendar filter (single date - same start and end)
+    if (debouncedFilter === 'calendar') {
+      const dateStr = debouncedDate.toISOString().split('T')[0];
       params.start_date = dateStr;
       params.end_date = dateStr;
     }
@@ -860,13 +915,14 @@ export const OrderListScreen: React.FC = () => {
     params.sort_order = sortParams.sort_order;
 
     return params;
-  }, [activeFilter, selectedDate, appliedSearchQuery, appliedFilters.statuses, appliedFilters.sortBy]);
+  }, [debouncedFilter, debouncedDate, appliedSearchQuery, appliedFilters.statuses, appliedFilters.sortBy]);
 
   const {
     orders: apiOrders,
     pagination,
     statusCounts,
     isLoading,
+    isFilterLoading,
     isRefetching,
     refetch,
     fetchNextPage,
@@ -924,19 +980,6 @@ export const OrderListScreen: React.FC = () => {
     return orders;
   }, [mappedOrders, appliedFilters.productType, appliedFilters.hasAlertOnly]);
 
-  const handleDateChange = useCallback(
-    (event: DateTimePickerEvent, date?: Date) => {
-      if (Platform.OS === 'android') {
-        setShowDatePicker(false);
-        if (event.type === 'set' && date) {
-          setSelectedDate(date);
-          setActiveFilter('calendar');
-        }
-      }
-    },
-    []
-  );
-
   const handleSearch = useCallback(() => {
     setAppliedSearchQuery(searchQuery.trim());
   }, [searchQuery]);
@@ -988,7 +1031,6 @@ export const OrderListScreen: React.FC = () => {
   }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage]);
 
   const handleOrderPress = useCallback((order: Order) => {
-    console.log('Navigate to order details:', order.id);
   }, []);
 
   const formatSelectedDate = (date: Date): string => {
@@ -999,7 +1041,7 @@ export const OrderListScreen: React.FC = () => {
   };
 
   const renderDateFilter = useCallback(
-    ({ id, label, isIcon }: typeof dateFilters[number]) => {
+    ({ id, label, isIcon }: { id: DateFilterId; label: string; isIcon?: boolean }) => {
       const isActive = activeFilter === id;
 
       return (
@@ -1060,7 +1102,7 @@ export const OrderListScreen: React.FC = () => {
         </TouchableOpacity>
       );
     },
-    [activeFilter, themeColors, handleCalendarPress, selectedDate, isDark]
+    [activeFilter, themeColors, handleCalendarPress, selectedDate, isDark, formatSelectedDate]
   );
 
   const handleOrderDetails = useCallback((order: Order) => {
@@ -1120,9 +1162,15 @@ export const OrderListScreen: React.FC = () => {
           />
         </View>
         <View style={styles.ordersFoundRow}>
-          <Text variant="caption" color="secondary">
-            {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''} found
-          </Text>
+          {isFilterLoading ? (
+            <View style={styles.filterLoadingRow}>
+              <Text variant="caption" color="secondary">Updating...</Text>
+            </View>
+          ) : (
+            <Text variant="caption" color="secondary">
+              {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''} found
+            </Text>
+          )}
           {activeFilter === 'calendar' &&
             <TouchableOpacity
               style={styles.downloadIcon}
@@ -1134,7 +1182,7 @@ export const OrderListScreen: React.FC = () => {
         </View>
       </View>
     ),
-    [showMoreDetails, filteredOrders.length, themeColors, activeFilter, handleClearFilter]
+    [showMoreDetails, filteredOrders.length, themeColors, activeFilter, handleClearFilter, isFilterLoading]
   );
 
   return (
@@ -1281,7 +1329,8 @@ export const OrderListScreen: React.FC = () => {
           renderItem={renderOrderCard}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={renderListHeader}
-          ListEmptyComponent={<EmptyViewWithPreset preset="orders" />}
+          ListEmptyComponent={!isFilterLoading ? <EmptyViewWithPreset preset="orders" /> : null}
+          style={{ opacity: isFilterLoading ? 0.6 : 1 }}
           ListFooterComponent={
             <ListFooterLoader
               isLoading={isFetchingNextPage}
@@ -1299,14 +1348,20 @@ export const OrderListScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          initialNumToRender={10}
-          maxToRenderPerBatch={10}
-          windowSize={5}
-          removeClippedSubviews={Platform.OS === 'android'}
+          onEndReachedThreshold={0.3}
+          initialNumToRender={6}
+          maxToRenderPerBatch={5}
+          windowSize={3}
+          removeClippedSubviews={true}
+          updateCellsBatchingPeriod={50}
+          getItemLayout={(_, index) => ({
+            length: 180, // Approximate height of each order card
+            offset: 180 * index,
+            index,
+          })}
           refreshControl={
             <RefreshControl
-              refreshing={isRefetching}
+              refreshing={isRefetching || isFilterLoading}
               onRefresh={handleRefresh}
               tintColor={colors.primary.main}
               colors={[colors.primary.main, colors.secondary.main]}
@@ -1316,26 +1371,13 @@ export const OrderListScreen: React.FC = () => {
         />
       )}
 
-      {Platform.OS === 'ios' && (
-        <DatePickerModal
-          visible={showDatePicker}
-          onClose={() => setShowDatePicker(false)}
-          selectedDate={selectedDate}
-          onDateSelect={handleDateSelect}
-          isDark={isDark}
-        />
-      )}
-
-      {showDatePicker && Platform.OS === 'android' && (
-        <DateTimePicker
-          value={selectedDate}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-          themeVariant={isDark ? 'dark' : 'light'}
-          accentColor={colors.primary.main}
-        />
-      )}
+      <DatePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        selectedDate={selectedDate}
+        onDateSelect={handleDateSelect}
+        isDark={isDark}
+      />
 
       <FilterModal
         visible={showFilterModal}
@@ -1453,6 +1495,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
   },
+  filterLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   downloadIcon: {
     padding: spacing.xs,
   },
@@ -1508,6 +1555,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: spacing.xl,
   },
+  centeredModalContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  centeredDatePickerContent: {
+    width: '100%',
+    maxWidth: ms(340),
+    borderRadius: ms(20),
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 24,
+    overflow: 'hidden',
+  },
   datePickerModalContent: {
     borderTopLeftRadius: ms(24),
     borderTopRightRadius: ms(24),
@@ -1525,35 +1593,143 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
   },
+  quickDatesContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    gap: spacing.sm,
+  },
+  quickDateButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    borderRadius: ms(12),
+    borderWidth: 1,
+    gap: ms(2),
+  },
+  quickDateLabel: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+    marginTop: ms(2),
+  },
+  quickDateValue: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(10),
+  },
   selectedDateDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     marginHorizontal: spacing.md,
     marginTop: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
-    borderRadius: ms(12),
-    gap: spacing.sm,
+    borderRadius: ms(14),
+    borderWidth: 1,
+    gap: spacing.md,
+  },
+  selectedDateIconWrapper: {
+    width: ms(40),
+    height: ms(40),
+    borderRadius: ms(20),
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedDateTextWrapper: {
+    flex: 1,
+  },
+  selectedDateLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+    marginBottom: ms(2),
   },
   selectedDateText: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: ms(14),
+    fontFamily: fontFamily.bold,
+    fontSize: ms(15),
   },
   datePickerWrapper: {
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    borderRadius: ms(16),
+    overflow: 'hidden',
+    paddingTop: spacing.md,
   },
   datePickerInline: {
     height: ms(340),
+  },
+  calendar: {
+    borderRadius: ms(16),
+    paddingHorizontal: spacing.xs,
   },
   datePickerModalActions: {
     flexDirection: 'row',
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xs,
-    borderTopWidth: 1,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.md,
+  },
+  // Date range picker styles
+  dateRangeDisplayContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  dateRangeItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: ms(12),
+    gap: spacing.xs,
+  },
+  dateRangeIconWrapper: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dateRangeTextWrapper: {
+    flex: 1,
+  },
+  dateRangeLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(10),
+    marginBottom: ms(2),
+  },
+  dateRangeValue: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(13),
+  },
+  dateRangeArrow: {
+    paddingHorizontal: spacing.xs,
+  },
+  daysCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: ms(20),
+    gap: spacing.xs,
+  },
+  daysCountText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+  },
+  clearDateButton: {
+    width: ms(44),
+    height: ms(44),
+    borderRadius: ms(12),
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
   },
   activeFiltersBar: {
     flexDirection: 'row',
@@ -1620,8 +1796,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.common.black,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     maxHeight: SCREEN_HEIGHT * 0.82,

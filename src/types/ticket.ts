@@ -394,6 +394,11 @@ export interface TicketDetailsProduct {
   is_mix: boolean;
 }
 
+export interface TicketDetailsLocation {
+  latitude: string;
+  longitude: string;
+}
+
 export interface TicketDetailsTicket {
   ticket_id: string;
   ticket_code: string;
@@ -414,6 +419,8 @@ export interface TicketDetailsTicket {
   driver_phone: string | null;
   created_date: string;
   truck: TicketDetailsTruck;
+  plant_location: TicketDetailsLocation | null;
+  order_location: TicketDetailsLocation | null;
   status: TicketDetailsStatus;
   products: TicketDetailsProduct[];
 }

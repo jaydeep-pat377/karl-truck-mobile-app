@@ -63,6 +63,13 @@ export const useTicketDetails = (params: TicketDetailsQueryParams) => {
     truckDescription: ticket?.truck?.truck_description,
     truckLatitude: ticket?.truck?.latitude,
     truckLongitude: ticket?.truck?.longitude,
+    // Location info
+    plantLocation: ticket?.plant_location,
+    plantLocationLatitude: ticket?.plant_location?.latitude,
+    plantLocationLongitude: ticket?.plant_location?.longitude,
+    orderLocation: ticket?.order_location,
+    orderLocationLatitude: ticket?.order_location?.latitude,
+    orderLocationLongitude: ticket?.order_location?.longitude,
     // Status info
     status: ticket?.status,
     statusCode: ticket?.status?.status,

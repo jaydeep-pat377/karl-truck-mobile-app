@@ -27,9 +27,12 @@ export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
       }
       return undefined;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    retry: 2,
+    staleTime: 2 * 60 * 1000, // 2 minutes - faster refresh for orders
+    gcTime: 10 * 60 * 1000, // 10 minutes cache
+    retry: 1, // Reduce retries for faster failure
     refetchOnMount: 'always',
+    refetchOnWindowFocus: false, // Don't refetch on app focus
+    placeholderData: (previousData) => previousData, // Show previous data while loading
   });
 
   // Flatten all pages of orders into a single array
@@ -58,13 +61,17 @@ export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
     query.error?.response?.data?.message ||
     (query.error ? 'Failed to load orders' : null);
 
-  console.log('orders.......>>>>>', orders);
+  // Only show full loading state when there's no cached data
+  const isInitialLoading = query.isLoading && orders.length === 0;
+  // Show subtle loading when switching filters but have cached data
+  const isFilterLoading = query.isFetching && orders.length > 0;
 
   return {
     orders,
     pagination,
     statusCounts,
-    isLoading: query.isLoading,
+    isLoading: isInitialLoading, // Only true when no data to show
+    isFilterLoading, // True when fetching but have data to display
     isError: query.isError,
     error: errorMessage,
     refetch: query.refetch,

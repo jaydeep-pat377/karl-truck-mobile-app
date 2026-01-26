@@ -1,4 +1,4 @@
-package com.truckapp
+package com.truckast
 
 import android.os.Bundle
 import com.facebook.react.ReactActivity

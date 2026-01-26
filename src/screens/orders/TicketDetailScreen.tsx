@@ -525,6 +525,10 @@ export const TicketDetailScreen: React.FC = () => {
     truckDescription,
     truckLatitude,
     truckLongitude,
+    plantLocationLatitude,
+    plantLocationLongitude,
+    orderLocationLatitude,
+    orderLocationLongitude,
     statusCode,
     statusDisplay,
     etaAtJob,
@@ -547,7 +551,6 @@ export const TicketDetailScreen: React.FC = () => {
   const statusInfo = statusConfigMap[currentStatus] || statusConfigMap.pending;
   // Get header badge colors that are visible on green gradient
   const headerBadgeColors = getHeaderBadgeColors(currentStatus, isDark);
-  console.log('statusInfo....', statusInfo);
 
   const percentage = useMemo(() => {
     if (!orderedQty || orderedQty === 0) return 0;
@@ -591,6 +594,13 @@ export const TicketDetailScreen: React.FC = () => {
         destination: deliveryAddress || undefined,
         orderCode: apiOrderCode || undefined,
         customerName: customerName || undefined,
+        // Plant location
+        plantLatitude: plantLocationLatitude || undefined,
+        plantLongitude: plantLocationLongitude || undefined,
+        plantName: plantName || undefined,
+        // Job location (order_location)
+        jobLatitude: orderLocationLatitude || undefined,
+        jobLongitude: orderLocationLongitude || undefined,
       });
     } else {
       showWarning(
@@ -598,7 +608,7 @@ export const TicketDetailScreen: React.FC = () => {
         'Truck location coordinates are not available at the moment. The truck may not have GPS data or the location service is temporarily unavailable. Please try again later.'
       );
     }
-  }, [truckLatitude, truckLongitude, truckCode, apiTicketCode, driverName, deliveryAddress, apiOrderCode, customerName, navigation, showWarning]);
+  }, [truckLatitude, truckLongitude, truckCode, apiTicketCode, driverName, deliveryAddress, apiOrderCode, customerName, plantLocationLatitude, plantLocationLongitude, plantName, orderLocationLatitude, orderLocationLongitude, navigation, showWarning]);
 
   const handleGetDirections = useCallback(() => {
     if (truckLatitude && truckLongitude) {
@@ -627,9 +637,16 @@ export const TicketDetailScreen: React.FC = () => {
         destination: deliveryAddress || undefined,
         orderCode: apiOrderCode || undefined,
         customerName: customerName || undefined,
+        // Plant location
+        plantLatitude: plantLocationLatitude || undefined,
+        plantLongitude: plantLocationLongitude || undefined,
+        plantName: plantName || undefined,
+        // Job location (order_location)
+        jobLatitude: orderLocationLatitude || undefined,
+        jobLongitude: orderLocationLongitude || undefined,
       });
     }, 300);
-  }, [closeDirectionsMenu, navigation, truckLatitude, truckLongitude, truckCode, apiTicketCode, driverName, deliveryAddress, apiOrderCode, customerName]);
+  }, [closeDirectionsMenu, navigation, truckLatitude, truckLongitude, truckCode, apiTicketCode, driverName, deliveryAddress, apiOrderCode, customerName, plantLocationLatitude, plantLocationLongitude, plantName, orderLocationLatitude, orderLocationLongitude]);
 
   const handleOpenInGoogleMaps = useCallback(() => {
     closeDirectionsMenu();

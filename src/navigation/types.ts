@@ -163,6 +163,7 @@ export type ProductCodeScreenParams = {
 
 // Map Tracking Screen Params
 export type MapTrackingScreenParams = {
+  // Truck location (from truck object in API)
   latitude?: string;
   longitude?: string;
   truckCode?: string;
@@ -171,6 +172,14 @@ export type MapTrackingScreenParams = {
   destination?: string;
   orderCode?: string;
   customerName?: string;
+  // Plant location (plant_location from API)
+  plantLatitude?: string;
+  plantLongitude?: string;
+  plantName?: string;
+  plantCode?: string;
+  // Job location (order_location from API)
+  jobLatitude?: string;
+  jobLongitude?: string;
 };
 
 // Root Navigator

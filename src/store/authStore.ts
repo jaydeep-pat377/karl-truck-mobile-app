@@ -34,20 +34,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   setAuth: async (user: User, accessToken: string, refreshToken: string) => {
     try {
-      console.log('=== SAVING AUTH DATA ===');
-      console.log('Access Token:', accessToken ? `${accessToken.substring(0, 30)}...` : 'null');
-      console.log('Storage Key:', STORAGE_KEYS.ACCESS_TOKEN);
-
       await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
       await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
 
-      // Verify token was saved
       const savedToken = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-      console.log('Token saved successfully:', savedToken ? 'Yes' : 'No');
-      console.log('========================');
-
-      set({
+         set({
         user,
         accessToken,
         refreshToken,

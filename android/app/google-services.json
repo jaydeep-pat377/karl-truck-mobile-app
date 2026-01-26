@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "627639825408",
+    "project_id": "truckast-app",
+    "storage_bucket": "truckast-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:627639825408:android:69d89f5892e8d12ec754e5",
+        "android_client_info": {
+          "package_name": "com.truckast"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9e75ZPxCHijkxBl5drobuBNWOKpC2vpM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

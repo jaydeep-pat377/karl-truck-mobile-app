@@ -22,7 +22,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, TruckLoader, EmptyViewWithPreset } from '../../components/common';
 import { colors } from '../../theme/colors';
 import { spacing, ms, iconSizes } from '../../utils/responsive';
-import { useTrucks } from '../../hooks';
+import { useTrucks, useDirections } from '../../hooks';
 import { Truck, TruckStatus } from '../../types/truck';
 
 // Initialize Mapbox with access token
@@ -41,7 +41,6 @@ const MAP_STYLES = {
   dark: Mapbox.StyleURL.Dark,
 };
 
-type DateFilter = 'today' | 'yesterday' | 'last_week' | 'custom';
 type StatusFilter = TruckStatus | 'all';
 
 interface FilterOption {
@@ -50,33 +49,11 @@ interface FilterOption {
   color: string;
 }
 
-const dateFilterOptions = [
-  { label: 'Today', value: 'today' as DateFilter },
-  { label: 'Yesterday', value: 'yesterday' as DateFilter },
-  { label: 'Last Week', value: 'last_week' as DateFilter },
-];
-
-// Helper to calculate date range based on filter
-const getDateRange = (filter: DateFilter): { dateFrom: string; dateTo: string } => {
+// Helper to get today's date range (default)
+const getDateRange = (): { dateFrom: string; dateTo: string } => {
   const today = new Date();
   const formatDate = (date: Date) => date.toISOString().split('T')[0]; // YYYY-MM-DD
-
-  switch (filter) {
-    case 'today':
-      return { dateFrom: formatDate(today), dateTo: formatDate(today) };
-    case 'yesterday': {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      return { dateFrom: formatDate(yesterday), dateTo: formatDate(yesterday) };
-    }
-    case 'last_week': {
-      const weekAgo = new Date(today);
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return { dateFrom: formatDate(weekAgo), dateTo: formatDate(today) };
-    }
-    default:
-      return { dateFrom: formatDate(today), dateTo: formatDate(today) };
-  }
+  return { dateFrom: formatDate(today), dateTo: formatDate(today) };
 };
 
 const statusFilterOptions: FilterOption[] = [
@@ -152,18 +129,23 @@ export const MapTrackingScreen: React.FC = () => {
     destination: paramDestination,
     orderCode: paramOrderCode,
     customerName: paramCustomerName,
+    // Plant location
+    plantLatitude: paramPlantLatitude,
+    plantLongitude: paramPlantLongitude,
+    plantName: paramPlantName,
+    // Job location
+    jobLatitude: paramJobLatitude,
+    jobLongitude: paramJobLongitude,
   } = route.params || {};
 
   // Filter states
-  const [selectedDateFilter, setSelectedDateFilter] = useState<DateFilter>('today');
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [tempDateFilter, setTempDateFilter] = useState<DateFilter>('today');
   const [tempStatus, setTempStatus] = useState<StatusFilter>('all');
 
-  // Calculate date range based on selected filter
-  const dateRange = useMemo(() => getDateRange(selectedDateFilter), [selectedDateFilter]);
+  // Calculate date range (always today)
+  const dateRange = useMemo(() => getDateRange(), []);
 
   // Fetch trucks from API
   const {
@@ -324,6 +306,96 @@ export const MapTrackingScreen: React.FC = () => {
     };
   }, [paramLatitude, paramLongitude, paramTruckCode, paramTicketCode, paramDriverName, paramDestination, paramOrderCode, paramCustomerName]);
 
+  // Plant location from navigation params (plant_location from API)
+  const plantLocation = useMemo(() => {
+    if (!paramPlantLatitude || !paramPlantLongitude) return null;
+
+    const lat = parseFloat(paramPlantLatitude);
+    const lng = parseFloat(paramPlantLongitude);
+
+    // Validate coordinates
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return null;
+    }
+
+    return {
+      latitude: lat,
+      longitude: lng,
+      plantName: paramPlantName,
+    };
+  }, [paramPlantLatitude, paramPlantLongitude, paramPlantName]);
+
+  // Job location from navigation params (order_location from API)
+  const jobLocation = useMemo(() => {
+    if (!paramJobLatitude || !paramJobLongitude) return null;
+
+    const lat = parseFloat(paramJobLatitude);
+    const lng = parseFloat(paramJobLongitude);
+
+    // Validate coordinates
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return null;
+    }
+
+    return {
+      latitude: lat,
+      longitude: lng,
+      destination: paramDestination,
+      customerName: paramCustomerName,
+    };
+  }, [paramJobLatitude, paramJobLongitude, paramDestination, paramCustomerName]);
+
+  // Fetch real route directions between plant (truck) and job locations
+  const {
+    routeGeoJSON,
+    distanceFormatted,
+    durationFormatted,
+    isLoading: isRouteLoading,
+    isError: isRouteError,
+    errorMessage: routeErrorMessage,
+  } = useDirections({
+    origin: plantLocation ? { latitude: plantLocation.latitude, longitude: plantLocation.longitude } : null,
+    destination: jobLocation ? { latitude: jobLocation.latitude, longitude: jobLocation.longitude } : null,
+    options: {
+      profile: 'driving-traffic', // Use real-time traffic data
+      overview: 'full', // Get full route geometry
+    },
+    enabled: !!plantLocation && !!jobLocation,
+  });
+
+  // Calculate bounds to fit both markers
+  const routeBounds = useMemo(() => {
+    if (!plantLocation || !jobLocation) return null;
+
+    const padding = 0.01; // Add some padding around markers
+    const minLng = Math.min(plantLocation.longitude, jobLocation.longitude) - padding;
+    const maxLng = Math.max(plantLocation.longitude, jobLocation.longitude) + padding;
+    const minLat = Math.min(plantLocation.latitude, jobLocation.latitude) - padding;
+    const maxLat = Math.max(plantLocation.latitude, jobLocation.latitude) + padding;
+
+    return {
+      ne: [maxLng, maxLat] as [number, number], // Northeast
+      sw: [minLng, minLat] as [number, number], // Southwest
+    };
+  }, [plantLocation, jobLocation]);
+
+  // Fit camera to show both markers when they exist
+  useEffect(() => {
+    if (routeBounds && cameraRef.current) {
+      // Delay slightly to ensure map is ready
+      const timer = setTimeout(() => {
+        cameraRef.current?.fitBounds(
+          routeBounds.ne,
+          routeBounds.sw,
+          [80, 80, 200, 80], // Padding: [top, right, bottom, left] - more bottom padding for bottom sheet
+          1000 // Animation duration
+        );
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [routeBounds]);
+
   const handleRefresh = useCallback(() => {
     refetch();
   }, [refetch]);
@@ -347,7 +419,6 @@ export const MapTrackingScreen: React.FC = () => {
   }, [isFetchingNextPage, themeColors.text.secondary]);
 
   const openFilterModal = useCallback(() => {
-    setTempDateFilter(selectedDateFilter);
     setTempStatus(selectedStatus);
     setShowFilterModal(true);
     Animated.spring(filterModalAnim, {
@@ -356,7 +427,7 @@ export const MapTrackingScreen: React.FC = () => {
       tension: 100,
       friction: 12,
     }).start();
-  }, [filterModalAnim, selectedDateFilter, selectedStatus]);
+  }, [filterModalAnim, selectedStatus]);
 
   const closeFilterModal = useCallback(() => {
     setShowFilterModal(false);
@@ -364,13 +435,11 @@ export const MapTrackingScreen: React.FC = () => {
   }, [filterModalAnim]);
 
   const applyFilters = useCallback(() => {
-    setSelectedDateFilter(tempDateFilter);
     setSelectedStatus(tempStatus);
     closeFilterModal();
-  }, [tempDateFilter, tempStatus, closeFilterModal]);
+  }, [tempStatus, closeFilterModal]);
 
   const clearAllFilters = useCallback(() => {
-    setTempDateFilter('today');
     setTempStatus('all');
   }, []);
 
@@ -386,7 +455,7 @@ export const MapTrackingScreen: React.FC = () => {
     }
   }, [bottomSheetHeight]);
 
-  const hasActiveFilters = selectedDateFilter !== 'today' || selectedStatus !== 'all';
+  const hasActiveFilters = selectedStatus !== 'all';
 
   const renderTruckItem = useCallback(
     ({ item, index }: { item: Truck; index: number }) => (
@@ -468,6 +537,32 @@ export const MapTrackingScreen: React.FC = () => {
             }}
           />
 
+          {/* Route Line between Plant and Job locations (real directions) */}
+          {routeGeoJSON && (
+            <Mapbox.ShapeSource id="routeLine" shape={routeGeoJSON}>
+              {/* Route outline (darker/wider for visibility) */}
+              <Mapbox.LineLayer
+                id="routeLineOutline"
+                style={{
+                  lineColor: colors.primary.dark,
+                  lineWidth: 6,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                }}
+              />
+              {/* Main route line */}
+              <Mapbox.LineLayer
+                id="routeLineLayer"
+                style={{
+                  lineColor: colors.primary.main,
+                  lineWidth: 4,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                }}
+              />
+            </Mapbox.ShapeSource>
+          )}
+
           {/* Truck Markers */}
           {filteredTrucks.map((truck) => (
             <Mapbox.MarkerView
@@ -516,6 +611,54 @@ export const MapTrackingScreen: React.FC = () => {
                   )}
                 </View>
               </TouchableOpacity>
+            </Mapbox.MarkerView>
+          )}
+
+          {/* Plant Location Marker (plant_location from API) - Blue truck icon */}
+          {plantLocation && (
+            <Mapbox.MarkerView
+              key="plant-location"
+              coordinate={[plantLocation.longitude, plantLocation.latitude]}
+              anchor={{ x: 0.5, y: 1 }}
+            >
+              <View style={styles.markerContainer}>
+                {/* Main marker - Blue circle with truck */}
+                <View style={styles.plantMarker}>
+                  <Icon name="truck" size={ms(18)} color={colors.common.white} />
+                </View>
+                <View style={styles.plantMarkerArrow} />
+                {/* Dark label showing plant name */}
+                <View style={styles.plantMarkerLabel}>
+                  <Text variant="captionSmall" style={styles.plantMarkerText} numberOfLines={1}>
+                    {plantLocation.plantName || 'Plant Location'}
+                  </Text>
+                </View>
+              </View>
+            </Mapbox.MarkerView>
+          )}
+
+          {/* Job Site Marker (order_location from API) - Red pin icon */}
+          {jobLocation && (
+            <Mapbox.MarkerView
+              key="job-location"
+              coordinate={[jobLocation.longitude, jobLocation.latitude]}
+              anchor={{ x: 0.5, y: 1 }}
+            >
+              <View style={styles.markerContainer}>
+                {/* Main marker - Red/coral circle with pin */}
+                <View style={styles.jobSiteMarker}>
+                  <View style={styles.jobSiteMarkerInner}>
+                    <Icon name="map-marker" size={ms(16)} color={colors.error.main} />
+                  </View>
+                </View>
+                <View style={styles.jobSiteMarkerArrow} />
+                {/* Dark label showing "Job Site" */}
+                <View style={styles.jobSiteMarkerLabel}>
+                  <Text variant="captionSmall" style={styles.jobSiteMarkerText}>
+                    Job Site
+                  </Text>
+                </View>
+              </View>
             </Mapbox.MarkerView>
           )}
         </Mapbox.MapView>
@@ -567,7 +710,63 @@ export const MapTrackingScreen: React.FC = () => {
           >
             <Icon name="minus" size={ms(18)} color={themeColors.text.primary} />
           </TouchableOpacity>
+          {/* Fit to Route Button */}
+          {routeBounds && (
+            <TouchableOpacity
+              style={[styles.mapControlButton, { backgroundColor: themeColors.card }]}
+              onPress={() => {
+                cameraRef.current?.fitBounds(
+                  routeBounds.ne,
+                  routeBounds.sw,
+                  [80, 80, 200, 80],
+                  1000
+                );
+              }}
+            >
+              <Icon name="fit-to-screen" size={ms(18)} color={themeColors.text.primary} />
+            </TouchableOpacity>
+          )}
         </View>
+
+        {/* Route Info Card - shows distance and ETA */}
+        {(distanceFormatted || durationFormatted || isRouteLoading) && (
+          <View style={[styles.routeInfoCard, { backgroundColor: themeColors.card }]}>
+            {isRouteLoading ? (
+              <View style={styles.routeInfoLoading}>
+                <ActivityIndicator size="small" color={colors.primary.main} />
+                <Text variant="caption" style={{ color: themeColors.text.secondary, marginLeft: spacing.xs }}>
+                  Calculating route...
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.routeInfoContent}>
+                <View style={styles.routeInfoItem}>
+                  <Icon name="map-marker-distance" size={ms(16)} color={colors.primary.main} />
+                  <Text variant="bodySmall" style={[styles.routeInfoText, { color: themeColors.text.primary }]}>
+                    {distanceFormatted || '--'}
+                  </Text>
+                </View>
+                <View style={styles.routeInfoDivider} />
+                <View style={styles.routeInfoItem}>
+                  <Icon name="clock-outline" size={ms(16)} color={colors.info.main} />
+                  <Text variant="bodySmall" style={[styles.routeInfoText, { color: themeColors.text.primary }]}>
+                    {durationFormatted || '--'}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Route Error Message */}
+        {isRouteError && routeErrorMessage && (
+          <View style={[styles.routeErrorCard, { backgroundColor: colors.error.light }]}>
+            <Icon name="alert-circle-outline" size={ms(16)} color={colors.error.main} />
+            <Text variant="caption" style={{ color: colors.error.main, marginLeft: spacing.xs, flex: 1 }}>
+              {routeErrorMessage}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Bottom Sheet */}
@@ -703,36 +902,6 @@ export const MapTrackingScreen: React.FC = () => {
                 >
                   <Icon name="close" size={ms(18)} color={themeColors.text.secondary} />
                 </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Date Filter */}
-            <View style={styles.filterSection}>
-              <Text variant="bodySmall" style={{ fontWeight: '600', marginBottom: spacing.sm }}>
-                Date Range
-              </Text>
-              <View style={styles.filterOptionsGrid}>
-                {dateFilterOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.filterOption,
-                      { backgroundColor: themeColors.background },
-                      tempDateFilter === option.value && styles.filterOptionActive,
-                    ]}
-                    onPress={() => setTempDateFilter(option.value)}
-                  >
-                    <Text
-                      variant="caption"
-                      style={[
-                        { color: themeColors.text.secondary },
-                        tempDateFilter === option.value && styles.filterOptionTextActive,
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
               </View>
             </View>
 
@@ -881,6 +1050,105 @@ const styles = StyleSheet.create({
   highlightedMarkerText: {
     fontWeight: '700',
   },
+  // Plant location marker styles (blue truck icon)
+  plantMarker: {
+    width: ms(36),
+    height: ms(36),
+    borderRadius: ms(18),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.info.main,
+    borderWidth: 3,
+    borderColor: colors.common.white,
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  plantMarkerArrow: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: colors.info.main,
+    marginTop: -2,
+  },
+  plantMarkerLabel: {
+    paddingHorizontal: ms(12),
+    paddingVertical: ms(6),
+    borderRadius: ms(6),
+    marginTop: ms(4),
+    backgroundColor: colors.grey[80],
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    alignItems: 'center',
+    maxWidth: ms(160),
+  },
+  plantMarkerText: {
+    fontWeight: '600',
+    color: colors.common.white,
+    fontSize: ms(11),
+  },
+  // Job site marker styles (red pin icon)
+  jobSiteMarker: {
+    width: ms(36),
+    height: ms(36),
+    borderRadius: ms(18),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FF6B6B',
+    borderWidth: 3,
+    borderColor: colors.common.white,
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  jobSiteMarkerInner: {
+    width: ms(24),
+    height: ms(24),
+    borderRadius: ms(12),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.common.white,
+  },
+  jobSiteMarkerArrow: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#FF6B6B',
+    marginTop: -2,
+  },
+  jobSiteMarkerLabel: {
+    paddingHorizontal: ms(12),
+    paddingVertical: ms(6),
+    borderRadius: ms(6),
+    marginTop: ms(4),
+    backgroundColor: colors.grey[80],
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    alignItems: 'center',
+  },
+  jobSiteMarkerText: {
+    fontWeight: '600',
+    color: colors.common.white,
+    fontSize: ms(11),
+  },
   headerButtons: {
     position: 'absolute',
     top: 0,
@@ -940,6 +1208,54 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  // Route Info Card Styles
+  routeInfoCard: {
+    position: 'absolute',
+    left: spacing.md,
+    top: height * 0.15,
+    borderRadius: ms(12),
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+    minWidth: ms(140),
+  },
+  routeInfoLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  routeInfoContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  routeInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  routeInfoText: {
+    fontWeight: '600',
+  },
+  routeInfoDivider: {
+    width: 1,
+    height: ms(16),
+    backgroundColor: colors.grey[25],
+    marginHorizontal: spacing.sm,
+  },
+  routeErrorCard: {
+    position: 'absolute',
+    left: spacing.md,
+    right: spacing.md,
+    top: height * 0.15,
+    borderRadius: ms(8),
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   bottomSheet: {
     position: 'absolute',

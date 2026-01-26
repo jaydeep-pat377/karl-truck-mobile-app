@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { ms, vs, spacing } from '../../utils/responsive';
 import { useLogin } from '../../hooks/useLogin';
 import { STORAGE_KEYS } from '../../utils/storage';
+import { notificationService } from '../../services/notificationService';
 
 interface LoginScreenProps {
   navigation?: any;
@@ -42,7 +43,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
 
   const passwordRef = useRef<TextInput>(null);
 
-  // Load saved credentials on mount
   const loadSavedCredentials = useCallback(async () => {
     try {
       const [savedEmail, savedRememberMe] = await AsyncStorage.multiGet([
@@ -116,10 +116,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
     setErrors({});
 
     try {
-      await login(email, password);
-      // Save remember me preference on successful login
+      const deviceToken = await notificationService.getToken();
+
+      await login(email, password, deviceToken || undefined);
       await handleRememberMe(rememberMe, email);
-      // Navigation is automatic - RootNavigator will switch to Main when isAuthenticated becomes true
+
     } catch (error) {
       console.log('Login error:', error);
     }

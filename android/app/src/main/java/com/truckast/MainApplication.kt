@@ -1,4 +1,4 @@
-package com.truckapp
+package com.truckast
 
 import android.app.Application
 import com.facebook.react.PackageList

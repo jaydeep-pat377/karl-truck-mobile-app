@@ -7,19 +7,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, API_TIMEOUT } from '@env';
 import { STORAGE_KEYS } from '../utils/storage';
 
-// CRITICAL: Log to verify env is loading
 const FALLBACK_URL = 'http://api.truckast.ai/api';
 const BASE_URL = API_BASE_URL || FALLBACK_URL;
-const TIMEOUT = Number(API_TIMEOUT) || 30000;
+const TIMEOUT = Number(API_TIMEOUT) || 15000; // Reduced to 15s for faster failure detection
 
-// Always log this on app start to debug
-console.log('==========================================');
-console.log('API CONFIGURATION');
-console.log('------------------------------------------');
-console.log('ENV API_BASE_URL:', API_BASE_URL);
-console.log('Using BASE_URL:', BASE_URL);
-console.log('Timeout:', TIMEOUT);
-console.log('==========================================');
+// Enable/disable API logging (set to false for production)
+const ENABLE_API_LOGGING = __DEV__;
 
 // Public endpoints (no auth required)
 const PUBLIC_ENDPOINTS = [
@@ -49,12 +42,11 @@ export const axiosInstance = axios.create({
 // Request interceptor
 axiosInstance.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const fullUrl = `${config.baseURL}${config.url}`;
-    console.log(`[API REQUEST] ${config.method?.toUpperCase()} ${fullUrl}`);
+    let token: string | null = null;
 
     if (!isPublicEndpoint(config.url)) {
       try {
-        const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+        token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
         if (token) {
           (config.headers as any)['Authorization'] = `Bearer ${token}`;
         }
@@ -63,20 +55,58 @@ axiosInstance.interceptors.request.use(
       }
     }
 
+    // Log request details
+    if (ENABLE_API_LOGGING) {
+      console.log('\n========== API REQUEST ==========');
+      console.log(`[${config.method?.toUpperCase()}] ${config.baseURL}${config.url}`);
+      console.log('Headers:', JSON.stringify(config.headers, null, 2));
+      if (token) {
+        console.log('Token:', `${token.substring(0, 20)}...${token.substring(token.length - 10)}`);
+      }
+      if (config.params) {
+        console.log('Query Params:', JSON.stringify(config.params, null, 2));
+      }
+      if (config.data) {
+        console.log('Request Body:', JSON.stringify(config.data, null, 2));
+      }
+      console.log('=================================\n');
+    }
+
     return config;
   },
-  (error: AxiosError) => Promise.reject(error)
+  (error: AxiosError) => {
+    if (ENABLE_API_LOGGING) {
+      console.error('\n========== REQUEST ERROR ==========');
+      console.error('Error:', error.message);
+      console.error('===================================\n');
+    }
+    return Promise.reject(error);
+  }
 );
 
 // Response interceptor
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
-    console.log(`[API RESPONSE] ${response.status} ${response.config.url}`);
+    // Log successful response
+    if (ENABLE_API_LOGGING) {
+      console.log('\n========== API RESPONSE ==========');
+      console.log(`[${response.status}] ${response.config.method?.toUpperCase()} ${response.config.url}`);
+      console.log('Response Data:', JSON.stringify(response.data, null, 2));
+      console.log('==================================\n');
+    }
     return response;
   },
   async (error: AxiosError) => {
-    console.log(`[API ERROR] ${error.response?.status || 'Network Error'} ${error.config?.url}`);
-    console.log('[API ERROR DATA]', error.response?.data || error.message);
+    // Log error response
+    if (ENABLE_API_LOGGING) {
+      console.error('\n========== API ERROR ==========');
+      console.error(`[${error.response?.status || 'NETWORK'}] ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
+      console.error('Error Message:', error.message);
+      if (error.response?.data) {
+        console.error('Error Response:', JSON.stringify(error.response.data, null, 2));
+      }
+      console.error('================================\n');
+    }
 
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
@@ -93,6 +123,11 @@ axiosInstance.interceptors.response.use(
         const currentAccessToken = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 
         if (refreshToken && currentAccessToken) {
+          if (ENABLE_API_LOGGING) {
+            console.log('\n========== TOKEN REFRESH ==========');
+            console.log('Attempting to refresh token...');
+          }
+
           const response = await axios.post(
             `${BASE_URL}/auth/refresh`,
             { refreshToken },
@@ -107,9 +142,21 @@ axiosInstance.interceptors.response.use(
           const { accessToken } = response.data.data;
           await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
           (originalRequest.headers as any)['Authorization'] = `Bearer ${accessToken}`;
+
+          if (ENABLE_API_LOGGING) {
+            console.log('Token refreshed successfully!');
+            console.log('New Token:', `${accessToken.substring(0, 20)}...${accessToken.substring(accessToken.length - 10)}`);
+            console.log('===================================\n');
+          }
+
           return axiosInstance(originalRequest);
         }
       } catch (refreshError) {
+        if (ENABLE_API_LOGGING) {
+          console.error('Token refresh failed:', refreshError);
+          console.log('===================================\n');
+        }
+
         await AsyncStorage.multiRemove([
           STORAGE_KEYS.ACCESS_TOKEN,
           STORAGE_KEYS.REFRESH_TOKEN,
