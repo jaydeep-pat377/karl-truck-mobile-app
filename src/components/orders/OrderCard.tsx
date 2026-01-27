@@ -8,9 +8,10 @@ import {
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card, StatusBadge, WeatherBadge, Icon } from '../common';
-import { colors, statusColorMap } from '../../theme/colors';
+import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms } from '../../utils/responsive';
+import { getStatusColor } from '../../utils/statusUtils';
 
 interface OrderCardProps {
   order: any;
@@ -90,8 +91,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
 
-  const statusColor = statusColorMap[order.status] || colors.secondary.main;
   const progress = order.progress || 0;
+
+  // Use centralized utility for consistent color across all screens
+  const statusColor = getStatusColor(order.status, progress);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -112,8 +115,11 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           <View style={styles.headerRow}>
             <View style={styles.headerLeft}>
               <StatusBadge status={order.status} size="small" />
-              <Text variant="captionSmall" color="secondary" style={styles.orderId}>
-                {order.productType || 'N/A'}
+              <Text
+                variant="captionSmall"
+                color="secondary"
+                style={[styles.orderId, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
+                {order.productType && order.productType}
               </Text>
               <Text
                 variant="captionSmall"
@@ -288,9 +294,12 @@ const styles = StyleSheet.create({
   },
   orderId: {
     fontFamily: fontFamily.medium,
+    fontSize: 13,
   },
   dateTime: {
     marginLeft: ms(2),
+    fontSize: 12,
+    fontFamily: fontFamily.medium,
   },
   titleRow: {
     marginBottom: ms(4),

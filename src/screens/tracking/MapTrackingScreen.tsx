@@ -13,6 +13,9 @@ import {
   PanResponder,
   ActivityIndicator,
   InteractionManager,
+  Linking,
+  Platform,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import Mapbox from '@rnmapbox/maps';
@@ -143,6 +146,9 @@ export const MapTrackingScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [tempStatus, setTempStatus] = useState<StatusFilter>('all');
+
+  // Toggle for showing directions (route line between plant and job)
+  const [showDirections, setShowDirections] = useState(false);
 
   // Calculate date range (always today)
   const dateRange = useMemo(() => getDateRange(), []);
@@ -457,6 +463,72 @@ export const MapTrackingScreen: React.FC = () => {
 
   const hasActiveFilters = selectedStatus !== 'all';
 
+  // Function to open Google Maps with directions
+  const openGoogleMapsDirections = useCallback(() => {
+    if (!plantLocation || !jobLocation) return;
+
+    const origin = `${plantLocation.latitude},${plantLocation.longitude}`;
+    const destination = `${jobLocation.latitude},${jobLocation.longitude}`;
+
+    // Different URL schemes for iOS and Android
+    const googleMapsUrl = Platform.select({
+      ios: `comgooglemaps://?saddr=${origin}&daddr=${destination}&directionsmode=driving`,
+      android: `google.navigation:q=${destination}&origin=${origin}`,
+    });
+
+    // Fallback to web URL if Google Maps app is not installed
+    const webUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+
+    if (googleMapsUrl) {
+      Linking.canOpenURL(googleMapsUrl)
+        .then((supported) => {
+          if (supported) {
+            Linking.openURL(googleMapsUrl);
+          } else {
+            // Fallback to web Google Maps
+            Linking.openURL(webUrl);
+          }
+        })
+        .catch(() => {
+          Linking.openURL(webUrl);
+        });
+    } else {
+      Linking.openURL(webUrl);
+    }
+  }, [plantLocation, jobLocation]);
+
+  // Handle directions toggle with Google Maps option
+  const handleDirectionsToggle = useCallback(() => {
+    if (!showDirections) {
+      // Turning ON - show alert with options
+      Alert.alert(
+        'Show Directions',
+        'Would you like to view directions in the app or open Google Maps?',
+        [
+          {
+            text: 'In App',
+            onPress: () => setShowDirections(true),
+          },
+          {
+            text: 'Google Maps',
+            onPress: () => {
+              setShowDirections(true);
+              openGoogleMapsDirections();
+            },
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+        ],
+        { cancelable: true }
+      );
+    } else {
+      // Turning OFF - just toggle
+      setShowDirections(false);
+    }
+  }, [showDirections, openGoogleMapsDirections]);
+
   const renderTruckItem = useCallback(
     ({ item, index }: { item: Truck; index: number }) => (
       <TouchableOpacity
@@ -537,8 +609,8 @@ export const MapTrackingScreen: React.FC = () => {
             }}
           />
 
-          {/* Route Line between Plant and Job locations (real directions) */}
-          {routeGeoJSON && (
+          {/* Route Line between Plant and Job locations (real directions) - only show when toggle is ON */}
+          {showDirections && routeGeoJSON && (
             <Mapbox.ShapeSource id="routeLine" shape={routeGeoJSON}>
               {/* Route outline (darker/wider for visibility) */}
               <Mapbox.LineLayer
@@ -683,6 +755,42 @@ export const MapTrackingScreen: React.FC = () => {
             </View>
           </View>
         </SafeAreaView>
+
+        {/* Directions Toggle - only show when coming from Ticket Details (has plant and job locations) */}
+        {plantLocation && jobLocation && (
+          <View style={[styles.directionsToggleContainer, { backgroundColor: themeColors.card }]}>
+            <Icon name="directions" size={ms(18)} color={showDirections ? colors.primary.main : themeColors.text.secondary} />
+            <Text variant="bodySmall" style={{ marginLeft: spacing.xs, color: themeColors.text.primary }}>
+              Show Directions
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                { backgroundColor: showDirections ? colors.primary.main : colors.grey[25] }
+              ]}
+              onPress={handleDirectionsToggle}
+              activeOpacity={0.8}
+            >
+              <View style={[
+                styles.toggleKnob,
+                {
+                  backgroundColor: colors.common.white,
+                  transform: [{ translateX: showDirections ? ms(16) : ms(2) }]
+                }
+              ]} />
+            </TouchableOpacity>
+            {/* Google Maps button - show when directions are ON */}
+            {showDirections && (
+              <TouchableOpacity
+                style={styles.googleMapsButton}
+                onPress={openGoogleMapsDirections}
+                activeOpacity={0.7}
+              >
+                <Icon name="google-maps" size={ms(18)} color={colors.common.white} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {/* Map Controls */}
         <View style={styles.mapControls}>
@@ -1158,6 +1266,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  directionsToggleContainer: {
+    position: 'absolute',
+    top: ms(100),
+    left: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: ms(12),
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  toggleButton: {
+    width: ms(36),
+    height: ms(20),
+    borderRadius: ms(10),
+    marginLeft: spacing.sm,
+    justifyContent: 'center',
+  },
+  toggleKnob: {
+    width: ms(16),
+    height: ms(16),
+    borderRadius: ms(8),
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  googleMapsButton: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(16),
+    backgroundColor: colors.success.main,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.sm,
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
   backButton: {
     width: ms(40),

@@ -8,6 +8,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text } from './Text';
+import { Icon } from './Icon';
 import { OrderStatus, TruckStatus } from '../../types';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
@@ -37,6 +38,24 @@ const statusLabels: Record<string, string> = {
   LOADING: 'Loading',
   DISPATCHED: 'Dispatched',
   RETURNING: 'Returning',
+};
+
+const statusIcons: Record<string, string> = {
+  NORMAL: 'checkbox-marked-circle-outline',
+  WILL_CALL: 'phone-outline',
+  WEATHER_PERMITTING: 'weather-partly-cloudy',
+  HOLD: 'pause-circle-outline',
+  COMPLETED: 'check-circle-outline',
+  WAIT_LIST: 'clock-outline',
+  PRE_POUR: 'timer-sand',
+  IN_PROCESS: 'progress-clock',
+  CANCELLED: 'close-circle-outline',
+  DELAYED: 'alert-circle-outline',
+  ENRT: 'truck-delivery-outline',
+  ONSIT: 'map-marker-check-outline',
+  LOADING: 'package-variant',
+  DISPATCHED: 'send-outline',
+  RETURNING: 'keyboard-return',
 };
 
 // Status color configuration with text and background opacity
@@ -107,16 +126,16 @@ const statusColors: Record<string, StatusColorConfig> = {
     textDark: colors.statusBadge.purple.textDark,
     bgOpacity: 0.1,
   },
-  // Gray statuses - Hold, Wait List, Returning
+  // Red status - Hold
   HOLD: {
-    text: colors.statusBadge.gray.text,
-    textDark: colors.statusBadge.gray.textDark,
-    bgOpacity: 0.12,
+    text: colors.statusBadge.red.text,
+    textDark: colors.statusBadge.red.textDark,
+    bgOpacity: 0.1,
   },
   WAIT_LIST: {
-    text: colors.statusBadge.gray.text,
-    textDark: colors.statusBadge.gray.textDark,
-    bgOpacity: 0.12,
+    text: colors.statusBadge.amber.text,
+    textDark: colors.statusBadge.amber.textDark,
+    bgOpacity: 0.1,
   },
   RETURNING: {
     text: colors.statusBadge.gray.text,
@@ -130,7 +149,6 @@ const statusColors: Record<string, StatusColorConfig> = {
   },
 };
 
-// Default color config for unknown statuses
 const defaultColorConfig: StatusColorConfig = {
   text: colors.statusBadge.gray.text,
   textDark: colors.statusBadge.gray.textDark,
@@ -185,6 +203,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   };
 
   const config = sizeConfig[size];
+  const iconName = statusIcons[status] || 'help-circle-outline';
+  const iconSize = size === 'small' ? ms(16) : size === 'medium' ? ms(18) : ms(20);
 
   return (
     <View
@@ -195,8 +215,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
           borderRadius: config.borderRadius,
           paddingHorizontal: config.paddingHorizontal,
           paddingVertical: config.paddingVertical,
+          gap: ms(3),
         },
       ]}>
+      <Icon name={iconName} size={iconSize} color={textColor} />
       <Text
         style={[
           styles.text,

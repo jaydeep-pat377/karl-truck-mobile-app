@@ -105,7 +105,7 @@ const mapWeatherCondition = (condition: string | undefined): WeatherCondition =>
 
 const mapOrderStatus = (status: string): Order['status'] => {
   const statusMap: Record<string, Order['status']> = {
-    // API status values
+    // API status values (space-separated)
     'normal': 'NORMAL',
     'in progress': 'IN_PROCESS',
     'completed': 'COMPLETED',
@@ -116,7 +116,7 @@ const mapOrderStatus = (status: string): Order['status'] => {
     'delayed': 'DELAYED',
     'canceled': 'CANCELLED',
     'cancelled': 'CANCELLED',
-    // Alternative formats
+    // Alternative formats (underscore-separated)
     'in_process': 'IN_PROCESS',
     'will_call': 'WILL_CALL',
     'weather_permitting': 'WEATHER_PERMITTING',
@@ -124,7 +124,14 @@ const mapOrderStatus = (status: string): Order['status'] => {
     'wait_list': 'WAIT_LIST',
     'pending': 'PRE_POUR',
     'pre_pour': 'PRE_POUR',
+    'pre-pour': 'PRE_POUR',
     'hold': 'HOLD',
+    'on hold': 'HOLD',
+    'on_hold': 'HOLD',
+    // Combined word formats
+    'waitlist': 'WAIT_LIST',
+    'willcall': 'WILL_CALL',
+    'inprogress': 'IN_PROCESS',
   };
   return statusMap[status.toLowerCase()] || 'NORMAL';
 };
@@ -451,14 +458,14 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
 
 const statusColorMap: Record<string, string> = {
   all: colors.primary.main,
-  'Normal': colors.info.main,
-  'In Progress': colors.info.main,
-  'Completed': colors.success.main,
-  'Will Call': colors.warning.main,
+  'Normal': colors.success.main,        // Pre-Pour Normal → Green
+  'In Progress': colors.success.main,   // Default green, will be dynamic in OrderCard
+  'Completed': colors.success.main,     // Default green, will be dynamic in OrderCard
+  'Will Call': colors.warning.main,     // Pre-Pour Will Call → Yellow
   'Weather Permitting': colors.warning.main,
-  'Hold Delivery': colors.grey[50],
+  'Hold Delivery': colors.error.main,   // Pre-Pour Hold → Red
   'Wait List': colors.warning.main,
-  'Canceled': colors.error.main,
+  'Canceled': colors.error.main,        // Cancelled → Red
 };
 
 const FilterModal: React.FC<FilterModalProps> = ({
@@ -656,14 +663,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       onPress={() => handleStatusToggle(status.id)}
                       activeOpacity={0.7}
                     >
-                      {isActive && (
-                        <View style={styles.chipCheckContainer}>
-                          <Icon name="check" size={ms(12)} color={colors.common.white} />
-                        </View>
-                      )}
-                      {!isActive && (
-                        <View style={[styles.chipStatusDot, { backgroundColor: statusColor }]} />
-                      )}
+                      <Icon
+                        name={status.icon}
+                        size={ms(14)}
+                        color={isActive ? colors.common.white : statusColor}
+                      />
                       <Text
                         style={[
                           styles.filterChipText,
@@ -1110,6 +1114,7 @@ export const OrderListScreen: React.FC = () => {
       orderId: order.id,
       orderCode: order.orderCode,
       orderDate: order.scheduledDate,
+      status: order.status,
     });
   }, [navigation]);
 

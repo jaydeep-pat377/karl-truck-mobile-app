@@ -21,6 +21,11 @@ export const useOrderDetails = (params: OrderDetailsQueryParams) => {
     enabled: !!params.order_code && !!params.order_date,
   });
 
+  // Console log the API response
+  if (query.data) {
+    console.log('📋 Order Details API Response:', JSON.stringify(query.data, null, 2));
+  }
+
   const orderDetails: OrderDetailsOrder | null =
     query.data?.success ? query.data.data.order : null;
 

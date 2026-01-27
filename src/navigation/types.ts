@@ -27,7 +27,7 @@ export type OrderStatusFilter =
 export type MainTabParamList = {
   Home: undefined;
   Orders: { statusFilter?: OrderStatusFilter } | undefined;
-  Map: undefined;
+  Today: undefined;
   Notifications: undefined;
   Settings: undefined;
 };
@@ -186,7 +186,7 @@ export type MapTrackingScreenParams = {
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
-  OrderDetail: { orderId: string; orderCode: string; orderDate: string };
+  OrderDetail: { orderId: string; orderCode: string; orderDate: string; status?: string };
   Tracking: { orderId: string };
   Weather: WeatherScreenParams;
   ProductDetails: ProductDetailsScreenParams;

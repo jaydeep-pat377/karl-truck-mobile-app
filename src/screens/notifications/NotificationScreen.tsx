@@ -2,8 +2,10 @@
  * Notification Screen
  */
 
-import React from 'react';
-import { View, StyleSheet, FlatList, SafeAreaView, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card, Icon, EmptyViewWithPreset } from '../../components/common';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +14,7 @@ import { colors } from '../../theme/colors';
 import { spacing, ms, iconSizes } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useNotificationStore } from '../../store/notificationStore';
+import { MainTabParamList } from '../../navigation/types';
 
 const getNotificationIcon = (type: AppNotification['type']): string => {
   switch (type) {
@@ -31,12 +34,26 @@ const getNotificationIcon = (type: AppNotification['type']): string => {
 };
 
 export const NotificationScreen: React.FC = () => {
+  const navigation = useNavigation<NavigationProp<MainTabParamList>>();
   const { isDark } = useTheme();
   const { t } = useTranslation();
   const { notifications, markAsRead, markAllAsRead } = useNotificationStore();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Get theme-specific colors
   const themeColors = isDark ? colors.dark : colors.light;
+
+  const handleGoBack = () => {
+    navigation.navigate('Home');
+  };
+
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    // Notifications are pushed, so refresh just provides visual feedback
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 500);
+  }, []);
 
   const renderNotification = ({ item }: { item: AppNotification }) => (
     <Card
@@ -80,16 +97,44 @@ export const NotificationScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: themeColors.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity
+          style={[styles.headerButton, { backgroundColor: themeColors.surface }]}
+          onPress={handleGoBack}
+          activeOpacity={0.7}
+        >
+          <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
+        </TouchableOpacity>
         <Text variant="h2">{t('notifications.title')}</Text>
-        <TouchableOpacity onPress={markAllAsRead}>
-          <Text variant="bodySmall" style={{ color: colors.primary.main }}>
-            {t('notifications.markAllRead')}
-          </Text>
+        <TouchableOpacity
+          style={[styles.headerButton, { backgroundColor: themeColors.surface }]}
+          onPress={handleRefresh}
+          activeOpacity={0.7}
+          disabled={isRefreshing}
+        >
+          {isRefreshing ? (
+            <ActivityIndicator size="small" color={colors.primary.main} />
+          ) : (
+            <Icon name="refresh" size={ms(22)} color={themeColors.text.primary} />
+          )}
         </TouchableOpacity>
       </View>
+
+      {/* Mark All Read */}
+      {notifications.length > 0 && (
+        <View style={styles.markAllContainer}>
+          <TouchableOpacity onPress={markAllAsRead}>
+            <Text variant="bodySmall" style={{ color: colors.primary.main }}>
+              {t('notifications.markAllRead')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Notification List */}
       <FlatList
@@ -119,8 +164,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    marginTop: spacing.lg + 10,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  headerButton: {
+    width: ms(40),
+    height: ms(40),
+    borderRadius: ms(20),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  markAllContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+    alignItems: 'flex-end',
   },
   listContent: {
     paddingHorizontal: spacing.lg,

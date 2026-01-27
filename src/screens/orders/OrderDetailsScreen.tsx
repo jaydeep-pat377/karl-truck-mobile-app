@@ -21,6 +21,7 @@ import YellowTruck from '../../assets/svgs/yellowTruck.svg';
 import Isolation_Mode from '../../assets/svgs/Isolation_Mode.svg';
 import { Order } from '../../types';
 import { colors } from '../../theme/colors';
+import { getStatusColor, getStatusLabel } from '../../utils/statusUtils';
 import { fontFamily } from '../../theme/typography';
 import { ms } from '../../utils/responsive';
 import { RootStackParamList } from '../../navigation/types';
@@ -30,9 +31,6 @@ type OrderDetailsRouteProp = RouteProp<RootStackParamList, 'OrderDetail'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ============================================
-// Design System Constants (8pt Grid)
-// ============================================
 const GRID = {
   xs: 4,
   sm: 8,
@@ -76,9 +74,6 @@ const SHADOWS = {
   },
 } as const;
 
-// ============================================
-// Mock Data (Preserved)
-// ============================================
 const getMockOrder = (orderId: string): Order => ({
   id: orderId,
   orderCode: '269-10120',
@@ -160,9 +155,6 @@ const mockJobData = {
   ],
 };
 
-// ============================================
-// Animated Press Button Component
-// ============================================
 interface AnimatedPressProps {
   children: React.ReactNode;
   onPress?: () => void;
@@ -254,7 +246,6 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
               <Stop offset="100%" stopColor={colors.secondary.main} />
             </SvgGradient>
           </Defs>
-          {/* Background track */}
           <Circle
             cx={center}
             cy={center}
@@ -263,7 +254,6 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
             strokeWidth={strokeWidth}
             fill="transparent"
           />
-          {/* Progress arc */}
           <Circle
             cx={center}
             cy={center}
@@ -286,9 +276,6 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
   );
 };
 
-// ============================================
-// Quick Stat Card Component
-// ============================================
 interface QuickStatProps {
   icon: string;
   label: string;
@@ -608,11 +595,9 @@ interface OrderCodeDetailsCardProps {
   onProductPress: (product: ProductCardItem) => void;
 }
 
-// Barcode component to render realistic barcode lines
 const BarcodeImage: React.FC<{ isDark: boolean }> = ({ isDark }) => {
   const themeColors = isDark ? colors.dark : colors.light;
 
-  // Generate realistic barcode pattern
   const generateBarcode = () => {
     const bars = [];
     const pattern = [1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1];
@@ -651,12 +636,10 @@ const OrderCodeDetailsCard: React.FC<OrderCodeDetailsCardProps> = ({
 
   return (
     <View style={styles.orderCodeSection}>
-      {/* Section Title */}
       <Text style={[styles.ocSectionTitle, { color: themeColors.text.primary }]}>
         Order Code Details
       </Text>
 
-      {/* Product Cards */}
       {products.map((product, index) => (
         <View
           key={product.productId || index}
@@ -666,11 +649,8 @@ const OrderCodeDetailsCard: React.FC<OrderCodeDetailsCardProps> = ({
               backgroundColor: themeColors.card,
               borderColor: isDark ? themeColors.border : colors.grey[15],
             },
-          ]}
-        >
-          {/* Main Content Row */}
+          ]}>
           <View style={styles.ocMainRow}>
-            {/* Left: Barcode + Code */}
             <View style={styles.ocLeftSection}>
               <BarcodeImage isDark={isDark} />
               <Text style={[styles.ocItemCode, { color: themeColors.text.primary }]} numberOfLines={1}>
@@ -678,9 +658,7 @@ const OrderCodeDetailsCard: React.FC<OrderCodeDetailsCardProps> = ({
               </Text>
             </View>
 
-            {/* Right: Badge + Qty + Slump */}
             <View style={styles.ocRightSection}>
-              {/* Product Type Badge */}
               <View
                 style={[
                   styles.ocProductBadge,
@@ -692,31 +670,26 @@ const OrderCodeDetailsCard: React.FC<OrderCodeDetailsCardProps> = ({
                       ? colors.success.main
                       : colors.info.main,
                   },
-                ]}
-              >
+                ]}>
                 <Text
                   style={[
                     styles.ocProductBadgeText,
                     { color: product.isMix ? colors.success.main : colors.info.main },
-                  ]}
-                >
+                  ]}>
                   {product.isMix ? 'Concrete' : 'Associated Product'}
                 </Text>
               </View>
 
-              {/* Quantity */}
               <Text style={[styles.ocProductQty, { color: themeColors.text.primary }]}>
                 {product.orderedQty.toFixed(2)} CY
               </Text>
 
-              {/* Slump */}
               {product.slump && (
                 <Text style={[styles.ocProductSlump, { color: themeColors.text.secondary }]}>
                   SLUMP: {product.slump}
                 </Text>
               )}
 
-              {/* QR */}
               {product.qr && (
                 <Text style={[styles.ocProductSlump, { color: themeColors.text.secondary }]}>
                   QR: {product.qr}
@@ -725,7 +698,6 @@ const OrderCodeDetailsCard: React.FC<OrderCodeDetailsCardProps> = ({
             </View>
           </View>
 
-          {/* Bottom Link */}
           <TouchableOpacity
             style={[
               styles.ocDetailsLink,
@@ -735,8 +707,7 @@ const OrderCodeDetailsCard: React.FC<OrderCodeDetailsCardProps> = ({
               },
             ]}
             onPress={() => onProductPress(product)}
-            activeOpacity={0.7}
-          >
+            activeOpacity={0.7}>
             <Text style={[styles.ocDetailsLinkText, { color: themeColors.text.primary }]}>
               Click here to check details
             </Text>
@@ -801,9 +772,6 @@ const InfoRow: React.FC<InfoRowProps> = ({
   return content;
 };
 
-// ============================================
-// Enhanced Chart Component with Dropdown Menu
-// ============================================
 interface SmartChartProps {
   title: string;
   data: Array<{ time: string;[key: string]: number | string }>;
@@ -837,7 +805,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
   const allValues = data.flatMap(d => series.map(s => Number(d[s.key]) || 0));
   const maxValue = Math.max(...allValues, 1);
 
-  // Y-axis labels (5 steps from 0 to max)
   const yAxisSteps = 4;
   const yAxisValues = Array.from({ length: yAxisSteps + 1 }, (_, i) =>
     Math.round((maxValue / yAxisSteps) * (yAxisSteps - i))
@@ -853,7 +820,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
     return padding.top + chartHeight - (value / maxValue) * chartHeight;
   };
 
-  // Create smooth curved path using Catmull-Rom spline converted to Bezier
   const createSmoothPath = (seriesKey: string) => {
     const points = data.map((d, i) => ({
       x: getX(i),
@@ -862,7 +828,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
 
     if (points.length < 2) return '';
 
-    // For smooth Catmull-Rom spline, we need to handle endpoints
     const extendedPoints = [
       { x: points[0].x - (points[1].x - points[0].x), y: points[0].y - (points[1].y - points[0].y) },
       ...points,
@@ -873,9 +838,7 @@ const SmartChart: React.FC<SmartChartProps> = ({
     ];
 
     let path = `M ${points[0].x} ${points[0].y}`;
-
-    // Catmull-Rom to Bezier conversion
-    const tension = 0.5; // 0 = sharp, 1 = very smooth
+    const tension = 0.5;
 
     for (let i = 1; i < extendedPoints.length - 2; i++) {
       const p0 = extendedPoints[i - 1];
@@ -883,7 +846,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
       const p2 = extendedPoints[i + 1];
       const p3 = extendedPoints[i + 2];
 
-      // Calculate control points
       const cp1x = p1.x + (p2.x - p0.x) * tension / 3;
       const cp1y = p1.y + (p2.y - p0.y) * tension / 3;
       const cp2x = p2.x - (p3.x - p1.x) * tension / 3;
@@ -910,7 +872,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
     ? series
     : series.filter(s => s.label === filter);
 
-  // Get pick point position (use first visible series for Y position)
   const getPickPointPosition = () => {
     if (!showPickPoint || visibleSeries.length === 0) return null;
     const pointData = data[pickPointIndex];
@@ -931,7 +892,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
     }
   };
 
-  // Format tooltip date
   const formatTooltipDate = () => {
     const today = new Date();
     return `${today.getDate()} ${today.toLocaleString('en-US', { month: 'short' })} ${today.getFullYear()}`;
@@ -939,20 +899,17 @@ const SmartChart: React.FC<SmartChartProps> = ({
 
   return (
     <View style={[styles.chartCard, { backgroundColor: themeColors.card }]}>
-      {/* Header with Dropdown */}
       <View style={styles.chartHeader}>
         <Text style={[styles.chartTitle, { color: themeColors.text.primary }]}>{title}</Text>
         <View style={styles.chartFilterWrapper}>
           <TouchableOpacity
             style={[styles.chartFilterBtn, { backgroundColor: isDark ? themeColors.surface : colors.grey[5] }]}
             onPress={() => setShowDropdown(!showDropdown)}
-            activeOpacity={0.7}
-          >
+            activeOpacity={0.7}>
             <Text style={[styles.chartFilterText, { color: themeColors.text.primary }]}>{filter}</Text>
             <Icon name={showDropdown ? 'chevron-up' : 'chevron-down'} size={14} color={themeColors.text.hint} />
           </TouchableOpacity>
 
-          {/* Dropdown Menu */}
           {showDropdown && (
             <View style={[
               styles.chartDropdown,
@@ -993,7 +950,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
         </View>
       </View>
 
-      {/* Chart SVG */}
       <Pressable onPress={handleChartPress} style={styles.chartSvgContainer}>
         <Svg width={chartWidth} height={height}>
           <Defs>
@@ -1005,7 +961,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
             ))}
           </Defs>
 
-          {/* Dotted Grid lines and Y-axis labels */}
           {yAxisValues.map((value, i) => {
             const y = padding.top + (i / yAxisSteps) * chartHeight;
             return (
@@ -1022,15 +977,13 @@ const SmartChart: React.FC<SmartChartProps> = ({
                   fontSize={ms(9)}
                   fill={isDark ? colors.grey[40] : colors.grey[50]}
                   textAnchor="end"
-                  fontFamily={fontFamily.medium}
-                >
+                  fontFamily={fontFamily.medium}>
                   {value}
                 </SvgText>
               </G>
             );
           })}
 
-          {/* Areas and lines */}
           {visibleSeries.map((s, idx) => (
             <G key={`series-${idx}`}>
               <Path d={createAreaPath(s.key)} fill={`url(#areaGrad-${s.key})`} />
@@ -1045,10 +998,8 @@ const SmartChart: React.FC<SmartChartProps> = ({
             </G>
           ))}
 
-          {/* Single Pick Point */}
           {showPickPoint && pickPoint && (
             <G>
-              {/* Outer circle (border) */}
               <Circle
                 cx={pickPoint.x}
                 cy={pickPoint.y}
@@ -1057,7 +1008,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
                 stroke={colors.primary.main}
                 strokeWidth={3}
               />
-              {/* Inner dot */}
               <Circle
                 cx={pickPoint.x}
                 cy={pickPoint.y}
@@ -1068,7 +1018,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
           )}
         </Svg>
 
-        {/* Tooltip for Pick Point - positioned above pick point */}
         {showPickPoint && pickPoint && showTooltip && (
           <View
             style={[
@@ -1079,9 +1028,7 @@ const SmartChart: React.FC<SmartChartProps> = ({
                 top: pickPoint.y - 52,
                 ...SHADOWS.sm,
               }
-            ]}
-          >
-            {/* Date & Time Row */}
+            ]}>
             <View style={styles.tooltipDateRow}>
               <Icon name="calendar" size={8} color={colors.primary.main} />
               <Text style={[styles.tooltipDateText, { color: themeColors.text.primary }]}>
@@ -1089,7 +1036,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
               </Text>
             </View>
 
-            {/* Ordered Value */}
             <View style={styles.tooltipDataRow}>
               <Text style={[styles.tooltipDataLabel, { color: themeColors.text.hint }]}>
                 Ordered
@@ -1099,7 +1045,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
               </Text>
             </View>
 
-            {/* Spacing Value */}
             <View style={styles.tooltipDataRow}>
               <Text style={[styles.tooltipDataLabel, { color: themeColors.text.hint }]}>
                 Spacing
@@ -1111,7 +1056,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
           </View>
         )}
 
-        {/* X-axis labels */}
         <View style={styles.chartXLabels}>
           {data.map((d, i) => (
             <Text
@@ -1133,9 +1077,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
   );
 };
 
-// ============================================
-// Enhanced Bottom Tab Component
-// ============================================
 interface BottomTabProps {
   tabs: Array<{ icon: string; label: string }>;
   activeTab: string;
@@ -1192,9 +1133,6 @@ const BottomTabBar: React.FC<BottomTabProps> = ({ tabs, activeTab, onTabPress, i
   );
 };
 
-// ============================================
-// Main Screen Component
-// ============================================
 export const OrderDetailsScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<OrderDetailsRouteProp>();
@@ -1202,9 +1140,8 @@ export const OrderDetailsScreen: React.FC = () => {
   const themeColors = isDark ? colors.dark : colors.light;
   const { alertState, hideAlert, showError, showInfo } = useAlert();
 
-  const { orderId, orderCode, orderDate } = route.params;
+  const { orderId, orderCode, orderDate, status: passedStatus } = route.params;
 
-  // Fetch order details from API
   const {
     orderDetails,
     isLoading,
@@ -1214,7 +1151,6 @@ export const OrderDetailsScreen: React.FC = () => {
     isRefetching,
   } = useOrderDetails({ order_code: orderCode, order_date: orderDate });
 
-  // Map API data to UI format
   const order = useMemo((): Order => {
     if (!orderDetails) {
       return getMockOrder(orderId);
@@ -1252,7 +1188,6 @@ export const OrderDetailsScreen: React.FC = () => {
     };
   }, [orderDetails, orderId]);
 
-  // Map API data to job data format
   const jobData = useMemo(() => {
     if (!orderDetails) {
       return mockJobData;
@@ -1282,14 +1217,11 @@ export const OrderDetailsScreen: React.FC = () => {
       statusPills: (() => {
         const truckStatus = orderDetails.truck_status_count;
         const total = truckStatus?.total || 1;
-
-        // Get counts from truck_status_count
         const loadingCount = truckStatus?.loading ?? 0;
         const toJobCount = truckStatus?.to_job ?? 0;
         const atJobCount = truckStatus?.at_job ?? 0;
         const pouringCount = truckStatus?.pouring ?? 0;
 
-        // Determine active status based on which has the highest non-zero count
         const counts = [
           { status: 'loading', count: loadingCount },
           { status: 'to_job', count: toJobCount },
@@ -1312,8 +1244,8 @@ export const OrderDetailsScreen: React.FC = () => {
         itemCode: p.item_code,
         isMix: p.is_mix ?? true,
         orderedQty: p.ordered_qty ?? 0,
-        slump: '4.00 IN', // This should come from API if available
-        qr: '4000', // This should come from API if available
+        slump: '4.00 IN',
+        qr: '4000',
       })) || [],
     };
   }, [orderDetails]);
@@ -1334,6 +1266,26 @@ export const OrderDetailsScreen: React.FC = () => {
   const handleBack = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
+
+  // Get status color based on passed status or order status
+  // Uses same color mapping as OrderListScreen for consistency
+  // Use centralized utility for consistent color across all screens
+  const statusColor = useMemo(() => {
+    const status = passedStatus || order.status;
+    const progress = order.progress || 0;
+    const color = getStatusColor(status, progress);
+
+    // Debug logging to trace status color calculation
+    console.log('🎨 OrderDetails Status Debug:', {
+      passedStatus,
+      orderStatus: order.status,
+      usedStatus: status,
+      progress,
+      resultColor: color,
+    });
+
+    return color;
+  }, [passedStatus, order.status, order.progress]);
 
   const handleMenuToggle = useCallback(() => {
     setMenuVisible(prev => !prev);
@@ -1391,7 +1343,6 @@ export const OrderDetailsScreen: React.FC = () => {
     return `${timeStr} • ${date.getDate()} ${date.toLocaleString('en-US', { month: 'short' })} ${date.getFullYear()}`;
   };
 
-  // Chart data with more points for smoother curves
   const pourSpeedChartData = useMemo(() => jobData.pourSpeedData, [jobData.pourSpeedData]);
   const trucksChartData = useMemo(() => jobData.trucksOnJobData, [jobData.trucksOnJobData]);
 
@@ -1403,7 +1354,6 @@ export const OrderDetailsScreen: React.FC = () => {
     { icon: 'chat-outline', label: 'Chats' },
   ];
 
-  // Show loading state
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -1417,7 +1367,7 @@ export const OrderDetailsScreen: React.FC = () => {
           <View style={styles.headerSafeArea}>
             <View style={styles.headerTopRow}>
               <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
-                <Icon name="arrow-left" size={22} color={colors.common.white} />
+                <Icon name="arrow-left" size={22} color={isDark ? colors.common.white : colors.grey[80]} />
               </TouchableOpacity>
             </View>
           </View>
@@ -1426,14 +1376,13 @@ export const OrderDetailsScreen: React.FC = () => {
           <TruckLoader
             size={120}
             message="Loading order details..."
-            color="light"
+            color={isDark ? 'light' : 'dark'}
           />
         </View>
       </View>
     );
   }
 
-  // Show error state
   if (isError) {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -1447,7 +1396,7 @@ export const OrderDetailsScreen: React.FC = () => {
           <View style={styles.headerSafeArea}>
             <View style={styles.headerTopRow}>
               <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
-                <Icon name="arrow-left" size={22} color={colors.common.white} />
+                <Icon name="arrow-left" size={22} color={isDark ? colors.common.white : colors.grey[80]} />
               </TouchableOpacity>
             </View>
           </View>
@@ -1488,9 +1437,7 @@ export const OrderDetailsScreen: React.FC = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            // iOS: tintColor controls spinner color
             tintColor={colors.common.white}
-            // Android: colors array for spinner, progressBackgroundColor for background
             colors={[colors.primary.main, colors.secondary.main]}
             progressBackgroundColor={isDark ? themeColors.cardElevated : colors.common.white}
           />
@@ -1499,51 +1446,44 @@ export const OrderDetailsScreen: React.FC = () => {
           <View style={styles.headerSafeArea}>
             <View style={styles.headerTopRow}>
               <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
-                <Icon name="arrow-left" size={22} color={colors.common.white} />
+                <Icon name="arrow-left" size={22} color={isDark ? colors.common.white : colors.grey[80]} />
               </TouchableOpacity>
 
               <View style={styles.headerActions}>
                 <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7}>
-                  <Icon name="refresh" size={18} color={colors.common.white} />
+                  <Icon name="refresh" size={18} color={isDark ? colors.common.white : colors.grey[80]} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={handleMenuToggle}>
-                  <Icon name="dots-vertical" size={18} color={colors.common.white} />
+                  <Icon name="dots-vertical" size={18} color={isDark ? colors.common.white : colors.grey[80]} />
                 </TouchableOpacity>
               </View>
             </View>
 
-            <View style={styles.headerStatusContainer}>
-              <View style={styles.headerStatusBadge}>
-                <View style={styles.headerStatusPulse} />
-                <Text style={styles.headerStatusText}>{order.status}</Text>
-              </View>
-            </View>
-
-            <Text style={styles.headerSiteName}>{jobData.siteName}</Text>
+            <Text style={[styles.headerSiteName, { color: isDark ? colors.common.white : colors.grey[80] }]}>{jobData.siteName}</Text>
 
             <View style={styles.headerChipsRow}>
-              <View style={[styles.headerChip, { backgroundColor: isDark ? colors.common.white + '20' : colors.common.black + '25' }]}>
-                <Icon name="file-document-outline" size={12} color={colors.common.white} />
-                <Text style={styles.headerChipText}>Order: {order.orderCode}</Text>
+              <View style={[styles.headerChip, { backgroundColor: isDark ? colors.common.white + '20' : colors.common.black + '15' }]}>
+                <Icon name="file-document-outline" size={12} color={isDark ? colors.common.white : colors.grey[80]} />
+                <Text style={[styles.headerChipText, { color: isDark ? colors.common.white : colors.grey[80] }]}>Order: {order.orderCode}</Text>
               </View>
 
               <TouchableOpacity
-                style={[styles.headerChip, { backgroundColor: isDark ? colors.common.white + '20' : colors.common.black + '25' }]}
+                style={[styles.headerChip, { backgroundColor: isDark ? colors.common.white + '20' : colors.common.black + '15' }]}
                 onPress={handleWeatherPress}
                 activeOpacity={0.7}>
-                <Icon name="weather-partly-cloudy" size={12} color={colors.common.white} />
-                <Text style={styles.headerChipText}>{jobData.temperature}°C</Text>
+                <Icon name="weather-partly-cloudy" size={12} color={isDark ? colors.common.white : colors.grey[80]} />
+                <Text style={[styles.headerChipText, { color: isDark ? colors.common.white : colors.grey[80] }]}>{jobData.temperature}°C</Text>
               </TouchableOpacity>
 
-              <View style={[styles.headerChip, { backgroundColor: isDark ? colors.common.white + '20' : colors.common.black + '25' }]}>
-                <Icon name="truck" size={12} color={colors.common.white} />
-                <Text style={styles.headerChipText}>{jobData.truckCount} Trucks</Text>
+              <View style={[styles.headerChip, { backgroundColor: isDark ? colors.common.white + '20' : colors.common.black + '15' }]}>
+                <Icon name="truck" size={12} color={isDark ? colors.common.white : colors.grey[80]} />
+                <Text style={[styles.headerChipText, { color: isDark ? colors.common.white : colors.grey[80] }]}>{jobData.truckCount} Trucks</Text>
               </View>
             </View>
 
             <View style={styles.headerAddressRow}>
-              <Icon name="map-marker-outline" size={12} color={colors.common.white + '80'} />
-              <Text style={styles.headerAddress} numberOfLines={1}>
+              <Icon name="map-marker-outline" size={12} color={isDark ? colors.common.white : colors.grey[80]} />
+              <Text style={[styles.headerAddress, { color: isDark ? colors.common.white : colors.grey[80] }]} numberOfLines={1}>
                 {order.deliveryAddress}
               </Text>
             </View>
@@ -1553,6 +1493,14 @@ export const OrderDetailsScreen: React.FC = () => {
         <View style={styles.contentContainer}>
           <AnimatedPress>
             <View style={[styles.metricsCard, { backgroundColor: themeColors.card }, SHADOWS.md]}>
+
+              <View style={styles.headerStatusContainer}>
+                <View style={[styles.headerStatusBadge, { backgroundColor: statusColor + '20' }]}>
+                  <View style={[styles.headerStatusPulse, { backgroundColor: statusColor }]} />
+                  <Text style={[styles.headerStatusText, { color: statusColor }]}>{getStatusLabel(order.status)}</Text>
+                </View>
+              </View>
+
               <View style={styles.metricsMainRow}>
                 <View style={styles.metricItem}>
                   <Text style={[styles.metricValue, { color: themeColors.text.primary }]}>
@@ -1601,8 +1549,8 @@ export const OrderDetailsScreen: React.FC = () => {
             plantName={jobData.plantName}
             plantCode={jobData.plantCode}
             plantPhone={jobData.plantPhone}
-            statusText={jobData.status}
-            statusColor={colors.warning.main}
+            statusText={getStatusLabel(order.status)}
+            statusColor={statusColor}
             isDark={isDark}
             onCallPress={() => handleCall(jobData.plantPhone)}
           />
@@ -1651,7 +1599,6 @@ export const OrderDetailsScreen: React.FC = () => {
             onProductPress={handleProductPress}
           />
 
-          {/* Truck SVG with city background at bottom */}
           <View style={[styles.truckBackgroundContainer, { backgroundColor: isDark ? '#1a2a3a' : '#E8F4FC' }]}>
             <View style={styles.cityBackgroundWrapper}>
               <Isolation_Mode
@@ -1673,25 +1620,18 @@ export const OrderDetailsScreen: React.FC = () => {
         animationType="fade"
         statusBarTranslucent={true}
         onRequestClose={handleMenuToggle}>
-        {/* Full screen container */}
         <View style={styles.menuModalWrapper}>
-          {/* Backdrop - tapping dismisses modal */}
           <Pressable style={styles.menuBackdrop} onPress={handleMenuToggle} />
 
-          {/* Modal content container - positioned at bottom */}
           <View style={styles.menuBottomSheet}>
-            {/* SafeAreaView respects bottom safe area (home indicator) */}
             <SafeAreaView edges={['bottom']} style={styles.menuSafeArea}>
-              {/* Pressable prevents backdrop press from triggering through modal */}
               <Pressable onPress={(e) => e.stopPropagation()}>
                 <View style={styles.menuContainer}>
                   <View style={[styles.menuContent, { backgroundColor: themeColors.card }]}>
-                    {/* Drag handle indicator */}
                     <View style={styles.menuHandle}>
                       <View style={[styles.menuHandleBar, { backgroundColor: isDark ? themeColors.border : colors.grey[25] }]} />
                     </View>
 
-                    {/* Header */}
                     <View style={[styles.menuHeader, { borderBottomColor: isDark ? themeColors.border : colors.grey[10] }]}>
                       <Text style={[styles.menuTitle, { color: themeColors.text.primary }]}>
                         Order Options
@@ -1704,7 +1644,6 @@ export const OrderDetailsScreen: React.FC = () => {
                       </TouchableOpacity>
                     </View>
 
-                    {/* Scrollable content for many items */}
                     <ScrollView
                       bounces={false}
                       showsVerticalScrollIndicator={false}
@@ -1822,7 +1761,7 @@ const styles = StyleSheet.create({
   },
   headerStatusContainer: {
     alignItems: 'center',
-    marginTop: GRID.md,
+    marginBottom: GRID.md,
   },
   headerStatusBadge: {
     flexDirection: 'row',
@@ -1880,7 +1819,8 @@ const styles = StyleSheet.create({
   },
   headerAddress: {
     fontFamily: fontFamily.regular,
-    fontSize: ms(10),
+    fontSize: ms(12),
+    marginTop: ms(5),
     color: colors.common.white,
   },
   scrollView: {
@@ -2168,15 +2108,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Row containing psPlantNameRow + Phone Icon
   psPlantContentRow: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'center', // Vertically centers phone icon with psPlantNameRow
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: GRID.md,
   },
-  // Plant name container - phone icon aligns to center of this entire view
   psPlantNameRow: {
     flex: 1,
     flexDirection: 'column',
@@ -2195,7 +2133,6 @@ const styles = StyleSheet.create({
     fontSize: ms(11),
     marginTop: GRID.xs,
   },
-  // Phone call button - min 44x44 touch area via hitSlop
   psCallButton: {
     width: ms(44),
     height: ms(44),
@@ -2203,7 +2140,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // ====== CONTACT DETAILS CARD STYLES ======
   contactDetailsCard: {
     borderRadius: RADIUS.xl,
     marginBottom: GRID.md,
@@ -2273,7 +2209,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   orderCodeSection: {
-    // marginBottom: GRID.md,
   },
   ocSectionTitle: {
     fontFamily: fontFamily.bold,
@@ -2543,7 +2478,6 @@ const styles = StyleSheet.create({
   chartXLabel: {
     fontSize: ms(9),
   },
-  // Pick Point Tooltip Styles
   pickPointTooltip: {
     position: 'absolute',
     minWidth: ms(100),
@@ -2628,8 +2562,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     fontSize: ms(10),
   },
-
-  // ====== BOTTOM TAB BAR ======
   bottomTabBar: {
     position: 'absolute',
     bottom: 0,
@@ -2669,13 +2601,10 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: colors.primary.main,
   },
-  // ====== MENU MODAL STYLES ======
-  // Full screen wrapper - ensures modal covers entire screen
   menuModalWrapper: {
     flex: 1,
     justifyContent: 'flex-end',
   },
-  // Backdrop overlay - covers screen and handles dismiss
   menuBackdrop: {
     position: 'absolute',
     top: 0,
@@ -2684,27 +2613,22 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: colors.overlay.modal,
   },
-  // Bottom sheet container - holds modal at bottom
   menuBottomSheet: {
     width: '100%',
-    maxHeight: '80%', // Prevents overflow - max 80% of screen height
+    maxHeight: '80%',
   },
-  // SafeAreaView wrapper
   menuSafeArea: {
     width: '100%',
   },
-  // Inner container with padding
   menuContainer: {
     paddingHorizontal: GRID.md,
     paddingBottom: GRID.sm,
   },
-  // Modal content card
   menuContent: {
     borderRadius: RADIUS.xl,
     overflow: 'hidden',
     ...SHADOWS.lg,
   },
-  // Drag handle at top of modal
   menuHandle: {
     alignItems: 'center',
     paddingVertical: GRID.sm,
@@ -2714,7 +2638,6 @@ const styles = StyleSheet.create({
     height: ms(4),
     borderRadius: RADIUS.full,
   },
-  // Header row
   menuHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2727,11 +2650,9 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     fontSize: ms(16),
   },
-  // Scrollable content area
   menuScrollView: {
-    maxHeight: SCREEN_WIDTH, // Reasonable max height for scroll content
+    maxHeight: SCREEN_WIDTH,
   },
-  // Menu item row
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',

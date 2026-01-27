@@ -177,8 +177,8 @@ const TabItem: React.FC<TabItemProps> = ({
     switch (route.name) {
       case 'Orders':
         return isFocused ? 'clipboard-text' : 'clipboard-text-outline';
-      case 'Map':
-        return isFocused ? 'map' : 'map-outline';
+      case 'Today':
+        return isFocused ? 'clock-fast' : 'clock-outline';
       case 'Home':
         return isFocused ? 'home' : 'home-outline';
       case 'Notifications':
@@ -298,12 +298,15 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
     };
   }, [translateY]);
 
+  // Ensure minimum padding for devices without safe areas, plus the actual safe area
+  const bottomPadding = Math.max(insets.bottom, spacing.sm) + spacing.xs;
+
   return (
     <Animated.View
       style={[
         styles.container,
         {
-          paddingBottom: Platform.OS === 'ios' ? insets.bottom : spacing.sm,
+          paddingBottom: bottomPadding,
           transform: [{ translateY }]
         },
       ]}>

@@ -38,6 +38,10 @@ export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
   // Flatten all pages of orders into a single array
   const orders: ApiOrder[] = useMemo(() => {
     if (!query.data?.pages) return [];
+
+    // Console log the API response
+    console.log('📦 Orders API Response:', JSON.stringify(query.data.pages, null, 2));
+
     return query.data.pages.flatMap((page) =>
       page.success ? page.data.orders : []
     );

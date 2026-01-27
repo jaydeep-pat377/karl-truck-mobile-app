@@ -31,7 +31,7 @@ interface KPIData {
   color: string;
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
-  statusFilter?: string; // API status filter value for navigation
+  statusFilter?: string;
 }
 
 interface ActiveDelivery {
@@ -114,7 +114,6 @@ const allQuickActions: QuickAction[] = [
   },
 ];
 
-// Default: Track Trucks, Orders, Settings (3 items)
 const defaultEnabledActionIds = ['1', '2', '4'];
 const QUICK_ACTIONS_STORAGE_KEY = '@quick_actions_enabled';
 
@@ -218,13 +217,13 @@ const OverviewProgressBar: React.FC<OverviewProgressBarProps> = ({
   }, [willCall, holdDelivery, cancelled, normal, completed, inProgress, willCallPercent, holdDeliveryPercent, cancelledPercent, normalPercent, completedPercent, inProgressPercent, willCallAnim, holdDeliveryAnim, cancelledAnim, normalAnim, completedAnim, inProgressAnim, fadeAnim, scaleAnim]);
 
   const segments = [
-    { label: 'Will Call', value: willCall, percent: willCallPercent, anim: willCallAnim, color: colors.dashboard.willCall, icon: 'phone-ring' }, // Purple
+    { label: 'Will Call', value: willCall, percent: willCallPercent, anim: willCallAnim, color: colors.dashboard.willCall, icon: 'phone-ring' },
     { label: 'Hold Delivery', value: holdDelivery, percent: holdDeliveryPercent, anim: holdDeliveryAnim, color: colors.status.onHold, icon: 'pause-circle' },
     { label: 'Cancelled', value: cancelled, percent: cancelledPercent, anim: cancelledAnim, color: colors.error.main, icon: 'close-circle' },
     { label: 'Normal', value: normal, percent: normalPercent, anim: normalAnim, color: colors.status.prePour, icon: 'checkbox-marked-circle' },
     { label: 'Completed', value: completed, percent: completedPercent, anim: completedAnim, color: colors.status.completed, icon: 'check-circle' },
-    { label: 'In Progress', value: inProgress, percent: inProgressPercent, anim: inProgressAnim, color: colors.dashboard.inProgress, icon: 'truck-fast' }, // Orange
-  ].filter(s => s.value > 0); // Only show segments with values
+    { label: 'In Progress', value: inProgress, percent: inProgressPercent, anim: inProgressAnim, color: colors.dashboard.inProgress, icon: 'truck-fast' },
+  ].filter(s => s.value > 0);
 
   return (
     <Animated.View
@@ -390,12 +389,10 @@ const DashboardScreen: React.FC = () => {
   const { isTablet } = useResponsive();
   const { width: screenWidth } = useWindowDimensions();
 
-  // Quick actions state
   const [enabledActionIds, setEnabledActionIds] = useState<string[]>(defaultEnabledActionIds);
   const [showQuickActionsModal, setShowQuickActionsModal] = useState(false);
   const [tempEnabledIds, setTempEnabledIds] = useState<string[]>([]);
 
-  // Load saved quick actions from storage
   useEffect(() => {
     const loadSavedActions = async () => {
       try {
@@ -410,7 +407,6 @@ const DashboardScreen: React.FC = () => {
     loadSavedActions();
   }, []);
 
-  // Save quick actions to storage
   const saveQuickActions = useCallback(async (ids: string[]) => {
     try {
       await AsyncStorage.setItem(QUICK_ACTIONS_STORAGE_KEY, JSON.stringify(ids));
@@ -420,12 +416,10 @@ const DashboardScreen: React.FC = () => {
     }
   }, []);
 
-  // Get enabled quick actions
   const enabledQuickActions = useMemo(() => {
     return allQuickActions.filter(action => enabledActionIds.includes(action.id));
   }, [enabledActionIds]);
 
-  // Use dashboard API hook
   const {
     user,
     notifications,
@@ -441,12 +435,11 @@ const DashboardScreen: React.FC = () => {
     refetch,
   } = useDashboard();
 
-  // Fetch device token for notifications
   useEffect(() => {
     const initNotifications = async () => {
       try {
         const deviceToken = await notificationService.getToken();
-   } catch (error) {
+      } catch (error) {
         console.log('Error fetching device token:', error);
       }
     };
@@ -455,12 +448,10 @@ const DashboardScreen: React.FC = () => {
 
   const themeColors = isDark ? colors.dark : colors.light;
 
-  // Pull to refresh handler
   const onRefresh = useCallback(() => {
     refetch();
   }, [refetch]);
 
-  // Quick actions modal handlers
   const handleOpenQuickActionsModal = useCallback(() => {
     setTempEnabledIds([...enabledActionIds]);
     setShowQuickActionsModal(true);
@@ -473,11 +464,9 @@ const DashboardScreen: React.FC = () => {
   const handleToggleAction = useCallback((actionId: string) => {
     setTempEnabledIds(prev => {
       if (prev.includes(actionId)) {
-        // Don't allow removing if only one action remains
         if (prev.length <= 1) return prev;
         return prev.filter(id => id !== actionId);
       } else {
-        // Don't allow more than 3 actions
         if (prev.length >= 3) return prev;
         return [...prev, actionId];
       }
@@ -489,7 +478,6 @@ const DashboardScreen: React.FC = () => {
     setShowQuickActionsModal(false);
   }, [tempEnabledIds, saveQuickActions]);
 
-  // Get user initials for avatar
   const getUserInitials = () => {
     if (!user) return 'U';
     const first = user.firstName?.charAt(0) || '';
@@ -497,18 +485,15 @@ const DashboardScreen: React.FC = () => {
     return (first + last).toUpperCase() || 'U';
   };
 
-  // Build KPI data from API response
-  // statusFilter must match the API status values used in OrderListScreen
   const kpiData: KPIData[] = useMemo(() => [
-    { id: '1', label: 'Will Call', value: todayOverview?.will_call ?? 0, icon: 'phone-ring', color: colors.dashboard.willCall, statusFilter: 'Will Call' }, // Purple - distinct for Will Call
-    { id: '2', label: 'Hold Delivery', value: todayOverview?.hold_delivery ?? 0, icon: 'pause-circle', color: colors.status.onHold, statusFilter: 'Hold Delivery' },
-    { id: '3', label: 'Cancelled', value: todayOverview?.cancelled ?? 0, icon: 'close-circle', color: colors.error.main, statusFilter: 'Canceled' }, // API uses 'Canceled'
-    { id: '4', label: 'Normal', value: todayOverview?.normal ?? 0, icon: 'checkbox-marked-circle', color: colors.status.prePour, statusFilter: 'Normal' },
-    { id: '5', label: 'In Progress', value: todayOverview?.in_progress ?? 0, icon: 'truck-fast', color: colors.dashboard.inProgress, statusFilter: 'In Progress' }, // Orange - distinct for In Progress
+    { id: '1', label: 'Normal', value: todayOverview?.normal ?? 0, icon: 'checkbox-marked-circle', color: colors.status.prePour, statusFilter: 'Normal' },
+    { id: '2', label: 'Will Call', value: todayOverview?.will_call ?? 0, icon: 'phone-ring', color: colors.dashboard.willCall, statusFilter: 'Will Call' },
+    { id: '3', label: 'Hold Delivery', value: todayOverview?.hold_delivery ?? 0, icon: 'pause-circle', color: colors.status.onHold, statusFilter: 'Hold Delivery' },
+    { id: '4', label: 'Cancelled', value: todayOverview?.cancelled ?? 0, icon: 'close-circle', color: colors.error.main, statusFilter: 'Canceled' },
+    { id: '5', label: 'In Progress', value: todayOverview?.in_progress ?? 0, icon: 'truck-fast', color: colors.dashboard.inProgress, statusFilter: 'In Progress' },
     { id: '6', label: 'Completed', value: todayOverview?.completed ?? 0, icon: 'check-circle', color: colors.status.completed, statusFilter: 'Completed' },
   ], [todayOverview]);
 
-  // Get weather icon based on condition
   const getWeatherIconName = (condition?: string) => {
     if (!condition) return 'weather-partly-cloudy';
     const lowerCondition = condition.toLowerCase();
@@ -590,22 +575,14 @@ const DashboardScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
-  // Calculate quick action item width dynamically for all screen sizes
-  // This ensures proper responsiveness on all devices (phones, tablets, Android, iOS)
   const quickActionLayout = useMemo(() => {
-    const horizontalPadding = spacing.lg * 2; // Left + Right container padding
-    const gapBetweenItems = spacing.sm; // Gap between each item
+    const horizontalPadding = spacing.lg * 2;
+    const gapBetweenItems = spacing.sm;
     const numberOfItems = 3;
-    const totalGaps = gapBetweenItems * (numberOfItems - 1); // 2 gaps for 3 items
-
-    // Calculate available width and divide equally
+    const totalGaps = gapBetweenItems * (numberOfItems - 1);
     const availableWidth = screenWidth - horizontalPadding - totalGaps;
     const itemWidth = Math.floor(availableWidth / numberOfItems);
-
-    // Responsive height based on device size
     const itemHeight = isTablet ? ms(130) : screenWidth < 375 ? ms(95) : ms(110);
-
-    // Responsive icon size
     const iconContainerSize = isTablet ? ms(56) : screenWidth < 375 ? ms(40) : ms(48);
 
     return {
@@ -709,9 +686,19 @@ const DashboardScreen: React.FC = () => {
     );
   };
 
-  const SectionHeader = ({ title, actionLabel, onAction }: { title: string; actionLabel?: string; onAction?: () => void }) => (
+  const SectionHeader = ({ title, actionLabel, onAction, showScrollHint }: { title: string; actionLabel?: string; onAction?: () => void; showScrollHint?: boolean }) => (
     <View style={styles.sectionHeader}>
-      <Text variant="h4">{title}</Text>
+      <View style={styles.sectionHeaderLeft}>
+        <Text variant="h4">{title}</Text>
+        {showScrollHint && (
+          <View style={[styles.scrollHintContainer, { backgroundColor: colors.primary.main + '20' }]}>
+            <Text variant="caption" style={{ color: colors.primary.main, marginRight: ms(4), fontWeight: '500' }}>
+              Swipe
+            </Text>
+            <Icon name="chevron-right" size={ms(16)} color={colors.primary.main} />
+          </View>
+        )}
+      </View>
       {actionLabel && onAction && (
         <TouchableOpacity onPress={onAction} activeOpacity={0.7}>
           <Text variant="bodySmall" style={{ color: colors.primary.main }}>{actionLabel}</Text>
@@ -720,12 +707,10 @@ const DashboardScreen: React.FC = () => {
     </View>
   );
 
-  // Skeleton component for faster perceived loading
   const DashboardSkeleton = () => {
     const shimmerColor = isDark ? colors.dark.cardElevated : colors.grey[10];
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
-        {/* Header skeleton */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={[styles.avatar, { backgroundColor: shimmerColor }]} />
@@ -782,12 +767,10 @@ const DashboardScreen: React.FC = () => {
     );
   };
 
-  // Show loading state
   if (isLoading) {
     return <DashboardSkeleton />;
   }
 
-  // Show error state
   if (isError) {
     return (
       <SafeAreaView style={[styles.container, styles.loaderContainer, { backgroundColor: themeColors.background }]} edges={['top']}>
@@ -857,7 +840,7 @@ const DashboardScreen: React.FC = () => {
         }>
         {/* {renderWeatherCard()} */}
 
-        <SectionHeader title="Today's Overview" actionLabel={`Total: ${todayOverview?.total_orders ?? 0}`} onAction={() => navigation.navigate('Orders')} />
+        <SectionHeader title="Today's Overview" actionLabel={`Total: ${todayOverview?.total_orders ?? 0}`} onAction={() => navigation.navigate('Orders')} showScrollHint />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -1160,6 +1143,19 @@ const createStyles = (themeColors: typeof colors.dark | typeof colors.light, isT
       marginTop: spacing.md,
       marginBottom: spacing.sm,
     },
+    sectionHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    scrollHintContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.primary.main + '10',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: ms(12),
+    },
     kpiList: {
       paddingHorizontal: spacing.lg,
       paddingBottom: spacing.sm,
@@ -1234,7 +1230,7 @@ const createStyles = (themeColors: typeof colors.dark | typeof colors.light, isT
       paddingBottom: spacing.sm,
     },
     deliveryCard: {
-      width: screenWidth - (spacing.lg * 2), // Full screen width minus horizontal padding
+      width: screenWidth - (spacing.lg * 2),
       backgroundColor: themeColors.card,
       shadowColor: isDark ? colors.common.black : colors.grey[100],
       shadowOffset: { width: 0, height: 2 },
@@ -1319,7 +1315,6 @@ const createStyles = (themeColors: typeof colors.dark | typeof colors.light, isT
     emptyText: {
       marginTop: spacing.sm,
     },
-    // Modal styles
     modalOverlay: {
       flex: 1,
       backgroundColor: colors.overlay.medium,

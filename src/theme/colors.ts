@@ -95,7 +95,7 @@ export const colors = {
       primary: '#000000',  // Black 100%
       secondary: '#585957', // Dark Gray
       disabled: '#BFBFBF', // Black 25%
-      hint: '#BFBFBF',
+      hint: '#808080',     // Mid Gray - improved contrast for visibility
     },
   },
   common: {
@@ -486,19 +486,86 @@ export const colors = {
 };
 
 export const statusColorMap: Record<string, string> = {
-  PRE_POUR: colors.status.prePour,
-  IN_PROCESS: colors.status.inProcess,
-  COMPLETED: colors.status.completed,
-  CANCELLED: colors.status.cancelled,
-  DELAYED: colors.status.delayed,
-  ON_HOLD: colors.status.onHold,
+  // Pre-Pour / Normal → Green
+  PRE_POUR: colors.success.main,
+  'Pre-Pour': colors.success.main,
+  'pre_pour': colors.success.main,
+  'Pre Pour': colors.success.main,
+  'pre pour': colors.success.main,
+  NORMAL: colors.success.main,
+  'Normal': colors.success.main,
+  'normal': colors.success.main,
+
+  // In Progress → Green (default, dynamic in OrderCard based on cy/hr)
+  IN_PROCESS: colors.success.main,
+  'In Progress': colors.success.main,
+  'in progress': colors.success.main,
+  'in_process': colors.success.main,
+
+  // Completed → Green (default, dynamic in OrderCard based on cy/hr)
+  COMPLETED: colors.success.main,
+  'Completed': colors.success.main,
+  'completed': colors.success.main,
+
+  // Cancelled → Red
+  CANCELLED: colors.error.main,
+  CANCELED: colors.error.main,
+  'Cancelled': colors.error.main,
+  'Canceled': colors.error.main,
+  'cancelled': colors.error.main,
+  'canceled': colors.error.main,
+
+  // Delayed → Red
+  DELAYED: colors.error.main,
+  'Delayed': colors.error.main,
+  'delayed': colors.error.main,
+
+  // Hold → Red
+  HOLD: colors.error.main,
+  'Hold': colors.error.main,
+  'hold': colors.error.main,
+  ON_HOLD: colors.error.main,
+  'On Hold': colors.error.main,
+  'on hold': colors.error.main,
+  'Hold Delivery': colors.error.main,
+  'hold delivery': colors.error.main,
+  'hold_delivery': colors.error.main,
+
+  // En Route / On Site
   ENRT: colors.status.enRoute,
   ONSIT: colors.status.onSite,
-  NORMAL: colors.status.inProcess,
-  WILL_CALL: colors.status.prePour,
-  WEATHER_PERMITTING: colors.status.prePour,
-  HOLD: colors.status.onHold,
-  WAIT_LIST: colors.status.onHold,
+
+  // Will Call → Yellow
+  WILL_CALL: colors.warning.main,
+  'Will Call': colors.warning.main,
+  'will call': colors.warning.main,
+  'will_call': colors.warning.main,
+
+  // Weather Permitting → Yellow
+  WEATHER_PERMITTING: colors.warning.main,
+  'Weather Permitting': colors.warning.main,
+  'weather permitting': colors.warning.main,
+  'weather_permitting': colors.warning.main,
+
+  // Wait List → Yellow
+  WAIT_LIST: colors.warning.main,
+  'Wait List': colors.warning.main,
+  'wait list': colors.warning.main,
+  'wait_list': colors.warning.main,
+  'Waitlist': colors.warning.main,
+  'waitlist': colors.warning.main,
+};
+
+// Performance-based color helper for In Process and Completed orders
+// ≥90% → Green, 60%-<90% → Yellow, <60% → Red
+export const getPerformanceColor = (performancePercent: number): string => {
+  if (performancePercent >= 90) {
+    return colors.success.main;  // Green
+  } else if (performancePercent >= 60) {
+    return colors.warning.main;  // Yellow
+  } else {
+    return colors.error.main;    // Red
+  }
 };
 
 export type ColorTheme = 'light' | 'dark';

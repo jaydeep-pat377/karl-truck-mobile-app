@@ -11,6 +11,7 @@ import { spacing, ms } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useLogout } from '../../hooks/useLogout';
 import { useProfile } from '../../hooks/useProfile';
+import { MainTabParamList } from '../../navigation/types';
 
 interface SettingsItemProps {
   icon: string;
@@ -113,14 +114,29 @@ const ThemeToggleItem: React.FC<ThemeToggleItemProps> = ({ onToggle }) => {
 };
 
 export const SettingsScreen: React.FC = () => {
-  const navigation = useNavigation<NavigationProp<SettingsStackParamList>>();
+  const navigation = useNavigation<NavigationProp<SettingsStackParamList & MainTabParamList>>();
   const { toggleTheme, isDark } = useTheme();
   const { t } = useTranslation();
   const { logout, isLoading: isLoggingOut } = useLogout();
-  const { profile, isLoading: isProfileLoading } = useProfile();
+  const { profile, isLoading: isProfileLoading, refetch: refetchProfile } = useProfile();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const themeColors = isDark ? colors.dark : colors.light;
+
+  const handleGoBack = () => {
+    // Navigate to Home tab
+    navigation.navigate('Home' as any);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetchProfile();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Get initials from name
   const getInitials = (name: string | undefined): string => {
@@ -145,6 +161,10 @@ export const SettingsScreen: React.FC = () => {
     navigation.navigate('ChangePIN');
   };
 
+  const handleNavigateToNotifications = () => {
+    navigation.navigate('Notifications' as any);
+  };
+
   const handleLogout = () => {
     setShowLogoutModal(true);
   };
@@ -160,7 +180,26 @@ export const SettingsScreen: React.FC = () => {
       edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
+          <TouchableOpacity
+            style={[styles.headerButton, { backgroundColor: themeColors.surface }]}
+            onPress={handleGoBack}
+            activeOpacity={0.7}
+          >
+            <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
+          </TouchableOpacity>
           <Text variant="h2">{t('settings.title')}</Text>
+          <TouchableOpacity
+            style={[styles.headerButton, { backgroundColor: themeColors.surface }]}
+            onPress={handleRefresh}
+            activeOpacity={0.7}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? (
+              <ActivityIndicator size="small" color={colors.primary.main} />
+            ) : (
+              <Icon name="refresh" size={ms(22)} color={themeColors.text.primary} />
+            )}
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity activeOpacity={0.7} onPress={handleNavigateToEditProfile}>
@@ -282,7 +321,7 @@ export const SettingsScreen: React.FC = () => {
               icon="bell-outline"
               title={t('settings.notifications')}
               subtitle="Manage notification preferences"
-              onPress={() => { }}
+              onPress={handleNavigateToNotifications}
             />
           </Card>
         </View>
@@ -376,9 +415,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
+  },
+  headerButton: {
+    width: ms(40),
+    height: ms(40),
+    borderRadius: ms(20),
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileCard: {
     marginHorizontal: spacing.lg,
