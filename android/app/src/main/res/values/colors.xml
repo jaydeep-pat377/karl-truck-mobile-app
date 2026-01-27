@@ -6,4 +6,12 @@
     <color name="secondary">#04BCEF</color>
     <color name="splash_background">#6BB130</color>
     <color name="bootsplash_background">#ffffff</color>
+    <!-- Widget colors -->
+    <color name="widget_background">#FFFFFF</color>
+    <color name="widget_text_primary">#1F2937</color>
+    <color name="widget_text_secondary">#6B7280</color>
+    <color name="widget_text_hint">#9CA3AF</color>
+    <color name="widget_progress_background">#E5E7EB</color>
+    <color name="widget_in_progress">#F59E0B</color>
+    <color name="widget_card_background">#F9FAFB</color>
 </resources>

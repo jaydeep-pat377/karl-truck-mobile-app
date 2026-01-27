@@ -15,7 +15,6 @@ import {
   InteractionManager,
   Linking,
   Platform,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import Mapbox from '@rnmapbox/maps';
@@ -497,37 +496,10 @@ export const MapTrackingScreen: React.FC = () => {
     }
   }, [plantLocation, jobLocation]);
 
-  // Handle directions toggle with Google Maps option
+  // Handle directions toggle - show directions in-app directly
   const handleDirectionsToggle = useCallback(() => {
-    if (!showDirections) {
-      // Turning ON - show alert with options
-      Alert.alert(
-        'Show Directions',
-        'Would you like to view directions in the app or open Google Maps?',
-        [
-          {
-            text: 'In App',
-            onPress: () => setShowDirections(true),
-          },
-          {
-            text: 'Google Maps',
-            onPress: () => {
-              setShowDirections(true);
-              openGoogleMapsDirections();
-            },
-          },
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-        ],
-        { cancelable: true }
-      );
-    } else {
-      // Turning OFF - just toggle
-      setShowDirections(false);
-    }
-  }, [showDirections, openGoogleMapsDirections]);
+    setShowDirections(!showDirections);
+  }, [showDirections]);
 
   const renderTruckItem = useCallback(
     ({ item, index }: { item: Truck; index: number }) => (

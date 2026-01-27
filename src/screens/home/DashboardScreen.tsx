@@ -10,6 +10,7 @@ import {
   Modal,
   Pressable,
   useWindowDimensions,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +23,7 @@ import { useResponsive } from '../../hooks/useResponsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useDashboard } from '../../hooks/useDashboard';
 import { notificationService } from '../../services/notificationService';
+import { updateWidgetData } from '../../modules/TodayOverviewWidget';
 
 interface KPIData {
   id: string;
@@ -445,6 +447,20 @@ const DashboardScreen: React.FC = () => {
     };
     initNotifications();
   }, []);
+
+  // Update Android widget when todayOverview data changes
+  useEffect(() => {
+    if (Platform.OS === 'android' && todayOverview) {
+      const totalOrders = todayOverview.total_orders ?? 0;
+      const inProgress = todayOverview.in_progress ?? 0;
+      const completed = todayOverview.completed ?? 0;
+      const progress = totalOrders > 0 ? Math.round((completed / totalOrders) * 100) : 0;
+
+      updateWidgetData(totalOrders, inProgress, completed, progress)
+        .then(() => console.log('Widget updated successfully'))
+        .catch((error) => console.log('Failed to update widget:', error));
+    }
+  }, [todayOverview]);
 
   const themeColors = isDark ? colors.dark : colors.light;
 

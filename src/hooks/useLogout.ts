@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
 import { authService } from '../api/services/authService';
 import { AxiosError } from 'axios';
+import { clearWidgetData } from '../modules/TodayOverviewWidget';
 
 interface LogoutResponse {
   success: boolean;
@@ -22,6 +23,8 @@ export const useLogout = () => {
     },
     onSettled: async () => {
       await clearAuth();
+      // Clear Android widget data on logout
+      await clearWidgetData();
     },
   });
 

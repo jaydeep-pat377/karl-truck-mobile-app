@@ -31,5 +31,18 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+
+    <!-- Today's Overview Widget -->
+    <receiver
+      android:name=".TodayOverviewWidget"
+      android:exported="true"
+      android:label="@string/widget_name">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/today_overview_widget_info" />
+    </receiver>
   </application>
 </manifest>

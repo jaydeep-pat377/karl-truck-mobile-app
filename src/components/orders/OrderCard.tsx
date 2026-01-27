@@ -127,13 +127,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 {formatDate(order.scheduledDate)} • {order.scheduledTime}
               </Text>
             </View>
-            {order.hasAlert && (
-              <Icon
-                name="alert-circle"
-                size={ms(14)}
-                color={colors.warning.main}
-              />
-            )}
           </View>
 
           <View style={styles.titleRow}>
