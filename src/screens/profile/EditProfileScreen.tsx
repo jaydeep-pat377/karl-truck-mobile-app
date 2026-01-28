@@ -32,7 +32,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
 }) => {
   const { theme, isDark } = useTheme();
   const { profile, isLoading: isProfileLoading, refetch, isRefetching } = useProfile();
-  const { updateProfile, isLoading: isUpdating, error: updateError } = useUpdateProfile();
+  const { updateProfile, uploadAvatar, isLoading: isUpdating, error: updateError } = useUpdateProfile();
   const { alertState, hideAlert, showSuccess, showError } = useAlert();
   const [isInitialized, setIsInitialized] = useState(false);
   const [firstName, setFirstName] = useState('');
@@ -100,10 +100,34 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
     setShowConfirmModal(true);
   };
 
+  const isLocalFile = (uri: string | null): boolean => {
+    if (!uri) return false;
+    return uri.startsWith('file://') || (uri.startsWith('/') && !uri.startsWith('http'));
+  };
+
   const performSave = async () => {
     setShowConfirmModal(false);
 
     try {
+      let newAvatarUrl: string | null | undefined = undefined;
+
+      // Check if avatar changed and is a local file (needs upload)
+      if (avatar !== profile?.avatarUrl) {
+        if (avatar && isLocalFile(avatar)) {
+          // Upload new avatar
+          const uploadResponse = await uploadAvatar(avatar);
+          if (uploadResponse.success) {
+            newAvatarUrl = uploadResponse.data.avatarUrl;
+          } else {
+            showError('Error', 'Failed to upload avatar. Please try again.');
+            return;
+          }
+        } else {
+          // Avatar was removed (null) or is already a URL
+          newAvatarUrl = avatar;
+        }
+      }
+
       const requestData: {
         firstName: string;
         lastName: string;
@@ -117,8 +141,8 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
         title: title.trim(),
       };
 
-      if (avatar !== undefined) {
-        requestData.avatarUrl = avatar;
+      if (newAvatarUrl !== undefined) {
+        requestData.avatarUrl = newAvatarUrl;
       }
 
       const response = await updateProfile(requestData);
@@ -276,21 +300,21 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
               onPress={handleChangeAvatar}
               activeOpacity={0.8}
               style={styles.avatarContainer}>
-              {/* {avatar ? (
+              {avatar ? (
                 <Image source={{ uri: avatar }} style={styles.avatar} />
-              ) : ( */}
-              <View
-                style={[
-                  styles.avatarPlaceholder,
-                  { backgroundColor: isDark ? colors.grey[60] : colors.grey[10] },
-                ]}>
-                <Icon
-                  name="account"
-                  size={ms(50)}
-                  color={isDark ? colors.grey[25] : colors.grey[50]}
-                />
-              </View>
-              {/* )} */}
+              ) : (
+                <View
+                  style={[
+                    styles.avatarPlaceholder,
+                    { backgroundColor: isDark ? colors.grey[60] : colors.grey[10] },
+                  ]}>
+                  <Icon
+                    name="account"
+                    size={ms(50)}
+                    color={isDark ? colors.grey[25] : colors.grey[50]}
+                  />
+                </View>
+              )}
               <View
                 style={[
                   styles.editAvatarOverlay,

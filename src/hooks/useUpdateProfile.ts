@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { userService, UpdateProfileRequest } from '../api/services/userService';
+import { userService, UpdateProfileRequest, AvatarUploadResponse } from '../api/services/userService';
 import { ProfileResponse } from '../types/user';
 import { AxiosError } from 'axios';
 
@@ -15,8 +15,20 @@ export const useUpdateProfile = () => {
     mutationFn: (data: UpdateProfileRequest) => userService.updateProfile(data),
     onSuccess: (response) => {
       if (response.success) {
-        // Invalidate and refetch the profile query to update cached data
+        // Invalidate and refetch the profile and dashboard queries to update cached data
         queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      }
+    },
+  });
+
+  const avatarMutation = useMutation<AvatarUploadResponse, AxiosError<ApiErrorResponse>, string>({
+    mutationFn: (imageUri: string) => userService.uploadAvatar(imageUri),
+    onSuccess: (response) => {
+      if (response.success) {
+        // Invalidate both queries so avatar updates everywhere
+        queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       }
     },
   });
@@ -25,17 +37,26 @@ export const useUpdateProfile = () => {
     return mutation.mutateAsync(data);
   };
 
+  const uploadAvatar = async (imageUri: string) => {
+    return avatarMutation.mutateAsync(imageUri);
+  };
+
   const errorMessage =
     mutation.error?.response?.data?.message ||
-    (mutation.error ? 'Failed to update profile' : null);
+    avatarMutation.error?.response?.data?.message ||
+    (mutation.error || avatarMutation.error ? 'Failed to update profile' : null);
 
   return {
     updateProfile,
-    isLoading: mutation.isPending,
+    uploadAvatar,
+    isLoading: mutation.isPending || avatarMutation.isPending,
     isSuccess: mutation.isSuccess,
-    isError: mutation.isError,
+    isError: mutation.isError || avatarMutation.isError,
     error: errorMessage,
-    reset: mutation.reset,
+    reset: () => {
+      mutation.reset();
+      avatarMutation.reset();
+    },
   };
 };
 

@@ -17,8 +17,15 @@ interface ApiErrorResponse {
   error?: string;
 }
 
-const getDeviceInfo = (deviceToken: string): DeviceInfo => ({
-  device_token: deviceToken,
+// Generate a fallback device token when FCM is unavailable (e.g., iOS simulator)
+const generateFallbackToken = (): string => {
+  const timestamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).substring(2, 15);
+  return `fallback_${Platform.OS}_${timestamp}_${randomPart}`;
+};
+
+const getDeviceInfo = (deviceToken?: string): DeviceInfo => ({
+  device_token: deviceToken || generateFallbackToken(),
   device_type: Platform.OS as 'android' | 'ios',
   device_name: `${Platform.OS} Device`,
 });
@@ -31,7 +38,7 @@ export const useLogin = () => {
       const credentials: LoginRequest = {
         email,
         password,
-        device_info: getDeviceInfo(deviceToken || ''),
+        device_info: getDeviceInfo(deviceToken),
       };
       return authService.login(credentials);
     },

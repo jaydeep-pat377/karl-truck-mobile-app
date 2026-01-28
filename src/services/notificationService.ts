@@ -57,32 +57,63 @@ class NotificationService {
   }
 
   async requestPermission(): Promise<boolean> {
-    const authStatus = await messaging().requestPermission();
-    const enabled =
-      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+    try {
+      console.log('[Notifications] Requesting permission...');
+      const authStatus = await messaging().requestPermission();
+      console.log('[Notifications] Auth status:', authStatus);
 
-    if (enabled) {
-      await this.createNotificationChannel();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+      console.log('[Notifications] Permission enabled:', enabled);
+
+      if (enabled) {
+        await this.createNotificationChannel();
+      }
+
+      return enabled;
+    } catch (error) {
+      // Permission request failed (likely iOS simulator)
+      console.log('[Notifications] Permission request error:', error);
+      return false;
     }
-
-    return enabled;
   }
 
   async getToken(): Promise<string | null> {
     try {
+      console.log('[Notifications] Getting token for platform:', Platform.OS);
+
       if (Platform.OS === 'ios') {
-        const apnsToken = await messaging().getAPNSToken();
-        if (!apnsToken) {
+        try {
+          // Register for remote messages first on iOS
+          console.log('[Notifications] Registering for remote messages...');
+          await messaging().registerDeviceForRemoteMessages();
+          console.log('[Notifications] Registered for remote messages');
+
+          // Check if we have APNS token (won't work on simulator)
+          const apnsToken = await messaging().getAPNSToken();
+          console.log('[Notifications] APNS Token:', apnsToken);
+
+          if (!apnsToken) {
+            // No APNS token - likely on simulator or permissions denied
+            console.log('[Notifications] No APNS token - running on simulator or permissions denied');
+            return null;
+          }
+        } catch (error) {
+          // iOS simulator or push not available - return null silently
+          console.log('[Notifications] iOS registration error:', error);
           return null;
         }
       }
 
       const token = await messaging().getToken();
+      console.log('[Notifications] FCM Device Token:', token);
       useNotificationStore.getState().setFcmToken(token);
       return token;
     } catch (error) {
-      console.error('Error getting FCM token:', error);
+      // FCM not available - return null silently
+      console.log('[Notifications] Error getting token:', error);
       return null;
     }
   }
@@ -136,12 +167,16 @@ class NotificationService {
   }
 
   setupListeners(): void {
+    console.log('[Notifications] Setting up listeners...');
+
     this.unsubscribeOnMessage = messaging().onMessage(
       async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
-    
+        console.log('[Notifications] Received foreground message:', JSON.stringify(remoteMessage, null, 2));
+
         const notification = this.parseRemoteMessage(remoteMessage);
-   
+
         if (notification) {
+          console.log('[Notifications] Parsed notification:', notification);
           useNotificationStore.getState().addNotification(notification);
 
           await this.displayNotification(
@@ -150,7 +185,8 @@ class NotificationService {
             remoteMessage.data as Record<string, string>,
           );
         } else {
-             const { data } = remoteMessage;
+          console.log('[Notifications] Using data-only message');
+          const { data } = remoteMessage;
           if (data?.title && data?.body) {
             await this.displayNotification(
               data.title,

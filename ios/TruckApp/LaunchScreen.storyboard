@@ -35,12 +35,6 @@
                                     <constraint firstItem="LogoImage" firstAttribute="centerX" secondItem="LogoContainer" secondAttribute="centerX" id="logo-cx"/>
                                     <constraint firstItem="LogoImage" firstAttribute="centerY" secondItem="LogoContainer" secondAttribute="centerY" id="logo-cy"/>
                                 </constraints>
-                                <userDefinedRuntimeAttributes>
-                                    <userDefinedRuntimeAttribute type="number" keyPath="layer.cornerRadius">
-                                        <integer key="value" value="24"/>
-                                    </userDefinedRuntimeAttribute>
-                                    <userDefinedRuntimeAttribute type="boolean" keyPath="layer.masksToBounds" value="YES"/>
-                                </userDefinedRuntimeAttributes>
                             </view>
                         </subviews>
                         <color key="backgroundColor" red="0.41960784313725491" green="0.69411764705882351" blue="0.18823529411764706" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>

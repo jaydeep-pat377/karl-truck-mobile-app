@@ -5,6 +5,7 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { SettingsStackParamList } from '../../navigation/SettingsNavigator';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card, LogoutModal, Icon } from '../../components/common';
+import { Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../theme/colors';
 import { spacing, ms } from '../../utils/responsive';
@@ -208,6 +209,11 @@ export const SettingsScreen: React.FC = () => {
               <View style={[styles.avatar, { backgroundColor: colors.primary.main }]}>
                 {isProfileLoading ? (
                   <ActivityIndicator size="small" color={colors.common.white} />
+                ) : profile?.avatarUrl ? (
+                  <Image
+                    source={{ uri: profile.avatarUrl }}
+                    style={styles.avatarImage}
+                  />
                 ) : (
                   <Text variant="body" color="white" style={{ fontWeight: '600' }}>
                     {getInitials(profile?.fullName)}
@@ -443,6 +449,11 @@ const styles = StyleSheet.create({
     borderRadius: ms(24),
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   profileInfo: {
     flex: 1,

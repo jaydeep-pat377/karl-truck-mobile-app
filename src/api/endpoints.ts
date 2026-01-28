@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
   USER: {
     PROFILE: '/users/profile',
     UPDATE_PROFILE: '/users/profile',
+    UPLOAD_AVATAR: '/users/profile/avatar',
   },
   DASHBOARD: {
     GET: '/dashboard',

@@ -440,7 +440,12 @@ const DashboardScreen: React.FC = () => {
   useEffect(() => {
     const initNotifications = async () => {
       try {
+        console.log('=== iOS NOTIFICATION DEBUG ===');
+        console.log('Platform:', Platform.OS);
         const deviceToken = await notificationService.getToken();
+        console.log('=== DEVICE TOKEN ===');
+        console.log(deviceToken);
+        console.log('=== END TOKEN ===');
       } catch (error) {
         console.log('Error fetching device token:', error);
       }
