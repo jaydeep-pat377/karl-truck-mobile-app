@@ -3,10 +3,15 @@ import { NativeModules, Platform } from 'react-native';
 interface TodayOverviewWidgetInterface {
   updateWidgetData(
     totalOrders: number,
+    normal: number,
+    willCall: number,
+    hold: number,
+    cancelled: number,
     inProgress: number,
     completed: number,
     progress: number
   ): Promise<boolean>;
+  setAuthCredentials(accessToken: string, apiBaseUrl: string): Promise<boolean>;
   refreshWidget(): Promise<boolean>;
   clearWidgetData(): Promise<boolean>;
 }
@@ -15,25 +20,28 @@ const { TodayOverviewWidget } = NativeModules;
 
 /**
  * Update the Android home screen widget with today's order overview data
- * @param totalOrders - Total number of orders for today
- * @param inProgress - Number of orders in progress
- * @param completed - Number of completed orders
- * @param progress - Overall progress percentage (0-100)
  */
 export const updateWidgetData = async (
   totalOrders: number,
+  normal: number,
+  willCall: number,
+  hold: number,
+  cancelled: number,
   inProgress: number,
   completed: number,
   progress: number
 ): Promise<boolean> => {
   if (Platform.OS !== 'android') {
-    console.log('Widget is only available on Android');
     return false;
   }
 
   try {
     return await (TodayOverviewWidget as TodayOverviewWidgetInterface).updateWidgetData(
       totalOrders,
+      normal,
+      willCall,
+      hold,
+      cancelled,
       inProgress,
       completed,
       progress
@@ -45,11 +53,35 @@ export const updateWidgetData = async (
 };
 
 /**
- * Manually refresh the widget display
+ * Set authentication credentials for widget API calls
+ * This enables the widget to fetch fresh data directly from the API
+ * @param accessToken - JWT access token
+ * @param apiBaseUrl - API base URL (e.g., 'https://api.truckast.ai/api')
+ */
+export const setAuthCredentials = async (
+  accessToken: string,
+  apiBaseUrl: string
+): Promise<boolean> => {
+  if (Platform.OS !== 'android') {
+    return false;
+  }
+
+  try {
+    return await (TodayOverviewWidget as TodayOverviewWidgetInterface).setAuthCredentials(
+      accessToken,
+      apiBaseUrl
+    );
+  } catch (error) {
+    console.error('Failed to set widget auth credentials:', error);
+    return false;
+  }
+};
+
+/**
+ * Manually refresh the widget - fetches fresh data from API
  */
 export const refreshWidget = async (): Promise<boolean> => {
   if (Platform.OS !== 'android') {
-    console.log('Widget is only available on Android');
     return false;
   }
 
@@ -66,7 +98,6 @@ export const refreshWidget = async (): Promise<boolean> => {
  */
 export const clearWidgetData = async (): Promise<boolean> => {
   if (Platform.OS !== 'android') {
-    console.log('Widget is only available on Android');
     return false;
   }
 
@@ -80,6 +111,7 @@ export const clearWidgetData = async (): Promise<boolean> => {
 
 export default {
   updateWidgetData,
+  setAuthCredentials,
   refreshWidget,
   clearWidgetData,
 };

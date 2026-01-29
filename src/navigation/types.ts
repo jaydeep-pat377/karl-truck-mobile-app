@@ -32,6 +32,13 @@ export type MainTabParamList = {
   Settings: undefined;
 };
 
+// Chat Stack (nested in Chat tab)
+export type ChatStackParamList = {
+  ChatList: undefined;
+  ChatRoom: { roomId: string; roomName: string; chatId: number; orderId: number };
+  CreateChatRoom: { orderId?: number } | undefined;
+};
+
 // Orders Stack (nested in Orders tab)
 export type OrdersStackParamList = {
   OrderList: undefined;
@@ -182,6 +189,14 @@ export type MapTrackingScreenParams = {
   jobLongitude?: string;
 };
 
+// Chat Room Screen Params (for direct navigation from order items)
+export type ChatRoomScreenParams = {
+  roomId: string;
+  roomName: string;
+  chatId: number;
+  orderId: number;
+};
+
 // Root Navigator
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
@@ -195,6 +210,7 @@ export type RootStackParamList = {
   Ticket: TicketScreenParams;
   TicketDetail: TicketDetailScreenParams;
   MapTracking: MapTrackingScreenParams;
+  ChatRoom: ChatRoomScreenParams;
   Appointments: NavigatorScreenParams<AppointmentsStackParamList>;
 };
 

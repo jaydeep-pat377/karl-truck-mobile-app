@@ -457,11 +457,15 @@ const DashboardScreen: React.FC = () => {
   useEffect(() => {
     if (Platform.OS === 'android' && todayOverview) {
       const totalOrders = todayOverview.total_orders ?? 0;
+      const normal = todayOverview.normal ?? 0;
+      const willCall = todayOverview.will_call ?? 0;
+      const hold = todayOverview.hold_delivery ?? 0;
+      const cancelled = todayOverview.cancelled ?? 0;
       const inProgress = todayOverview.in_progress ?? 0;
       const completed = todayOverview.completed ?? 0;
       const progress = totalOrders > 0 ? Math.round((completed / totalOrders) * 100) : 0;
 
-      updateWidgetData(totalOrders, inProgress, completed, progress)
+      updateWidgetData(totalOrders, normal, willCall, hold, cancelled, inProgress, completed, progress)
         .then(() => console.log('Widget updated successfully'))
         .catch((error) => console.log('Failed to update widget:', error));
     }

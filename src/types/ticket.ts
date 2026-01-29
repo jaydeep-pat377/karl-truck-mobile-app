@@ -314,6 +314,47 @@ export interface PlantDetails {
   phone: string;
 }
 
+// Graph data types
+export interface PourSpeedDataPoint {
+  time: string;
+  time_display: string;
+  rate: number;
+  cumulative_qty?: number;
+}
+
+export interface TrucksOnJobTimePoint {
+  time: string;
+  time_display: string;
+  waiting: number;
+  pouring: number;
+  washout: number;
+  total: number;
+}
+
+export interface TrucksOnJobAverages {
+  avg_waiting_minutes: number;
+  avg_pouring_minutes: number;
+  avg_washout_minutes: number;
+}
+
+export interface PourSpeedGraph {
+  schedule_rate: number;
+  y_max: number;
+  ordered: PourSpeedDataPoint[];
+  delivered: PourSpeedDataPoint[];
+  poured: PourSpeedDataPoint[];
+}
+
+export interface TrucksOnJobGraph {
+  time_points: TrucksOnJobTimePoint[];
+  averages: TrucksOnJobAverages;
+}
+
+export interface OrderGraphs {
+  pour_speed?: PourSpeedGraph;
+  trucks_on_job?: TrucksOnJobGraph;
+}
+
 export interface OrderDetailsOrder {
   order_id: string;
   order_code: string;
@@ -343,6 +384,7 @@ export interface OrderDetailsOrder {
   plant_details?: PlantDetails;
   tickets_count?: number;
   notes_count?: number;
+  graphs?: OrderGraphs;
 }
 
 export interface OrderDetailsApiData {

@@ -3,6 +3,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types/user';
 import { authService } from '../api/services/authService';
 import { STORAGE_KEYS } from '../utils/storage';
+import { setAuthCredentials, clearWidgetData } from '../modules/TodayOverviewWidget';
+import { API_BASE_URL } from '@env';
+
+const WIDGET_API_URL = API_BASE_URL || 'http://api.truckast.ai/api';
 
 interface AuthState {
   user: User | null;
@@ -38,8 +42,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
 
-      const savedToken = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-         set({
+      // Set widget auth credentials for API fetching
+      setAuthCredentials(accessToken, WIDGET_API_URL).catch((err) =>
+        console.log('Widget auth setup error:', err)
+      );
+
+      set({
         user,
         accessToken,
         refreshToken,
@@ -59,6 +67,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         STORAGE_KEYS.REFRESH_TOKEN,
         STORAGE_KEYS.USER,
       ]);
+
+      // Clear widget data on logout
+      clearWidgetData().catch((err) =>
+        console.log('Widget clear error:', err)
+      );
+
       set({
         user: null,
         accessToken: null,
@@ -117,6 +131,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
         // Update stored user data
         await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data.user));
+
+        // Update widget credentials on app init
+        if (accessToken) {
+          setAuthCredentials(accessToken, WIDGET_API_URL).catch((err) =>
+            console.log('Widget auth setup error:', err)
+          );
+        }
 
         return true;
       }

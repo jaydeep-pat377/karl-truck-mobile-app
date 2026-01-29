@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.view.View
 import android.widget.RemoteViews
 
@@ -14,20 +15,31 @@ class TodayOverviewWidget : AppWidgetProvider() {
     companion object {
         const val PREFS_NAME = "TodayOverviewWidgetPrefs"
         const val KEY_TOTAL_ORDERS = "total_orders"
+        const val KEY_NORMAL = "normal"
+        const val KEY_WILL_CALL = "will_call"
+        const val KEY_HOLD = "hold"
+        const val KEY_CANCELLED = "cancelled"
         const val KEY_IN_PROGRESS = "in_progress"
         const val KEY_COMPLETED = "completed"
         const val KEY_PROGRESS = "progress"
         const val KEY_IS_LOGGED_IN = "is_logged_in"
+        const val KEY_ACCESS_TOKEN = "access_token"
+        const val KEY_API_BASE_URL = "api_base_url"
 
         fun updateAllWidgets(context: Context) {
-            val intent = Intent(context, TodayOverviewWidget::class.java).apply {
-                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-            }
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val appWidgetIds = appWidgetManager.getAppWidgetIds(
                 ComponentName(context, TodayOverviewWidget::class.java)
             )
-            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
+
+            // Notify that data changed for ListView
+            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widget_list)
+
+            // Send update broadcast
+            val intent = Intent(context, TodayOverviewWidget::class.java).apply {
+                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
+            }
             context.sendBroadcast(intent)
         }
     }
@@ -43,11 +55,13 @@ class TodayOverviewWidget : AppWidgetProvider() {
     }
 
     override fun onEnabled(context: Context) {
-        // First widget added
+        // First widget added - start periodic updates
+        WidgetUpdateReceiver.startPeriodicUpdates(context)
     }
 
     override fun onDisabled(context: Context) {
-        // Last widget removed
+        // Last widget removed - stop periodic updates
+        WidgetUpdateReceiver.stopPeriodicUpdates(context)
     }
 
     private fun updateAppWidget(
@@ -62,22 +76,23 @@ class TodayOverviewWidget : AppWidgetProvider() {
 
         if (isLoggedIn) {
             val totalOrders = prefs.getInt(KEY_TOTAL_ORDERS, 0)
-            val inProgress = prefs.getInt(KEY_IN_PROGRESS, 0)
             val completed = prefs.getInt(KEY_COMPLETED, 0)
-            val progress = prefs.getInt(KEY_PROGRESS, 0)
+            val progress = if (totalOrders > 0) (completed * 100 / totalOrders) else 0
 
             // Show logged in content, hide logged out message
             views.setViewVisibility(R.id.widget_content, View.VISIBLE)
             views.setViewVisibility(R.id.widget_logged_out, View.GONE)
 
-            // Set stats
-            views.setTextViewText(R.id.widget_total_orders, totalOrders.toString())
-            views.setTextViewText(R.id.widget_in_progress, inProgress.toString())
-            views.setTextViewText(R.id.widget_completed, completed.toString())
+            // Set progress
             views.setTextViewText(R.id.widget_progress_percent, "$progress%")
 
-            // Set progress bar
-            views.setProgressBar(R.id.widget_progress_bar, 100, progress, false)
+            // Set up ListView adapter
+            val serviceIntent = Intent(context, WidgetService::class.java).apply {
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
+            }
+            views.setRemoteAdapter(R.id.widget_list, serviceIntent)
+
         } else {
             // Show logged out message, hide content
             views.setViewVisibility(R.id.widget_content, View.GONE)

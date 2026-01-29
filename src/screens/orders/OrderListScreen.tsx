@@ -26,7 +26,7 @@ import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { spacing, ms, iconSizes, wp, hp } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
-import { useOrders } from '../../hooks';
+import { useOrders, useChatRooms, useGlobalAlert } from '../../hooks';
 
 const dateFilters = [
   { id: 'today', label: 'Today' },
@@ -804,6 +804,8 @@ export const OrderListScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<MainTabParamList, 'Orders'>>();
   const { isDark } = useTheme();
+  const { getOrCreateRoom } = useChatRooms();
+  const { showAlert } = useGlobalAlert();
 
   // Get status filter from route params (from Dashboard)
   const statusFilterFromRoute = route.params?.statusFilter;
@@ -814,6 +816,7 @@ export const OrderListScreen: React.FC = () => {
   const [debouncedFilter, setDebouncedFilter] = useState<DateFilterId>('today');
   const [showMoreDetails, setShowMoreDetails] = useState(true);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [chatLoadingOrderId, setChatLoadingOrderId] = useState<string | null>(null);
 
   // Single date state for calendar filter
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -1135,6 +1138,37 @@ export const OrderListScreen: React.FC = () => {
     });
   }, [navigation]);
 
+  const handleChat = useCallback(async (order: Order) => {
+    setChatLoadingOrderId(order.id);
+    try {
+      const orderId = parseInt(order.id, 10);
+      if (isNaN(orderId)) {
+        throw new Error('Invalid order ID');
+      }
+
+      // Get or create room - this will work with fallbacks
+      const room = await getOrCreateRoom(orderId);
+
+      navigation.navigate('ChatRoom', {
+        roomId: room.id,
+        roomName: `Order #${order.orderCode}`,
+        chatId: room.id ? Number(room.id) : orderId,
+        orderId: orderId,
+      });
+    } catch (error) {
+      console.error('Failed to open chat:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to open chat';
+      showAlert({
+        type: 'error',
+        title: 'Chat Error',
+        message: errorMessage,
+        duration: 4000,
+      });
+    } finally {
+      setChatLoadingOrderId(null);
+    }
+  }, [getOrCreateRoom, navigation, showAlert]);
+
   const renderOrderCard = useCallback(
     ({ item }: { item: Order }) => (
       <OrderCard
@@ -1144,9 +1178,11 @@ export const OrderListScreen: React.FC = () => {
         onOrderDetails={() => handleOrderDetails(item)}
         onTicket={() => handleTicket(item)}
         onWeatherPress={() => handleWeatherPress(item)}
+        onChat={() => handleChat(item)}
+        isChatLoading={chatLoadingOrderId === item.id}
       />
     ),
-    [showMoreDetails, handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress]
+    [showMoreDetails, handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleChat, chatLoadingOrderId]
   );
 
   const renderListHeader = useCallback(
