@@ -33,6 +33,12 @@ export { default as useTrucks } from './useTrucks';
 export * from './useNotifications';
 export * from './useDirections';
 export { default as useDirections } from './useDirections';
+export * from './useChatRooms';
+export { default as useChatRooms } from './useChatRooms';
+export * from './useChatMessages';
+export { default as useChatMessages } from './useChatMessages';
+export * from './useTypingIndicator';
+export { default as useTypingIndicator } from './useTypingIndicator';
 
 // Re-export useGlobalAlert from context for convenience
 export { useGlobalAlert } from '../contexts/GlobalAlertContext';

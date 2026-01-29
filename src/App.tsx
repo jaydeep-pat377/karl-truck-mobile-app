@@ -3,7 +3,7 @@
  * Main Application Entry Point
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { StatusBar, LogBox } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -15,6 +15,9 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
 // Components
 import { SplashScreen } from './components/common';
+
+// Supabase
+import { initializeSupabaseAuth } from './services/supabase/supabaseClient';
 
 // i18n
 import './locales';
@@ -93,6 +96,17 @@ const AppContentWithSplash: React.FC<AppContentProps> = ({ onReady }) => {
 // Main App component with all providers
 const App: React.FC = () => {
   const [isAppReady, setIsAppReady] = useState(false);
+
+  // Initialize Supabase auth on app startup
+  useEffect(() => {
+    initializeSupabaseAuth().then((session) => {
+      console.log('session>>>>>>',session);
+      
+      if (session) {
+        console.log('@@@@@@ Supabase auth initialized successfully');
+      }
+    });
+  }, []);
 
   const onNavigationReady = useCallback(() => {
     // Hide splash screen when navigation is ready

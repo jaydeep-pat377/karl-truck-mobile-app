@@ -175,6 +175,7 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
       humidity: apiOrder.weather_data.humidity,
       windSpeed: apiOrder.weather_data.wind_speed,
     } : undefined,
+    canChat: apiOrder.can_chat,
     createdAt: apiOrder.order_date,
     updatedAt: apiOrder.order_date,
   };

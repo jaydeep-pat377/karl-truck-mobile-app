@@ -27,7 +27,7 @@ class WidgetUpdateReceiver : BroadcastReceiver() {
             // Cancel any existing alarms
             alarmManager.cancel(pendingIntent)
 
-            // Set repeating alarm every 5 minutes
+            // Set repeating alarm every 1 minute
             alarmManager.setRepeating(
                 AlarmManager.ELAPSED_REALTIME,
                 SystemClock.elapsedRealtime() + UPDATE_INTERVAL,

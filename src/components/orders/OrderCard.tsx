@@ -20,10 +20,13 @@ interface OrderCardProps {
   onOrderDetails?: () => void;
   onTicket?: () => void;
   onWeatherPress?: () => void;
+  onChat?: () => void;
   orderDetailsDisabled?: boolean;
   ticketDisabled?: boolean;
+  chatDisabled?: boolean;
   isLoading?: boolean;
   isWeatherLoading?: boolean;
+  isChatLoading?: boolean;
 }
 
 interface ActionButtonProps {
@@ -83,10 +86,13 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   onOrderDetails,
   onTicket,
   onWeatherPress,
+  onChat,
   orderDetailsDisabled = false,
   ticketDisabled = false,
+  chatDisabled = false,
   isLoading = false,
   isWeatherLoading = false,
+  isChatLoading = false,
 }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -255,6 +261,18 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           onPress={onTicket}
           disabled={ticketDisabled}
         />
+        {order.canChat && (
+          <>
+            <View style={[styles.actionDivider, { backgroundColor: isDark ? colors.dark.border : colors.grey[25] }]} />
+            <ActionButton
+              icon="chat-outline"
+              label="Chat"
+              onPress={onChat}
+              disabled={chatDisabled}
+              isLoading={isChatLoading}
+            />
+          </>
+        )}
       </View>
     </Card>
   );

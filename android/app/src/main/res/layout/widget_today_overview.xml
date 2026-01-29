@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="6dp"
+    android:padding="4dp"
     android:background="@drawable/widget_background">
 
     <!-- Header -->
@@ -13,11 +13,11 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingBottom="4dp">
+        android:paddingBottom="2dp">
 
         <ImageView
-            android:layout_width="14dp"
-            android:layout_height="14dp"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
             android:src="@mipmap/ic_launcher"
             android:contentDescription="@string/app_name" />
 
@@ -28,7 +28,7 @@
             android:layout_marginStart="4dp"
             android:text="Today"
             android:textColor="#1F2937"
-            android:textSize="11sp"
+            android:textSize="10sp"
             android:textStyle="bold" />
 
         <TextView
@@ -37,8 +37,116 @@
             android:layout_height="wrap_content"
             android:text="0%"
             android:textColor="#6BB130"
-            android:textSize="11sp"
+            android:textSize="10sp"
             android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Progress Bar Container -->
+    <LinearLayout
+        android:id="@+id/widget_progress_container"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:orientation="horizontal"
+        android:background="@drawable/widget_progress_track"
+        android:visibility="gone"
+        android:clipChildren="true"
+        android:clipToPadding="true">
+
+        <!-- Will Call Segment (Purple) -->
+        <ImageView
+            android:id="@+id/widget_segment_will_call"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@drawable/widget_segment_will_call"
+            android:scaleType="fitXY"
+            android:visibility="gone"
+            android:contentDescription="@null" />
+
+        <!-- Hold Delivery Segment (Gray) -->
+        <ImageView
+            android:id="@+id/widget_segment_hold"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@drawable/widget_segment_hold"
+            android:scaleType="fitXY"
+            android:visibility="gone"
+            android:contentDescription="@null" />
+
+        <!-- Cancelled Segment (Red) -->
+        <ImageView
+            android:id="@+id/widget_segment_cancelled"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@drawable/widget_segment_cancelled"
+            android:scaleType="fitXY"
+            android:visibility="gone"
+            android:contentDescription="@null" />
+
+        <!-- Normal Segment (Amber) -->
+        <ImageView
+            android:id="@+id/widget_segment_normal"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@drawable/widget_segment_normal"
+            android:scaleType="fitXY"
+            android:visibility="gone"
+            android:contentDescription="@null" />
+
+        <!-- In Progress Segment (Orange) -->
+        <ImageView
+            android:id="@+id/widget_segment_in_progress"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@drawable/widget_segment_in_progress"
+            android:scaleType="fitXY"
+            android:visibility="gone"
+            android:contentDescription="@null" />
+
+        <!-- Completed Segment (Green) -->
+        <ImageView
+            android:id="@+id/widget_segment_completed"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@drawable/widget_segment_completed"
+            android:scaleType="fitXY"
+            android:visibility="gone"
+            android:contentDescription="@null" />
+
+    </LinearLayout>
+
+    <!-- Stats Summary Row -->
+    <LinearLayout
+        android:id="@+id/widget_stats_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="2dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/widget_stats_completed"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0 completed"
+            android:textColor="#6B7280"
+            android:textSize="8sp" />
+
+        <TextView
+            android:id="@+id/widget_stats_in_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 in progress"
+            android:textColor="#F97316"
+            android:textSize="8sp" />
+
     </LinearLayout>
 
     <!-- Logged In Content with ListView -->
@@ -47,6 +155,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:layout_marginTop="2dp"
         android:visibility="gone">
 
         <ListView
@@ -55,9 +164,10 @@
             android:layout_height="match_parent"
             android:divider="@null"
             android:dividerHeight="0dp"
-            android:scrollbars="none"
+            android:scrollbars="vertical"
+            android:scrollbarStyle="outsideOverlay"
             android:fadingEdge="vertical"
-            android:fadingEdgeLength="8dp" />
+            android:fadingEdgeLength="4dp" />
 
     </FrameLayout>
 
@@ -75,26 +185,26 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="🔒"
-            android:textSize="20sp"
-            android:gravity="center" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Not logged in"
-            android:textColor="#6B7280"
-            android:textSize="11sp"
-            android:textStyle="bold"
+            android:textSize="16sp"
             android:gravity="center" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
+            android:text="Not logged in"
+            android:textColor="#6B7280"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
             android:text="Tap to open app"
             android:textColor="#6BB130"
-            android:textSize="10sp"
+            android:textSize="9sp"
             android:gravity="center" />
     </LinearLayout>
 

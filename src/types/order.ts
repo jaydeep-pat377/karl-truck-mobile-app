@@ -50,6 +50,7 @@ export interface Order {
   hasAlert?: boolean;
   alertMessage?: string;
   weather?: WeatherData;
+  canChat?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -154,6 +155,7 @@ export interface ApiOrder {
   remaining_qty: number;
   remaining_display: string;
   status: string;
+  can_chat: boolean;
   is_removed: boolean;
   has_notes: boolean;
   tickets_count: number;
