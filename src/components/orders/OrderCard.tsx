@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Pressable,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card, StatusBadge, WeatherBadge, Icon } from '../common';
@@ -110,8 +111,38 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     });
   };
 
+  // Get evaporation rate - check both weather and weather_data (for backwards compatibility)
+  const getEvaporationRate = () => {
+    // Try weather.evaporationRate first (mapped data)
+    if (order.weather?.evaporationRate !== undefined && order.weather?.evaporationRate !== null) {
+      return order.weather.evaporationRate;
+    }
+    // Try weather_data.evaporation_rate (raw API data)
+    if ((order as any).weather_data?.evaporation_rate !== undefined && (order as any).weather_data?.evaporation_rate !== null) {
+      return (order as any).weather_data.evaporation_rate;
+    }
+    return null;
+  };
+
+  const evaporationRateValue = getEvaporationRate();
+
   return (
-    <Card padding="none" style={styles.card}>
+    <Card
+      padding="none"
+      style={[
+        styles.card,
+        {
+          shadowColor: statusColor,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.2,
+          shadowRadius: 6,
+          ...(Platform.OS === 'android' && {
+            elevation: 4,
+            borderBottomWidth: 2,
+            borderBottomColor: statusColor + '60',
+          }),
+        },
+      ]}>
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={onPress}
@@ -125,22 +156,29 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 variant="captionSmall"
                 color="secondary"
                 style={[styles.orderId, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
-                {order.productType && order.productType}
+                #{order.orderCode}
               </Text>
               <Text
                 variant="captionSmall"
                 style={[styles.dateTime, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
                 {formatDate(order.scheduledDate)} • {order.scheduledTime}
               </Text>
+              {evaporationRateValue !== null && (
+                <View style={styles.evaporationBadge}>
+                  <Text
+                    variant="captionSmall"
+                    style={styles.evaporationText}>
+                    ER: {evaporationRateValue}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
 
           <View style={styles.titleRow}>
-            <Text variant="bodySmall" numberOfLines={1} style={styles.projectName}>
-              #{order.orderCode}
-            </Text>
-            <Text variant="captionSmall" color="secondary" numberOfLines={1}>
-              {order.customerName}
+            <Text variant="bodySmall"
+              numberOfLines={1} style={styles.projectName}>
+              {order.customerName}{order.projectName ? ` | ${order.projectName}` : ''}
             </Text>
           </View>
 
@@ -156,6 +194,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               style={[styles.locationText, { color: themeColors.text.secondary }]}>
               {order.deliveryAddress}
             </Text>
+
             {(order.weather || isWeatherLoading) && (
               <WeatherBadge
                 weather={order.weather}
@@ -164,6 +203,29 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 size="small"
               />
             )}
+          </View>
+
+          <View style={styles.productRow}>
+            <Icon
+              name="package-variant"
+              size={ms(12)}
+              color={isDark ? themeColors.text.hint : colors.grey[50]}
+            />
+            <Text
+              variant="captionSmall"
+              numberOfLines={1}
+              style={[styles.productText, styles.productTextFlex, { color: isDark ? themeColors.text.hint : colors.grey[60] }]}>
+              {order.productType} | {order.product_description}
+            </Text>
+
+            <View style={styles.quantityContainer}>
+              <View style={[styles.metricDot, { backgroundColor: themeColors.text.hint }]} />
+              <Text variant="captionSmall"
+                color="secondary"
+                style={[styles.productText, { color: isDark ? themeColors.text.hint : colors.grey[60] }]}>
+                {order.quantity ?? 0} CY
+              </Text>
+            </View>
           </View>
 
           {showDetails && (
@@ -204,29 +266,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 {order.estimatedFinishTime && (
                   <>
                     <View style={styles.metricItem}>
-                      <Icon
-                        name="clock-outline"
-                        size={ms(12)}
-                        color={themeColors.text.secondary}
-                      />
-                      <Text variant="captionSmall" color="secondary">
-                        {order.estimatedFinishTime}
+                      <Text
+                        style={styles.ESTTitle}
+                        variant="captionSmall"
+                        color="secondary">
+                        {`EST ${order.estimatedFinishTime}`}
                       </Text>
                     </View>
-                    <View style={[styles.metricDot, { backgroundColor: themeColors.text.hint }]} />
                   </>
                 )}
-
-                <View style={styles.metricItem}>
-                  <Icon
-                    name="cube-outline"
-                    size={ms(12)}
-                    color={themeColors.text.secondary}
-                  />
-                  <Text variant="captionSmall" color="secondary">
-                    {order.quantity ?? 0} {order.unit}
-                  </Text>
-                </View>
 
                 {order.distance && (
                   <View style={styles.metricItemRight}>
@@ -302,22 +350,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     gap: ms(5),
+    flexWrap: 'wrap',
   },
   orderId: {
-    fontFamily: fontFamily.medium,
-    fontSize: 13,
+    fontSize: ms(13),
+    fontFamily: fontFamily.semiBold,
   },
   dateTime: {
     marginLeft: ms(2),
     fontSize: 12,
     fontFamily: fontFamily.medium,
   },
+  evaporationBadge: {
+    paddingHorizontal: ms(6),
+    paddingVertical: ms(2),
+    borderRadius: ms(4),
+  },
+  evaporationText: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.semiBold,
+  },
+  ESTTitle: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.semiBold,
+  },
   titleRow: {
     marginBottom: ms(4),
   },
   projectName: {
-    fontFamily: fontFamily.semiBold,
-    lineHeight: ms(18),
+    fontSize: ms(10),
   },
   locationRow: {
     flexDirection: 'row',
@@ -326,6 +387,27 @@ const styles = StyleSheet.create({
   },
   locationText: {
     flex: 1,
+  },
+  productRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: ms(4),
+    marginTop: ms(4),
+  },
+  productText: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.medium,
+  },
+  productTextFlex: {
+    flexShrink: 1,
+    maxWidth: '70%',
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(3),
+    flexShrink: 0,
   },
   progressRow: {
     flexDirection: 'row',

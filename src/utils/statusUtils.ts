@@ -121,9 +121,9 @@ const STATUS_COLOR_MAP: Record<NormalizedStatus, string> = {
   PRE_POUR: colors.success.main,         // Green
   IN_PROCESS: colors.success.main,       // Green (default, can be dynamic)
   COMPLETED: colors.success.main,        // Green (default, can be dynamic)
-  WILL_CALL: colors.warning.main,        // Yellow
-  WAIT_LIST: colors.warning.main,        // Yellow
-  WEATHER_PERMITTING: colors.warning.main, // Yellow
+  WILL_CALL: '#EAB308',                  // Yellow
+  WAIT_LIST: colors.grey[50],            // Gray
+  WEATHER_PERMITTING: colors.info.main,  // Blue
   HOLD: colors.error.main,               // Red
   CANCELLED: colors.error.main,          // Red
   DELAYED: colors.error.main,            // Red

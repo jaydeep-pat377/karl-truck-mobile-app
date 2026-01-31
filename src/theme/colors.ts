@@ -250,6 +250,10 @@ export const colors = {
       text: '#D97706',
       textDark: '#FBBF24',
     },
+    yellow: {
+      text: '#d0c41d',
+      textDark: '#FACC15',
+    },
     green: {
       text: '#059669',
       textDark: '#34D399',

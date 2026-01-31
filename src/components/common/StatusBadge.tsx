@@ -77,20 +77,22 @@ const statusColors: Record<string, StatusColorConfig> = {
     textDark: colors.statusBadge.red.textDark,
     bgOpacity: 0.1,
   },
-  // Orange/Amber statuses - Pre-Pour, Will Call, Weather
+  // Orange/Amber statuses - Pre-Pour
   PRE_POUR: {
     text: colors.statusBadge.amber.text,
     textDark: colors.statusBadge.amber.textDark,
     bgOpacity: 0.1,
   },
+  // Yellow status - Will Call
   WILL_CALL: {
-    text: colors.statusBadge.amber.text,
-    textDark: colors.statusBadge.amber.textDark,
-    bgOpacity: 0.1,
+    text: colors.statusBadge.yellow.text,
+    textDark: colors.statusBadge.yellow.textDark,
+    bgOpacity: 0.12,
   },
+  // Blue status - Weather Permitting
   WEATHER_PERMITTING: {
-    text: colors.statusBadge.amber.text,
-    textDark: colors.statusBadge.amber.textDark,
+    text: colors.statusBadge.blue.text,
+    textDark: colors.statusBadge.blue.textDark,
     bgOpacity: 0.1,
   },
   // Green statuses - Completed
@@ -99,7 +101,7 @@ const statusColors: Record<string, StatusColorConfig> = {
     textDark: colors.statusBadge.green.textDark,
     bgOpacity: 0.1,
   },
-  // Blue statuses - In Progress, On Site, Normal
+  // Blue statuses - In Progress, On Site
   IN_PROCESS: {
     text: colors.statusBadge.blue.text,
     textDark: colors.statusBadge.blue.textDark,
@@ -110,9 +112,10 @@ const statusColors: Record<string, StatusColorConfig> = {
     textDark: colors.statusBadge.blue.textDark,
     bgOpacity: 0.1,
   },
+  // Green status - Normal
   NORMAL: {
-    text: colors.statusBadge.blue.text,
-    textDark: colors.statusBadge.blue.textDark,
+    text: colors.statusBadge.green.text,
+    textDark: colors.statusBadge.green.textDark,
     bgOpacity: 0.1,
   },
   // Purple statuses - En Route, Dispatched
@@ -132,10 +135,11 @@ const statusColors: Record<string, StatusColorConfig> = {
     textDark: colors.statusBadge.red.textDark,
     bgOpacity: 0.1,
   },
+  // Gray status - Wait List
   WAIT_LIST: {
-    text: colors.statusBadge.amber.text,
-    textDark: colors.statusBadge.amber.textDark,
-    bgOpacity: 0.1,
+    text: colors.statusBadge.gray.text,
+    textDark: colors.statusBadge.gray.textDark,
+    bgOpacity: 0.12,
   },
   RETURNING: {
     text: colors.statusBadge.gray.text,

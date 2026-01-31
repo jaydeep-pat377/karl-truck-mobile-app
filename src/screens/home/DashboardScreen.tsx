@@ -13,7 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Text, Card, StatusBadge, TruckLoader, Icon } from '../../components/common';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -69,7 +69,7 @@ const allQuickActions: QuickAction[] = [
     id: '1',
     label: 'Track Trucks',
     icon: 'map-marker-radius',
-    screen: 'Map',
+    screen: 'TodayOrders',
     color: colors.status.enRoute,
   },
   {
@@ -97,7 +97,7 @@ const allQuickActions: QuickAction[] = [
     id: '6',
     label: 'Map View',
     icon: 'map-outline',
-    screen: 'MapTracking',
+    screen: '',
     color: colors.secondary.main,
   },
   {
@@ -390,6 +390,7 @@ const DashboardScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { isTablet } = useResponsive();
   const { width: screenWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const [enabledActionIds, setEnabledActionIds] = useState<string[]>(defaultEnabledActionIds);
   const [showQuickActionsModal, setShowQuickActionsModal] = useState(false);
@@ -653,9 +654,7 @@ const DashboardScreen: React.FC = () => {
   );
 
   const renderDeliveryCard = ({ item }: { item: ActiveDelivery }) => (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={() => navigation.navigate('MapTracking', { truckId: item.id })}>
+    <TouchableOpacity activeOpacity={0.7}>
       <Card variant="default" padding="md" style={styles.deliveryCard}>
         <View style={styles.deliveryHeader}>
           <View style={styles.deliveryTruckInfo}>
@@ -714,7 +713,7 @@ const DashboardScreen: React.FC = () => {
   const SectionHeader = ({ title, actionLabel, onAction, showScrollHint }: { title: string; actionLabel?: string; onAction?: () => void; showScrollHint?: boolean }) => (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionHeaderLeft}>
-        <Text variant="h4">{title}</Text>
+        <Text variant="h4" numberOfLines={1}>{title}</Text>
         {showScrollHint && (
           <View style={[styles.scrollHintContainer, { backgroundColor: colors.primary.main + '20' }]}>
             <Text variant="caption" style={{ color: colors.primary.main, marginRight: ms(4), fontWeight: '500' }}>
@@ -725,8 +724,8 @@ const DashboardScreen: React.FC = () => {
         )}
       </View>
       {actionLabel && onAction && (
-        <TouchableOpacity onPress={onAction} activeOpacity={0.7}>
-          <Text variant="bodySmall" style={{ color: colors.primary.main }}>{actionLabel}</Text>
+        <TouchableOpacity onPress={onAction} activeOpacity={0.7} style={{ flexShrink: 1 }}>
+          <Text variant="bodySmall" style={{ color: colors.primary.main }} numberOfLines={1}>{actionLabel}</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -735,8 +734,8 @@ const DashboardScreen: React.FC = () => {
   const DashboardSkeleton = () => {
     const shimmerColor = isDark ? colors.dark.cardElevated : colors.grey[10];
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={[]}>
+        <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
           <View style={styles.headerLeft}>
             <View style={[styles.avatar, { backgroundColor: shimmerColor }]} />
             <View style={styles.welcomeTextContainer}>
@@ -798,7 +797,7 @@ const DashboardScreen: React.FC = () => {
 
   if (isError) {
     return (
-      <SafeAreaView style={[styles.container, styles.loaderContainer, { backgroundColor: themeColors.background }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, styles.loaderContainer, { backgroundColor: themeColors.background, paddingTop: insets.top }]} edges={[]}>
         <Icon name="alert-circle-outline" size={48} color={colors.error.main} />
         <Text variant="h4" style={{ marginTop: spacing.md, color: colors.error.main }}>
           Failed to load dashboard
@@ -816,8 +815,8 @@ const DashboardScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={[]}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <View style={styles.headerLeft}>
           <TouchableOpacity
             activeOpacity={0.7}
@@ -902,7 +901,6 @@ const DashboardScreen: React.FC = () => {
         <SectionHeader
           title="Active Deliveries"
           actionLabel={`${activeDeliveries?.count ?? 0} Active`}
-          onAction={() => navigation.navigate('MapTracking')}
         />
         {activeDeliveries?.orders && activeDeliveries.orders.length > 0 ? (
           <ScrollView
@@ -1172,6 +1170,7 @@ const createStyles = (themeColors: typeof colors.dark | typeof colors.light, isT
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
+      flexShrink: 0,
     },
     scrollHintContainer: {
       flexDirection: 'row',

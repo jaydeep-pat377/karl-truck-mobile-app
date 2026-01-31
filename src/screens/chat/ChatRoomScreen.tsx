@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon } from '../../components/common';
@@ -85,6 +85,7 @@ export const ChatRoomScreen: React.FC = () => {
   const navigation = useNavigation();
   const { isDark } = useTheme();
   const { user } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set());
@@ -279,7 +280,7 @@ export const ChatRoomScreen: React.FC = () => {
           subtitle="Loading..."
           onBack={() => navigation.goBack()}
         />
-        <View style={styles.loadingContainer}>
+        <View style={[styles.loadingContainer, { paddingBottom: insets.bottom }]}>
           <ActivityIndicator size="large" color={colors.primary.main} />
           <Text variant="body" color="hint" style={styles.loadingText}>
             Loading messages...
@@ -345,11 +346,13 @@ export const ChatRoomScreen: React.FC = () => {
 
         {typingUsers.length > 0 && <TypingIndicator users={typingUsers} />}
 
-        <MessageInput
-          onSend={handleSend}
-          onTyping={handleTyping}
-          isSending={isSending}
-        />
+        <View style={{ paddingBottom: insets.bottom }}>
+          <MessageInput
+            onSend={handleSend}
+            onTyping={handleTyping}
+            isSending={isSending}
+          />
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

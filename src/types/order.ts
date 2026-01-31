@@ -34,6 +34,7 @@ export interface Order {
   status: OrderStatus;
   productType: string;
   productMix?: string;
+  product_description?: string;
   quantity: number;
   unit: string;
   deliveredQuantity?: number;
@@ -96,6 +97,7 @@ export interface WeatherData {
   windUnit?: string;
   feelsLike?: number;
   forecast?: WeatherForecast[];
+  evaporationRate?: number;
 }
 
 export interface WeatherForecast {
@@ -149,6 +151,7 @@ export interface ApiOrder {
   start_time: string;
   estimated_finish_time: string;
   customer_name: string;
+  project_name: string;
   delivery_address: string;
   ordered_qty: number;
   delivered_qty: number;
@@ -160,6 +163,7 @@ export interface ApiOrder {
   has_notes: boolean;
   tickets_count: number;
   product_codes?: string;
+  product_description?: string;
   weather_data: ApiOrderWeatherData | null;
 }
 

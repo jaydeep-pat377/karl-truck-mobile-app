@@ -47,7 +47,7 @@ const statusFilters = [
   { id: 'In Progress', label: 'In Progress', icon: 'progress-clock' },
   { id: 'Completed', label: 'Completed', icon: 'check-circle-outline' },
   { id: 'Will Call', label: 'Will Call', icon: 'phone-outline' },
-  { id: 'Weather Permitting', label: 'Weather', icon: 'weather-partly-cloudy' },
+  { id: 'Weather Permitting', label: 'Weather Permitting', icon: 'weather-partly-cloudy' },
   { id: 'Hold Delivery', label: 'Hold', icon: 'pause-circle-outline' },
   { id: 'Wait List', label: 'Wait List', icon: 'clock-outline' },
   { id: 'Canceled', label: 'Canceled', icon: 'close-circle-outline' },
@@ -153,6 +153,7 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     id: apiOrder.order_id,
     orderCode: apiOrder.order_code,
     customerName: apiOrder.customer_name,
+    projectName: apiOrder.project_name || '',
     deliveryAddress: apiOrder.delivery_address,
     scheduledDate: apiOrder.order_date,
     scheduledTime: apiOrder.start_time,
@@ -174,8 +175,10 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
       description: apiOrder.weather_data.weather_description,
       humidity: apiOrder.weather_data.humidity,
       windSpeed: apiOrder.weather_data.wind_speed,
+      evaporationRate: apiOrder.weather_data.evaporation_rate,
     } : undefined,
     canChat: apiOrder.can_chat,
+    product_description: apiOrder.product_description || '',
     createdAt: apiOrder.order_date,
     updatedAt: apiOrder.order_date,
   };
@@ -459,14 +462,14 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
 
 const statusColorMap: Record<string, string> = {
   all: colors.primary.main,
-  'Normal': colors.success.main,        // Pre-Pour Normal → Green
-  'In Progress': colors.success.main,   // Default green, will be dynamic in OrderCard
-  'Completed': colors.success.main,     // Default green, will be dynamic in OrderCard
-  'Will Call': colors.warning.main,     // Pre-Pour Will Call → Yellow
-  'Weather Permitting': colors.warning.main,
-  'Hold Delivery': colors.error.main,   // Pre-Pour Hold → Red
-  'Wait List': colors.warning.main,
-  'Canceled': colors.error.main,        // Cancelled → Red
+  'Normal': colors.success.main,        // Green
+  'In Progress': colors.success.main,   // Green
+  'Completed': colors.success.main,     // Green
+  'Will Call': '#EAB308',               // Yellow
+  'Weather Permitting': colors.info.main, // Blue
+  'Hold Delivery': colors.error.main,   // Red
+  'Wait List': colors.grey[50],         // Gray
+  'Canceled': colors.error.main,        // Red
 };
 
 const FilterModal: React.FC<FilterModalProps> = ({

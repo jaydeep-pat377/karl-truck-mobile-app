@@ -1,41 +1,28 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import React, { useRef, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  FlatList,
   StatusBar,
-  TextInput,
-  RefreshControl,
-  Modal,
-  Animated,
-  PanResponder,
   ActivityIndicator,
-  InteractionManager,
   Linking,
   Platform,
 } from 'react-native';
-import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Mapbox from '@rnmapbox/maps';
-import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../navigation/types';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text, Icon, TruckLoader, EmptyViewWithPreset } from '../../components/common';
+import { Text, Icon } from '../../components/common';
 import { colors } from '../../theme/colors';
 import { spacing, ms, iconSizes } from '../../utils/responsive';
 import { useTrucks, useDirections } from '../../hooks';
-import { Truck, TruckStatus } from '../../types/truck';
 
 // Initialize Mapbox with access token
 Mapbox.setAccessToken('MAPBOX_TOKEN_REMOVED');
 
-const { height, width } = Dimensions.get('window');
-const isSmallScreen = width < 375;
-
-// Bottom sheet height constants
-const BOTTOM_SHEET_MIN_HEIGHT = height * 0.12;
-const BOTTOM_SHEET_MAX_HEIGHT = height * 0.65;
+const { height } = Dimensions.get('window');
 
 // Mapbox style URLs
 const MAP_STYLES = {
@@ -43,30 +30,12 @@ const MAP_STYLES = {
   dark: Mapbox.StyleURL.Dark,
 };
 
-type StatusFilter = TruckStatus | 'all';
-
-interface FilterOption {
-  label: string;
-  value: StatusFilter;
-  color: string;
-}
-
 // Helper to get today's date range (default)
 const getDateRange = (): { dateFrom: string; dateTo: string } => {
   const today = new Date();
   const formatDate = (date: Date) => date.toISOString().split('T')[0]; // YYYY-MM-DD
   return { dateFrom: formatDate(today), dateTo: formatDate(today) };
 };
-
-const statusFilterOptions: FilterOption[] = [
-  { label: 'All', value: 'all', color: colors.grey[50] },
-  { label: 'Delivered', value: 'delivered', color: colors.success.main },
-  { label: 'Pouring', value: 'pouring', color: colors.info.main },
-  { label: 'At Job', value: 'on_job', color: colors.warning.main },
-  { label: 'At Plant', value: 'at_plant', color: colors.grey[60] },
-  { label: 'Loaded', value: 'loaded', color: colors.secondary.main },
-  { label: 'To Job', value: 'to_job', color: colors.primary.main },
-];
 
 const STATUS_COLORS: Record<string, string> = {
   delivered: colors.success.main,
@@ -78,44 +47,10 @@ const STATUS_COLORS: Record<string, string> = {
   idle: colors.grey[50],
 };
 
-const TableHeader: React.FC<{ isDark: boolean }> = ({ isDark }) => {
-  const themeColors = isDark ? colors.dark : colors.light;
-  return (
-    <View style={[styles.tableHeader, { borderBottomColor: themeColors.border }]}>
-      <View style={styles.truckCell}>
-        <Text variant="caption" style={[styles.headerText, { color: themeColors.text.secondary }]}>
-          Truck
-        </Text>
-      </View>
-      <View style={styles.ticketCell}>
-        <Text variant="caption" style={[styles.headerText, { color: themeColors.text.secondary }]}>
-          Ticket
-        </Text>
-      </View>
-      <View style={styles.coordCell}>
-        <Text variant="caption" style={[styles.headerText, { color: themeColors.text.secondary }]}>
-          LAT
-        </Text>
-      </View>
-      <View style={styles.coordCell}>
-        <Text variant="caption" style={[styles.headerText, { color: themeColors.text.secondary }]}>
-          LONG
-        </Text>
-      </View>
-      <View style={styles.updateCell}>
-        <Text variant="caption" style={[styles.headerText, { color: themeColors.text.secondary }]}>
-          Update
-        </Text>
-      </View>
-    </View>
-  );
-};
-
 type MapTrackingRouteProp = RouteProp<RootStackParamList, 'MapTracking'>;
 
 export const MapTrackingScreen: React.FC = () => {
   const { isDark } = useTheme();
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute<MapTrackingRouteProp>();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -140,100 +75,20 @@ export const MapTrackingScreen: React.FC = () => {
     jobLongitude: paramJobLongitude,
   } = route.params || {};
 
-  // Filter states
-  const [selectedStatus, setSelectedStatus] = useState<StatusFilter>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [tempStatus, setTempStatus] = useState<StatusFilter>('all');
-
   // Toggle for showing directions (route line between plant and job)
-  const [showDirections, setShowDirections] = useState(false);
+  const [showDirections, setShowDirections] = React.useState(false);
 
   // Calculate date range (always today)
   const dateRange = useMemo(() => getDateRange(), []);
 
   // Fetch trucks from API
-  const {
-    trucks: allTrucks,
-    isLoading,
-    isRefetching,
-    refetch,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useTrucks({
+  const { trucks } = useTrucks({
     pageSize: 10,
     sortBy: 'created_at',
     sortOrder: 'desc',
     dateFrom: dateRange.dateFrom,
     dateTo: dateRange.dateTo,
   });
-
-  // Filter trucks by status (client-side since API doesn't support status filter)
-  const trucks = useMemo(() => {
-    if (selectedStatus === 'all') return allTrucks;
-    return allTrucks.filter((truck) => truck.status === selectedStatus);
-  }, [allTrucks, selectedStatus]);
-
-  // Bottom sheet draggable state
-  const bottomSheetHeight = useRef(new Animated.Value(BOTTOM_SHEET_MAX_HEIGHT)).current;
-  const currentHeight = useRef(BOTTOM_SHEET_MAX_HEIGHT);
-
-  // Filter animation
-  const filterModalAnim = useRef(new Animated.Value(0)).current;
-
-  // PanResponder for draggable bottom sheet
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 5,
-      onPanResponderGrant: () => {},
-      onPanResponderMove: (_, gestureState) => {
-        const newHeight = currentHeight.current - gestureState.dy;
-        const clampedHeight = Math.max(
-          BOTTOM_SHEET_MIN_HEIGHT,
-          Math.min(BOTTOM_SHEET_MAX_HEIGHT, newHeight)
-        );
-        bottomSheetHeight.setValue(clampedHeight);
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        const newHeight = currentHeight.current - gestureState.dy;
-        let snapHeight: number;
-
-        if (gestureState.vy < -0.5) {
-          snapHeight = BOTTOM_SHEET_MAX_HEIGHT;
-        } else if (gestureState.vy > 0.5) {
-          snapHeight = BOTTOM_SHEET_MIN_HEIGHT;
-        } else {
-          const midPoint = (BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_MAX_HEIGHT) / 2;
-          snapHeight = newHeight > midPoint ? BOTTOM_SHEET_MAX_HEIGHT : BOTTOM_SHEET_MIN_HEIGHT;
-        }
-
-        currentHeight.current = snapHeight;
-        Animated.spring(bottomSheetHeight, {
-          toValue: snapHeight,
-          useNativeDriver: false,
-          tension: 65,
-          friction: 11,
-        }).start();
-      },
-    })
-  ).current;
-
-  // Filter trucks based on search (status is already filtered via API)
-  const filteredTrucks = useMemo(() => {
-    if (!searchQuery) return trucks;
-
-    return trucks.filter((truck) => {
-      const matchesSearch =
-        truck.truckCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (truck.ticketCode?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-        (truck.driverName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
-
-      return matchesSearch;
-    });
-  }, [trucks, searchQuery]);
 
   // Calculate map center - prioritize params from navigation
   const getMapCenter = useMemo((): [number, number] => {
@@ -242,10 +97,10 @@ export const MapTrackingScreen: React.FC = () => {
       return [parseFloat(paramLongitude), parseFloat(paramLatitude)];
     }
 
-    if (filteredTrucks.length === 0) return [-98.6698, 35.5306];
+    if (trucks.length === 0) return [-98.6698, 35.5306];
 
-    const lats = filteredTrucks.map((item) => item.latitude);
-    const longs = filteredTrucks.map((item) => item.longitude);
+    const lats = trucks.map((item) => item.latitude);
+    const longs = trucks.map((item) => item.longitude);
 
     const minLat = Math.min(...lats);
     const maxLat = Math.max(...lats);
@@ -253,7 +108,7 @@ export const MapTrackingScreen: React.FC = () => {
     const maxLong = Math.max(...longs);
 
     return [(minLong + maxLong) / 2, (minLat + maxLat) / 2];
-  }, [filteredTrucks, paramLatitude, paramLongitude]);
+  }, [trucks, paramLatitude, paramLongitude]);
 
   // Center camera on passed coordinates when screen loads
   useEffect(() => {
@@ -265,27 +120,6 @@ export const MapTrackingScreen: React.FC = () => {
       });
     }
   }, [paramLatitude, paramLongitude]);
-
-  // Ensure bottom sheet is visible when screen comes into focus (especially from TicketDetailScreen)
-  useFocusEffect(
-    useCallback(() => {
-      // Wait for navigation transition to complete before expanding bottom sheet
-      const interactionPromise = InteractionManager.runAfterInteractions(() => {
-        // Expand bottom sheet to max height
-        currentHeight.current = BOTTOM_SHEET_MAX_HEIGHT;
-        Animated.spring(bottomSheetHeight, {
-          toValue: BOTTOM_SHEET_MAX_HEIGHT,
-          useNativeDriver: false,
-          tension: 65,
-          friction: 11,
-        }).start();
-      });
-
-      return () => {
-        interactionPromise.cancel();
-      };
-    }, [bottomSheetHeight])
-  );
 
   // Highlighted truck from navigation params (from TicketDetailScreen)
   const highlightedTruck = useMemo(() => {
@@ -401,67 +235,6 @@ export const MapTrackingScreen: React.FC = () => {
     }
   }, [routeBounds]);
 
-  const handleRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
-
-  const handleLoadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage && !isLoading) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage]);
-
-  const renderListFooter = useCallback(() => {
-    if (!isFetchingNextPage) return null;
-    return (
-      <View style={styles.listFooter}>
-        <ActivityIndicator size="small" color={colors.primary.main} />
-        <Text variant="caption" style={[styles.loadingText, { color: themeColors.text.secondary }]}>
-          Loading...
-        </Text>
-      </View>
-    );
-  }, [isFetchingNextPage, themeColors.text.secondary]);
-
-  const openFilterModal = useCallback(() => {
-    setTempStatus(selectedStatus);
-    setShowFilterModal(true);
-    Animated.spring(filterModalAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 100,
-      friction: 12,
-    }).start();
-  }, [filterModalAnim, selectedStatus]);
-
-  const closeFilterModal = useCallback(() => {
-    setShowFilterModal(false);
-    filterModalAnim.setValue(0);
-  }, [filterModalAnim]);
-
-  const applyFilters = useCallback(() => {
-    setSelectedStatus(tempStatus);
-    closeFilterModal();
-  }, [tempStatus, closeFilterModal]);
-
-  const clearAllFilters = useCallback(() => {
-    setTempStatus('all');
-  }, []);
-
-  const handleMapPress = useCallback(() => {
-    if (currentHeight.current >= BOTTOM_SHEET_MAX_HEIGHT * 0.9) {
-      currentHeight.current = BOTTOM_SHEET_MIN_HEIGHT;
-      Animated.spring(bottomSheetHeight, {
-        toValue: BOTTOM_SHEET_MIN_HEIGHT,
-        useNativeDriver: false,
-        tension: 65,
-        friction: 11,
-      }).start();
-    }
-  }, [bottomSheetHeight]);
-
-  const hasActiveFilters = selectedStatus !== 'all';
-
   // Function to open Google Maps with directions
   const openGoogleMapsDirections = useCallback(() => {
     if (!plantLocation || !jobLocation) return;
@@ -501,61 +274,6 @@ export const MapTrackingScreen: React.FC = () => {
     setShowDirections(!showDirections);
   }, [showDirections]);
 
-  const renderTruckItem = useCallback(
-    ({ item, index }: { item: Truck; index: number }) => (
-      <TouchableOpacity
-        style={[
-          styles.tableRow,
-          index % 2 === 0 && { backgroundColor: isDark ? colors.dark.surface : colors.grey[5] },
-        ]}
-        activeOpacity={0.7}
-      >
-        <View style={styles.truckCell}>
-          <View style={styles.truckIconContainer}>
-            <View
-              style={[
-                styles.truckIconBg,
-                { backgroundColor: isDark ? colors.dark.card : colors.grey[10] },
-              ]}
-            >
-              <Icon name="truck" size={ms(18)} color={STATUS_COLORS[item.status]} />
-              <View
-                style={[styles.statusIndicator, { backgroundColor: STATUS_COLORS[item.status] }]}
-              />
-            </View>
-            <Text
-              variant="captionSmall"
-              style={[styles.truckNumber, { color: themeColors.text.primary }]}
-            >
-              {item.truckCode}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.ticketCell}>
-          <Text variant="caption" style={{ color: themeColors.text.primary }}>
-            {item.ticketCode || '-'}
-          </Text>
-        </View>
-        <View style={styles.coordCell}>
-          <Text variant="caption" style={{ color: themeColors.text.primary }}>
-            {item.latitude?.toFixed(4) || '-'}
-          </Text>
-        </View>
-        <View style={styles.coordCell}>
-          <Text variant="caption" style={{ color: themeColors.text.primary }}>
-            {item.longitude?.toFixed(4) || '-'}
-          </Text>
-        </View>
-        <View style={styles.updateCell}>
-          <Text variant="caption" style={{ color: themeColors.text.secondary }}>
-            {item.timestampDisplay || '-'}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    ),
-    [isDark, themeColors]
-  );
-
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar
@@ -571,7 +289,6 @@ export const MapTrackingScreen: React.FC = () => {
           styleURL={isDark ? MAP_STYLES.dark : MAP_STYLES.light}
           logoEnabled={false}
           attributionEnabled={false}
-          onPress={handleMapPress}
         >
           <Mapbox.Camera
             ref={cameraRef}
@@ -608,7 +325,7 @@ export const MapTrackingScreen: React.FC = () => {
           )}
 
           {/* Truck Markers */}
-          {filteredTrucks.map((truck) => (
+          {trucks.map((truck) => (
             <Mapbox.MarkerView
               key={truck.id}
               coordinate={[truck.longitude, truck.latitude]}
@@ -722,7 +439,7 @@ export const MapTrackingScreen: React.FC = () => {
             </Text>
             <View style={styles.truckCountBadge}>
               <Text variant="caption" style={{ color: colors.primary.main }}>
-                {filteredTrucks.length}
+                {trucks.length}
               </Text>
             </View>
           </View>
@@ -848,186 +565,6 @@ export const MapTrackingScreen: React.FC = () => {
           </View>
         )}
       </View>
-
-      {/* Bottom Sheet */}
-      <Animated.View
-        style={[
-          styles.bottomSheet,
-          {
-            height: bottomSheetHeight,
-            backgroundColor: themeColors.card,
-          },
-        ]}
-      >
-        {/* Handle */}
-        <View style={styles.handleContainer} {...panResponder.panHandlers}>
-          <View style={[styles.handle, { backgroundColor: themeColors.border }]} />
-          <Icon name="drag-horizontal" size={ms(18)} color={themeColors.text.hint} />
-        </View>
-
-        {/* Search Bar */}
-        <View style={styles.searchRow}>
-          <View
-            style={[styles.searchInputContainer, { backgroundColor: themeColors.background }]}
-          >
-            <Icon name="magnify" size={ms(18)} color={themeColors.text.hint} />
-            <TextInput
-              style={[styles.searchInput, { color: themeColors.text.primary }]}
-              placeholder="Search truck, ticket..."
-              placeholderTextColor={themeColors.text.hint}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Icon name="close" size={ms(18)} color={themeColors.text.hint} />
-              </TouchableOpacity>
-            )}
-          </View>
-          <TouchableOpacity
-            style={[styles.filterButton, { backgroundColor: themeColors.background }]}
-            onPress={openFilterModal}
-          >
-            <Icon name="tune-variant" size={ms(20)} color={themeColors.text.primary} />
-            {hasActiveFilters && <View style={styles.filterButtonBadge} />}
-          </TouchableOpacity>
-        </View>
-
-        {/* Results Summary */}
-        <View style={styles.resultsSummary}>
-          <Text variant="bodySmall" style={{ fontWeight: '600', color: themeColors.text.primary }}>
-            {filteredTrucks.length} trucks found
-          </Text>
-        </View>
-
-        {/* Table */}
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <TruckLoader size={80} message="Loading..." />
-          </View>
-        ) : (
-          <View style={styles.tableWrapper}>
-            <TableHeader isDark={isDark} />
-            <FlatList
-              data={filteredTrucks}
-              renderItem={renderTruckItem}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-              style={styles.tableContent}
-              contentContainerStyle={[
-                styles.tableContentContainer,
-                { paddingBottom: insets.bottom + spacing.xl + spacing.lg },
-              ]}
-              refreshControl={
-                <RefreshControl
-                  refreshing={isRefetching}
-                  onRefresh={handleRefresh}
-                  tintColor={colors.primary.main}
-                  colors={[colors.primary.main, colors.secondary.main]}
-                  progressBackgroundColor={isDark ? themeColors.cardElevated : colors.common.white}
-                />
-              }
-              ListEmptyComponent={
-                !isLoading ? (
-                  <EmptyViewWithPreset
-                    preset="trucks"
-                    compact
-                  />
-                ) : null
-              }
-              ListFooterComponent={renderListFooter}
-              onEndReached={handleLoadMore}
-              onEndReachedThreshold={0.3}
-              initialNumToRender={10}
-              maxToRenderPerBatch={10}
-              windowSize={5}
-            />
-          </View>
-        )}
-      </Animated.View>
-
-      {/* Filter Modal */}
-      <Modal
-        visible={showFilterModal}
-        transparent
-        animationType="slide"
-        statusBarTranslucent
-        onRequestClose={closeFilterModal}
-      >
-        <View style={styles.modalOverlay}>
-          {/* Backdrop - tap to close */}
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={closeFilterModal}
-          />
-
-          {/* Modal Content - positioned at bottom */}
-          <View style={[styles.filterModalContent, { backgroundColor: themeColors.card }]}>
-            {/* Handle */}
-            <View style={[styles.modalHandle, { backgroundColor: themeColors.border }]} />
-
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <Text variant="h4">Filters</Text>
-              <View style={styles.modalHeaderRight}>
-                <TouchableOpacity onPress={clearAllFilters}>
-                  <Text variant="bodySmall" style={{ color: colors.primary.main }}>
-                    Clear All
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalCloseButton, { backgroundColor: themeColors.background }]}
-                  onPress={closeFilterModal}
-                >
-                  <Icon name="close" size={ms(18)} color={themeColors.text.secondary} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Status Filter */}
-            <View style={styles.filterSection}>
-              <Text variant="bodySmall" style={{ fontWeight: '600', marginBottom: spacing.sm }}>
-                Status
-              </Text>
-              <View style={styles.filterOptionsGrid}>
-                {statusFilterOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.filterOption,
-                      { backgroundColor: themeColors.background },
-                      tempStatus === option.value && styles.filterOptionActive,
-                    ]}
-                    onPress={() => setTempStatus(option.value)}
-                  >
-                    <View style={[styles.optionDot, { backgroundColor: option.color }]} />
-                    <Text
-                      variant="caption"
-                      style={[
-                        { color: themeColors.text.secondary },
-                        tempStatus === option.value && styles.filterOptionTextActive,
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Apply Button */}
-            <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-              <Text variant="body" style={{ color: colors.common.white, fontWeight: '600' }}>
-                Apply Filters
-              </Text>
-            </TouchableOpacity>
-
-            {/* Safe Area Spacer - fills bottom safe area with same background */}
-            <View style={{ height: insets.bottom }} />
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -1382,240 +919,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  bottomSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopLeftRadius: ms(24),
-    borderTopRightRadius: ms(24),
-    paddingHorizontal: spacing.md,
-    shadowColor: colors.common.black,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 15,
-  },
-  handleContainer: {
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  handle: {
-    width: ms(40),
-    height: ms(4),
-    borderRadius: ms(2),
-    marginBottom: spacing.xs,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-    gap: spacing.sm,
-  },
-  searchInputContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: ms(12),
-    paddingHorizontal: spacing.sm,
-    height: ms(44),
-    gap: spacing.xs,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: ms(14),
-    paddingVertical: 0,
-  },
-  filterButton: {
-    width: ms(44),
-    height: ms(44),
-    borderRadius: ms(12),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterButtonBadge: {
-    position: 'absolute',
-    top: ms(8),
-    right: ms(8),
-    width: ms(8),
-    height: ms(8),
-    borderRadius: ms(4),
-    backgroundColor: colors.primary.main,
-  },
-  resultsSummary: {
-    marginBottom: spacing.sm,
-    alignItems: 'center',
-  },
-  tableWrapper: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  headerText: {
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  tableContent: {
-    flex: 1,
-    width: '100%',
-  },
-  tableContentContainer: {
-    alignItems: 'center',
-    flexGrow: 1,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  truckCell: {
-    width: ms(60),
-    alignItems: 'center',
-  },
-  ticketCell: {
-    width: ms(70),
-    alignItems: 'center',
-  },
-  coordCell: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  updateCell: {
-    width: ms(60),
-    alignItems: 'center',
-  },
-  truckIconContainer: {
-    alignItems: 'center',
-  },
-  truckIconBg: {
-    width: ms(36),
-    height: ms(36),
-    borderRadius: ms(8),
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  statusIndicator: {
-    position: 'absolute',
-    top: ms(2),
-    right: ms(2),
-    width: ms(8),
-    height: ms(8),
-    borderRadius: ms(4),
-    borderWidth: 1,
-    borderColor: colors.common.white,
-  },
-  truckNumber: {
-    marginTop: ms(2),
-    fontWeight: '600',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-  },
-  listFooter: {
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  loadingText: {
-    marginLeft: spacing.xs,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: spacing.xxl,
-  },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalBackdrop: {
-    flex: 1,
-  },
-  filterModalContent: {
-    borderTopLeftRadius: ms(24),
-    borderTopRightRadius: ms(24),
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.lg,
-  },
-  modalHandle: {
-    width: ms(40),
-    height: ms(4),
-    borderRadius: ms(2),
-    alignSelf: 'center',
-    marginBottom: spacing.md,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  modalHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  modalCloseButton: {
-    width: ms(32),
-    height: ms(32),
-    borderRadius: ms(16),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterSection: {
-    marginBottom: spacing.lg,
-  },
-  filterOptionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  filterOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: ms(20),
-    gap: spacing.xs,
-  },
-  filterOptionActive: {
-    backgroundColor: `${colors.primary.main}20`,
-    borderWidth: 1,
-    borderColor: colors.primary.main,
-  },
-  filterOptionTextActive: {
-    color: colors.primary.dark,
-  },
-  optionDot: {
-    width: ms(8),
-    height: ms(8),
-    borderRadius: ms(4),
-  },
-  applyButton: {
-    backgroundColor: colors.primary.main,
-    paddingVertical: spacing.md,
-    borderRadius: ms(25),
-    alignItems: 'center',
-    marginTop: spacing.sm,
   },
 });
 
