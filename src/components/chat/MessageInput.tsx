@@ -12,7 +12,6 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import ImagePicker from 'react-native-image-crop-picker';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Icon, Text } from '../common';
@@ -85,13 +84,6 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
               </View>
               <Text style={[styles.modalOptionText, { color: textColor }]}>Gallery</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity style={styles.modalOption} onPress={onClose}>
-              <View style={[styles.modalOptionIcon, { backgroundColor: '#EF4444' }]}>
-                <Icon name="file-document-outline" size={ms(24)} color="#FFF" />
-              </View>
-              <Text style={[styles.modalOptionText, { color: textColor }]}>Document</Text>
-            </TouchableOpacity>
           </View>
         </Animated.View>
       </Pressable>
@@ -104,9 +96,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   onSend,
   onTyping,
   isSending = false,
-  placeholder = 'Message',
+  placeholder = 'Type a message...',
 }) => {
   const { isDark } = useTheme();
+  const themeColors = isDark ? colors.dark : colors.light;
   const [message, setMessage] = useState('');
   const [selectedImages, setSelectedImages] = useState<ImageAttachment[]>([]);
   const [isFocused, setIsFocused] = useState(false);
@@ -114,12 +107,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [showImageModal, setShowImageModal] = useState(false);
   const sendAnim = useRef(new Animated.Value(1)).current;
 
-  // Colors
-  const inputBg = isDark ? '#1F2C34' : '#FFFFFF';
-  const containerBg = isDark ? '#0B141A' : '#F0F2F5';
-  const textColor = isDark ? '#E9EDEF' : '#111B21';
-  const hintColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)';
-  const iconColor = isDark ? '#8696A0' : '#54656F';
+  // Colors - using theme colors
+  const inputBg = themeColors.card;
+  const containerBg = themeColors.background;
+  const textColor = themeColors.text.primary;
+  const hintColor = themeColors.text.hint;
+  const iconColor = themeColors.text.secondary;
 
   const handleChangeText = useCallback((text: string) => {
     setMessage(text);
@@ -229,19 +222,15 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
       {/* Input Row */}
       <View style={styles.inputRow}>
-        {/* Attachment */}
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => setShowImageModal(true)}
-          disabled={isProcessing}
-        >
-          <Icon name="plus" size={ms(24)} color={iconColor} />
-        </TouchableOpacity>
-
         {/* Input Field */}
-        <View style={[styles.inputContainer, { backgroundColor: inputBg }]}>
-          <TouchableOpacity style={styles.emojiBtn}>
-            <Icon name="emoticon-outline" size={ms(24)} color={iconColor} />
+        <View style={[styles.inputContainer, { backgroundColor: inputBg, borderColor: isFocused ? colors.primary.main : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)') }]}>
+          {/* Attachment Button */}
+          <TouchableOpacity
+            style={styles.attachBtn}
+            onPress={() => setShowImageModal(true)}
+            disabled={isProcessing}
+          >
+            <Icon name="paperclip" size={ms(20)} color={iconColor} />
           </TouchableOpacity>
 
           <TextInput
@@ -257,31 +246,29 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             editable={!isProcessing}
           />
 
+          {/* Camera Button */}
           <TouchableOpacity style={styles.cameraBtn} onPress={openCamera} disabled={isProcessing}>
-            <Icon name="camera-outline" size={ms(22)} color={iconColor} />
+            <Icon name="camera-outline" size={ms(20)} color={iconColor} />
           </TouchableOpacity>
         </View>
 
-        {/* Send / Mic Button */}
+        {/* Send Button */}
         <Animated.View style={{ transform: [{ scale: sendAnim }] }}>
-          {canSend ? (
-            <TouchableOpacity onPress={handleSend} activeOpacity={0.8}>
-              <LinearGradient
-                colors={['#00A884', '#008069']}
-                style={styles.sendBtn}
-              >
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <Icon name="send" size={ms(20)} color="#FFF" />
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : (
-            <View style={[styles.micBtn, { backgroundColor: isDark ? '#00A884' : '#00A884' }]}>
-              <Icon name="microphone" size={ms(22)} color="#FFF" />
-            </View>
-          )}
+          <TouchableOpacity
+            onPress={handleSend}
+            activeOpacity={0.8}
+            disabled={!canSend}
+            style={[
+              styles.sendBtn,
+              { backgroundColor: canSend ? colors.primary.main : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)') }
+            ]}
+          >
+            {isProcessing ? (
+              <ActivityIndicator size="small" color={colors.common.white} />
+            ) : (
+              <Icon name="send" size={ms(18)} color={canSend ? colors.common.white : iconColor} />
+            )}
+          </TouchableOpacity>
         </Animated.View>
       </View>
     </View>
@@ -290,13 +277,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.xs,
-    paddingBottom: Platform.OS === 'ios' ? spacing.xs : spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingBottom: Platform.OS === 'ios' ? spacing.sm : spacing.sm,
   },
   previewRow: {
     flexDirection: 'row',
-    paddingHorizontal: spacing.sm,
     paddingBottom: spacing.sm,
     gap: spacing.xs,
   },
@@ -304,9 +290,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   previewImage: {
-    width: ms(60),
-    height: ms(60),
-    borderRadius: ms(10),
+    width: ms(56),
+    height: ms(56),
+    borderRadius: ms(8),
     backgroundColor: 'rgba(0,0,0,0.1)',
   },
   previewRemove: {
@@ -316,32 +302,26 @@ const styles = StyleSheet.create({
     width: ms(20),
     height: ms(20),
     borderRadius: ms(10),
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.error.main,
     justifyContent: 'center',
     alignItems: 'center',
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: spacing.xs,
-  },
-  iconBtn: {
-    width: ms(44),
-    height: ms(44),
-    justifyContent: 'center',
-    alignItems: 'center',
+    gap: spacing.sm,
   },
   inputContainer: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    borderRadius: ms(24),
+    alignItems: 'center',
+    borderRadius: ms(12),
+    borderWidth: 1,
     paddingHorizontal: spacing.xs,
-    paddingVertical: Platform.OS === 'ios' ? spacing.xs : ms(2),
-    minHeight: ms(48),
+    minHeight: ms(44),
     maxHeight: ms(120),
   },
-  emojiBtn: {
+  attachBtn: {
     width: ms(36),
     height: ms(36),
     justifyContent: 'center',
@@ -349,9 +329,9 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: ms(16),
-    lineHeight: ms(22),
-    paddingVertical: Platform.OS === 'ios' ? spacing.xs : ms(6),
+    fontSize: ms(15),
+    lineHeight: ms(20),
+    paddingVertical: Platform.OS === 'ios' ? spacing.sm : ms(8),
     maxHeight: ms(100),
   },
   cameraBtn: {
@@ -361,16 +341,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sendBtn: {
-    width: ms(48),
-    height: ms(48),
-    borderRadius: ms(24),
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  micBtn: {
-    width: ms(48),
-    height: ms(48),
-    borderRadius: ms(24),
+    width: ms(44),
+    height: ms(44),
+    borderRadius: ms(12),
     justifyContent: 'center',
     alignItems: 'center',
   },

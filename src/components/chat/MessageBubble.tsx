@@ -138,24 +138,24 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
-  // Bubble corner radius
+  // Bubble corner radius - clean rounded corners
   const getBubbleRadius = () => {
-    const big = ms(18);
-    const small = ms(4);
+    const radius = ms(16);
+    const smallRadius = ms(4);
 
     if (isOwnMessage) {
       return {
-        borderTopLeftRadius: big,
-        borderTopRightRadius: isFirstInGroup ? big : small,
-        borderBottomLeftRadius: big,
-        borderBottomRightRadius: isLastInGroup ? big : small,
+        borderTopLeftRadius: radius,
+        borderTopRightRadius: radius,
+        borderBottomLeftRadius: radius,
+        borderBottomRightRadius: isLastInGroup ? smallRadius : radius,
       };
     }
     return {
-      borderTopLeftRadius: isFirstInGroup ? big : small,
-      borderTopRightRadius: big,
-      borderBottomLeftRadius: isLastInGroup ? big : small,
-      borderBottomRightRadius: big,
+      borderTopLeftRadius: radius,
+      borderTopRightRadius: radius,
+      borderBottomLeftRadius: isLastInGroup ? smallRadius : radius,
+      borderBottomRightRadius: radius,
     };
   };
 
@@ -219,17 +219,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
           {/* Bubble */}
           <View style={[styles.bubble, { backgroundColor: bubbleColor }, getBubbleRadius()]}>
-            {/* Bubble tail */}
-            {isLastInGroup && (
-              <View
-                style={[
-                  styles.bubbleTail,
-                  isOwnMessage ? styles.ownTail : styles.otherTail,
-                  { borderBottomColor: bubbleColor },
-                ]}
-              />
-            )}
-
             {/* Images */}
             {imageUrls.length > 0 && (
               <View style={styles.imagesContainer}>
@@ -351,37 +340,17 @@ const styles = StyleSheet.create({
     paddingTop: ms(8),
     paddingBottom: ms(6),
     minWidth: ms(70),
-    position: 'relative',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
+        shadowOpacity: 0.06,
         shadowRadius: 2,
       },
       android: {
         elevation: 1,
       },
     }),
-  },
-  bubbleTail: {
-    position: 'absolute',
-    bottom: 0,
-    width: 0,
-    height: 0,
-    borderLeftWidth: ms(8),
-    borderRightWidth: ms(8),
-    borderBottomWidth: ms(10),
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-  },
-  ownTail: {
-    right: ms(-6),
-    transform: [{ rotate: '45deg' }],
-  },
-  otherTail: {
-    left: ms(-6),
-    transform: [{ rotate: '-45deg' }],
   },
   content: {
     fontSize: ms(15),

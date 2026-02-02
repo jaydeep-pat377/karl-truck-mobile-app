@@ -72,19 +72,6 @@ export const OrderTrackingScreen: React.FC = () => {
   const { orderId } = route.params;
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string | null>(null);
-
-  // Status filter options for the map (colors matching the design)
-  const STATUS_FILTERS = [
-    { key: 'ticketed', label: 'Ticketed', color: '#9E9E9E' },    // Gray
-    { key: 'loaded', label: 'Loaded', color: '#42A5F5' },        // Light Blue
-    { key: 'to_job', label: 'To Job', color: '#AB47BC' },        // Purple
-    { key: 'at_job', label: 'At Job', color: '#26A69A' },        // Teal/Cyan
-    { key: 'pouring', label: 'Pouring', color: '#FFA726' },      // Orange
-    { key: 'washing', label: 'Washing', color: '#5C6BC0' },      // Indigo
-    { key: 'to_plant', label: 'To Plant', color: '#78909C' },    // Blue Gray
-    { key: 'at_plant', label: 'At Plant', color: '#EC407A' },    // Pink
-  ];
 
   // Bottom sheet animation
   const sheetHeight = useRef(new Animated.Value(SHEET_MIN_HEIGHT)).current;
@@ -176,22 +163,11 @@ export const OrderTrackingScreen: React.FC = () => {
     refetchInterval: 30000,
   });
 
-  // Filtered tickets based on status filter
-  const filteredTickets = useMemo(() => {
-    if (!selectedStatusFilter) return tickets;
-    return tickets.filter(t => t.status === selectedStatusFilter);
-  }, [tickets, selectedStatusFilter]);
-
   // Selected ticket
   const selectedTicket = useMemo(() => {
     if (!selectedTicketId) return tickets[0] || null;
     return tickets.find(t => t.ticket_id === selectedTicketId) || null;
   }, [selectedTicketId, tickets]);
-
-  // Handle status filter press
-  const handleStatusFilterPress = useCallback((status: string) => {
-    setSelectedStatusFilter(prev => prev === status ? null : status);
-  }, []);
 
   // Locations
   const plantLocation = useMemo(() => {
@@ -478,7 +454,7 @@ export const OrderTrackingScreen: React.FC = () => {
           )}
 
           {/* Truck Markers */}
-          {filteredTickets.map((ticket, index) => {
+          {tickets.map((ticket, index) => {
             if (!ticket.truck?.latitude || !ticket.truck?.longitude) return null;
             const isSelected = selectedTicketId === ticket.ticket_id || (!selectedTicketId && index === 0);
             const config = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.ticketed;
@@ -543,42 +519,6 @@ export const OrderTrackingScreen: React.FC = () => {
           <TouchableOpacity style={[styles.mapBtn, { backgroundColor: themeColors.card }]} onPress={handleOpenMaps}>
             <Icon name="directions" size={ms(18)} color={colors.primary.main} />
           </TouchableOpacity>
-        </View>
-
-        {/* Status Filter Buttons */}
-        <View style={styles.statusFilters}>
-          {STATUS_FILTERS.map((filter) => {
-            const isActive = selectedStatusFilter === filter.key;
-            const ticketCount = tickets.filter(t => t.status === filter.key).length;
-            return (
-              <TouchableOpacity
-                key={filter.key}
-                style={[
-                  styles.statusFilterBtn,
-                  { borderColor: filter.color },
-                  isActive && { backgroundColor: filter.color },
-                ]}
-                onPress={() => handleStatusFilterPress(filter.key)}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.statusFilterText,
-                    { color: isActive ? colors.common.white : filter.color },
-                  ]}
-                >
-                  {filter.label}
-                </Text>
-                {ticketCount > 0 && (
-                  <View style={[styles.statusFilterBadge, { backgroundColor: isActive ? 'rgba(255,255,255,0.3)' : filter.color }]}>
-                    <Text style={[styles.statusFilterBadgeText, { color: isActive ? colors.common.white : colors.common.white }]}>
-                      {ticketCount}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
         </View>
 
         {/* Route Info Pill */}
@@ -734,47 +674,6 @@ const styles = StyleSheet.create({
   routePill: { position: 'absolute', left: ms(12), bottom: ms(16), flexDirection: 'row', alignItems: 'center', gap: ms(6), paddingHorizontal: ms(12), paddingVertical: ms(8), borderRadius: ms(20), shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   routeText: { fontSize: ms(12), fontFamily: fontFamily.semiBold },
   routeDivider: { width: 1, height: ms(12), backgroundColor: 'rgba(0,0,0,0.1)', marginHorizontal: ms(4) },
-
-  // Status filters
-  statusFilters: {
-    position: 'absolute',
-    left: ms(10),
-    top: ms(110),
-    gap: ms(5),
-  },
-  statusFilterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: ms(75),
-    paddingHorizontal: ms(12),
-    paddingVertical: ms(6),
-    borderRadius: ms(6),
-    borderWidth: 2,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
-    gap: ms(4),
-  },
-  statusFilterText: {
-    fontSize: ms(11),
-    fontFamily: fontFamily.semiBold,
-  },
-  statusFilterBadge: {
-    minWidth: ms(16),
-    height: ms(16),
-    borderRadius: ms(8),
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: ms(4),
-  },
-  statusFilterBadgeText: {
-    fontSize: ms(9),
-    fontFamily: fontFamily.bold,
-  },
 
   // Markers
   markerWrap: { alignItems: 'center' },

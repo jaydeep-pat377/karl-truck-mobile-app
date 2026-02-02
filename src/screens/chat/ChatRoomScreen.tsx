@@ -302,7 +302,6 @@ export const ChatRoomScreen: React.FC = () => {
       >
         <ChatHeader
           title={roomName}
-          subtitle="Loading..."
           onBack={() => navigation.goBack()}
         />
         <View style={[styles.loadingContainer, { paddingBottom: insets.bottom }]}>
@@ -322,7 +321,6 @@ export const ChatRoomScreen: React.FC = () => {
     >
       <ChatHeader
         title={roomName}
-        subtitle={isRealtimeConnected ? 'Online' : 'Connecting...'}
         onBack={() => navigation.goBack()}
       />
 
