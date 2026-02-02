@@ -28,6 +28,9 @@ interface OrderCardProps {
   isLoading?: boolean;
   isWeatherLoading?: boolean;
   isChatLoading?: boolean;
+  showOrderDetailsButton?: boolean;
+  showTicketButton?: boolean;
+  showChatButton?: boolean;
 }
 
 interface ActionButtonProps {
@@ -94,6 +97,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   isLoading = false,
   isWeatherLoading = false,
   isChatLoading = false,
+  showOrderDetailsButton = true,
+  showTicketButton = true,
+  showChatButton = true,
 }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -298,34 +304,42 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         </View>
       </TouchableOpacity>
 
-      <View style={[styles.actionRow, { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }]}>
-        <ActionButton
-          icon="clipboard-text-outline"
-          label="Order Details"
-          onPress={onOrderDetails}
-          disabled={orderDetailsDisabled}
-          isLoading={isLoading}
-        />
-        <View style={[styles.actionDivider, { backgroundColor: isDark ? colors.dark.border : colors.grey[25] }]} />
-        <ActionButton
-          icon="ticket-outline"
-          label="Ticket"
-          onPress={onTicket}
-          disabled={ticketDisabled}
-        />
-        {order.canChat && (
-          <>
-            <View style={[styles.actionDivider, { backgroundColor: isDark ? colors.dark.border : colors.grey[25] }]} />
+      {(showOrderDetailsButton || showTicketButton || (showChatButton && order.canChat)) && (
+        <View style={[styles.actionRow, { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }]}>
+          {showOrderDetailsButton && (
             <ActionButton
-              icon="chat-outline"
-              label="Chat"
-              onPress={onChat}
-              disabled={chatDisabled}
-              isLoading={isChatLoading}
+              icon="clipboard-text-outline"
+              label="Order Details"
+              onPress={onOrderDetails}
+              disabled={orderDetailsDisabled}
+              isLoading={isLoading}
             />
-          </>
-        )}
-      </View>
+          )}
+          {showOrderDetailsButton && showTicketButton && (
+            <View style={[styles.actionDivider, { backgroundColor: isDark ? colors.dark.border : colors.grey[25] }]} />
+          )}
+          {showTicketButton && (
+            <ActionButton
+              icon="ticket-outline"
+              label="Ticket"
+              onPress={onTicket}
+              disabled={ticketDisabled}
+            />
+          )}
+          {showChatButton && order.canChat && (
+            <>
+              <View style={[styles.actionDivider, { backgroundColor: isDark ? colors.dark.border : colors.grey[25] }]} />
+              <ActionButton
+                icon="chat-outline"
+                label="Chat"
+                onPress={onChat}
+                disabled={chatDisabled}
+                isLoading={isChatLoading}
+              />
+            </>
+          )}
+        </View>
+      )}
       </View>
     </Card>
   );

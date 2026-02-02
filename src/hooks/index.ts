@@ -39,6 +39,8 @@ export * from './useChatMessages';
 export { default as useChatMessages } from './useChatMessages';
 export * from './useTypingIndicator';
 export { default as useTypingIndicator } from './useTypingIndicator';
+export * from './useOrderTracking';
+export { default as useOrderTracking } from './useOrderTracking';
 
 // Re-export useGlobalAlert from context for convenience
 export { useGlobalAlert } from '../contexts/GlobalAlertContext';

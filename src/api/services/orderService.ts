@@ -2,6 +2,7 @@ import apiClient from '../apiClient';
 import { API_ENDPOINTS } from '../endpoints';
 import { OrdersApiResponse, OrdersQueryParams } from '../../types/order';
 import { OrderDetailsApiResponse, OrderDetailsQueryParams } from '../../types/ticket';
+import { OrderTrackingResponse, OrderTrackingQueryParams } from '../../types/orderTracking';
 
 export const orderService = {
   getOrders: async (params?: OrdersQueryParams): Promise<OrdersApiResponse> => {
@@ -14,6 +15,16 @@ export const orderService = {
     return apiClient.get<OrderDetailsApiResponse>(API_ENDPOINTS.ORDERS.DETAILS, {
       params,
     });
+  },
+
+  getOrderTracking: async (
+    orderId: string,
+    params?: OrderTrackingQueryParams
+  ): Promise<OrderTrackingResponse> => {
+    return apiClient.get<OrderTrackingResponse>(
+      `${API_ENDPOINTS.ORDERS.TRACKING}/${orderId}`,
+      { params }
+    );
   },
 };
 

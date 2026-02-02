@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Animated, Image, TouchableOpacity, Modal, Dimensions } from 'react-native';
+import { View, StyleSheet, Animated, Image, TouchableOpacity, Modal, Dimensions, Platform } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon } from '../common';
 import { colors } from '../../theme/colors';
@@ -8,11 +8,22 @@ import { Message } from '../../types/chat';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+// Message bubble colors
+const BUBBLE_COLORS = {
+  sent: {
+    light: '#DCF8C6',
+    dark: '#005C4B',
+  },
+  received: {
+    light: '#FFFFFF',
+    dark: '#1F2C34',
+  },
+};
+
 interface Attachment {
   url?: string;
   type?: string;
   name?: string;
-  // Support different attachment formats
   file_url?: string;
   image_url?: string;
   path?: string;
@@ -46,31 +57,33 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
   const fadeAnim = useRef(new Animated.Value(isNewMessage ? 0 : 1)).current;
-  const slideAnim = useRef(new Animated.Value(isNewMessage ? 20 : 0)).current;
+  const scaleAnim = useRef(new Animated.Value(isNewMessage ? 0.8 : 1)).current;
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageError, setImageError] = useState<Set<string>>(new Set());
+
+  // Get bubble color based on sender and theme
+  const bubbleColor = isOwnMessage
+    ? (isDark ? BUBBLE_COLORS.sent.dark : BUBBLE_COLORS.sent.light)
+    : (isDark ? BUBBLE_COLORS.received.dark : BUBBLE_COLORS.received.light);
+
+  // Text color
+  const textColor = isDark ? '#E9EDEF' : '#111B21';
+  const timeColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.45)';
 
   // Extract image URLs from attachments
   const getImageUrls = (): string[] => {
     if (!message.attachments || !Array.isArray(message.attachments)) {
       return [];
     }
-
     return message.attachments
       .map((attachment: Attachment | string) => {
-        if (typeof attachment === 'string') {
-          return attachment;
-        }
-        // Support various attachment formats
+        if (typeof attachment === 'string') return attachment;
         return attachment.url || attachment.file_url || attachment.image_url || attachment.path || null;
       })
       .filter((url): url is string => {
         if (!url) return false;
-        // Filter for image URLs
         const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)($|\?)/i.test(url) ||
-          url.includes('/storage/') || // Supabase storage URLs
-          url.includes('supabase') ||
-          message.message_type === 'image';
+          url.includes('/storage/') || url.includes('supabase') || message.message_type === 'image';
         return isImage;
       });
   };
@@ -81,19 +94,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   useEffect(() => {
     if (isNewMessage) {
       Animated.parallel([
-        Animated.timing(fadeAnim, {
+        Animated.spring(fadeAnim, {
           toValue: 1,
-          duration: 300,
+          damping: 15,
+          stiffness: 150,
           useNativeDriver: true,
         }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 300,
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          damping: 12,
+          stiffness: 180,
           useNativeDriver: true,
         }),
       ]).start();
     }
-  }, [isNewMessage, fadeAnim, slideAnim]);
+  }, [isNewMessage, fadeAnim, scaleAnim]);
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -101,38 +116,55 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   };
 
   const getInitials = (name: string) => {
-    if (!name || name === 'Unknown' || name === 'User') {
-      return '?';
-    }
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .filter(Boolean)
-      .join('')
-      .toUpperCase()
-      .slice(0, 2) || '?';
+    if (!name || name === 'Unknown' || name === 'User') return '?';
+    return name.split(' ').map((n) => n[0]).filter(Boolean).join('').toUpperCase().slice(0, 2) || '?';
   };
 
   const getDeliveryIcon = () => {
+    const iconColor = isOwnMessage
+      ? (deliveryStatus === 'read' ? '#53BDEB' : timeColor)
+      : timeColor;
+
     switch (deliveryStatus) {
       case 'sending':
-        return <Icon name="clock-outline" size={ms(12)} color="rgba(255,255,255,0.5)" />;
+        return <Icon name="clock-outline" size={ms(14)} color={timeColor} />;
       case 'sent':
-        return <Icon name="check" size={ms(12)} color="rgba(255,255,255,0.7)" />;
+        return <Icon name="check" size={ms(14)} color={iconColor} />;
       case 'delivered':
-        return <Icon name="check-all" size={ms(12)} color="rgba(255,255,255,0.7)" />;
       case 'read':
-        return <Icon name="check-all" size={ms(12)} color={colors.info.main} />;
+        return <Icon name="check-all" size={ms(14)} color={iconColor} />;
       default:
         return null;
     }
   };
 
+  // Bubble corner radius
+  const getBubbleRadius = () => {
+    const big = ms(18);
+    const small = ms(4);
+
+    if (isOwnMessage) {
+      return {
+        borderTopLeftRadius: big,
+        borderTopRightRadius: isFirstInGroup ? big : small,
+        borderBottomLeftRadius: big,
+        borderBottomRightRadius: isLastInGroup ? big : small,
+      };
+    }
+    return {
+      borderTopLeftRadius: isFirstInGroup ? big : small,
+      borderTopRightRadius: big,
+      borderBottomLeftRadius: isLastInGroup ? big : small,
+      borderBottomRightRadius: big,
+    };
+  };
+
+  // System message
   if (message.message_type === 'system') {
     return (
       <View style={styles.systemContainer}>
-        <View style={[styles.systemBadge, { backgroundColor: themeColors.card }]}>
-          <Text variant="caption" color="hint" style={styles.systemText}>
+        <View style={[styles.systemBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}>
+          <Text style={[styles.systemText, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)' }]}>
             {message.content}
           </Text>
         </View>
@@ -140,45 +172,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
   }
 
-  // Display name with (you) indicator for own messages
-  const displayName = isOwnMessage
-    ? `${message.sender_name} (you)`
-    : message.sender_name;
-
-  // Determine bubble border radius based on grouping
-  const getBubbleStyle = () => {
-    const baseRadius = ms(18);
-    const smallRadius = ms(4);
-
-    if (isOwnMessage) {
-      return {
-        borderTopLeftRadius: baseRadius,
-        borderTopRightRadius: isFirstInGroup ? baseRadius : smallRadius,
-        borderBottomLeftRadius: baseRadius,
-        borderBottomRightRadius: isLastInGroup ? baseRadius : smallRadius,
-      };
-    } else {
-      return {
-        borderTopLeftRadius: isFirstInGroup ? baseRadius : smallRadius,
-        borderTopRightRadius: baseRadius,
-        borderBottomLeftRadius: isLastInGroup ? baseRadius : smallRadius,
-        borderBottomRightRadius: baseRadius,
-      };
-    }
-  };
-
   return (
     <>
       {/* Date Separator */}
       {showDateSeparator && (
         <View style={styles.dateSeparatorContainer}>
-          <View style={[styles.dateSeparatorLine, { backgroundColor: themeColors.border }]} />
-          <View style={[styles.dateSeparatorBadge, { backgroundColor: themeColors.card }]}>
-            <Text variant="captionSmall" color="hint" style={styles.dateSeparatorText}>
+          <View style={[styles.dateSeparatorBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}>
+            <Text style={[styles.dateSeparatorText, { color: isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.6)' }]}>
               {dateSeparatorText}
             </Text>
           </View>
-          <View style={[styles.dateSeparatorLine, { backgroundColor: themeColors.border }]} />
         </View>
       )}
 
@@ -189,11 +192,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           !isLastInGroup && styles.groupedContainer,
           {
             opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
+            transform: [{ scale: scaleAnim }],
           },
         ]}
       >
-        {/* Avatar for other users (left side) - only show for last message in group */}
+        {/* Avatar for received messages */}
         {!isOwnMessage && (
           <View style={styles.avatarContainer}>
             {isLastInGroup ? (
@@ -206,60 +209,46 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </View>
         )}
 
-        <View style={[
-          styles.messageWrapper,
-          isOwnMessage ? styles.ownMessageWrapper : styles.otherMessageWrapper,
-        ]}>
-          {/* Sender name - only show for first message in group */}
-          {isFirstInGroup && (
-            <Text
-              variant="captionSmall"
-              style={[
-                styles.senderName,
-                {
-                  color: isOwnMessage ? colors.primary.light : colors.primary.main,
-                  textAlign: isOwnMessage ? 'right' : 'left',
-                },
-              ]}
-            >
-              {displayName}
+        <View style={[styles.bubbleWrapper, isOwnMessage ? styles.ownBubbleWrapper : styles.otherBubbleWrapper]}>
+          {/* Sender name */}
+          {!isOwnMessage && isFirstInGroup && (
+            <Text style={[styles.senderName, { color: colors.secondary.main }]}>
+              {message.sender_name}
             </Text>
           )}
 
-          <View
-            style={[
-              styles.bubble,
-              isOwnMessage
-                ? [{ backgroundColor: colors.primary.main }, styles.ownBubbleAlign]
-                : [{ backgroundColor: themeColors.card }, styles.otherBubbleAlign],
-              getBubbleStyle(),
-              imageUrls.length > 0 && styles.imageBubble,
-            ]}
-          >
-            {/* Render images */}
+          {/* Bubble */}
+          <View style={[styles.bubble, { backgroundColor: bubbleColor }, getBubbleRadius()]}>
+            {/* Bubble tail */}
+            {isLastInGroup && (
+              <View
+                style={[
+                  styles.bubbleTail,
+                  isOwnMessage ? styles.ownTail : styles.otherTail,
+                  { borderBottomColor: bubbleColor },
+                ]}
+              />
+            )}
+
+            {/* Images */}
             {imageUrls.length > 0 && (
               <View style={styles.imagesContainer}>
                 {imageUrls.map((imageUrl, index) => (
                   <TouchableOpacity
                     key={`${imageUrl}-${index}`}
                     onPress={() => setSelectedImage(imageUrl)}
-                    activeOpacity={0.8}
+                    activeOpacity={0.9}
                   >
                     {imageError.has(imageUrl) ? (
-                      <View style={[styles.imageErrorContainer, { backgroundColor: themeColors.card }]}>
-                        <Icon name="image-off-outline" size={ms(32)} color={themeColors.text.hint} />
-                        <Text variant="caption" color="hint" style={styles.imageErrorText}>
-                          Image unavailable
-                        </Text>
+                      <View style={[styles.imageError, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                        <Icon name="image-off-outline" size={ms(28)} color={timeColor} />
                       </View>
                     ) : (
                       <Image
                         source={{ uri: imageUrl }}
                         style={styles.messageImage}
                         resizeMode="cover"
-                        onError={() => {
-                          setImageError(prev => new Set(prev).add(imageUrl));
-                        }}
+                        onError={() => setImageError(prev => new Set(prev).add(imageUrl))}
                       />
                     )}
                   </TouchableOpacity>
@@ -267,80 +256,41 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               </View>
             )}
 
-            {/* Render text content if present */}
+            {/* Text content */}
             {message.content && message.content.trim().length > 0 && (
-              <Text
-                variant="body"
-                style={[
-                  styles.content,
-                  { color: isOwnMessage ? colors.common.white : themeColors.text.primary },
-                  imageUrls.length > 0 && styles.contentWithImage,
-                ]}
-              >
+              <Text style={[styles.content, { color: textColor }, imageUrls.length > 0 && styles.contentWithImage]}>
                 {message.content}
               </Text>
             )}
 
-            <View style={styles.metaContainer}>
-              <Text
-                variant="captionSmall"
-                style={[
-                  styles.time,
-                  {
-                    color: isOwnMessage
-                      ? 'rgba(255,255,255,0.7)'
-                      : themeColors.text.hint,
-                  },
-                ]}
-              >
+            {/* Time and status */}
+            <View style={styles.metaRow}>
+              <Text style={[styles.time, { color: timeColor }]}>
                 {formatTime(message.created_at)}
               </Text>
               {isOwnMessage && (
-                <View style={styles.deliveryStatus}>
+                <View style={styles.statusIcon}>
                   {getDeliveryIcon()}
                 </View>
               )}
             </View>
           </View>
-
-          {/* Full screen image modal */}
-          <Modal
-            visible={!!selectedImage}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setSelectedImage(null)}
-          >
-            <View style={styles.modalContainer}>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setSelectedImage(null)}
-              >
-                <Icon name="close" size={ms(28)} color={colors.common.white} />
-              </TouchableOpacity>
-              {selectedImage && (
-                <Image
-                  source={{ uri: selectedImage }}
-                  style={styles.fullScreenImage}
-                  resizeMode="contain"
-                />
-              )}
-            </View>
-          </Modal>
         </View>
-
-        {/* Avatar for own messages (right side) - only show for last message in group */}
-        {isOwnMessage && (
-          <View style={styles.avatarContainer}>
-            {isLastInGroup ? (
-              <View style={[styles.avatar, { backgroundColor: colors.primary.main }]}>
-                <Text style={styles.avatarText}>{getInitials(message.sender_name)}</Text>
-              </View>
-            ) : (
-              <View style={styles.avatarPlaceholder} />
-            )}
-          </View>
-        )}
       </Animated.View>
+
+      {/* Full screen image modal */}
+      <Modal visible={!!selectedImage} transparent animationType="fade" onRequestClose={() => setSelectedImage(null)}>
+        <View style={styles.modalContainer}>
+          <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedImage(null)}>
+            <View style={styles.modalCloseBtn}>
+              <Icon name="close" size={ms(24)} color="#FFF" />
+            </View>
+          </TouchableOpacity>
+          {selectedImage && (
+            <Image source={{ uri: selectedImage }} style={styles.fullImage} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
     </>
   );
 };
@@ -348,12 +298,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    marginBottom: spacing.xs,
+    marginBottom: ms(2),
     paddingHorizontal: spacing.sm,
     alignItems: 'flex-end',
   },
   groupedContainer: {
-    marginBottom: ms(2),
+    marginBottom: ms(1),
   },
   ownContainer: {
     justifyContent: 'flex-end',
@@ -361,148 +311,170 @@ const styles = StyleSheet.create({
   otherContainer: {
     justifyContent: 'flex-start',
   },
-  messageWrapper: {
-    maxWidth: '75%',
-    flexShrink: 1,
-  },
-  ownMessageWrapper: {
-    alignItems: 'flex-end',
-  },
-  otherMessageWrapper: {
-    alignItems: 'flex-start',
-  },
   avatarContainer: {
-    width: ms(36),
-    alignItems: 'center',
+    width: ms(32),
+    marginRight: ms(6),
   },
   avatar: {
-    width: ms(32),
-    height: ms(32),
-    borderRadius: ms(16),
+    width: ms(28),
+    height: ms(28),
+    borderRadius: ms(14),
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarPlaceholder: {
-    width: ms(32),
-    height: ms(32),
+    width: ms(28),
+    height: ms(28),
   },
   avatarText: {
-    color: colors.common.white,
+    color: '#FFF',
     fontSize: ms(11),
     fontWeight: '600',
   },
-  bubble: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+  bubbleWrapper: {
+    maxWidth: '80%',
   },
-  ownBubbleAlign: {
-    alignSelf: 'flex-end',
+  ownBubbleWrapper: {
+    alignItems: 'flex-end',
   },
-  otherBubbleAlign: {
-    alignSelf: 'flex-start',
+  otherBubbleWrapper: {
+    alignItems: 'flex-start',
   },
   senderName: {
-    fontWeight: '600',
-    marginBottom: ms(4),
     fontSize: ms(12),
-    paddingHorizontal: ms(4),
+    fontWeight: '600',
+    marginBottom: ms(2),
+    marginLeft: ms(8),
+  },
+  bubble: {
+    paddingHorizontal: ms(12),
+    paddingTop: ms(8),
+    paddingBottom: ms(6),
+    minWidth: ms(70),
+    position: 'relative',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  bubbleTail: {
+    position: 'absolute',
+    bottom: 0,
+    width: 0,
+    height: 0,
+    borderLeftWidth: ms(8),
+    borderRightWidth: ms(8),
+    borderBottomWidth: ms(10),
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+  },
+  ownTail: {
+    right: ms(-6),
+    transform: [{ rotate: '45deg' }],
+  },
+  otherTail: {
+    left: ms(-6),
+    transform: [{ rotate: '-45deg' }],
   },
   content: {
     fontSize: ms(15),
     lineHeight: ms(20),
+    letterSpacing: -0.1,
   },
-  metaContainer: {
+  contentWithImage: {
+    marginTop: ms(6),
+  },
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    marginTop: ms(4),
+    marginTop: ms(3),
     gap: ms(4),
   },
   time: {
     fontSize: ms(11),
+    fontWeight: '400',
   },
-  deliveryStatus: {
+  statusIcon: {
     marginLeft: ms(2),
   },
-  systemContainer: {
-    alignItems: 'center',
-    marginVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  systemBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: ms(12),
-  },
-  systemText: {
-    textAlign: 'center',
-    fontSize: ms(12),
-  },
-  dateSeparatorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  dateSeparatorLine: {
-    flex: 1,
-    height: 1,
-  },
-  dateSeparatorBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: ms(12),
-    marginHorizontal: spacing.sm,
-  },
-  dateSeparatorText: {
-    fontSize: ms(11),
-    fontWeight: '500',
-  },
-  // Image styles
-  imageBubble: {
-    padding: ms(4),
-    overflow: 'hidden',
-  },
+  // Images
   imagesContainer: {
+    marginBottom: ms(4),
     gap: ms(4),
   },
   messageImage: {
-    width: ms(200),
-    height: ms(200),
-    borderRadius: ms(12),
+    width: ms(240),
+    height: ms(180),
+    borderRadius: ms(10),
     backgroundColor: 'rgba(0,0,0,0.1)',
   },
-  imageErrorContainer: {
-    width: ms(200),
-    height: ms(150),
-    borderRadius: ms(12),
+  imageError: {
+    width: ms(240),
+    height: ms(120),
+    borderRadius: ms(10),
     justifyContent: 'center',
     alignItems: 'center',
   },
-  imageErrorText: {
-    marginTop: spacing.xs,
+  // System message
+  systemContainer: {
+    alignItems: 'center',
+    marginVertical: spacing.md,
   },
-  contentWithImage: {
-    marginTop: spacing.xs,
-    paddingHorizontal: spacing.xs,
+  systemBadge: {
+    paddingHorizontal: ms(14),
+    paddingVertical: ms(6),
+    borderRadius: ms(18),
   },
-  // Modal styles
+  systemText: {
+    fontSize: ms(12),
+    fontWeight: '500',
+  },
+  // Date separator
+  dateSeparatorContainer: {
+    alignItems: 'center',
+    marginVertical: spacing.md,
+  },
+  dateSeparatorBadge: {
+    paddingHorizontal: ms(14),
+    paddingVertical: ms(6),
+    borderRadius: ms(18),
+  },
+  dateSeparatorText: {
+    fontSize: ms(12),
+    fontWeight: '600',
+  },
+  // Modal
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalCloseButton: {
+  modalClose: {
     position: 'absolute',
     top: ms(50),
-    right: ms(20),
+    right: ms(16),
     zIndex: 10,
-    padding: spacing.sm,
   },
-  fullScreenImage: {
+  modalCloseBtn: {
+    width: ms(44),
+    height: ms(44),
+    borderRadius: ms(22),
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
     width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT * 0.8,
+    height: SCREEN_HEIGHT * 0.75,
   },
 });
 

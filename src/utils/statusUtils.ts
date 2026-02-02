@@ -177,23 +177,26 @@ export const normalizeStatus = (status: string): NormalizedStatus => {
 };
 
 /**
- * Get the color for a status, with optional performance-based color for IN_PROCESS/COMPLETED
+ * Get the color for a status, with optional performance-based color for COMPLETED
  * @param status - The status string in any format
- * @param progress - Optional progress percentage for performance-based coloring
+ * @param progress - Optional progress percentage for performance-based coloring (only for COMPLETED)
  * @returns Color string
  */
 export const getStatusColor = (status: string, progress?: number): string => {
   const normalized = normalizeStatus(status);
 
-  // For IN_PROCESS and COMPLETED, use performance-based color if progress is provided
-  if ((normalized === 'IN_PROCESS' || normalized === 'COMPLETED') && progress !== undefined) {
+  // IN_PROCESS always shows green
+  if (normalized === 'IN_PROCESS') {
+    return colors.success.main; // Always green for In Progress
+  }
+
+  // For COMPLETED, use performance-based color if progress is provided
+  if (normalized === 'COMPLETED' && progress !== undefined) {
     const color = getPerformanceColor(progress);
-    console.log('🔧 getStatusColor (performance):', { status, normalized, progress, color });
     return color;
   }
 
   const color = STATUS_COLOR_MAP[normalized] || DEFAULT_STATUS_COLOR;
-  console.log('🔧 getStatusColor:', { status, normalized, color, found: !!STATUS_COLOR_MAP[normalized] });
   return color;
 };
 

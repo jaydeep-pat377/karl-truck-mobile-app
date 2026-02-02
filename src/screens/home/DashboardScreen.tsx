@@ -38,12 +38,16 @@ interface KPIData {
 
 interface ActiveDelivery {
   id: string;
-  truckNumber: string;
-  driverName: string;
+  orderCode: string;
   customerName: string;
-  status: 'ENRT' | 'ONSIT' | 'LOADING';
-  eta: string;
-  progress: number;
+  deliveryAddress: string;
+  productCodes: string;
+  startTime: string;
+  orderedQty: number;
+  deliveredQty: number;
+  remainingQty: number;
+  progressPercent: number;
+  status: string;
 }
 
 interface QuickAction {
@@ -653,33 +657,196 @@ const DashboardScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
-  const renderDeliveryCard = ({ item }: { item: ActiveDelivery }) => (
-    <TouchableOpacity activeOpacity={0.7}>
-      <Card variant="default" padding="md" style={styles.deliveryCard}>
-        <View style={styles.deliveryHeader}>
-          <View style={styles.deliveryTruckInfo}>
-            <Icon name="truck" size={iconSizes.md} color={colors.primary.main} />
-            <Text variant="body" style={styles.truckNumber}>{item.truckNumber}</Text>
-            <StatusBadge status={item.status} size="small" />
+  // Calculate responsive delivery card dimensions - compact with larger fonts
+  const deliveryCardLayout = useMemo(() => {
+    const horizontalPadding = spacing.md * 2;
+    const gapBetweenCards = ms(6);
+
+    let cardWidth: number;
+    let headerPadding: number;
+    let bodyPadding: number;
+    let orderCodeSize: number;
+    let etaSize: number;
+    let statusPillSize: number;
+
+    if (isTablet) {
+      cardWidth = (screenWidth - horizontalPadding - gapBetweenCards) / 2;
+      headerPadding = ms(8);
+      bodyPadding = ms(8);
+      orderCodeSize = ms(15);
+      etaSize = ms(11);
+      statusPillSize = ms(10);
+    } else if (screenWidth >= 400) {
+      cardWidth = screenWidth - horizontalPadding - ms(40);
+      headerPadding = ms(7);
+      bodyPadding = ms(7);
+      orderCodeSize = ms(14);
+      etaSize = ms(10);
+      statusPillSize = ms(9);
+    } else if (screenWidth >= 360) {
+      cardWidth = screenWidth - horizontalPadding - ms(30);
+      headerPadding = ms(6);
+      bodyPadding = ms(6);
+      orderCodeSize = ms(13);
+      etaSize = ms(10);
+      statusPillSize = ms(8);
+    } else {
+      cardWidth = screenWidth - horizontalPadding - ms(20);
+      headerPadding = ms(5);
+      bodyPadding = ms(5);
+      orderCodeSize = ms(12);
+      etaSize = ms(9);
+      statusPillSize = ms(8);
+    }
+
+    return {
+      cardWidth,
+      headerPadding,
+      bodyPadding,
+      orderCodeSize,
+      etaSize,
+      statusPillSize,
+    };
+  }, [screenWidth, isTablet]);
+
+  const getStatusColor = (status: string) => {
+    const normalizedStatus = status.toLowerCase().replace(/\s+/g, '_');
+    switch (normalizedStatus) {
+      case 'in_progress':
+        return colors.primary.main;
+      case 'completed':
+        return colors.status.completed;
+      case 'enrt':
+      case 'en_route':
+        return colors.status.enRoute;
+      case 'onsit':
+      case 'on_site':
+        return colors.status.onSite;
+      case 'loading':
+        return colors.warning.main;
+      case 'cancelled':
+      case 'canceled':
+        return colors.error.main;
+      case 'hold':
+      case 'hold_delivery':
+        return colors.status.onHold;
+      default:
+        return colors.primary.main;
+    }
+  };
+
+  const renderDeliveryCard = ({ item }: { item: ActiveDelivery }) => {
+    const statusColor = getStatusColor(item.status);
+    const progressPercent = Math.min(item.progressPercent, 100);
+    const layout = deliveryCardLayout;
+    const primaryColor = colors.primary.main;
+
+    const formatQty = (qty: number) => qty % 1 === 0 ? qty.toString() : qty.toFixed(1);
+
+    const getProgressColor = (percent: number) => {
+      if (percent >= 80) return colors.success.main;
+      if (percent >= 50) return colors.warning.main;
+      return colors.primary.main;
+    };
+
+    const progressColor = getProgressColor(progressPercent);
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() => navigation.navigate('Today')}
+        style={[styles.deliveryCardWrapper, { width: layout.cardWidth }]}
+      >
+        <View style={[styles.deliveryCard, { backgroundColor: themeColors.card }]}>
+          {/* Header with gradient accent */}
+          <View style={[styles.deliveryHeader, { backgroundColor: `${primaryColor}12` }]}>
+            <View style={styles.deliveryHeaderLeft}>
+              <View style={[styles.deliveryOrderBadge, { backgroundColor: primaryColor }]}>
+                <Icon name="clipboard-text" size={ms(11)} color={colors.common.white} />
+              </View>
+              <View style={styles.deliveryHeaderInfo}>
+                <Text style={[styles.deliveryOrderCode, { color: themeColors.text.primary }]} numberOfLines={1}>
+                  #{item.orderCode}
+                </Text>
+                <Text style={[styles.deliveryTime, { color: themeColors.text.hint }]}>
+                  {item.startTime}
+                </Text>
+              </View>
+            </View>
+            <View style={[styles.deliveryStatusBadge, { backgroundColor: `${statusColor}20`, borderColor: statusColor }]}>
+              <View style={[styles.deliveryStatusDot, { backgroundColor: statusColor }]} />
+              <Text style={[styles.deliveryStatusText, { color: statusColor }]}>
+                {item.status}
+              </Text>
+            </View>
           </View>
-          <Text variant="bodySmall" color="secondary">{item.eta}</Text>
-        </View>
-        <View style={styles.deliveryDetails}>
-          <View style={styles.deliveryDetailRow}>
-            <Icon name="account" size={iconSizes.sm} color={themeColors.text.secondary} />
-            <Text variant="bodySmall" color="secondary">{item.driverName}</Text>
+
+          {/* Body Content */}
+          <View style={styles.deliveryBody}>
+            {/* Customer & Address */}
+            <View style={styles.deliveryCustomerRow}>
+              <Icon name="domain" size={ms(11)} color={primaryColor} />
+              <Text style={[styles.deliveryCustomerName, { color: themeColors.text.primary }]} numberOfLines={1}>
+                {item.customerName}
+              </Text>
+            </View>
+
+            <View style={styles.deliveryAddressRow}>
+              <Icon name="map-marker-outline" size={ms(10)} color={themeColors.text.hint} />
+              <Text style={[styles.deliveryAddress, { color: themeColors.text.secondary }]} numberOfLines={1}>
+                {item.deliveryAddress}
+              </Text>
+            </View>
+
+            {/* Product Badge */}
+            <View style={[styles.deliveryProductBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
+              <Icon name="cube-outline" size={ms(9)} color={colors.warning.main} />
+              <Text style={[styles.deliveryProductText, { color: themeColors.text.secondary }]} numberOfLines={1}>
+                {item.productCodes}
+              </Text>
+            </View>
+
+            {/* Quantity Stats */}
+            <View style={[styles.deliveryStatsRow, { borderTopColor: themeColors.border }]}>
+              <View style={styles.deliveryStatItem}>
+                <Text style={[styles.deliveryStatValue, { color: themeColors.text.primary }]}>
+                  {formatQty(item.orderedQty)}
+                </Text>
+                <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Ordered</Text>
+              </View>
+              <View style={[styles.deliveryStatDivider, { backgroundColor: themeColors.border }]} />
+              <View style={styles.deliveryStatItem}>
+                <Text style={[styles.deliveryStatValue, { color: colors.success.main }]}>
+                  {formatQty(item.deliveredQty)}
+                </Text>
+                <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Delivered</Text>
+              </View>
+              <View style={[styles.deliveryStatDivider, { backgroundColor: themeColors.border }]} />
+              <View style={styles.deliveryStatItem}>
+                <Text style={[styles.deliveryStatValue, { color: colors.warning.main }]}>
+                  {formatQty(item.remainingQty)}
+                </Text>
+                <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Remaining</Text>
+              </View>
+            </View>
+
+            {/* Progress Bar */}
+            <View style={styles.deliveryProgressSection}>
+              <View style={styles.deliveryProgressHeader}>
+                <Text style={[styles.deliveryProgressLabel, { color: themeColors.text.secondary }]}>Progress</Text>
+                <View style={[styles.deliveryProgressBadge, { backgroundColor: `${progressColor}15` }]}>
+                  <Text style={[styles.deliveryProgressPercent, { color: progressColor }]}>{progressPercent}%</Text>
+                </View>
+              </View>
+              <View style={[styles.deliveryProgressTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+                <View style={[styles.deliveryProgressFill, { width: `${progressPercent}%`, backgroundColor: progressColor }]} />
+              </View>
+            </View>
           </View>
-          <View style={styles.deliveryDetailRow}>
-            <Icon name="domain" size={iconSizes.sm} color={themeColors.text.secondary} />
-            <Text variant="bodySmall" color="secondary">{item.customerName}</Text>
-          </View>
         </View>
-        <View style={[styles.progressBarContainer, { backgroundColor: themeColors.border }]}>
-          <View style={[styles.progressBar, { width: `${item.progress}%`, backgroundColor: colors.primary.main }]} />
-        </View>
-      </Card>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const renderAlertItem = ({ item }: { item: Alert }) => {
     const alertIcons: Record<string, string> = {
@@ -900,40 +1067,56 @@ const DashboardScreen: React.FC = () => {
 
         <SectionHeader
           title="Active Deliveries"
-          actionLabel={`${activeDeliveries?.count ?? 0} Active`}
+          actionLabel="View All"
+          onAction={() => navigation.navigate('Today')}
         />
         {activeDeliveries?.orders && activeDeliveries.orders.length > 0 ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.deliveryList}>
+            contentContainerStyle={styles.deliveryList}
+            decelerationRate="fast"
+            snapToInterval={deliveryCardLayout.cardWidth + ms(6)}
+            snapToAlignment="start"
+          >
             {activeDeliveries.orders.map((order, index) => {
               const deliveryItem: ActiveDelivery = {
                 id: order.order_id,
-                truckNumber: order.order_code,
-                driverName: order.customer_name,
-                customerName: order.delivery_address || 'N/A',
-                status: order.status?.toUpperCase().substring(0, 5) as 'ENRT' | 'ONSIT' | 'LOADING',
-                eta: order.start_time || 'N/A',
-                progress: order.progress_percent || 0,
+                orderCode: order.order_code,
+                customerName: order.customer_name,
+                deliveryAddress: order.delivery_address || 'N/A',
+                productCodes: order.product_codes || 'N/A',
+                startTime: order.start_time || 'N/A',
+                orderedQty: order.ordered_qty || 0,
+                deliveredQty: order.delivered_qty || 0,
+                remainingQty: order.remaining_qty || 0,
+                progressPercent: order.progress_percent || 0,
+                status: order.status || 'Normal',
               };
               return (
-                <View key={order.order_id} style={{ flexDirection: 'row' }}>
+                <View
+                  key={order.order_id}
+                  style={index === activeDeliveries.orders.length - 1 ? { marginRight: spacing.sm } : undefined}
+                >
                   {renderDeliveryCard({ item: deliveryItem })}
-                  {index < activeDeliveries.orders.length - 1 && <View style={{ width: spacing.sm }} />}
                 </View>
               );
             })}
           </ScrollView>
         ) : (
-          <Card variant="default" padding="md" style={styles.emptyCard}>
-            <View style={styles.emptyState}>
-              <Icon name="truck-outline" size={32} color={themeColors.text.hint} />
-              <Text variant="body" color="secondary" style={styles.emptyText}>
-                No active deliveries
+          <View style={styles.emptyDeliveryCard}>
+            <View style={[styles.emptyDeliveryContent, { backgroundColor: themeColors.card }]}>
+              <View style={[styles.emptyDeliveryIconBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}>
+                <Icon name="truck-check-outline" size={ms(32)} color={themeColors.text.hint} />
+              </View>
+              <Text variant="body" color="secondary" style={styles.emptyDeliveryTitle}>
+                No Active Deliveries
+              </Text>
+              <Text variant="caption" color="hint" style={styles.emptyDeliverySubtitle}>
+                Active orders will appear here
               </Text>
             </View>
-          </Card>
+          </View>
         )}
         <SectionHeader
           title="Recent Alerts"
@@ -1250,47 +1433,166 @@ const createStyles = (themeColors: typeof colors.dark | typeof colors.light, isT
       paddingHorizontal: spacing.xs,
     },
     deliveryList: {
-      paddingHorizontal: spacing.lg,
-      paddingBottom: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingBottom: 0,
+    },
+    deliveryCardWrapper: {
+      marginRight: ms(8),
     },
     deliveryCard: {
-      width: screenWidth - (spacing.lg * 2),
-      backgroundColor: themeColors.card,
-      shadowColor: isDark ? colors.common.black : colors.grey[100],
+      borderRadius: ms(10),
+      overflow: 'hidden',
+      shadowColor: isDark ? colors.common.black : colors.grey[80],
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.25 : 0.1,
-      shadowRadius: 6,
-      elevation: 4,
+      shadowOpacity: isDark ? 0.2 : 0.08,
+      shadowRadius: 4,
+      elevation: 3,
     },
     deliveryHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: spacing.sm,
+      paddingHorizontal: ms(8),
+      paddingVertical: ms(6),
     },
-    deliveryTruckInfo: {
+    deliveryHeaderLeft: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
+      flex: 1,
+      marginRight: ms(6),
     },
-    truckNumber: {
+    deliveryOrderBadge: {
+      width: ms(24),
+      height: ms(24),
+      borderRadius: ms(6),
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: ms(6),
+    },
+    deliveryHeaderInfo: {
+      flex: 1,
+    },
+    deliveryOrderCode: {
+      fontSize: ms(12),
+      fontWeight: '700',
+    },
+    deliveryTime: {
+      fontSize: ms(9),
+      fontWeight: '500',
+      marginTop: ms(1),
+    },
+    deliveryStatusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: ms(5),
+      paddingVertical: ms(2),
+      borderRadius: ms(4),
+      borderWidth: 1,
+    },
+    deliveryStatusDot: {
+      width: ms(4),
+      height: ms(4),
+      borderRadius: ms(2),
+      marginRight: ms(3),
+    },
+    deliveryStatusText: {
+      fontSize: ms(8),
       fontWeight: '600',
     },
-    deliveryDetails: {
-      gap: spacing.xs,
-      marginBottom: spacing.sm,
+    deliveryBody: {
+      paddingHorizontal: ms(8),
+      paddingBottom: ms(8),
     },
-    deliveryDetailRow: {
+    deliveryCustomerRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
+      gap: ms(5),
+      marginBottom: ms(3),
     },
-    progressBarContainer: {
+    deliveryCustomerName: {
+      fontSize: ms(11),
+      fontWeight: '600',
+      flex: 1,
+    },
+    deliveryAddressRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: ms(5),
+      marginBottom: ms(5),
+    },
+    deliveryAddress: {
+      fontSize: ms(9),
+      fontWeight: '500',
+      flex: 1,
+    },
+    deliveryProductBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: ms(4),
+      paddingHorizontal: ms(6),
+      paddingVertical: ms(3),
+      borderRadius: ms(4),
+      marginBottom: ms(6),
+    },
+    deliveryProductText: {
+      fontSize: ms(9),
+      fontWeight: '500',
+    },
+    deliveryStatsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingTop: ms(6),
+      borderTopWidth: 1,
+      marginBottom: ms(6),
+    },
+    deliveryStatItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    deliveryStatValue: {
+      fontSize: ms(13),
+      fontWeight: '700',
+    },
+    deliveryStatLabel: {
+      fontSize: ms(7),
+      fontWeight: '500',
+      marginTop: ms(1),
+      textTransform: 'uppercase',
+      letterSpacing: 0.2,
+    },
+    deliveryStatDivider: {
+      width: 1,
+      height: ms(20),
+      opacity: 0.15,
+    },
+    deliveryProgressSection: {},
+    deliveryProgressHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: ms(4),
+    },
+    deliveryProgressLabel: {
+      fontSize: ms(9),
+      fontWeight: '500',
+    },
+    deliveryProgressBadge: {
+      paddingHorizontal: ms(6),
+      paddingVertical: ms(2),
+      borderRadius: ms(4),
+    },
+    deliveryProgressPercent: {
+      fontSize: ms(10),
+      fontWeight: '700',
+    },
+    deliveryProgressTrack: {
       height: ms(4),
       borderRadius: ms(2),
       overflow: 'hidden',
     },
-    progressBar: {
+    deliveryProgressFill: {
       height: '100%',
       borderRadius: ms(2),
     },
@@ -1338,6 +1640,33 @@ const createStyles = (themeColors: typeof colors.dark | typeof colors.light, isT
     },
     emptyText: {
       marginTop: spacing.sm,
+    },
+    emptyDeliveryCard: {
+      marginHorizontal: spacing.lg,
+    },
+    emptyDeliveryContent: {
+      borderRadius: ms(16),
+      padding: spacing.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      borderStyle: 'dashed',
+    },
+    emptyDeliveryIconBg: {
+      width: ms(64),
+      height: ms(64),
+      borderRadius: ms(32),
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    emptyDeliveryTitle: {
+      fontWeight: '600',
+      marginBottom: spacing.xs,
+    },
+    emptyDeliverySubtitle: {
+      textAlign: 'center',
     },
     modalOverlay: {
       flex: 1,

@@ -101,12 +101,13 @@ const statusColors: Record<string, StatusColorConfig> = {
     textDark: colors.statusBadge.green.textDark,
     bgOpacity: 0.1,
   },
-  // Blue statuses - In Progress, On Site
+  // Green status - In Progress
   IN_PROCESS: {
-    text: colors.statusBadge.blue.text,
-    textDark: colors.statusBadge.blue.textDark,
+    text: colors.statusBadge.green.text,
+    textDark: colors.statusBadge.green.textDark,
     bgOpacity: 0.1,
   },
+  // Blue status - On Site
   ONSIT: {
     text: colors.statusBadge.blue.text,
     textDark: colors.statusBadge.blue.textDark,

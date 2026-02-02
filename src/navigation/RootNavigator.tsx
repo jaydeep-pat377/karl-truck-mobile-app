@@ -9,6 +9,7 @@ import { TicketScreen } from '../screens/orders/TicketScreen';
 import { TicketDetailScreen } from '../screens/orders/TicketDetailScreen';
 import { WeatherScreen, ProductDetailsScreen, ProductCodeScreen, EvaporationListScreen } from '../screens/weather';
 import { MapTrackingScreen } from '../screens/tracking/MapTrackingScreen';
+import { OrderTrackingScreen } from '../screens/tracking/OrderTrackingScreen';
 import { ChatRoomScreen } from '../screens/chat/ChatRoomScreen';
 import { useAuthStore } from '../store/authStore';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
@@ -96,7 +97,7 @@ export const RootNavigator: React.FC = () => {
           />
           <Stack.Screen
             name="Tracking"
-            component={MapTrackingScreen}
+            component={OrderTrackingScreen}
             options={{
               animation: 'slide_from_right',
             }}

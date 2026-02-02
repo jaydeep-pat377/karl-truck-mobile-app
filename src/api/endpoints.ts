@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
   ORDERS: {
     LIST: '/orders',
     DETAILS: '/orders/details',
+    TRACKING: '/orders/tracking',
   },
   TICKETS: {
     LIST: '/tickets',

@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Keyboard,
+  ImageBackground,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
@@ -255,25 +256,25 @@ export const ChatRoomScreen: React.FC = () => {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={[styles.emptyIconContainer, { backgroundColor: themeColors.card }]}>
-        <Icon name="chat-processing-outline" size={ms(56)} color={colors.primary.main} />
+      <View style={[styles.emptyIconContainer, { backgroundColor: isDark ? colors.dark.card : colors.common.white }]}>
+        <Icon name="chat-processing-outline" size={ms(48)} color={colors.primary.main} />
       </View>
-      <Text variant="h4" style={[styles.emptyTitle, { color: themeColors.text.primary }]}>
+      <Text variant="h3" style={[styles.emptyTitle, { color: themeColors.text.primary }]}>
         Start the Conversation
       </Text>
-      <Text variant="body" color="hint" style={styles.emptyText}>
-        Send a message to begin chatting about this order
+      <Text variant="body" color="secondary" style={styles.emptyText}>
+        Send a message to begin chatting{'\n'}about this order
       </Text>
-      <View style={styles.emptyHints}>
+      <View style={[styles.emptyHints, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
         <View style={styles.emptyHint}>
-          <Icon name="clock-outline" size={ms(16)} color={themeColors.text.hint} />
-          <Text variant="caption" color="hint" style={styles.emptyHintText}>
+          <Icon name="lightning-bolt" size={ms(18)} color={colors.primary.main} />
+          <Text variant="body" color="secondary" style={styles.emptyHintText}>
             Messages are delivered in real-time
           </Text>
         </View>
         <View style={styles.emptyHint}>
-          <Icon name="bell-outline" size={ms(16)} color={themeColors.text.hint} />
-          <Text variant="caption" color="hint" style={styles.emptyHintText}>
+          <Icon name="bell-ring-outline" size={ms(18)} color={colors.secondary.main} />
+          <Text variant="body" color="secondary" style={styles.emptyHintText}>
             You'll be notified of new messages
           </Text>
         </View>
@@ -330,6 +331,7 @@ export const ChatRoomScreen: React.FC = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
+        <View style={[styles.chatBackground, { backgroundColor: isDark ? '#0D1117' : '#F0F2F5' }]}>
         <FlatList
           ref={flatListRef}
           data={processedMessages}
@@ -369,8 +371,9 @@ export const ChatRoomScreen: React.FC = () => {
         />
 
         {typingUsers.length > 0 && <TypingIndicator users={typingUsers} />}
+        </View>
 
-        <View style={{ paddingBottom: insets.bottom }}>
+        <View style={{ paddingBottom: insets.bottom, backgroundColor: themeColors.background }}>
           <MessageInput
             onSend={handleSend}
             onTyping={handleTyping}
@@ -389,6 +392,9 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+  chatBackground: {
+    flex: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -399,7 +405,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   messageList: {
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     flexGrow: 1,
   },
   emptyList: {
@@ -415,29 +421,45 @@ const styles = StyleSheet.create({
   emptyIconContainer: {
     width: ms(100),
     height: ms(100),
-    borderRadius: ms(50),
+    borderRadius: ms(28),
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary.main,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   emptyTitle: {
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: spacing.xs,
+    letterSpacing: -0.5,
   },
   emptyText: {
     textAlign: 'center',
     marginBottom: spacing.lg,
+    lineHeight: ms(20),
   },
   emptyHints: {
     gap: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    padding: spacing.md,
+    borderRadius: ms(16),
   },
   emptyHint: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   emptyHintText: {
-    fontSize: ms(12),
+    fontSize: ms(13),
   },
   listHeader: {
     paddingBottom: spacing.sm,

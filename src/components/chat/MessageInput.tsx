@@ -19,7 +19,6 @@ import { Icon, Text } from '../common';
 import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
 
-// Re-export from chatService to maintain single source of truth
 import { ImageAttachment } from '../../api/services/chatService';
 export type { ImageAttachment };
 
@@ -30,7 +29,7 @@ interface MessageInputProps {
   placeholder?: string;
 }
 
-// Custom Image Picker Modal Component
+// Image Picker Modal
 interface ImagePickerModalProps {
   visible: boolean;
   onClose: () => void;
@@ -46,390 +45,86 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
 }) => {
   const { isDark } = useTheme();
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const backdropAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
-  // Theme colors
-  const modalColors = {
-    background: isDark ? '#1C1C1E' : '#FFFFFF',
-    surface: isDark ? '#2C2C2E' : '#F5F5F7',
-    surfaceHover: isDark ? '#3A3A3C' : '#EBEBED',
-    text: isDark ? '#FFFFFF' : '#1C1C1E',
-    textSecondary: isDark ? '#8E8E93' : '#6E6E73',
-    border: isDark ? '#38383A' : '#E5E5EA',
-    divider: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
-  };
+  const bgColor = isDark ? '#1F2C34' : '#FFFFFF';
+  const textColor = isDark ? '#E9EDEF' : '#111B21';
+  const hintColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
 
   useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(backdropAnim, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 1,
-          damping: 25,
-          stiffness: 400,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          damping: 20,
-          stiffness: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(backdropAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 0.9,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [visible, slideAnim, backdropAnim, scaleAnim]);
+    Animated.spring(slideAnim, {
+      toValue: visible ? 1 : 0,
+      damping: 20,
+      stiffness: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [visible, slideAnim]);
 
-  const modalTranslateY = slideAnim.interpolate({
+  const translateY = slideAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [400, 0],
+    outputRange: [300, 0],
   });
 
-  const handleCameraPress = () => {
-    onClose();
-    setTimeout(onCameraPress, 350);
-  };
-
-  const handleGalleryPress = () => {
-    onClose();
-    setTimeout(onGalleryPress, 350);
-  };
-
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={onClose}
-    >
-      <View style={modalStyles.overlay}>
-        {/* Backdrop */}
-        <Animated.View
-          style={[
-            modalStyles.backdrop,
-            { opacity: backdropAnim },
-          ]}
-        >
-          <Pressable style={modalStyles.backdropPressable} onPress={onClose} />
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+      <Pressable style={styles.modalOverlay} onPress={onClose}>
+        <Animated.View style={[styles.modalSheet, { backgroundColor: bgColor, transform: [{ translateY }] }]}>
+          <View style={styles.modalHandle} />
+          <Text style={[styles.modalTitle, { color: textColor }]}>Share</Text>
+
+          <View style={styles.modalOptions}>
+            <TouchableOpacity style={styles.modalOption} onPress={() => { onClose(); setTimeout(onCameraPress, 300); }}>
+              <View style={[styles.modalOptionIcon, { backgroundColor: '#00A884' }]}>
+                <Icon name="camera" size={ms(24)} color="#FFF" />
+              </View>
+              <Text style={[styles.modalOptionText, { color: textColor }]}>Camera</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.modalOption} onPress={() => { onClose(); setTimeout(onGalleryPress, 300); }}>
+              <View style={[styles.modalOptionIcon, { backgroundColor: '#7C3AED' }]}>
+                <Icon name="image-multiple" size={ms(24)} color="#FFF" />
+              </View>
+              <Text style={[styles.modalOptionText, { color: textColor }]}>Gallery</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.modalOption} onPress={onClose}>
+              <View style={[styles.modalOptionIcon, { backgroundColor: '#EF4444' }]}>
+                <Icon name="file-document-outline" size={ms(24)} color="#FFF" />
+              </View>
+              <Text style={[styles.modalOptionText, { color: textColor }]}>Document</Text>
+            </TouchableOpacity>
+          </View>
         </Animated.View>
-
-        {/* Modal Content */}
-        <Animated.View
-          style={[
-            modalStyles.container,
-            {
-              backgroundColor: modalColors.background,
-              transform: [
-                { translateY: modalTranslateY },
-                { scale: scaleAnim },
-              ],
-            },
-          ]}
-        >
-          {/* Handle Bar */}
-          <View style={modalStyles.handleContainer}>
-            <View style={[modalStyles.handle, { backgroundColor: modalColors.border }]} />
-          </View>
-
-          {/* Header */}
-          <View style={modalStyles.header}>
-            <View style={modalStyles.headerTextContainer}>
-              <Text
-                variant="h3"
-                style={[modalStyles.title, { color: modalColors.text }]}
-              >
-                Share Media
-              </Text>
-              <Text
-                variant="body"
-                style={[modalStyles.subtitle, { color: modalColors.textSecondary }]}
-              >
-                Select an option to add images
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[modalStyles.closeButton, { backgroundColor: modalColors.surface }]}
-              onPress={onClose}
-              activeOpacity={0.7}
-            >
-              <Icon name="close" size={ms(18)} color={modalColors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Options */}
-          <View style={modalStyles.optionsContainer}>
-            {/* Camera Option */}
-            <TouchableOpacity
-              style={[modalStyles.optionCard, { backgroundColor: modalColors.surface }]}
-              onPress={handleCameraPress}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#007AFF', '#0055D4']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={modalStyles.optionIconGradient}
-              >
-                <Icon name="camera" size={ms(26)} color="#FFFFFF" />
-              </LinearGradient>
-              <View style={modalStyles.optionContent}>
-                <Text
-                  variant="body"
-                  style={[modalStyles.optionTitle, { color: modalColors.text }]}
-                >
-                  Camera
-                </Text>
-                <Text
-                  variant="caption"
-                  style={[modalStyles.optionDescription, { color: modalColors.textSecondary }]}
-                >
-                  Take a new photo
-                </Text>
-              </View>
-              <View style={[modalStyles.optionArrow, { backgroundColor: modalColors.surfaceHover }]}>
-                <Icon name="chevron-right" size={ms(18)} color={modalColors.textSecondary} />
-              </View>
-            </TouchableOpacity>
-
-            {/* Gallery Option */}
-            <TouchableOpacity
-              style={[modalStyles.optionCard, { backgroundColor: modalColors.surface }]}
-              onPress={handleGalleryPress}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#34C759', '#248A3D']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={modalStyles.optionIconGradient}
-              >
-                <Icon name="image-multiple" size={ms(26)} color="#FFFFFF" />
-              </LinearGradient>
-              <View style={modalStyles.optionContent}>
-                <Text
-                  variant="body"
-                  style={[modalStyles.optionTitle, { color: modalColors.text }]}
-                >
-                  Photo Library
-                </Text>
-                <Text
-                  variant="caption"
-                  style={[modalStyles.optionDescription, { color: modalColors.textSecondary }]}
-                >
-                  Choose up to 5 photos
-                </Text>
-              </View>
-              <View style={[modalStyles.optionArrow, { backgroundColor: modalColors.surfaceHover }]}>
-                <Icon name="chevron-right" size={ms(18)} color={modalColors.textSecondary} />
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* Info Text */}
-          <View style={modalStyles.infoContainer}>
-            <Icon name="information-outline" size={ms(16)} color={modalColors.textSecondary} />
-            <Text
-              variant="caption"
-              style={[modalStyles.infoText, { color: modalColors.textSecondary }]}
-            >
-              Images will be compressed for faster upload
-            </Text>
-          </View>
-
-          {/* Cancel Button */}
-          <TouchableOpacity
-            style={[
-              modalStyles.cancelButton,
-              {
-                backgroundColor: isDark ? 'rgba(255,59,48,0.15)' : 'rgba(255,59,48,0.1)',
-              },
-            ]}
-            onPress={onClose}
-            activeOpacity={0.8}
-          >
-            <Text
-              variant="body"
-              style={[modalStyles.cancelText, { color: '#FF3B30' }]}
-            >
-              Cancel
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </View>
+      </Pressable>
     </Modal>
   );
 };
 
-const modalStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  },
-  backdropPressable: {
-    flex: 1,
-  },
-  container: {
-    borderTopLeftRadius: ms(28),
-    borderTopRightRadius: ms(28),
-    paddingBottom: Platform.OS === 'ios' ? ms(40) : ms(24),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 24,
-  },
-  handleContainer: {
-    alignItems: 'center',
-    paddingTop: ms(12),
-    paddingBottom: ms(8),
-  },
-  handle: {
-    width: ms(36),
-    height: ms(5),
-    borderRadius: ms(3),
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: ms(20),
-    paddingTop: ms(8),
-    paddingBottom: ms(20),
-  },
-  headerTextContainer: {
-    flex: 1,
-  },
-  title: {
-    fontSize: ms(24),
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: ms(15),
-    marginTop: ms(4),
-  },
-  closeButton: {
-    width: ms(32),
-    height: ms(32),
-    borderRadius: ms(16),
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: ms(12),
-  },
-  optionsContainer: {
-    paddingHorizontal: ms(16),
-    gap: ms(12),
-  },
-  optionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: ms(16),
-    borderRadius: ms(16),
-  },
-  optionIconGradient: {
-    width: ms(52),
-    height: ms(52),
-    borderRadius: ms(14),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  optionContent: {
-    flex: 1,
-    marginLeft: ms(14),
-  },
-  optionTitle: {
-    fontSize: ms(17),
-    fontWeight: '600',
-  },
-  optionDescription: {
-    fontSize: ms(13),
-    marginTop: ms(2),
-  },
-  optionArrow: {
-    width: ms(32),
-    height: ms(32),
-    borderRadius: ms(10),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: ms(16),
-    gap: ms(6),
-  },
-  infoText: {
-    fontSize: ms(13),
-  },
-  cancelButton: {
-    marginHorizontal: ms(16),
-    paddingVertical: ms(16),
-    borderRadius: ms(14),
-    alignItems: 'center',
-  },
-  cancelText: {
-    fontSize: ms(17),
-    fontWeight: '600',
-  },
-});
-
-// Main MessageInput Component
+// Main Component
 export const MessageInput: React.FC<MessageInputProps> = ({
   onSend,
   onTyping,
   isSending = false,
-  placeholder = 'Type a message...',
+  placeholder = 'Message',
 }) => {
   const { isDark } = useTheme();
-  const themeColors = isDark ? colors.dark : colors.light;
   const [message, setMessage] = useState('');
   const [selectedImages, setSelectedImages] = useState<ImageAttachment[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const sendAnim = useRef(new Animated.Value(1)).current;
 
-  const handleChangeText = useCallback(
-    (text: string) => {
-      setMessage(text);
-      if (text.length > 0 && onTyping) {
-        onTyping();
-      }
-    },
-    [onTyping]
-  );
+  // Colors
+  const inputBg = isDark ? '#1F2C34' : '#FFFFFF';
+  const containerBg = isDark ? '#0B141A' : '#F0F2F5';
+  const textColor = isDark ? '#E9EDEF' : '#111B21';
+  const hintColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)';
+  const iconColor = isDark ? '#8696A0' : '#54656F';
+
+  const handleChangeText = useCallback((text: string) => {
+    setMessage(text);
+    if (text.length > 0 && onTyping) onTyping();
+  }, [onTyping]);
 
   const openCamera = useCallback(async () => {
     try {
@@ -440,20 +135,16 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         compressImageQuality: 0.8,
         mediaType: 'photo',
       });
-
-      const attachment: ImageAttachment = {
+      setSelectedImages(prev => [...prev, {
         uri: image.path,
         type: image.mime || 'image/jpeg',
         name: image.filename || `photo_${Date.now()}.jpg`,
         width: image.width,
         height: image.height,
-      };
-
-      setSelectedImages(prev => [...prev, attachment]);
+      }]);
     } catch (error: any) {
       if (error.code !== 'E_PICKER_CANCELLED') {
-        console.log('Camera error:', error);
-        Alert.alert('Error', 'Failed to open camera. Please check permissions.');
+        Alert.alert('Error', 'Failed to open camera');
       }
     }
   }, []);
@@ -463,13 +154,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       const images = await ImagePicker.openPicker({
         multiple: true,
         maxFiles: 5,
-        width: 1200,
-        height: 1200,
-        cropping: false,
         compressImageQuality: 0.8,
         mediaType: 'photo',
       });
-
       const attachments: ImageAttachment[] = images.map((image) => ({
         uri: image.path,
         type: image.mime || 'image/jpeg',
@@ -477,12 +164,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         width: image.width,
         height: image.height,
       }));
-
       setSelectedImages(prev => [...prev, ...attachments].slice(0, 5));
     } catch (error: any) {
       if (error.code !== 'E_PICKER_CANCELLED') {
-        console.log('Gallery error:', error);
-        Alert.alert('Error', 'Failed to open gallery. Please check permissions.');
+        Alert.alert('Error', 'Failed to open gallery');
       }
     }
   }, []);
@@ -492,49 +177,35 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, []);
 
   const handleSend = useCallback(async () => {
-    const trimmedMessage = message.trim();
-    const hasContent = trimmedMessage.length > 0 || selectedImages.length > 0;
-
-    if (!hasContent || isSending || isUploading) {
-      return;
-    }
+    const trimmed = message.trim();
+    if ((!trimmed && selectedImages.length === 0) || isSending || isUploading) return;
 
     Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.9,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
+      Animated.timing(sendAnim, { toValue: 0.8, duration: 100, useNativeDriver: true }),
+      Animated.timing(sendAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
     ]).start();
 
-    const imagesToSend = [...selectedImages];
+    const images = [...selectedImages];
     setMessage('');
     setSelectedImages([]);
 
     try {
       setIsUploading(true);
-      await onSend(trimmedMessage, imagesToSend.length > 0 ? imagesToSend : undefined);
+      await onSend(trimmed, images.length > 0 ? images : undefined);
     } catch (error: any) {
-      setMessage(trimmedMessage);
-      setSelectedImages(imagesToSend);
-      console.error('[MessageInput] Failed to send message:', error);
-      Alert.alert('Error', error?.message || 'Failed to send message. Please try again.');
+      setMessage(trimmed);
+      setSelectedImages(images);
+      Alert.alert('Error', error?.message || 'Failed to send');
     } finally {
       setIsUploading(false);
     }
-  }, [message, selectedImages, isSending, isUploading, onSend, scaleAnim]);
+  }, [message, selectedImages, isSending, isUploading, onSend, sendAnim]);
 
   const canSend = (message.trim().length > 0 || selectedImages.length > 0) && !isSending && !isUploading;
   const isProcessing = isSending || isUploading;
 
   return (
-    <View style={{ backgroundColor: themeColors.background }}>
-      {/* Custom Image Picker Modal */}
+    <View style={[styles.wrapper, { backgroundColor: containerBg }]}>
       <ImagePickerModal
         visible={showImageModal}
         onClose={() => setShowImageModal(false)}
@@ -542,90 +213,41 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         onGalleryPress={openGallery}
       />
 
-      {/* Selected images preview */}
+      {/* Image Preview */}
       {selectedImages.length > 0 && (
-        <View style={[styles.previewContainer, { borderTopColor: themeColors.border }]}>
-          {selectedImages.map((image, index) => (
-            <View key={`${image.uri}-${index}`} style={styles.previewImageContainer}>
-              <Image source={{ uri: image.uri }} style={styles.previewImage} />
-              <TouchableOpacity
-                style={[
-                  styles.removeImageButton,
-                  { backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF' },
-                ]}
-                onPress={() => removeImage(index)}
-              >
-                <Icon name="close" size={ms(14)} color="#FF3B30" />
+        <View style={styles.previewRow}>
+          {selectedImages.map((img, index) => (
+            <View key={`${img.uri}-${index}`} style={styles.previewItem}>
+              <Image source={{ uri: img.uri }} style={styles.previewImage} />
+              <TouchableOpacity style={styles.previewRemove} onPress={() => removeImage(index)}>
+                <Icon name="close" size={ms(12)} color="#FFF" />
               </TouchableOpacity>
-              {index === 0 && selectedImages.length > 1 && (
-                <View style={styles.imageCountBadge}>
-                  <Text style={styles.imageCountText}>{selectedImages.length}</Text>
-                </View>
-              )}
             </View>
           ))}
-          {selectedImages.length < 5 && (
-            <TouchableOpacity
-              style={[
-                styles.addMoreButton,
-                {
-                  backgroundColor: isDark ? '#2C2C2E' : '#F5F5F7',
-                  borderColor: isDark ? '#3A3A3C' : '#E5E5EA',
-                },
-              ]}
-              onPress={() => setShowImageModal(true)}
-            >
-              <Icon name="plus" size={ms(24)} color={isDark ? '#8E8E93' : '#6E6E73'} />
-            </TouchableOpacity>
-          )}
         </View>
       )}
 
-      <View
-        style={[
-          styles.container,
-          {
-            backgroundColor: themeColors.background,
-            borderTopColor: themeColors.border,
-          },
-        ]}
-      >
-        {/* Image picker button */}
+      {/* Input Row */}
+      <View style={styles.inputRow}>
+        {/* Attachment */}
         <TouchableOpacity
-          style={[
-            styles.attachButton,
-            {
-              backgroundColor: isDark ? '#2C2C2E' : '#F5F5F7',
-            },
-          ]}
+          style={styles.iconBtn}
           onPress={() => setShowImageModal(true)}
           disabled={isProcessing}
         >
-          <Icon
-            name="image-outline"
-            size={ms(22)}
-            color={isProcessing ? (isDark ? '#48484A' : '#C7C7CC') : '#007AFF'}
-          />
+          <Icon name="plus" size={ms(24)} color={iconColor} />
         </TouchableOpacity>
 
-        <View
-          style={[
-            styles.inputContainer,
-            {
-              backgroundColor: isDark ? '#2C2C2E' : '#F5F5F7',
-              borderColor: isFocused ? '#007AFF' : 'transparent',
-            },
-          ]}
-        >
+        {/* Input Field */}
+        <View style={[styles.inputContainer, { backgroundColor: inputBg }]}>
+          <TouchableOpacity style={styles.emojiBtn}>
+            <Icon name="emoticon-outline" size={ms(24)} color={iconColor} />
+          </TouchableOpacity>
+
           <TextInput
-            style={[
-              styles.input,
-              {
-                color: isDark ? '#FFFFFF' : '#1C1C1E',
-              },
-            ]}
+            style={[styles.input, { color: textColor }]}
             placeholder={placeholder}
-            placeholderTextColor={isDark ? '#8E8E93' : '#6E6E73'}
+            placeholderTextColor={hintColor}
             value={message}
             onChangeText={handleChangeText}
             onFocus={() => setIsFocused(true)}
@@ -634,30 +256,32 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             maxLength={1000}
             editable={!isProcessing}
           />
+
+          <TouchableOpacity style={styles.cameraBtn} onPress={openCamera} disabled={isProcessing}>
+            <Icon name="camera-outline" size={ms(22)} color={iconColor} />
+          </TouchableOpacity>
         </View>
 
-        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              {
-                backgroundColor: canSend ? '#007AFF' : (isDark ? '#3A3A3C' : '#E5E5EA'),
-              },
-            ]}
-            onPress={handleSend}
-            disabled={!canSend}
-            activeOpacity={0.7}
-          >
-            {isProcessing ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Icon
-                name="send"
-                size={ms(20)}
-                color={canSend ? '#FFFFFF' : (isDark ? '#8E8E93' : '#C7C7CC')}
-              />
-            )}
-          </TouchableOpacity>
+        {/* Send / Mic Button */}
+        <Animated.View style={{ transform: [{ scale: sendAnim }] }}>
+          {canSend ? (
+            <TouchableOpacity onPress={handleSend} activeOpacity={0.8}>
+              <LinearGradient
+                colors={['#00A884', '#008069']}
+                style={styles.sendBtn}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Icon name="send" size={ms(20)} color="#FFF" />
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          ) : (
+            <View style={[styles.micBtn, { backgroundColor: isDark ? '#00A884' : '#00A884' }]}>
+              <Icon name="microphone" size={ms(22)} color="#FFF" />
+            </View>
+          )}
         </Animated.View>
       </View>
     </View>
@@ -665,101 +289,136 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
+    paddingBottom: Platform.OS === 'ios' ? spacing.xs : spacing.xs,
+  },
+  previewRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderTopWidth: 1,
+    paddingBottom: spacing.sm,
+    gap: spacing.xs,
   },
-  previewContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
-    borderTopWidth: 1,
-  },
-  previewImageContainer: {
+  previewItem: {
     position: 'relative',
   },
   previewImage: {
-    width: ms(72),
-    height: ms(72),
-    borderRadius: ms(12),
+    width: ms(60),
+    height: ms(60),
+    borderRadius: ms(10),
     backgroundColor: 'rgba(0,0,0,0.1)',
   },
-  removeImageButton: {
+  previewRemove: {
     position: 'absolute',
     top: -ms(6),
     right: -ms(6),
-    width: ms(22),
-    height: ms(22),
-    borderRadius: ms(11),
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  imageCountBadge: {
-    position: 'absolute',
-    bottom: ms(4),
-    right: ms(4),
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: ms(6),
-    paddingVertical: ms(2),
-    borderRadius: ms(8),
-  },
-  imageCountText: {
-    color: '#FFFFFF',
-    fontSize: ms(11),
-    fontWeight: '600',
-  },
-  addMoreButton: {
-    width: ms(72),
-    height: ms(72),
-    borderRadius: ms(12),
+    width: ms(20),
+    height: ms(20),
+    borderRadius: ms(10),
+    backgroundColor: '#EF4444',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
   },
-  attachButton: {
-    width: ms(40),
-    height: ms(40),
-    borderRadius: ms(12),
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.xs,
+  },
+  iconBtn: {
+    width: ms(44),
+    height: ms(44),
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.xs,
   },
   inputContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    borderRadius: ms(20),
-    borderWidth: 2,
-    paddingHorizontal: spacing.md,
-    paddingVertical: Platform.OS === 'ios' ? spacing.sm : spacing.xs,
-    minHeight: ms(44),
+    borderRadius: ms(24),
+    paddingHorizontal: spacing.xs,
+    paddingVertical: Platform.OS === 'ios' ? spacing.xs : ms(2),
+    minHeight: ms(48),
     maxHeight: ms(120),
+  },
+  emojiBtn: {
+    width: ms(36),
+    height: ms(36),
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   input: {
     flex: 1,
     fontSize: ms(16),
     lineHeight: ms(22),
-    paddingTop: Platform.OS === 'ios' ? ms(2) : spacing.xs,
-    paddingBottom: Platform.OS === 'ios' ? ms(2) : spacing.xs,
+    paddingVertical: Platform.OS === 'ios' ? spacing.xs : ms(6),
+    maxHeight: ms(100),
   },
-  sendButton: {
-    width: ms(44),
-    height: ms(44),
-    borderRadius: ms(14),
+  cameraBtn: {
+    width: ms(36),
+    height: ms(36),
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: spacing.sm,
+  },
+  sendBtn: {
+    width: ms(48),
+    height: ms(48),
+    borderRadius: ms(24),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  micBtn: {
+    width: ms(48),
+    height: ms(48),
+    borderRadius: ms(24),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    borderTopLeftRadius: ms(20),
+    borderTopRightRadius: ms(20),
+    paddingTop: spacing.sm,
+    paddingBottom: Platform.OS === 'ios' ? ms(40) : spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  modalHandle: {
+    width: ms(40),
+    height: ms(4),
+    backgroundColor: 'rgba(128,128,128,0.3)',
+    borderRadius: ms(2),
+    alignSelf: 'center',
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    fontSize: ms(18),
+    fontWeight: '600',
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  modalOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  modalOption: {
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  modalOptionIcon: {
+    width: ms(56),
+    height: ms(56),
+    borderRadius: ms(16),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalOptionText: {
+    fontSize: ms(13),
+    fontWeight: '500',
   },
 });
 
