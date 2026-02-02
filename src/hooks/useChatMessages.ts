@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useCallback, useState, useRef } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
-import { chatService } from '../api/services/chatService';
+import { AppState, AppStateStatus, Alert } from 'react-native';
+import { chatService, ImageAttachment } from '../api/services/chatService';
 import { useChatStore } from '../store/chatStore';
 import { supabase, isSupabaseConfigured, ensureAuthenticated } from '../services/supabase/supabaseClient';
 import { Message } from '../types/chat';
@@ -278,13 +278,34 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: (content: string) =>
-      chatService.sendMessage({
-        chat_id: chatId || orderId,
-        order_id: orderId,
-        content,
-      }),
-    onMutate: async (content) => {
+    mutationFn: async ({ content, images }: { content: string; images?: ImageAttachment[] }) => {
+      console.log('[useChatMessages] mutationFn called:', { content, imagesCount: images?.length, images });
+      try {
+        if (images && images.length > 0) {
+          console.log('[useChatMessages] Sending with images...');
+          const result = await chatService.sendMessageWithImages(
+            {
+              chat_id: chatId || orderId,
+              order_id: orderId,
+              content,
+            },
+            images
+          );
+          console.log('[useChatMessages] sendMessageWithImages result:', result);
+          return result;
+        }
+        console.log('[useChatMessages] Sending text only...');
+        return chatService.sendMessage({
+          chat_id: chatId || orderId,
+          order_id: orderId,
+          content,
+        });
+      } catch (error) {
+        console.error('[useChatMessages] mutationFn error:', error);
+        throw error;
+      }
+    },
+    onMutate: async ({ content, images }) => {
       // Get user name - use fullName, firstName+lastName, or email as fallback
       let senderName = 'Unknown';
       if (user?.fullName) {
@@ -305,6 +326,11 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
         senderRole = 'concrete_producer';
       }
 
+      // Create optimistic attachments for images (show local URIs)
+      const optimisticAttachments = images
+        ? images.map(img => ({ url: img.uri, type: img.type, name: img.name }))
+        : [];
+
       const optimisticMessage: Message = {
         id: `temp-${Date.now()}`,
         room_id: roomId,
@@ -314,8 +340,8 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
         sender_name: senderName,
         sender_role: senderRole,
         content: content,
-        message_type: 'text',
-        attachments: [],
+        message_type: images && images.length > 0 && !content ? 'image' : 'text',
+        attachments: optimisticAttachments,
         created_at: new Date().toISOString(),
         is_deleted: false,
         timeline_visible: true,
@@ -332,16 +358,23 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
         )
       );
     },
-    onError: (error) => {
-      console.log('Send message error:', error);
+    onError: (error: any) => {
+      console.error('Send message error:', error);
       setRealtimeMessages((prev) => prev.filter((m) => !m.id.startsWith('temp-')));
       queryClient.invalidateQueries({ queryKey: ['chatMessages', orderId] });
+
+      // Show error alert to user
+      Alert.alert(
+        'Failed to Send',
+        error?.message || 'Could not send message. Please try again.',
+        [{ text: 'OK' }]
+      );
     },
   });
 
   const sendMessage = useCallback(
-    (content: string) => {
-      return sendMessageMutation.mutateAsync(content);
+    (content: string, images?: ImageAttachment[]) => {
+      return sendMessageMutation.mutateAsync({ content, images });
     },
     [sendMessageMutation]
   );

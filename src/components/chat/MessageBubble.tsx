@@ -1,10 +1,22 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, Animated, Image, TouchableOpacity, Modal, Dimensions } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon } from '../common';
 import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
 import { Message } from '../../types/chat';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+interface Attachment {
+  url?: string;
+  type?: string;
+  name?: string;
+  // Support different attachment formats
+  file_url?: string;
+  image_url?: string;
+  path?: string;
+}
 
 interface MessageBubbleProps {
   message: Message;
@@ -35,6 +47,35 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const themeColors = isDark ? colors.dark : colors.light;
   const fadeAnim = useRef(new Animated.Value(isNewMessage ? 0 : 1)).current;
   const slideAnim = useRef(new Animated.Value(isNewMessage ? 20 : 0)).current;
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<Set<string>>(new Set());
+
+  // Extract image URLs from attachments
+  const getImageUrls = (): string[] => {
+    if (!message.attachments || !Array.isArray(message.attachments)) {
+      return [];
+    }
+
+    return message.attachments
+      .map((attachment: Attachment | string) => {
+        if (typeof attachment === 'string') {
+          return attachment;
+        }
+        // Support various attachment formats
+        return attachment.url || attachment.file_url || attachment.image_url || attachment.path || null;
+      })
+      .filter((url): url is string => {
+        if (!url) return false;
+        // Filter for image URLs
+        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)($|\?)/i.test(url) ||
+          url.includes('/storage/') || // Supabase storage URLs
+          url.includes('supabase') ||
+          message.message_type === 'image';
+        return isImage;
+      });
+  };
+
+  const imageUrls = getImageUrls();
 
   // Animate new messages
   useEffect(() => {
@@ -192,17 +233,53 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 ? [{ backgroundColor: colors.primary.main }, styles.ownBubbleAlign]
                 : [{ backgroundColor: themeColors.card }, styles.otherBubbleAlign],
               getBubbleStyle(),
+              imageUrls.length > 0 && styles.imageBubble,
             ]}
           >
-            <Text
-              variant="body"
-              style={[
-                styles.content,
-                { color: isOwnMessage ? colors.common.white : themeColors.text.primary },
-              ]}
-            >
-              {message.content}
-            </Text>
+            {/* Render images */}
+            {imageUrls.length > 0 && (
+              <View style={styles.imagesContainer}>
+                {imageUrls.map((imageUrl, index) => (
+                  <TouchableOpacity
+                    key={`${imageUrl}-${index}`}
+                    onPress={() => setSelectedImage(imageUrl)}
+                    activeOpacity={0.8}
+                  >
+                    {imageError.has(imageUrl) ? (
+                      <View style={[styles.imageErrorContainer, { backgroundColor: themeColors.card }]}>
+                        <Icon name="image-off-outline" size={ms(32)} color={themeColors.text.hint} />
+                        <Text variant="caption" color="hint" style={styles.imageErrorText}>
+                          Image unavailable
+                        </Text>
+                      </View>
+                    ) : (
+                      <Image
+                        source={{ uri: imageUrl }}
+                        style={styles.messageImage}
+                        resizeMode="cover"
+                        onError={() => {
+                          setImageError(prev => new Set(prev).add(imageUrl));
+                        }}
+                      />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Render text content if present */}
+            {message.content && message.content.trim().length > 0 && (
+              <Text
+                variant="body"
+                style={[
+                  styles.content,
+                  { color: isOwnMessage ? colors.common.white : themeColors.text.primary },
+                  imageUrls.length > 0 && styles.contentWithImage,
+                ]}
+              >
+                {message.content}
+              </Text>
+            )}
 
             <View style={styles.metaContainer}>
               <Text
@@ -225,6 +302,30 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               )}
             </View>
           </View>
+
+          {/* Full screen image modal */}
+          <Modal
+            visible={!!selectedImage}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setSelectedImage(null)}
+          >
+            <View style={styles.modalContainer}>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setSelectedImage(null)}
+              >
+                <Icon name="close" size={ms(28)} color={colors.common.white} />
+              </TouchableOpacity>
+              {selectedImage && (
+                <Image
+                  source={{ uri: selectedImage }}
+                  style={styles.fullScreenImage}
+                  resizeMode="contain"
+                />
+              )}
+            </View>
+          </Modal>
         </View>
 
         {/* Avatar for own messages (right side) - only show for last message in group */}
@@ -356,6 +457,52 @@ const styles = StyleSheet.create({
   dateSeparatorText: {
     fontSize: ms(11),
     fontWeight: '500',
+  },
+  // Image styles
+  imageBubble: {
+    padding: ms(4),
+    overflow: 'hidden',
+  },
+  imagesContainer: {
+    gap: ms(4),
+  },
+  messageImage: {
+    width: ms(200),
+    height: ms(200),
+    borderRadius: ms(12),
+    backgroundColor: 'rgba(0,0,0,0.1)',
+  },
+  imageErrorContainer: {
+    width: ms(200),
+    height: ms(150),
+    borderRadius: ms(12),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageErrorText: {
+    marginTop: spacing.xs,
+  },
+  contentWithImage: {
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.xs,
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: ms(50),
+    right: ms(20),
+    zIndex: 10,
+    padding: spacing.sm,
+  },
+  fullScreenImage: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT * 0.8,
   },
 });
 

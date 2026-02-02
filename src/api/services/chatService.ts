@@ -1,6 +1,28 @@
 import { supabase, supabaseAdmin, isSupabaseConfigured, ensureAuthenticated } from '../../services/supabase/supabaseClient';
 import { ChatRoom, Message, SendMessagePayload } from '../../types/chat';
 import { useAuthStore } from '../../store/authStore';
+import { Platform } from 'react-native';
+
+// Image attachment interface
+export interface ImageAttachment {
+  uri: string;
+  type: string;
+  name: string;
+  width?: number;
+  height?: number;
+}
+
+// Uploaded attachment interface (after upload to Supabase)
+export interface UploadedAttachment {
+  url: string;
+  type: string;
+  name: string;
+  size?: number;
+  width?: number;
+  height?: number;
+}
+
+const STORAGE_BUCKET = 'order-chat-images';
 
 const checkSupabase = async () => {
   if (!isSupabaseConfigured() || !supabaseAdmin) {
@@ -201,6 +223,105 @@ export const chatService = {
       }));
   },
 
+  // Upload image to Supabase Storage using XHR (most reliable in React Native)
+  uploadImage: async (image: ImageAttachment, orderId: number): Promise<UploadedAttachment> => {
+    await checkSupabase();
+    const user = useAuthStore.getState().user;
+    if (!user) throw new Error('Not authenticated');
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const fileExt = image.name.split('.').pop() || 'jpg';
+    const fileName = `${orderId}/${user.id}/${timestamp}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+    const supabaseUrl = 'https://lwplbyltqsfmfvsgmrjq.supabase.co';
+    const supabaseServiceKey = 'SUPABASE_SERVICE_KEY_REMOVED';
+    const uploadUrl = `${supabaseUrl}/storage/v1/object/${STORAGE_BUCKET}/${fileName}`;
+
+    console.log('[Chat] Uploading image:', fileName);
+    console.log('[Chat] Image URI:', image.uri);
+    console.log('[Chat] Upload URL:', uploadUrl);
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      // Add timeout
+      xhr.timeout = 60000; // 60 seconds
+
+      xhr.onload = () => {
+        console.log('[Chat] XHR onload - status:', xhr.status);
+        console.log('[Chat] XHR response:', xhr.responseText);
+
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const publicUrl = `${supabaseUrl}/storage/v1/object/public/${STORAGE_BUCKET}/${fileName}`;
+          console.log('[Chat] Upload successful:', publicUrl);
+          resolve({
+            url: publicUrl,
+            type: image.type,
+            name: image.name,
+            width: image.width,
+            height: image.height,
+          });
+        } else {
+          console.error('[Chat] Upload failed with status:', xhr.status);
+          reject(new Error(`Upload failed: ${xhr.status} - ${xhr.responseText || 'Server error'}`));
+        }
+      };
+
+      xhr.onerror = () => {
+        console.error('[Chat] XHR onerror triggered');
+        reject(new Error('Network request failed - please check your internet connection'));
+      };
+
+      xhr.ontimeout = () => {
+        console.error('[Chat] XHR timeout');
+        reject(new Error('Upload timeout - please try again'));
+      };
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          console.log('[Chat] Upload progress:', progress + '%');
+        }
+      };
+
+      xhr.open('POST', uploadUrl);
+      xhr.setRequestHeader('Authorization', `Bearer ${supabaseServiceKey}`);
+      xhr.setRequestHeader('x-upsert', 'true');
+
+      // Create FormData - React Native handles file URIs specially
+      const formData = new FormData();
+
+      // Ensure proper URI format for React Native
+      let fileUri = image.uri;
+
+      // On Android, keep the URI as-is (could be content:// or file://)
+      // On iOS, ensure file:// prefix is present
+      if (Platform.OS === 'ios' && !fileUri.startsWith('file://')) {
+        fileUri = `file://${fileUri}`;
+      }
+
+      // The key thing is the file object format for React Native
+      const fileData: any = {
+        uri: fileUri,
+        type: image.type || 'image/jpeg',
+        name: fileName.split('/').pop() || `image_${timestamp}.jpg`,
+      };
+
+      console.log('[Chat] File URI:', fileUri);
+      console.log('[Chat] File data:', JSON.stringify(fileData));
+      formData.append('file', fileData);
+
+      xhr.send(formData);
+    });
+  },
+
+  // Upload multiple images
+  uploadImages: async (images: ImageAttachment[], orderId: number): Promise<UploadedAttachment[]> => {
+    const uploadPromises = images.map(image => chatService.uploadImage(image, orderId));
+    return Promise.all(uploadPromises);
+  },
+
   // Send a message to chat_messages table
   sendMessage: async (payload: SendMessagePayload): Promise<Message> => {
     const sb = await checkSupabase();
@@ -294,6 +415,57 @@ export const chatService = {
       is_deleted: msg.is_deleted,
       timeline_visible: msg.timeline_visible,
     };
+  },
+
+  // Test Supabase connection
+  testConnection: async (): Promise<boolean> => {
+    try {
+      const response = await fetch('https://lwplbyltqsfmfvsgmrjq.supabase.co/storage/v1/bucket', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer SUPABASE_SERVICE_KEY_REMOVED',
+        },
+      });
+      console.log('[Chat] Connection test status:', response.status);
+      return response.ok;
+    } catch (error) {
+      console.error('[Chat] Connection test failed:', error);
+      return false;
+    }
+  },
+
+  // Send a message with images
+  sendMessageWithImages: async (
+    payload: SendMessagePayload,
+    images: ImageAttachment[]
+  ): Promise<Message> => {
+    console.log('[Chat] sendMessageWithImages called:', { payload, imagesCount: images.length });
+
+    try {
+      // Test connection first
+      const isConnected = await chatService.testConnection();
+      if (!isConnected) {
+        throw new Error('Cannot connect to storage server. Please check your internet connection.');
+      }
+
+      // Upload images first
+      console.log('[Chat] Starting image uploads...');
+      const uploadedAttachments = await chatService.uploadImages(images, payload.order_id);
+      console.log('[Chat] Images uploaded:', uploadedAttachments);
+
+      // Send message with attachments
+      console.log('[Chat] Sending message with attachments...');
+      const result = await chatService.sendMessage({
+        ...payload,
+        message_type: images.length > 0 && !payload.content ? 'image' : 'text',
+        attachments: uploadedAttachments,
+      });
+      console.log('[Chat] Message sent successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('[Chat] sendMessageWithImages error:', error);
+      throw error;
+    }
   },
 
   // Mark messages as read for an order
