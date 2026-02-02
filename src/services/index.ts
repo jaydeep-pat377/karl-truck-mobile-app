@@ -10,3 +10,6 @@ export * from './directionsService';
 export { default as directionsService } from './directionsService';
 
 export * from './notificationService';
+
+export * from './sentryService';
+export { default as sentryService } from './sentryService';

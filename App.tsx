@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { StatusBar, LogBox } from 'react-native';
+import { StatusBar, LogBox, View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -12,6 +12,10 @@ import { RootNavigator } from './src/navigation';
 import { useNotifications } from './src/hooks/useNotifications';
 import { useAuthStore } from './src/store/authStore';
 import { AnimatedSplashScreen } from './src/components/AnimatedSplashScreen';
+import { initSentry, ErrorBoundary } from './src/services/sentryService';
+
+// Initialize Sentry as early as possible
+initSentry();
 
 // Note: Background message handlers are registered in index.js for killed state support
 
@@ -113,19 +117,37 @@ const AppContent: React.FC = () => {
   );
 };
 
+// Fallback component for Sentry error boundary
+const ErrorFallback = ({ error, resetError }: { error: Error; resetError: () => void }) => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+    <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Something went wrong</Text>
+    <Text style={{ color: '#666', textAlign: 'center', marginBottom: 20 }}>
+      {error?.message || 'An unexpected error occurred'}
+    </Text>
+    <Text
+      style={{ color: '#007AFF', fontSize: 16 }}
+      onPress={resetError}
+    >
+      Try Again
+    </Text>
+  </View>
+);
+
 const App: React.FC = () => {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider initialMode="light">
-            <GlobalAlertProvider>
-              <AppContent />
-            </GlobalAlertProvider>
-          </ThemeProvider>
-        </QueryClientProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary fallback={ErrorFallback}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider initialMode="light">
+              <GlobalAlertProvider>
+                <AppContent />
+              </GlobalAlertProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 };
 

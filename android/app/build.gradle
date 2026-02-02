@@ -2,7 +2,23 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 apply plugin: "com.google.gms.google-services"
+apply plugin: "io.sentry.android.gradle"
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
+
+sentry {
+    // Enables or disables the automatic upload of mapping files during a build.
+    autoUploadProguardMapping = true
+
+    // Enables or disables source context, which helps show code snippets in Sentry.
+    includeSourceContext = true
+
+    // Organization and project for source maps upload
+    org = "truckast"
+    projectName = "react-native"
+
+    // Auth token for uploading (set SENTRY_AUTH_TOKEN environment variable)
+    // authToken = System.getenv("SENTRY_AUTH_TOKEN")
+}
 
 repositories {
     maven {
