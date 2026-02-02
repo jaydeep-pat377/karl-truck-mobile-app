@@ -1198,9 +1198,9 @@ const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
 
   // Series config with colors
   const seriesConfig = [
-    { key: 'ordered', color: '#04BCEF', label: 'Ordered', data: orderedData, marker: 'circle' },
-    { key: 'poured', color: '#6BB130', label: 'Poured', data: pouredData, marker: 'diamond' },
-    { key: 'delivered', color: isDark ? '#FFFFFF' : '#1a1a2e', label: 'Delivered', data: deliveredData, marker: 'square' },
+    { key: 'ordered', color: colors.chart.ordered, label: 'Ordered', data: orderedData, marker: 'circle' },
+    { key: 'poured', color: colors.chart.poured, label: 'Poured', data: pouredData, marker: 'diamond' },
+    { key: 'delivered', color: isDark ? colors.chart.delivered.dark : colors.chart.delivered.light, label: 'Delivered', data: deliveredData, marker: 'square' },
   ];
 
   const getX = (time: number) => {
@@ -1428,21 +1428,21 @@ const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
                   style={[
                     styles.pourSpeedTooltip,
                     {
-                      backgroundColor: '#1a1a2e',
+                      backgroundColor: colors.chart.background.dark,
                       left: Math.min(Math.max(tooltip.x - 55, 8), chartWidth - 120),
                       top: Math.max(tooltip.y - 55, 5),
                       ...SHADOWS.lg,
                     }
                   ]}>
-                  <Text style={[styles.pourSpeedTooltipTime, { color: '#FFFFFF' }]}>
+                  <Text style={[styles.pourSpeedTooltipTime, { color: colors.chart.tooltip.text }]}>
                     {tooltip.time}
                   </Text>
                   <View style={styles.pourSpeedTooltipRow}>
                     <View style={[styles.pourSpeedTooltipDot, { backgroundColor: tooltip.color }]} />
-                    <Text style={[styles.pourSpeedTooltipLabel, { color: '#FFFFFF' }]}>
+                    <Text style={[styles.pourSpeedTooltipLabel, { color: colors.chart.tooltip.text }]}>
                       {tooltip.label}
                     </Text>
-                    <Text style={[styles.pourSpeedTooltipValue, { color: '#FFFFFF' }]}>
+                    <Text style={[styles.pourSpeedTooltipValue, { color: colors.chart.tooltip.text }]}>
                       {tooltip.value.toFixed(2)} CY/HR
                     </Text>
                   </View>
@@ -1575,9 +1575,9 @@ const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
 
   // Series config
   const seriesConfig = [
-    { key: 'waiting', color: '#9CA3AF', label: 'Waiting', marker: 'circle' },
-    { key: 'pouring', color: '#6BB130', label: 'Pouring', marker: 'diamond' },
-    { key: 'washout', color: '#04BCEF', label: 'Washout', marker: 'square' },
+    { key: 'waiting', color: colors.chart.waiting, label: 'Waiting', marker: 'circle' },
+    { key: 'pouring', color: colors.chart.pouring, label: 'Pouring', marker: 'diamond' },
+    { key: 'washout', color: colors.chart.washout, label: 'Washout', marker: 'square' },
   ];
 
   const getX = (time: number) => {
@@ -1777,21 +1777,21 @@ const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                   style={[
                     styles.pourSpeedTooltip,
                     {
-                      backgroundColor: '#1a1a2e',
+                      backgroundColor: colors.chart.background.dark,
                       left: Math.min(Math.max(tooltip.x - 55, 8), chartWidth - 120),
                       top: Math.max(tooltip.y - 55, 5),
                       ...SHADOWS.lg,
                     }
                   ]}>
-                  <Text style={[styles.pourSpeedTooltipTime, { color: '#FFFFFF' }]}>
+                  <Text style={[styles.pourSpeedTooltipTime, { color: colors.chart.tooltip.text }]}>
                     {tooltip.time}
                   </Text>
                   <View style={styles.pourSpeedTooltipRow}>
                     <View style={[styles.pourSpeedTooltipDot, { backgroundColor: tooltip.color }]} />
-                    <Text style={[styles.pourSpeedTooltipLabel, { color: '#FFFFFF' }]}>
+                    <Text style={[styles.pourSpeedTooltipLabel, { color: colors.chart.tooltip.text }]}>
                       {tooltip.label}
                     </Text>
-                    <Text style={[styles.pourSpeedTooltipValue, { color: '#FFFFFF' }]}>
+                    <Text style={[styles.pourSpeedTooltipValue, { color: colors.chart.tooltip.text }]}>
                       {tooltip.value} trucks
                     </Text>
                   </View>
@@ -2417,7 +2417,7 @@ export const OrderDetailsScreen: React.FC = () => {
             onProductPress={handleProductPress}
           />
 
-          <View style={[styles.truckBackgroundContainer, { backgroundColor: isDark ? '#1a2a3a' : '#E8F4FC' }]}>
+          <View style={[styles.truckBackgroundContainer, { backgroundColor: isDark ? colors.cardBg.dark : colors.cardBg.infoBg }]}>
             <View style={styles.cityBackgroundWrapper}>
               <Isolation_Mode
                 width="100%"

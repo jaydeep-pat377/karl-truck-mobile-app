@@ -6,18 +6,20 @@ apply plugin: "io.sentry.android.gradle"
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
 
 sentry {
-    // Enables or disables the automatic upload of mapping files during a build.
-    autoUploadProguardMapping = true
-
-    // Enables or disables source context, which helps show code snippets in Sentry.
-    includeSourceContext = true
+    // Disable automatic upload of mapping files (requires auth token)
+    // Enable these when you have SENTRY_AUTH_TOKEN configured
+    autoUploadProguardMapping = false
+    autoUpload = false
+    includeSourceContext = false
 
     // Organization and project for source maps upload
     org = "truckast"
     projectName = "react-native"
 
-    // Auth token for uploading (set SENTRY_AUTH_TOKEN environment variable)
-    // authToken = System.getenv("SENTRY_AUTH_TOKEN")
+    // To enable source maps upload:
+    // 1. Generate auth token at https://sentry.io/settings/auth-tokens/
+    // 2. Set SENTRY_AUTH_TOKEN environment variable
+    // 3. Set autoUpload = true, autoUploadProguardMapping = true, includeSourceContext = true
 }
 
 repositories {

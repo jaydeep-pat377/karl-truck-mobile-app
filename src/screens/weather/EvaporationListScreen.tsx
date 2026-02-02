@@ -287,8 +287,8 @@ export const EvaporationListScreen: React.FC = () => {
       <StatusBar barStyle="light-content" backgroundColor={WEATHER_COLORS.background} />
 
       <LinearGradient
-        colors={['#0A1628', '#0F1E32', '#162844', '#1E3A5F'] as any}
-        locations={[0, 0.3, 0.6, 1] as any}
+        colors={[...WEATHER_COLORS.gradient.colors]}
+        locations={[...WEATHER_COLORS.gradient.locations]}
         style={styles.gradientBackground}
       />
 

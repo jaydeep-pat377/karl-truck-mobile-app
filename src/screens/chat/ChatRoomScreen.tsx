@@ -7,6 +7,7 @@ import {
   Platform,
   ActivityIndicator,
   RefreshControl,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
@@ -184,6 +185,22 @@ export const ChatRoomScreen: React.FC = () => {
     }
   }, [messages]);
 
+  // Scroll to end when keyboard opens to ensure input is visible
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+    };
+  }, []);
+
   const handleSend = useCallback(
     async (content: string, images?: ImageAttachment[]) => {
       console.log('[ChatRoom] handleSend called:', { content, imagesCount: images?.length });
@@ -310,8 +327,8 @@ export const ChatRoomScreen: React.FC = () => {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <FlatList
           ref={flatListRef}

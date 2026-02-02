@@ -56,7 +56,7 @@ const cardConfig: Record<WeatherCardType, {
   concrete: {
     title: 'Concrete Temperature',
     icon: 'cube-outline',
-    color: '#4FC3F7',
+    color: colors.weatherParams.temperature,
     infoTitle: 'About Concrete Temperature',
     infoItems: [
       { label: 'Optimal Range', description: '50°F - 90°F (10°C - 32°C) for best curing results' },
@@ -68,7 +68,7 @@ const cardConfig: Record<WeatherCardType, {
   wind: {
     title: 'Wind Conditions',
     icon: 'weather-windy',
-    color: '#81C784',
+    color: colors.weatherParams.wind,
     infoTitle: 'About Wind Speed',
     infoItems: [
       { label: 'Light Breeze', description: '0-10 mph - Ideal for concrete work' },
@@ -80,7 +80,7 @@ const cardConfig: Record<WeatherCardType, {
   pressure: {
     title: 'Atmospheric Pressure',
     icon: 'gauge',
-    color: '#FFB74D',
+    color: colors.weatherParams.pressure,
     infoTitle: 'About Pressure',
     infoItems: [
       { label: 'Normal Range', description: '29.8 - 30.2 inches of mercury (inHg)' },
@@ -92,7 +92,7 @@ const cardConfig: Record<WeatherCardType, {
   dewpoint: {
     title: 'Dew Point',
     icon: 'thermometer-low',
-    color: '#4DD0E1',
+    color: colors.weatherParams.dewPoint,
     infoTitle: 'About Dew Point',
     infoItems: [
       { label: 'Definition', description: 'Temperature at which air becomes saturated' },
@@ -104,7 +104,7 @@ const cardConfig: Record<WeatherCardType, {
   humidity: {
     title: 'Relative Humidity',
     icon: 'water-percent',
-    color: '#7986CB',
+    color: colors.weatherParams.humidity,
     infoTitle: 'About Humidity',
     infoItems: [
       { label: 'Ideal Range', description: '40-60% for optimal concrete curing' },
@@ -116,7 +116,7 @@ const cardConfig: Record<WeatherCardType, {
   evaporation: {
     title: 'Evaporation Rate',
     icon: 'water-outline',
-    color: '#FF8A65',
+    color: colors.weatherParams.evaporation,
     infoTitle: 'About Evaporation',
     infoItems: [
       { label: 'Critical Threshold', description: '0.25 lb/ft²/hr - Above requires action' },

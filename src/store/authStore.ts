@@ -4,6 +4,7 @@ import { User } from '../types/user';
 import { authService } from '../api/services/authService';
 import { STORAGE_KEYS } from '../utils/storage';
 import { setAuthCredentials, clearWidgetData } from '../modules/TodayOverviewWidget';
+import { setWidgetLoggedIn, reloadWidget } from '../native/WidgetModule';
 import { API_BASE_URL } from '@env';
 
 const WIDGET_API_URL = API_BASE_URL || 'http://api.truckast.ai/api';
@@ -42,10 +43,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
 
-      // Set widget auth credentials for API fetching
+      // Set widget auth credentials for API fetching (Android)
       setAuthCredentials(accessToken, WIDGET_API_URL).catch((err) =>
         console.log('Widget auth setup error:', err)
       );
+
+      // Update iOS widget login state
+      setWidgetLoggedIn(true);
+      reloadWidget();
 
       set({
         user,
@@ -68,10 +73,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         STORAGE_KEYS.USER,
       ]);
 
-      // Clear widget data on logout
+      // Clear widget data on logout (Android)
       clearWidgetData().catch((err) =>
         console.log('Widget clear error:', err)
       );
+
+      // Update iOS widget login state
+      setWidgetLoggedIn(false);
+      reloadWidget();
 
       set({
         user: null,
@@ -132,12 +141,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         // Update stored user data
         await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data.user));
 
-        // Update widget credentials on app init
+        // Update widget credentials on app init (Android)
         if (accessToken) {
           setAuthCredentials(accessToken, WIDGET_API_URL).catch((err) =>
             console.log('Widget auth setup error:', err)
           );
         }
+
+        // Update iOS widget login state on app init
+        setWidgetLoggedIn(true);
+        reloadWidget();
 
         return true;
       }

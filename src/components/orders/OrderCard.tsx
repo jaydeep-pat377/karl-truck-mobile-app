@@ -132,10 +132,12 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       style={[
         styles.card,
         {
+          // iOS shadow - bottom only
           shadowColor: statusColor,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.2,
-          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.35,
+          shadowRadius: 4,
+          // Android shadow
           ...(Platform.OS === 'android' && {
             elevation: 4,
             borderBottomWidth: 2,
@@ -143,7 +145,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           }),
         },
       ]}>
-      <TouchableOpacity
+      {/* Inner container for content clipping (rounded corners) */}
+      <View style={styles.cardInnerContainer}>
+        <TouchableOpacity
         activeOpacity={0.7}
         onPress={onPress}
         disabled={isLoading}
@@ -322,14 +326,21 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           </>
         )}
       </View>
+      </View>
     </Card>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    overflow: 'hidden',
     borderRadius: ms(10),
+    // Note: overflow must be 'visible' for iOS shadows to render
+    // Content clipping is handled by cardInnerContainer
+    overflow: Platform.OS === 'ios' ? 'visible' : 'hidden',
+  },
+  cardInnerContainer: {
+    borderRadius: ms(10),
+    overflow: 'hidden',
   },
   cardTouchable: {
     minHeight: ms(44),

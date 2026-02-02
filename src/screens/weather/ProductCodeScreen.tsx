@@ -37,8 +37,8 @@ const RADIUS = {
 // Weather theme colors for header gradient
 const WEATHER_COLORS = colors.weatherTheme;
 
-// Accent color for light mode content
-const ACCENT_BLUE = '#3949ab';
+// Accent color for light mode content (from theme)
+const ACCENT_BLUE = colors.accent.blue;
 
 const mockData = {
   status: 'Firm',
@@ -54,7 +54,7 @@ const mockData = {
       time: '11:30PM',
       customerCheck: 'Customer Check-AEM Machine',
       status: 'Delayed',
-      statusColor: '#EF5350',
+      statusColor: colors.productStatus.danger,
       spacing: '5 Min',
       pourRate: '120.00 CY/HR',
       location: 'Greenwood 303',
@@ -68,7 +68,7 @@ const mockData = {
       time: '11:30PM',
       customerCheck: 'Customer Check-AEM Machine',
       status: 'In Progress',
-      statusColor: '#66BB6A',
+      statusColor: colors.productStatus.safe,
       spacing: '5 Min',
       pourRate: '120.00 CY/HR',
       location: 'Greenwood 303',
@@ -82,7 +82,7 @@ const mockData = {
       slump: '4.00 IN',
       quantity: '10.50 CY',
       type: 'Concrete',
-      typeColor: '#66BB6A',
+      typeColor: colors.productStatus.safe,
     },
     {
       id: '2',
@@ -90,7 +90,7 @@ const mockData = {
       slump: '4.00 IN',
       quantity: '10.50 CY',
       type: 'Associated Product',
-      typeColor: '#42A5F5',
+      typeColor: colors.productStatus.info,
     },
   ],
 };
@@ -172,7 +172,7 @@ const BarcodeImage: React.FC = () => {
         style={{
           width: pattern[i],
           height: '100%',
-          backgroundColor: i % 2 === 0 ? '#000' : 'transparent',
+          backgroundColor: i % 2 === 0 ? colors.common.black : colors.common.transparent,
         }}
       />
     );
@@ -216,7 +216,7 @@ const OrderCodeCard: React.FC<OrderCodeCardProps> = ({ orderCode, onPress, showT
       {/* Truck Image - positioned in content area */}
       {showTruck && (
         <View style={styles.truckImageContainer}>
-          <Icon name="truck-delivery" size={ms(60)} color="#90CAF9" />
+          <Icon name="truck-delivery" size={ms(60)} color={colors.productStatus.truckIcon} />
         </View>
       )}
     </View>
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontFamily: fontFamily.regular,
     fontSize: responsive(ms(10), ms(12)),
-    color: 'rgba(255,255,255,0.7)',
+    color: colors.text.lightMuted,
     marginBottom: GRID.xs,
   },
   statValue: {
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   statSubtext: {
     fontFamily: fontFamily.regular,
     fontSize: responsive(ms(9), ms(11)),
-    color: 'rgba(255,255,255,0.6)',
+    color: colors.text.lightSubtle,
     marginTop: 2,
   },
 
@@ -560,9 +560,9 @@ const styles = StyleSheet.create({
   barcodeContainer: {
     width: ms(80),
     height: ms(60),
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.cardBg.light,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: colors.cardBg.border,
     borderRadius: RADIUS.sm,
     padding: GRID.xs,
     justifyContent: 'center',
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
   barcodeNumber: {
     fontFamily: fontFamily.medium,
     fontSize: ms(8),
-    color: '#333',
+    color: colors.text.dark,
     marginTop: GRID.xs - 2,
     letterSpacing: 1,
   },
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
     paddingTop: GRID.sm,
     paddingBottom: GRID.xs,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: colors.grey[8],
   },
   checkDetailsText: {
     fontFamily: fontFamily.regular,

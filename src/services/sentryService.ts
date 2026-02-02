@@ -22,8 +22,11 @@ export const initSentry = (): void => {
   Sentry.init({
     dsn: SENTRY_DSN,
     environment: APP_ENV || 'development',
-    enabled: APP_ENV !== 'development', // Disable in development
-    debug: __DEV__, // Enable debug mode in development builds
+    enabled: true,
+    debug: false, // Disable debug alerts
+
+    // Disable native SDK warning alert in development
+    enableNativeNagger: false,
 
     // Performance Monitoring
     tracesSampleRate: APP_ENV === 'production' ? 0.2 : 1.0,
@@ -185,6 +188,49 @@ export const startTransaction = (
   return Sentry.startInactiveSpan({ name, op });
 };
 
+/**
+ * Test Sentry integration - sends a test error
+ * Call this to verify Sentry is working correctly
+ */
+export const testSentry = (): void => {
+  console.log('[Sentry] Testing Sentry integration...');
+  console.log('[Sentry] DSN configured:', isSentryConfigured);
+  console.log('[Sentry] DSN:', SENTRY_DSN?.substring(0, 30) + '...');
+
+  if (!isSentryConfigured) {
+    console.log('[Sentry] ERROR: DSN not configured!');
+    return;
+  }
+
+  try {
+    // Send a test message
+    Sentry.captureMessage('Sentry Test Message - Integration Working!', 'info');
+    console.log('[Sentry] Test message sent successfully');
+
+    // Send a test error
+    throw new Error('Sentry Test Error - This is a test exception');
+  } catch (error) {
+    Sentry.captureException(error);
+    console.log('[Sentry] Test error captured and sent');
+    console.log('[Sentry] Check your Sentry dashboard: https://sentry.io');
+  }
+};
+
+/**
+ * Get Sentry status info for debugging
+ */
+export const getSentryStatus = (): {
+  configured: boolean;
+  dsn: string | undefined;
+  environment: string;
+} => {
+  return {
+    configured: isSentryConfigured,
+    dsn: SENTRY_DSN ? SENTRY_DSN.substring(0, 40) + '...' : undefined,
+    environment: APP_ENV || 'development',
+  };
+};
+
 export default {
   init: initSentry,
   setUserContext,
@@ -197,4 +243,6 @@ export default {
   withErrorBoundary,
   ErrorBoundary,
   startTransaction,
+  testSentry,
+  getSentryStatus,
 };

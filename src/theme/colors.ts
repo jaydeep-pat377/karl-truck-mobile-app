@@ -460,6 +460,43 @@ export const colors = {
       dark: ['#1B5E20', '#2E7D32'],
     },
   },
+  // Chart colors (for OrderDetailsScreen and other charts)
+  chart: {
+    ordered: '#04BCEF',      // Same as secondary.main
+    poured: '#6BB130',       // Same as primary.main
+    delivered: {
+      dark: '#FFFFFF',
+      light: '#1a1a2e',
+    },
+    background: {
+      dark: '#1a1a2e',
+      light: '#FFFFFF',
+    },
+    tooltip: {
+      text: '#FFFFFF',
+      background: 'rgba(0,0,0,0.8)',
+    },
+    // Quality metrics
+    waiting: '#9CA3AF',
+    pouring: '#6BB130',
+    washout: '#04BCEF',
+  },
+  // Weather parameter icon colors (for ProductDetailsScreen)
+  weatherParams: {
+    temperature: '#4FC3F7',    // Cyan - Concrete Temperature
+    wind: '#81C784',           // Green - Wind Conditions
+    pressure: '#FFB74D',       // Orange - Atmospheric Pressure
+    dewPoint: '#4DD0E1',       // Cyan - Dew Point
+    humidity: '#7986CB',       // Indigo - Relative Humidity
+    evaporation: '#FF8A65',    // Orange - Evaporation Rate
+  },
+  // Text colors
+  text: {
+    dark: '#333333',
+    darkSecondary: '#666666',
+    lightMuted: 'rgba(255,255,255,0.7)',
+    lightSubtle: 'rgba(255,255,255,0.6)',
+  },
   // Theme-based gradients for headers and hero sections
   gradients: {
     // Light theme: Soft, subtle gradients
