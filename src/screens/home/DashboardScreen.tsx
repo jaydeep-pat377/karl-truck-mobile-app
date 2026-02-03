@@ -582,7 +582,7 @@ const DashboardScreen: React.FC = () => {
     <TouchableOpacity
       style={[styles.kpiCard, { backgroundColor: themeColors.card }]}
       activeOpacity={0.7}
-      onPress={() => navigation.navigate('Orders', { statusFilter: item.statusFilter })}>
+      onPress={() => navigation.navigate('Orders', { statusFilter: item.statusFilter, _timestamp: Date.now() })}>
       <View style={[styles.kpiIconContainer, { backgroundColor: `${item.color}20` }]}>
         <Icon name={item.icon} size={iconSizes.lg} color={item.color} />
       </View>
@@ -754,7 +754,7 @@ const DashboardScreen: React.FC = () => {
     return (
       <TouchableOpacity
         activeOpacity={0.9}
-        onPress={() => navigation.navigate('Today')}
+        onPress={() => navigation.navigate('Map')}
         style={[styles.deliveryCardWrapper, { width: layout.cardWidth }]}
       >
         <View style={[styles.deliveryCard, { backgroundColor: themeColors.card }]}>
@@ -1068,7 +1068,7 @@ const DashboardScreen: React.FC = () => {
         <SectionHeader
           title="Active Deliveries"
           actionLabel="View All"
-          onAction={() => navigation.navigate('Today')}
+          onAction={() => navigation.navigate('Map')}
         />
         {activeDeliveries?.orders && activeDeliveries.orders.length > 0 ? (
           <ScrollView

@@ -14,7 +14,7 @@ import { useAuthStore } from './src/store/authStore';
 import { AnimatedSplashScreen } from './src/components/AnimatedSplashScreen';
 import { initSentry, ErrorBoundary } from './src/services/sentryService';
 
-// Initialize Sentry as early as possible
+// Initialize Sentry (only runs in production)
 initSentry();
 
 // Note: Background message handlers are registered in index.js for killed state support

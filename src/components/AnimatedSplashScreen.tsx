@@ -5,12 +5,17 @@ import {
   Animated,
   Dimensions,
   StatusBar,
-  Image,
+  Easing,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { colors } from '../theme/colors';
+import GreenTruck from '../assets/svgs/greenTruck.svg';
 
 const { width, height } = Dimensions.get('window');
+
+// Truck dimensions
+const TRUCK_WIDTH = 200;
+const TRUCK_HEIGHT = (TRUCK_WIDTH * 86) / 157;
 
 interface AnimatedSplashScreenProps {
   onAnimationComplete: () => void;
@@ -22,7 +27,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
   // Animation values
   const logoScale = useRef(new Animated.Value(0.3)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoRotate = useRef(new Animated.Value(0)).current;
 
   const titleOpacity = useRef(new Animated.Value(0)).current;
   const titleTranslateY = useRef(new Animated.Value(30)).current;
@@ -40,10 +44,13 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
   const dot2Scale = useRef(new Animated.Value(1)).current;
   const dot3Scale = useRef(new Animated.Value(1)).current;
 
+  // Wheel rotation animation
+  const wheelRotation = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     // Start the intro animation sequence (without auto-fade)
     const introAnimation = Animated.sequence([
-      // Phase 1: Logo appears with scale and rotation
+      // Phase 1: Logo appears with scale
       Animated.parallel([
         Animated.spring(logoScale, {
           toValue: 1,
@@ -54,11 +61,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
         Animated.timing(logoOpacity, {
           toValue: 1,
           duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoRotate, {
-          toValue: 1,
-          duration: 800,
           useNativeDriver: true,
         }),
       ]),
@@ -142,17 +144,44 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
       createPulse(dot3Scale, 300),
     ]).start();
 
+    // Wheel spinning animation - continuous
+    const wheelAnimation = Animated.loop(
+      Animated.timing(wheelRotation, {
+        toValue: 1,
+        duration: 800,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    wheelAnimation.start();
+
     // Run intro animation, then notify parent that animation is complete
     // Parent will hide splash when navigation is ready
     introAnimation.start(() => {
       onAnimationComplete();
     });
+
+    return () => {
+      wheelAnimation.stop();
+    };
   }, []);
 
-  const logoRotateInterpolate = logoRotate.interpolate({
+  const wheelSpin = wheelRotation.interpolate({
     inputRange: [0, 1],
-    outputRange: ['-10deg', '0deg'],
+    outputRange: ['0deg', '360deg'],
   });
+
+  // Calculate wheel positions based on truck size
+  const scale = TRUCK_WIDTH / 157;
+  const frontWheelSize = 16 * scale;
+  const middleWheelSize = 20 * scale;
+  const rearWheelSize = 20 * scale;
+  const frontWheelRight = (157 - 127) * scale - frontWheelSize / 2;
+  const frontWheelBottom = (86 - 75) * scale - frontWheelSize / 2;
+  const middleWheelLeft = 63 * scale - middleWheelSize / 2;
+  const middleWheelBottom = (86 - 75) * scale - middleWheelSize / 2;
+  const rearWheelLeft = 43 * scale - rearWheelSize / 2;
+  const rearWheelBottom = (86 - 75) * scale - rearWheelSize / 2;
 
   return (
     <Animated.View style={styles.container}>
@@ -166,24 +195,100 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
         <View style={styles.decorativeCircle1} />
         <View style={styles.decorativeCircle2} />
 
-        {/* Logo */}
+        {/* Truck with rotating wheels */}
         <Animated.View
           style={[
             styles.logoContainer,
             {
               opacity: logoOpacity,
-              transform: [
-                { scale: logoScale },
-                { rotate: logoRotateInterpolate },
-              ],
+              transform: [{ scale: logoScale }],
             },
           ]}>
-          <View style={styles.logoBackground}>
-            <Image
-              source={require('../assets/images/logo.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+          <View style={styles.truckShadow}>
+            <View style={styles.truckWrapper}>
+              <GreenTruck width={TRUCK_WIDTH} height={TRUCK_HEIGHT} />
+
+            {/* Animated Wheel Overlays - Front Wheel */}
+            <Animated.View
+              style={[
+                styles.wheelOverlay,
+                {
+                  width: frontWheelSize,
+                  height: frontWheelSize,
+                  right: frontWheelRight,
+                  bottom: frontWheelBottom,
+                  transform: [{ rotate: wheelSpin }],
+                },
+              ]}>
+              <View
+                style={[
+                  styles.wheelSpoke,
+                  { height: frontWheelSize * 0.75, width: 2 * scale },
+                ]}
+              />
+              <View
+                style={[
+                  styles.wheelSpoke,
+                  styles.spokeRotated,
+                  { height: frontWheelSize * 0.75, width: 2 * scale },
+                ]}
+              />
+            </Animated.View>
+
+            {/* Animated Wheel Overlays - Middle Wheel */}
+            <Animated.View
+              style={[
+                styles.wheelOverlay,
+                {
+                  width: middleWheelSize,
+                  height: middleWheelSize,
+                  left: middleWheelLeft,
+                  bottom: middleWheelBottom,
+                  transform: [{ rotate: wheelSpin }],
+                },
+              ]}>
+              <View
+                style={[
+                  styles.wheelSpoke,
+                  { height: middleWheelSize * 0.8, width: 2 * scale },
+                ]}
+              />
+              <View
+                style={[
+                  styles.wheelSpoke,
+                  styles.spokeRotated,
+                  { height: middleWheelSize * 0.8, width: 2 * scale },
+                ]}
+              />
+            </Animated.View>
+
+            {/* Animated Wheel Overlays - Rear Wheel */}
+            <Animated.View
+              style={[
+                styles.wheelOverlay,
+                {
+                  width: rearWheelSize,
+                  height: rearWheelSize,
+                  left: rearWheelLeft,
+                  bottom: rearWheelBottom,
+                  transform: [{ rotate: wheelSpin }],
+                },
+              ]}>
+              <View
+                style={[
+                  styles.wheelSpoke,
+                  { height: rearWheelSize * 0.8, width: 2 * scale },
+                ]}
+              />
+              <View
+                style={[
+                  styles.wheelSpoke,
+                  styles.spokeRotated,
+                  { height: rearWheelSize * 0.8, width: 2 * scale },
+                ]}
+              />
+            </Animated.View>
+            </View>
           </View>
         </Animated.View>
 
@@ -272,22 +377,30 @@ const styles = StyleSheet.create({
   logoContainer: {
     marginBottom: 24,
   },
-  logoBackground: {
-    width: 120,
-    height: 120,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
+  truckShadow: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowRadius: 8,
+    elevation: 10,
   },
-  logo: {
-    width: 80,
-    height: 80,
+  truckWrapper: {
+    width: TRUCK_WIDTH,
+    height: TRUCK_HEIGHT,
+    position: 'relative',
+  },
+  wheelOverlay: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wheelSpoke: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 1,
+  },
+  spokeRotated: {
+    transform: [{ rotate: '90deg' }],
   },
   title: {
     fontSize: 36,

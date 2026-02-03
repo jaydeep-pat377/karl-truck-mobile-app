@@ -112,7 +112,7 @@ export const NotificationScreen: React.FC = () => {
         </TouchableOpacity>
         <Text variant="h2">{t('notifications.title')}</Text>
         <TouchableOpacity
-          style={[styles.headerButton, { backgroundColor: themeColors.surface }]}
+          style={[styles.headerButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
           onPress={handleRefresh}
           activeOpacity={0.7}
           disabled={isRefreshing}
@@ -120,7 +120,7 @@ export const NotificationScreen: React.FC = () => {
           {isRefreshing ? (
             <ActivityIndicator size="small" color={colors.primary.main} />
           ) : (
-            <Icon name="refresh" size={ms(22)} color={themeColors.text.primary} />
+            <Icon name="refresh" size={ms(18)} color={colors.primary.main} />
           )}
         </TouchableOpacity>
       </View>
@@ -168,9 +168,9 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   headerButton: {
-    width: ms(40),
-    height: ms(40),
-    borderRadius: ms(20),
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(8),
     justifyContent: 'center',
     alignItems: 'center',
   },

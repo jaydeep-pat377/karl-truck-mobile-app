@@ -6,8 +6,9 @@
 import * as Sentry from '@sentry/react-native';
 import { SENTRY_DSN, APP_ENV } from '@env';
 
-// Check if Sentry is configured
-const isSentryConfigured = !!SENTRY_DSN && SENTRY_DSN !== 'your_sentry_dsn_here';
+// Only enable Sentry in production
+const isProduction = APP_ENV === 'production';
+const isSentryConfigured = isProduction && !!SENTRY_DSN && SENTRY_DSN !== 'your_sentry_dsn_here';
 
 /**
  * Initialize Sentry SDK
@@ -15,17 +16,19 @@ const isSentryConfigured = !!SENTRY_DSN && SENTRY_DSN !== 'your_sentry_dsn_here'
  */
 export const initSentry = (): void => {
   if (!isSentryConfigured) {
-    console.log('[Sentry] DSN not configured, skipping initialization');
+    if (__DEV__) {
+      console.log('[Sentry] Skipping initialization (only enabled in production)');
+    }
     return;
   }
 
   Sentry.init({
     dsn: SENTRY_DSN,
-    environment: APP_ENV || 'development',
+    environment: APP_ENV || 'production',
     enabled: true,
-    debug: false, // Disable debug alerts
+    debug: false, // Disable debug logs in production
 
-    // Disable native SDK warning alert in development
+    // Disable native SDK warning alert
     enableNativeNagger: false,
 
     // Performance Monitoring
@@ -63,7 +66,7 @@ export const initSentry = (): void => {
     },
   });
 
-  console.log(`[Sentry] Initialized for ${APP_ENV} environment`);
+  console.log(`[Sentry] Initialized for production environment`);
 };
 
 /**
@@ -192,27 +195,30 @@ export const startTransaction = (
  * Test Sentry integration - sends a test error
  * Call this to verify Sentry is working correctly
  */
-export const testSentry = (): void => {
-  console.log('[Sentry] Testing Sentry integration...');
-  console.log('[Sentry] DSN configured:', isSentryConfigured);
-  console.log('[Sentry] DSN:', SENTRY_DSN?.substring(0, 30) + '...');
+export const testSentry = async (): Promise<void> => {
+  console.log('[Sentry] Testing integration...');
+  console.log('[Sentry] Production mode:', isProduction);
+  console.log('[Sentry] Configured:', isSentryConfigured);
 
   if (!isSentryConfigured) {
-    console.log('[Sentry] ERROR: DSN not configured!');
+    console.log('[Sentry] Not configured - Sentry only runs in production');
     return;
   }
 
   try {
-    // Send a test message
-    Sentry.captureMessage('Sentry Test Message - Integration Working!', 'info');
-    console.log('[Sentry] Test message sent successfully');
+    const timestamp = new Date().toISOString();
 
     // Send a test error
-    throw new Error('Sentry Test Error - This is a test exception');
+    const testError = new Error(`Sentry Test Error - ${timestamp}`);
+    const errorId = Sentry.captureException(testError);
+    console.log('[Sentry] Error captured with ID:', errorId);
+
+    // Force flush to ensure events are sent immediately
+    const flushed = await Sentry.flush(5000);
+    console.log('[Sentry] Flush completed:', flushed);
+    console.log('[Sentry] Check dashboard: https://truckast.sentry.io/issues/');
   } catch (error) {
-    Sentry.captureException(error);
-    console.log('[Sentry] Test error captured and sent');
-    console.log('[Sentry] Check your Sentry dashboard: https://sentry.io');
+    console.log('[Sentry] Test failed:', error);
   }
 };
 
@@ -221,11 +227,13 @@ export const testSentry = (): void => {
  */
 export const getSentryStatus = (): {
   configured: boolean;
+  enabled: boolean;
   dsn: string | undefined;
   environment: string;
 } => {
   return {
-    configured: isSentryConfigured,
+    configured: !!SENTRY_DSN && SENTRY_DSN !== 'your_sentry_dsn_here',
+    enabled: isSentryConfigured, // Only true in production
     dsn: SENTRY_DSN ? SENTRY_DSN.substring(0, 40) + '...' : undefined,
     environment: APP_ENV || 'development',
   };

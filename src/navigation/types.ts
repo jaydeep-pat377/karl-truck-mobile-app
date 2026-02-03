@@ -26,8 +26,8 @@ export type OrderStatusFilter =
 // Main Tab Navigator
 export type MainTabParamList = {
   Home: undefined;
-  Orders: { statusFilter?: OrderStatusFilter } | undefined;
-  Today: undefined;
+  Orders: { statusFilter?: OrderStatusFilter; _timestamp?: number } | undefined;
+  Map: undefined;
   Notifications: undefined;
   Settings: undefined;
 };

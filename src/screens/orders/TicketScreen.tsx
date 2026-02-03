@@ -1158,10 +1158,10 @@ export const TicketScreen: React.FC = () => {
         </View>
 
         <TouchableOpacity
-          style={[styles.headerBtn, { backgroundColor: themeColors.surface }]}
+          style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
           onPress={handleRefresh}
           activeOpacity={0.7}>
-          <Icon name="refresh" size={ms(20)} color={themeColors.text.primary} />
+          <Icon name="refresh" size={ms(18)} color={colors.primary.main} />
         </TouchableOpacity>
       </View>
 
@@ -1259,9 +1259,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   headerBtn: {
-    width: ms(40),
-    height: ms(40),
-    borderRadius: ms(12),
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(8),
     justifyContent: 'center',
     alignItems: 'center',
   },

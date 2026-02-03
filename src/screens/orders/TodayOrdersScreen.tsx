@@ -306,6 +306,13 @@ export const TodayOrdersScreen: React.FC = () => {
             {apiOrders.length} {apiOrders.length === 1 ? 'order' : 'orders'} in progress
           </Text>
         </View>
+        <TouchableOpacity
+          style={[styles.refreshBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+          onPress={handleRefresh}
+          activeOpacity={0.7}
+        >
+          <Icon name="refresh" size={ms(18)} color={colors.primary.main} />
+        </TouchableOpacity>
       </View>
 
       {apiOrders.length > 0 && (
@@ -355,10 +362,6 @@ export const TodayOrdersScreen: React.FC = () => {
         </View>
         <Text style={[styles.emptyTitle, { color: themeColors.text.primary }]}>No Active Orders</Text>
         <Text style={[styles.emptySub, { color: themeColors.text.secondary }]}>No in-progress orders for today.</Text>
-        <TouchableOpacity style={[styles.emptyBtn, { backgroundColor: colors.primary.main }]} onPress={handleRefresh}>
-          <Icon name="refresh" size={ms(14)} color={colors.common.white} />
-          <Text style={styles.emptyBtnTxt}>Refresh</Text>
-        </TouchableOpacity>
       </View>
     );
   };
@@ -418,6 +421,7 @@ const styles = StyleSheet.create({
   headerContainer: { paddingHorizontal: ms(12), paddingTop: ms(8), paddingBottom: ms(10) },
   headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: ms(10) },
   backBtn: { width: ms(32), height: ms(32), borderRadius: ms(8), justifyContent: 'center', alignItems: 'center', marginRight: ms(10) },
+  refreshBtn: { width: ms(32), height: ms(32), borderRadius: ms(8), justifyContent: 'center', alignItems: 'center' },
   headerTitleWrap: { flex: 1 },
   headerTitle: { fontSize: ms(17), fontFamily: fontFamily.bold },
   headerSub: { fontSize: ms(11), fontFamily: fontFamily.regular, marginTop: ms(1) },
@@ -704,9 +708,7 @@ const styles = StyleSheet.create({
   emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: ms(60), paddingHorizontal: ms(20) },
   emptyIcon: { width: ms(70), height: ms(70), borderRadius: ms(35), justifyContent: 'center', alignItems: 'center', marginBottom: ms(12) },
   emptyTitle: { fontSize: ms(15), fontFamily: fontFamily.semiBold, marginBottom: ms(4) },
-  emptySub: { fontSize: ms(12), fontFamily: fontFamily.regular, textAlign: 'center', marginBottom: ms(16) },
-  emptyBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: ms(16), paddingVertical: ms(8), borderRadius: ms(6), gap: ms(5) },
-  emptyBtnTxt: { color: colors.common.white, fontSize: ms(12), fontFamily: fontFamily.semiBold },
+  emptySub: { fontSize: ms(12), fontFamily: fontFamily.regular, textAlign: 'center' },
 
   // ===== ERROR =====
   errorWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: ms(20) },

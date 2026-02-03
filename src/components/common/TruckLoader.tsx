@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { fontFamily } from '../../theme/typography';
-import { colors } from '../../theme/colors';
 import YellowTruck from '../../assets/svgs/yellowTruck.svg';
 
 interface TruckLoaderProps {
@@ -76,11 +75,14 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
 
   // Wheel overlay sizes
   const frontWheelSize = 16 * scale;
+  const middleWheelSize = 20 * scale;
   const rearWheelSize = 20 * scale;
 
   // Position calculations - subtract half the wheel size to center it
   const frontWheelRight = (157 - 127) * scale - frontWheelSize / 2;
   const frontWheelBottom = (86 - 75) * scale - frontWheelSize / 2;
+  const middleWheelLeft = 63 * scale - middleWheelSize / 2;
+  const middleWheelBottom = (86 - 75) * scale - middleWheelSize / 2;
   const rearWheelLeft = 43 * scale - rearWheelSize / 2;
   const rearWheelBottom = (86 - 75) * scale - rearWheelSize / 2;
 
@@ -120,6 +122,33 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
               styles.wheelSpoke,
               styles.spokeRotated,
               { height: frontWheelSize * 0.75, width: 2 * scale },
+            ]}
+          />
+        </Animated.View>
+
+        {/* Animated Wheel Overlays - Middle Wheel */}
+        <Animated.View
+          style={[
+            styles.wheelOverlay,
+            {
+              width: middleWheelSize,
+              height: middleWheelSize,
+              left: middleWheelLeft,
+              bottom: middleWheelBottom,
+              transform: [{ rotate: wheelSpin }],
+            },
+          ]}>
+          <View
+            style={[
+              styles.wheelSpoke,
+              { height: middleWheelSize * 0.8, width: 2 * scale },
+            ]}
+          />
+          <View
+            style={[
+              styles.wheelSpoke,
+              styles.spokeRotated,
+              { height: middleWheelSize * 0.8, width: 2 * scale },
             ]}
           />
         </Animated.View>

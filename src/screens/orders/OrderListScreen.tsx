@@ -7,19 +7,18 @@ import {
   TextInput,
   ScrollView,
   RefreshControl,
-  Switch,
   Modal,
   Animated,
   Pressable,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, MainTabParamList } from '../../navigation/types';
 import { Calendar } from 'react-native-calendars';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text, Card, ListFooterLoader, TruckLoader, Icon, EmptyViewWithPreset } from '../../components/common';
+import { Text, Card, ListFooterLoader, TruckLoader, Icon } from '../../components/common';
 import { OrderCard } from '../../components/orders';
 import { Order, ApiOrder, OrdersQueryParams, WeatherCondition } from '../../types';
 import { colors } from '../../theme/colors';
@@ -311,16 +310,13 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
     const isToday = isSameDay(date, today);
     const isTomorrow = isSameDay(date, tomorrow);
 
-    const dateStr = date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+    const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const year = date.getFullYear();
 
-    if (isToday) return `Today, ${dateStr}`;
-    if (isTomorrow) return `Tomorrow, ${dateStr}`;
-    return dateStr;
+    if (isToday) return `Today, ${weekday} - ${monthDay}, ${year}`;
+    if (isTomorrow) return `Tomorrow, ${weekday} - ${monthDay}, ${year}`;
+    return `${weekday} - ${monthDay}, ${year}`;
   };
 
   if (!visible) return null;
@@ -448,8 +444,10 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
               onPress={handleConfirm}
               activeOpacity={0.8}
             >
-              <Icon name="check-circle" size={ms(18)} color={colors.common.white} />
-              <Text style={styles.applyButtonText}>
+              <View style={styles.applyButtonIconWrapper}>
+                <Icon name="calendar-check" size={ms(20)} color={colors.common.white} />
+              </View>
+              <Text style={styles.applyButtonText} numberOfLines={1}>
                 Apply Date
               </Text>
             </TouchableOpacity>
@@ -813,13 +811,13 @@ export const OrderListScreen: React.FC = () => {
 
   // Get status filter from route params (from Dashboard)
   const statusFilterFromRoute = route.params?.statusFilter;
+  const filterTimestamp = route.params?._timestamp;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<DateFilterId>('today');
   const [debouncedFilter, setDebouncedFilter] = useState<DateFilterId>('today');
-  const [showMoreDetails, setShowMoreDetails] = useState(true);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showDatePicker, setShowDatePicker] = useState(false);
   const [chatLoadingOrderId, setChatLoadingOrderId] = useState<string | null>(null);
 
   // Single date state for calendar filter
@@ -839,27 +837,29 @@ export const OrderListScreen: React.FC = () => {
     return () => clearTimeout(timer);
   }, [activeFilter, selectedDate]);
 
-  // Apply status filter from route params when screen loads
-  React.useEffect(() => {
-    if (statusFilterFromRoute) {
-      // Map the route status filter to the correct status filter ID
-      const statusMap: Record<string, StatusFilterId> = {
-        'Will Call': 'Will Call',
-        'Hold Delivery': 'Hold Delivery',
-        'Canceled': 'Canceled',
-        'Normal': 'Normal',
-        'In Progress': 'In Progress',
-        'Completed': 'Completed',
-      };
-      const mappedStatus = statusMap[statusFilterFromRoute];
-      if (mappedStatus) {
-        setAppliedFilters(prev => ({
-          ...prev,
-          statuses: [mappedStatus],
-        }));
+  // Apply status filter from route params when screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      if (statusFilterFromRoute) {
+        // Map the route status filter to the correct status filter ID
+        const statusMap: Record<string, StatusFilterId> = {
+          'Will Call': 'Will Call',
+          'Hold Delivery': 'Hold Delivery',
+          'Canceled': 'Canceled',
+          'Normal': 'Normal',
+          'In Progress': 'In Progress',
+          'Completed': 'Completed',
+        };
+        const mappedStatus = statusMap[statusFilterFromRoute];
+        if (mappedStatus) {
+          setAppliedFilters(prev => ({
+            ...prev,
+            statuses: [mappedStatus],
+          }));
+        }
       }
-    }
-  }, [statusFilterFromRoute]);
+    }, [statusFilterFromRoute, filterTimestamp])
+  );
 
   const filterBarAnim = useRef(new Animated.Value(0)).current;
 
@@ -925,6 +925,7 @@ export const OrderListScreen: React.FC = () => {
     params.sort_by = sortParams.sort_by;
     params.sort_order = sortParams.sort_order;
 
+    console.log('📋 Query params being sent to API:', params);
     return params;
   }, [debouncedFilter, debouncedDate, appliedSearchQuery, appliedFilters.statuses, appliedFilters.sortBy]);
 
@@ -992,6 +993,7 @@ export const OrderListScreen: React.FC = () => {
   }, [mappedOrders, appliedFilters.productType, appliedFilters.hasAlertOnly]);
 
   const handleSearch = useCallback(() => {
+    console.log('🔍 Search triggered with query:', searchQuery.trim());
     setAppliedSearchQuery(searchQuery.trim());
   }, [searchQuery]);
 
@@ -1043,6 +1045,29 @@ export const OrderListScreen: React.FC = () => {
 
   const handleOrderPress = useCallback((order: Order) => {
   }, []);
+
+  const renderEmpty = useCallback(() => {
+    if (isLoading || isFilterLoading) return null;
+
+    const hasActiveFilter = activeFilterCount > 0 || statusFilterFromRoute;
+    const emptyMessage = hasActiveFilter
+      ? 'No orders match the selected filter. Try adjusting your filters.'
+      : 'There are no orders available at this time.';
+
+    return (
+      <View style={styles.emptyWrap}>
+        <View style={[styles.emptyIcon, { backgroundColor: isDark ? 'rgba(107,177,48,0.1)' : 'rgba(107,177,48,0.08)' }]}>
+          <Icon name={hasActiveFilter ? 'filter-off-outline' : 'clipboard-text-outline'} size={ms(40)} color={colors.primary.main} />
+        </View>
+        <Text style={[styles.emptyTitle, { color: themeColors.text.primary }]}>
+          {hasActiveFilter ? 'No Matching Orders' : 'No Orders Found'}
+        </Text>
+        <Text style={[styles.emptySubtitle, { color: themeColors.text.secondary }]}>
+          {emptyMessage}
+        </Text>
+      </View>
+    );
+  }, [isLoading, isFilterLoading, isDark, themeColors, activeFilterCount, statusFilterFromRoute]);
 
   const formatSelectedDate = (date: Date): string => {
     return date.toLocaleDateString('en-US', {
@@ -1177,7 +1202,7 @@ export const OrderListScreen: React.FC = () => {
     ({ item }: { item: Order }) => (
       <OrderCard
         order={item}
-        showDetails={showMoreDetails}
+        showDetails={true}
         onPress={() => handleOrderPress(item)}
         onOrderDetails={() => handleOrderDetails(item)}
         onTicket={() => handleTicket(item)}
@@ -1186,26 +1211,12 @@ export const OrderListScreen: React.FC = () => {
         isChatLoading={chatLoadingOrderId === item.id}
       />
     ),
-    [showMoreDetails, handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleChat, chatLoadingOrderId]
+    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleChat, chatLoadingOrderId]
   );
 
   const renderListHeader = useCallback(
     () => (
       <View style={styles.listHeader}>
-        <View style={styles.detailsToggle}>
-          <Text variant="body" color="secondary">
-            More Details
-          </Text>
-          <Switch
-            value={showMoreDetails}
-            onValueChange={setShowMoreDetails}
-            trackColor={{
-              false: themeColors.border,
-              true: colors.primary.light,
-            }}
-            thumbColor={showMoreDetails ? colors.primary.main : colors.grey[25]}
-          />
-        </View>
         <View style={styles.ordersFoundRow}>
           {isFilterLoading ? (
             <View style={styles.filterLoadingRow}>
@@ -1227,7 +1238,7 @@ export const OrderListScreen: React.FC = () => {
         </View>
       </View>
     ),
-    [showMoreDetails, filteredOrders.length, themeColors, activeFilter, handleClearFilter, isFilterLoading]
+    [filteredOrders.length, activeFilter, handleClearFilter, isFilterLoading]
   );
 
   return (
@@ -1250,8 +1261,10 @@ export const OrderListScreen: React.FC = () => {
           <Icon name="arrow-left" size={iconSizes.lg} color={themeColors.text.primary} />
         </TouchableOpacity>
 
-        {!isLoading && (
-          <View style={styles.headerActions}>
+        <Text variant="h2">Orders</Text>
+
+        <View style={styles.headerActions}>
+          {!isLoading && (
             <TouchableOpacity
               style={styles.headerIcon}
               onPress={handleOpenFilterModal}
@@ -1263,18 +1276,27 @@ export const OrderListScreen: React.FC = () => {
                 </View>
               )}
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.headerIcon}
-              onPress={handleRefresh}
-              activeOpacity={0.7}>
-              <Icon name="refresh" size={iconSizes.lg} color={themeColors.text.primary} />
-            </TouchableOpacity>
-          </View>
-        )}
+          )}
+          <TouchableOpacity
+            style={[styles.headerIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+            onPress={handleRefresh}
+            activeOpacity={0.7}>
+            <Icon name="refresh" size={ms(18)} color={colors.primary.main} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {!isLoading && (
         <>
+          <View style={styles.filtersContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filtersScroll}>
+              {dateFilters.map(renderDateFilter)}
+            </ScrollView>
+          </View>
+
           <View style={styles.searchContainer}>
             <View
               style={[
@@ -1286,7 +1308,7 @@ export const OrderListScreen: React.FC = () => {
               ]}>
               <TextInput
                 style={[styles.searchInput, { color: themeColors.text.primary }]}
-                placeholder="Search by order ID, customer, address..."
+                placeholder="Search by Order Code, Customer, Address..."
                 placeholderTextColor={themeColors.text.hint}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -1308,15 +1330,6 @@ export const OrderListScreen: React.FC = () => {
                 <Icon name="magnify" size={iconSizes.md} color={colors.common.white} />
               </TouchableOpacity>
             </View>
-          </View>
-
-          <View style={styles.filtersContainer}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filtersScroll}>
-              {dateFilters.map(renderDateFilter)}
-            </ScrollView>
           </View>
         </>
       )}
@@ -1360,11 +1373,11 @@ export const OrderListScreen: React.FC = () => {
         </TouchableOpacity>
       </Animated.View>
 
-      {isLoading ? (
+      {isLoading || (isFilterLoading && filteredOrders.length === 0) ? (
         <View style={styles.loadingContainer} pointerEvents="box-none">
           <TruckLoader
             size={120}
-            message="Loading orders..."
+            message={isFilterLoading ? "Filtering orders..." : "Loading orders..."}
             color={isDark ? 'light' : 'dark'}
           />
         </View>
@@ -1374,8 +1387,8 @@ export const OrderListScreen: React.FC = () => {
           renderItem={renderOrderCard}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={renderListHeader}
-          ListEmptyComponent={!isFilterLoading ? <EmptyViewWithPreset preset="orders" /> : null}
-          style={{ opacity: isFilterLoading ? 0.6 : 1 }}
+          ListEmptyComponent={renderEmpty}
+          style={{ opacity: isFilterLoading ? 0.7 : 1 }}
           ListFooterComponent={
             <ListFooterLoader
               isLoading={isFetchingNextPage}
@@ -1447,9 +1460,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   headerIcon: {
-    width: ms(40),
-    height: ms(40),
-    borderRadius: ms(20),
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(8),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1466,13 +1479,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   searchContainer: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: spacing.md,
+    paddingLeft: spacing.sm,
     paddingRight: spacing.xs,
     paddingVertical: spacing.xs,
     borderRadius: ms(12),
@@ -1480,20 +1493,21 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: ms(14),
+    fontSize: ms(13),
     fontFamily: fontFamily.regular,
     paddingVertical: spacing.sm,
+    paddingRight: spacing.xs,
   },
   searchClearBtn: {
-    padding: spacing.xs,
+    padding: ms(4),
   },
   searchIconBtn: {
-    width: ms(36),
-    height: ms(36),
-    borderRadius: ms(10),
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(8),
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: spacing.xs,
+    marginLeft: ms(4),
   },
   filtersContainer: {
     paddingVertical: spacing.sm,
@@ -1567,6 +1581,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  emptyWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: ms(60),
+    paddingHorizontal: ms(20),
+  },
+  emptyIcon: {
+    width: ms(70),
+    height: ms(70),
+    borderRadius: ms(35),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: ms(12),
+  },
+  emptyTitle: {
+    fontSize: ms(15),
+    fontFamily: fontFamily.semiBold,
+    marginBottom: ms(4),
+  },
+  emptySubtitle: {
+    fontSize: ms(12),
+    fontFamily: fontFamily.regular,
+    textAlign: 'center',
+  },
   skeletonCard: {
     gap: spacing.sm,
   },
@@ -1584,21 +1623,6 @@ const styles = StyleSheet.create({
     height: ms(8),
     borderRadius: ms(4),
     marginTop: spacing.sm,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: hp(10),
-  },
-  emptyTitle: {
-    marginTop: spacing.lg,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    marginTop: spacing.sm,
-    textAlign: 'center',
-    paddingHorizontal: spacing.xl,
   },
   centeredModalContainer: {
     position: 'absolute',
@@ -1711,7 +1735,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.md,
   },
   // Date range picker styles
@@ -2101,10 +2125,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: ms(11),
+    minHeight: ms(48),
+    paddingVertical: ms(12),
+    paddingHorizontal: spacing.md,
     borderRadius: ms(12),
     backgroundColor: colors.primary.main,
-    gap: spacing.xs,
+    gap: spacing.sm,
     shadowColor: colors.primary.main,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
@@ -2113,8 +2139,15 @@ const styles = StyleSheet.create({
   },
   applyButtonText: {
     fontFamily: fontFamily.bold,
-    fontSize: ms(13),
+    fontSize: ms(14),
     color: colors.common.white,
+    flexShrink: 1,
+  },
+  applyButtonIconWrapper: {
+    width: ms(24),
+    height: ms(24),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

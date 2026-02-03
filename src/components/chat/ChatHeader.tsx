@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon } from '../common';
 import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
@@ -18,51 +17,31 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onInfo,
   orderCode,
 }) => {
-  const { isDark } = useTheme();
-  const themeColors = isDark ? colors.dark : colors.light;
-
-  const getInitials = (name: string) => {
-    if (!name) return '?';
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .filter(Boolean)
-      .join('')
-      .toUpperCase()
-      .slice(0, 2) || '?';
-  };
+  // Remove "Order #" prefix from title if present
+  const displayTitle = title.replace(/^Order\s*#/i, '').trim();
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.card }]}>
-      {/* Back Button */}
+    <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}
+        style={styles.backButton}
         onPress={onBack}
-        activeOpacity={0.7}
-      >
-        <Icon name="arrow-left" size={ms(20)} color={themeColors.text.primary} />
+        activeOpacity={0.7}>
+        <Icon name="arrow-left" size={ms(20)} color={colors.common.white} />
       </TouchableOpacity>
 
-      {/* Avatar */}
-      <View style={[styles.avatar, { backgroundColor: colors.primary.main }]}>
-        <Text style={styles.avatarText}>{getInitials(title)}</Text>
-      </View>
-
-      {/* Title Info */}
       <TouchableOpacity
         style={styles.titleContainer}
         onPress={onInfo}
         activeOpacity={onInfo ? 0.7 : 1}
-        disabled={!onInfo}
-      >
-        <Text style={[styles.title, { color: themeColors.text.primary }]} numberOfLines={1}>
-          {title}
+        disabled={!onInfo}>
+        <Text style={styles.title} numberOfLines={1}>
+          #{displayTitle}
         </Text>
         {orderCode && (
           <View style={styles.orderBadge}>
-            <Icon name="clipboard-text-outline" size={ms(10)} color={colors.primary.main} />
+            <Icon name="clipboard-text-outline" size={ms(10)} color="rgba(255,255,255,0.8)" />
             <Text style={styles.orderText}>
-              #{orderCode}
+              {orderCode}
             </Text>
           </View>
         )}
@@ -76,41 +55,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingTop: Platform.OS === 'ios' ? spacing.sm : spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    paddingVertical: spacing.md,
+    paddingTop: Platform.OS === 'ios' ? spacing.md : spacing.md,
+    backgroundColor: colors.primary.main,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
   backButton: {
     width: ms(36),
     height: ms(36),
-    borderRadius: ms(10),
+    borderRadius: ms(18),
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  avatar: {
-    width: ms(40),
-    height: ms(40),
-    borderRadius: ms(12),
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: spacing.sm,
-  },
-  avatarText: {
-    color: colors.common.white,
-    fontSize: ms(15),
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   titleContainer: {
     flex: 1,
-    marginLeft: spacing.sm,
+    marginLeft: spacing.md,
     justifyContent: 'center',
   },
   title: {
-    fontSize: ms(16),
+    fontSize: ms(18),
     fontWeight: '600',
     letterSpacing: -0.3,
+    color: colors.common.white,
   },
   orderBadge: {
     flexDirection: 'row',
@@ -119,7 +90,7 @@ const styles = StyleSheet.create({
     marginTop: ms(2),
   },
   orderText: {
-    color: colors.primary.main,
+    color: 'rgba(255,255,255,0.8)',
     fontSize: ms(12),
     fontWeight: '500',
   },

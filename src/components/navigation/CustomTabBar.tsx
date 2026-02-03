@@ -177,8 +177,8 @@ const TabItem: React.FC<TabItemProps> = ({
     switch (route.name) {
       case 'Orders':
         return isFocused ? 'clipboard-text' : 'clipboard-text-outline';
-      case 'Today':
-        return isFocused ? 'clock-fast' : 'clock-outline';
+      case 'Map':
+        return isFocused ? 'map' : 'map-outline';
       case 'Home':
         return isFocused ? 'home' : 'home-outline';
       case 'Notifications':
