@@ -826,6 +826,7 @@ export const OrderListScreen: React.FC = () => {
 
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<FilterState>(defaultFilterState);
+  const [favoriteOrderIds, setFavoriteOrderIds] = useState<Set<string>>(new Set());
 
   // Debounce filter changes to prevent rapid API calls
   useEffect(() => {
@@ -1167,6 +1168,18 @@ export const OrderListScreen: React.FC = () => {
     });
   }, [navigation]);
 
+  const handleToggleFavorite = useCallback((orderId: string) => {
+    setFavoriteOrderIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  }, []);
+
   const handleChat = useCallback(async (order: Order) => {
     setChatLoadingOrderId(order.id);
     try {
@@ -1208,10 +1221,12 @@ export const OrderListScreen: React.FC = () => {
         onTicket={() => handleTicket(item)}
         onWeatherPress={() => handleWeatherPress(item)}
         onChat={() => handleChat(item)}
+        onFavoritePress={() => handleToggleFavorite(item.id)}
         isChatLoading={chatLoadingOrderId === item.id}
+        isFavorite={favoriteOrderIds.has(item.id)}
       />
     ),
-    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleChat, chatLoadingOrderId]
+    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleChat, handleToggleFavorite, chatLoadingOrderId, favoriteOrderIds]
   );
 
   const renderListHeader = useCallback(
@@ -1373,11 +1388,11 @@ export const OrderListScreen: React.FC = () => {
         </TouchableOpacity>
       </Animated.View>
 
-      {isLoading || (isFilterLoading && filteredOrders.length === 0) ? (
+      {isLoading ? (
         <View style={styles.loadingContainer} pointerEvents="box-none">
           <TruckLoader
             size={120}
-            message={isFilterLoading ? "Filtering orders..." : "Loading orders..."}
+            message="Loading orders..."
             color={isDark ? 'light' : 'dark'}
           />
         </View>
@@ -1388,16 +1403,17 @@ export const OrderListScreen: React.FC = () => {
           keyExtractor={(item) => item.id}
           ListHeaderComponent={renderListHeader}
           ListEmptyComponent={renderEmpty}
-          style={{ opacity: isFilterLoading ? 0.7 : 1 }}
           ListFooterComponent={
-            <ListFooterLoader
-              isLoading={isFetchingNextPage}
-              hasMore={hasNextPage === true}
-              totalItems={pagination?.total}
-              loadingText="Loading more orders..."
-              endMessageText={pagination?.total ? `Showing all ${pagination.total} orders` : undefined}
-              noMoreText="No more orders"
-            />
+            filteredOrders.length > 0 ? (
+              <ListFooterLoader
+                isLoading={isFetchingNextPage}
+                hasMore={hasNextPage === true}
+                totalItems={pagination?.total}
+                loadingText="Loading more orders..."
+                endMessageText={pagination?.total ? `Showing all ${pagination.total} orders` : undefined}
+                noMoreText="No more orders"
+              />
+            ) : null
           }
           contentContainerStyle={[
             styles.listContent,
@@ -1406,20 +1422,15 @@ export const OrderListScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.3}
+          onEndReachedThreshold={0.5}
           initialNumToRender={6}
           maxToRenderPerBatch={5}
-          windowSize={3}
+          windowSize={5}
           removeClippedSubviews={true}
           updateCellsBatchingPeriod={50}
-          getItemLayout={(_, index) => ({
-            length: 180, // Approximate height of each order card
-            offset: 180 * index,
-            index,
-          })}
           refreshControl={
             <RefreshControl
-              refreshing={isRefetching || isFilterLoading}
+              refreshing={isRefetching}
               onRefresh={handleRefresh}
               tintColor={colors.primary.main}
               colors={[colors.primary.main, colors.secondary.main]}

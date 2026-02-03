@@ -4,7 +4,7 @@
  * Designed for scannability, efficiency, and modern aesthetics
  */
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,54 +12,113 @@ import {
   RefreshControl,
   StatusBar,
   TouchableOpacity,
+  ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, TruckLoader } from '../../components/common';
+import { OrderCard } from '../../components/orders';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
-import { ms } from '../../utils/responsive';
-import { useOrders } from '../../hooks';
-import { ApiOrder } from '../../types/order';
+import { ms, spacing } from '../../utils/responsive';
+import { useOrders, useChatRooms, useGlobalAlert } from '../../hooks';
+import { ApiOrder, WeatherCondition } from '../../types/order';
+import { Order } from '../../types';
 import { RootStackParamList } from '../../navigation/types';
-import { getStatusColor, getStatusLabel } from '../../utils/statusUtils';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-// Weather icon mapping
-const getWeatherIcon = (condition: string): string => {
-  const iconMap: Record<string, string> = {
-    Clear: 'weather-sunny',
-    Clouds: 'weather-cloudy',
-    Rain: 'weather-rainy',
-    Drizzle: 'weather-rainy',
-    Thunderstorm: 'weather-lightning',
-    Snow: 'weather-snowy',
-    Mist: 'weather-fog',
-    Fog: 'weather-fog',
-    Haze: 'weather-hazy',
-  };
-  return iconMap[condition] || 'weather-partly-cloudy';
+// Map weather condition string to WeatherCondition type
+const mapWeatherCondition = (condition: string | undefined): WeatherCondition => {
+  if (!condition) return 'sunny';
+  const conditionLower = condition.toLowerCase();
+  if (conditionLower.includes('rain')) return 'rain';
+  if (conditionLower.includes('storm') || conditionLower.includes('thunder')) return 'storm';
+  if (conditionLower.includes('snow')) return 'snow';
+  if (conditionLower.includes('fog') || conditionLower.includes('mist')) return 'fog';
+  if (conditionLower.includes('cloud') && conditionLower.includes('partly')) return 'partly_cloudy';
+  if (conditionLower.includes('cloud') || conditionLower.includes('overcast')) return 'cloudy';
+  return 'sunny';
 };
 
-// Evaporation level color coding
-const getEvapColor = (level: string): string => {
-  const colorMap: Record<string, string> = {
-    Low: colors.success.main,
-    Medium: colors.warning.main,
-    High: colors.error.main,
+// Map API status to Order status
+const mapOrderStatus = (status: string): Order['status'] => {
+  const statusMap: Record<string, Order['status']> = {
+    'normal': 'NORMAL',
+    'in progress': 'IN_PROCESS',
+    'completed': 'COMPLETED',
+    'will call': 'WILL_CALL',
+    'weather permitting': 'WEATHER_PERMITTING',
+    'hold delivery': 'HOLD',
+    'wait list': 'WAIT_LIST',
+    'delayed': 'DELAYED',
+    'canceled': 'CANCELLED',
+    'cancelled': 'CANCELLED',
+    'in_process': 'IN_PROCESS',
+    'will_call': 'WILL_CALL',
+    'weather_permitting': 'WEATHER_PERMITTING',
+    'hold_delivery': 'HOLD',
+    'wait_list': 'WAIT_LIST',
+    'pending': 'PRE_POUR',
+    'pre_pour': 'PRE_POUR',
+    'pre-pour': 'PRE_POUR',
+    'hold': 'HOLD',
+    'on hold': 'HOLD',
+    'on_hold': 'HOLD',
+    'waitlist': 'WAIT_LIST',
+    'willcall': 'WILL_CALL',
+    'inprogress': 'IN_PROCESS',
   };
-  return colorMap[level] || colors.grey[50];
+  return statusMap[status.toLowerCase()] || 'NORMAL';
 };
 
-// Progress color based on completion percentage
-const getProgressColor = (progress: number): string => {
-  if (progress >= 80) return colors.success.main;
-  if (progress >= 50) return colors.warning.main;
-  if (progress >= 25) return colors.info.main;
-  return colors.grey[50];
+// Map ApiOrder to Order type for OrderCard
+const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
+  const progress = apiOrder.ordered_qty > 0
+    ? Math.round((apiOrder.delivered_qty / apiOrder.ordered_qty) * 100)
+    : 0;
+
+  const productCode = apiOrder.product_codes || 'N/A';
+  const estimatedLoadsPerTruck = 10;
+  const totalLoads = Math.ceil(apiOrder.ordered_qty / estimatedLoadsPerTruck) || 1;
+  const completedLoads = apiOrder.tickets_count || 0;
+
+  return {
+    id: apiOrder.order_id,
+    orderCode: apiOrder.order_code,
+    customerName: apiOrder.customer_name,
+    projectName: apiOrder.project_name || '',
+    deliveryAddress: apiOrder.delivery_address,
+    scheduledDate: apiOrder.order_date,
+    scheduledTime: apiOrder.start_time,
+    status: mapOrderStatus(apiOrder.status),
+    productType: productCode,
+    quantity: apiOrder.ordered_qty,
+    unit: 'CY',
+    deliveredQuantity: apiOrder.delivered_qty,
+    remainingQuantity: apiOrder.remaining_qty,
+    totalLoads,
+    completedLoads,
+    progress,
+    estimatedFinishTime: apiOrder.estimated_finish_time,
+    hasAlert: apiOrder.has_notes,
+    weather: apiOrder.weather_data ? {
+      condition: mapWeatherCondition(apiOrder.weather_data.weather_condition),
+      temperature: apiOrder.weather_data.temperature_fahrenheit,
+      temperatureUnit: 'F',
+      description: apiOrder.weather_data.weather_description,
+      humidity: apiOrder.weather_data.humidity,
+      windSpeed: apiOrder.weather_data.wind_speed,
+      evaporationRate: apiOrder.weather_data.evaporation_rate,
+    } : undefined,
+    canChat: apiOrder.can_chat,
+    product_description: apiOrder.product_description || '',
+    createdAt: apiOrder.order_date,
+    updatedAt: apiOrder.order_date,
+  };
 };
 
 export const TodayOrdersScreen: React.FC = () => {
@@ -67,6 +126,12 @@ export const TodayOrdersScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const themeColors = isDark ? colors.dark : colors.light;
+  const { getOrCreateRoom } = useChatRooms();
+  const { showAlert } = useGlobalAlert();
+
+  const [chatLoadingOrderId, setChatLoadingOrderId] = useState<string | null>(null);
+  const [favoriteOrderIds, setFavoriteOrderIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
 
   const {
     orders: apiOrders,
@@ -75,6 +140,9 @@ export const TodayOrdersScreen: React.FC = () => {
     error,
     refetch,
     isRefetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   } = useOrders({
     date_filter: 'today',
     limit: 10,
@@ -82,6 +150,27 @@ export const TodayOrdersScreen: React.FC = () => {
     sort_by: 'order_date',
     sort_order: 'desc',
   });
+
+  // Map API orders to Order type for OrderCard
+  const mappedOrders = useMemo(() => {
+    return apiOrders.map(mapApiOrderToOrder);
+  }, [apiOrders]);
+
+  // Filter orders based on search query
+  const filteredOrders = useMemo(() => {
+    if (!searchQuery.trim()) return mappedOrders;
+
+    const query = searchQuery.toLowerCase().trim();
+    return mappedOrders.filter((order) => {
+      return (
+        order.orderCode.toLowerCase().includes(query) ||
+        order.customerName.toLowerCase().includes(query) ||
+        order.deliveryAddress.toLowerCase().includes(query) ||
+        order.projectName?.toLowerCase().includes(query) ||
+        order.productType?.toLowerCase().includes(query)
+      );
+    });
+  }, [mappedOrders, searchQuery]);
 
   const summaryStats = useMemo(() => {
     const totalOrdered = apiOrders.reduce((sum, o) => sum + (o.ordered_qty || 0), 0);
@@ -95,260 +184,148 @@ export const TodayOrdersScreen: React.FC = () => {
 
   const handleRefresh = useCallback(() => refetch(), [refetch]);
 
-  const handleOrderPress = useCallback((order: ApiOrder) => {
-    navigation.navigate('Tracking', {
-      orderId: order.order_id,
-    });
-  }, [navigation]);
-
   // Format quantity with smart decimal display
   const fmtQty = (qty: number) => qty % 1 === 0 ? qty.toString() : qty.toFixed(1);
 
-  /**
-   * Order Card - Production-Ready Design
-   *
-   * Visual Hierarchy (top to bottom):
-   * 1. Primary: Order ID + Status (immediate identification)
-   * 2. Secondary: Customer + Project (who)
-   * 3. Tertiary: Address (where)
-   * 4. Supporting: Product + Progress (what + how much)
-   * 5. Contextual: Weather (environmental data)
-   */
-  const renderOrderCard = useCallback(({ item }: { item: ApiOrder }) => {
-    const progress = item.ordered_qty > 0 ? Math.round((item.delivered_qty / item.ordered_qty) * 100) : 0;
-    const statusColor = getStatusColor(item.status, progress);
-    const progressColor = getProgressColor(progress);
-    const statusLabel = getStatusLabel(item.status);
-    const weather = item.weather_data;
+  const handleOrderPress = useCallback((order: Order) => {
+    navigation.navigate('Tracking', {
+      orderId: order.id,
+    });
+  }, [navigation]);
 
-    return (
-      <TouchableOpacity
-        activeOpacity={0.8}
+  const handleOrderDetails = useCallback((order: Order) => {
+    navigation.navigate('OrderDetail', {
+      orderId: order.id,
+      orderCode: order.orderCode,
+      orderDate: order.scheduledDate,
+      status: order.status,
+    });
+  }, [navigation]);
+
+  const handleTicket = useCallback((order: Order) => {
+    navigation.navigate('Ticket', {
+      orderId: order.id,
+      orderCode: order.orderCode,
+      orderDate: order.scheduledDate,
+    });
+  }, [navigation]);
+
+  const handleWeatherPress = useCallback((order: Order) => {
+    navigation.navigate('Weather', {
+      orderCode: order.orderCode,
+      orderDate: order.scheduledDate,
+      orderStatus: order.status,
+      startTime: order.scheduledTime,
+    });
+  }, [navigation]);
+
+  const handleToggleFavorite = useCallback((orderId: string) => {
+    setFavoriteOrderIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleChat = useCallback(async (order: Order) => {
+    setChatLoadingOrderId(order.id);
+    try {
+      const orderId = parseInt(order.id, 10);
+      if (isNaN(orderId)) {
+        throw new Error('Invalid order ID');
+      }
+
+      const room = await getOrCreateRoom(orderId);
+
+      navigation.navigate('ChatRoom', {
+        roomId: room.id,
+        roomName: `Order #${order.orderCode}`,
+        chatId: room.id ? Number(room.id) : orderId,
+        orderId: orderId,
+      });
+    } catch (err) {
+      console.error('Failed to open chat:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to open chat';
+      showAlert({
+        type: 'error',
+        title: 'Chat Error',
+        message: errorMessage,
+        duration: 4000,
+      });
+    } finally {
+      setChatLoadingOrderId(null);
+    }
+  }, [getOrCreateRoom, navigation, showAlert]);
+
+  const renderOrderCard = useCallback(
+    ({ item }: { item: Order }) => (
+      <OrderCard
+        order={item}
+        showDetails={true}
         onPress={() => handleOrderPress(item)}
-        style={[styles.card, { backgroundColor: themeColors.card }]}
-      >
-        {/* === TOP SECTION: Order Identity === */}
-        <View style={styles.cardTop}>
-          {/* Left: Status indicator + Order ID */}
-          <View style={styles.orderIdentity}>
-            <View style={[styles.statusIndicator, { backgroundColor: statusColor }]} />
-            <View>
-              <Text style={[styles.orderCode, { color: themeColors.text.primary }]}>
-                {item.order_code}
-              </Text>
-              <View style={styles.timeBadge}>
-                <Icon name="clock-outline" size={ms(11)} color={themeColors.text.hint} />
-                <Text style={[styles.timeText, { color: themeColors.text.hint }]}>
-                  {item.start_time}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Right: Status Badge */}
-          <View style={[styles.statusBadge, { backgroundColor: `${statusColor}18` }]}>
-            <Text style={[styles.statusText, { color: statusColor }]}>
-              {statusLabel}
-            </Text>
-          </View>
-        </View>
-
-        {/* === DIVIDER === */}
-        <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]} />
-
-        {/* === MIDDLE SECTION: Details === */}
-        <View style={styles.cardMiddle}>
-          {/* Customer & Project */}
-          <View style={styles.infoRow}>
-            <View style={[styles.iconCircle, { backgroundColor: `${colors.primary.main}12` }]}>
-              <Icon name="domain" size={ms(12)} color={colors.primary.main} />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={[styles.customerName, { color: themeColors.text.primary }]} numberOfLines={1}>
-                {item.customer_name}
-              </Text>
-              {item.project_name ? (
-                <Text style={[styles.projectName, { color: themeColors.text.secondary }]} numberOfLines={1}>
-                  {item.project_name}
-                </Text>
-              ) : null}
-            </View>
-          </View>
-
-          {/* Address */}
-          <View style={styles.infoRow}>
-            <View style={[styles.iconCircle, { backgroundColor: `${colors.info.main}12` }]}>
-              <Icon name="map-marker" size={ms(12)} color={colors.info.main} />
-            </View>
-            <Text style={[styles.addressText, { color: themeColors.text.secondary }]} numberOfLines={2}>
-              {item.delivery_address}
-            </Text>
-          </View>
-
-          {/* Product Info */}
-          <View style={styles.infoRow}>
-            <View style={[styles.iconCircle, { backgroundColor: `${colors.secondary.main}12` }]}>
-              <Icon name="package-variant" size={ms(12)} color={colors.secondary.main} />
-            </View>
-            <View style={styles.productInfo}>
-              <View style={[styles.productCodeBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
-                <Text style={[styles.productCodeText, { color: themeColors.text.primary }]}>
-                  {item.product_codes || 'N/A'}
-                </Text>
-              </View>
-              <Text style={[styles.productDesc, { color: themeColors.text.secondary }]} numberOfLines={1}>
-                {item.product_description || 'No description'}
-              </Text>
-            </View>
-            <View style={styles.ticketBadge}>
-              <Icon name="ticket-confirmation-outline" size={ms(11)} color={colors.primary.main} />
-              <Text style={[styles.ticketCount, { color: colors.primary.main }]}>
-                {item.tickets_count}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* === PROGRESS SECTION === */}
-        <View style={[styles.progressSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)' }]}>
-          {/* Quantity Stats */}
-          <View style={styles.quantityRow}>
-            <View style={styles.qtyItem}>
-              <Text style={[styles.qtyLabel, { color: themeColors.text.hint }]}>Ordered</Text>
-              <Text style={[styles.qtyValue, { color: themeColors.text.primary }]}>{fmtQty(item.ordered_qty)}</Text>
-            </View>
-            <View style={[styles.qtyDivider, { backgroundColor: themeColors.border }]} />
-            <View style={styles.qtyItem}>
-              <Text style={[styles.qtyLabel, { color: themeColors.text.hint }]}>Delivered</Text>
-              <Text style={[styles.qtyValue, { color: colors.success.main }]}>{fmtQty(item.delivered_qty)}</Text>
-            </View>
-            <View style={[styles.qtyDivider, { backgroundColor: themeColors.border }]} />
-            <View style={styles.qtyItem}>
-              <Text style={[styles.qtyLabel, { color: themeColors.text.hint }]}>Remaining</Text>
-              <Text style={[styles.qtyValue, { color: colors.warning.main }]}>{item.remaining_display}</Text>
-            </View>
-          </View>
-
-          {/* Progress Bar */}
-          <View style={styles.progressRow}>
-            <View style={[styles.progressTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}>
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    width: `${Math.min(progress, 100)}%`,
-                    backgroundColor: progressColor
-                  }
-                ]}
-              />
-            </View>
-            <View style={[styles.progressBadge, { backgroundColor: `${progressColor}15` }]}>
-              <Text style={[styles.progressText, { color: progressColor }]}>{progress}%</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* === WEATHER FOOTER (if available) === */}
-        {weather && (
-          <View style={[styles.weatherFooter, { borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
-            <View style={styles.weatherLeft}>
-              <Icon name={getWeatherIcon(weather.weather_condition)} size={ms(16)} color={colors.info.main} />
-              <Text style={[styles.weatherTemp, { color: themeColors.text.primary }]}>
-                {weather.temperature_fahrenheit}°F
-              </Text>
-              <Text style={[styles.weatherDesc, { color: themeColors.text.secondary }]}>
-                {weather.weather_description}
-              </Text>
-            </View>
-            <View style={styles.weatherRight}>
-              <View style={styles.weatherStat}>
-                <Icon name="water-percent" size={ms(11)} color={themeColors.text.hint} />
-                <Text style={[styles.weatherStatText, { color: themeColors.text.hint }]}>{weather.humidity}%</Text>
-              </View>
-              <View style={styles.weatherStat}>
-                <Icon name="weather-windy" size={ms(11)} color={themeColors.text.hint} />
-                <Text style={[styles.weatherStatText, { color: themeColors.text.hint }]}>{weather.wind_speed_mph}mph</Text>
-              </View>
-              <View style={[styles.evapBadge, { backgroundColor: `${getEvapColor(weather.evaporation_level)}15` }]}>
-                <Text style={[styles.evapText, { color: getEvapColor(weather.evaporation_level) }]}>
-                  {weather.evaporation_level}
-                </Text>
-              </View>
-            </View>
-            <Icon name="chevron-right" size={ms(16)} color={themeColors.text.hint} />
-          </View>
-        )}
-
-        {/* === FOOTER WITHOUT WEATHER === */}
-        {!weather && (
-          <View style={[styles.simpleFooter, { borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
-            <Text style={[styles.viewDetailsText, { color: colors.primary.main }]}>View Details</Text>
-            <Icon name="chevron-right" size={ms(16)} color={colors.primary.main} />
-          </View>
-        )}
-      </TouchableOpacity>
-    );
-  }, [themeColors, isDark, handleOrderPress]);
+        onOrderDetails={() => handleOrderDetails(item)}
+        onTicket={() => handleTicket(item)}
+        onWeatherPress={() => handleWeatherPress(item)}
+        onChat={() => handleChat(item)}
+        onFavoritePress={() => handleToggleFavorite(item.id)}
+        isChatLoading={chatLoadingOrderId === item.id}
+        isFavorite={favoriteOrderIds.has(item.id)}
+      />
+    ),
+    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleChat, handleToggleFavorite, chatLoadingOrderId, favoriteOrderIds]
+  );
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
-      <View style={styles.headerTop}>
-        <TouchableOpacity
-          style={[styles.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <Icon name="arrow-left" size={ms(18)} color={themeColors.text.primary} />
-        </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>Today's Orders</Text>
-          <Text style={[styles.headerSub, { color: themeColors.text.hint }]}>
-            {apiOrders.length} {apiOrders.length === 1 ? 'order' : 'orders'} in progress
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.refreshBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
-          onPress={handleRefresh}
-          activeOpacity={0.7}
-        >
-          <Icon name="refresh" size={ms(18)} color={colors.primary.main} />
-        </TouchableOpacity>
-      </View>
-
+      {/* Summary Stats Card */}
       {apiOrders.length > 0 && (
-        <View style={[styles.summaryCard, { backgroundColor: themeColors.card }]}>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryItem}>
-              <Icon name="clipboard-list-outline" size={ms(14)} color={colors.primary.main} />
-              <Text style={[styles.summaryVal, { color: themeColors.text.primary }]}>{fmtQty(summaryStats.totalOrdered)}</Text>
-              <Text style={[styles.summaryLbl, { color: themeColors.text.hint }]}>Ordered</Text>
+        <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.cardElevated : themeColors.card }]}>
+          <View style={styles.summaryStatsRow}>
+            <View style={styles.summaryStatItem}>
+              <Text style={[styles.summaryStatValue, { color: themeColors.text.primary }]}>
+                {fmtQty(summaryStats.totalOrdered)}
+              </Text>
+              <Text style={[styles.summaryStatLabel, { color: themeColors.text.hint }]}>Ordered</Text>
             </View>
-            <View style={[styles.summaryDivider, { backgroundColor: themeColors.border }]} />
-            <View style={styles.summaryItem}>
-              <Icon name="truck-check-outline" size={ms(14)} color={colors.primary.main} />
-              <Text style={[styles.summaryVal, { color: colors.primary.main }]}>{fmtQty(summaryStats.totalDelivered)}</Text>
-              <Text style={[styles.summaryLbl, { color: themeColors.text.hint }]}>Delivered</Text>
+            <View style={[styles.summaryStatDivider, { backgroundColor: themeColors.border }]} />
+            <View style={styles.summaryStatItem}>
+              <Text style={[styles.summaryStatValue, { color: colors.success.main }]}>
+                {fmtQty(summaryStats.totalDelivered)}
+              </Text>
+              <Text style={[styles.summaryStatLabel, { color: themeColors.text.hint }]}>Delivered</Text>
             </View>
-            <View style={[styles.summaryDivider, { backgroundColor: themeColors.border }]} />
-            <View style={styles.summaryItem}>
-              <Icon name="package-variant" size={ms(14)} color={colors.warning.main} />
-              <Text style={[styles.summaryVal, { color: colors.warning.main }]}>{fmtQty(summaryStats.totalRemaining)}</Text>
-              <Text style={[styles.summaryLbl, { color: themeColors.text.hint }]}>Remaining</Text>
+            <View style={[styles.summaryStatDivider, { backgroundColor: themeColors.border }]} />
+            <View style={styles.summaryStatItem}>
+              <Text style={[styles.summaryStatValue, { color: colors.warning.main }]}>
+                {fmtQty(summaryStats.totalRemaining)}
+              </Text>
+              <Text style={[styles.summaryStatLabel, { color: themeColors.text.hint }]}>Left</Text>
+            </View>
+            <View style={[styles.summaryStatDivider, { backgroundColor: themeColors.border }]} />
+            <View style={styles.summaryStatItem}>
+              <Text style={[styles.summaryStatValue, { color: colors.primary.main }]}>
+                {summaryStats.avgProgress}%
+              </Text>
+              <Text style={[styles.summaryStatLabel, { color: themeColors.text.hint }]}>Progress</Text>
             </View>
           </View>
-          <View style={styles.summaryProgress}>
-            <Text style={[styles.summaryProgressLbl, { color: themeColors.text.secondary }]}>Progress</Text>
-            <View style={[styles.summaryProgressTrack, { backgroundColor: isDark ? 'rgba(107,177,48,0.15)' : 'rgba(107,177,48,0.1)' }]}>
-              <View style={[styles.summaryProgressFill, { width: `${summaryStats.avgProgress}%`, backgroundColor: colors.primary.main }]} />
-            </View>
-            <Text style={[styles.summaryProgressPct, { color: colors.primary.main }]}>{summaryStats.avgProgress}%</Text>
+          {/* Progress Bar */}
+          <View style={[styles.summaryProgressBar, { backgroundColor: isDark ? 'rgba(107,177,48,0.15)' : 'rgba(107,177,48,0.1)' }]}>
+            <View style={[styles.summaryProgressFill, { width: `${summaryStats.avgProgress}%`, backgroundColor: colors.primary.main }]} />
           </View>
         </View>
       )}
 
-      <View style={styles.listHeader}>
-        <Icon name="format-list-bulleted" size={ms(14)} color={colors.primary.main} />
-        <Text style={[styles.listHeaderTxt, { color: themeColors.text.secondary }]}>Active Orders</Text>
+      {/* Orders Count */}
+      <View style={styles.ordersCountRow}>
+        <Text style={[styles.ordersCountText, { color: themeColors.text.secondary }]}>
+          {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'} found
+          {searchQuery.trim() && ` (filtered from ${apiOrders.length})`}
+        </Text>
       </View>
     </View>
   );
@@ -370,7 +347,23 @@ export const TodayOrdersScreen: React.FC = () => {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
         <StatusBar backgroundColor="transparent" barStyle={isDark ? 'light-content' : 'dark-content'} translucent />
-        {renderHeader()}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.headerIcon}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
+          </TouchableOpacity>
+          <Text variant="h2">Today's Orders</Text>
+          <TouchableOpacity
+            style={[styles.headerIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+            onPress={handleRefresh}
+            activeOpacity={0.7}
+          >
+            <Icon name="refresh" size={ms(18)} color={colors.primary.main} />
+          </TouchableOpacity>
+        </View>
         <View style={styles.errorWrap}>
           <Icon name="alert-circle-outline" size={ms(40)} color={colors.error.main} />
           <Text style={[styles.errorTxt, { color: themeColors.text.primary }]}>{error || 'Failed to load orders'}</Text>
@@ -384,17 +377,83 @@ export const TodayOrdersScreen: React.FC = () => {
     <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
       <StatusBar backgroundColor="transparent" barStyle={isDark ? 'light-content' : 'dark-content'} translucent />
 
+      {/* Header Bar */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.headerIcon}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
+        </TouchableOpacity>
+
+        <Text variant="h2">Today's Orders</Text>
+
+        <TouchableOpacity
+          style={[styles.headerIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+          onPress={handleRefresh}
+          activeOpacity={0.7}
+        >
+          <Icon name="refresh" size={ms(18)} color={colors.primary.main} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Search Bar */}
+      <View style={[
+        styles.searchContainer,
+        {
+          backgroundColor: isDark ? themeColors.card : colors.common.white,
+          borderBottomColor: isDark ? themeColors.border : colors.grey[10],
+        }
+      ]}>
+        <View style={[
+          styles.searchInputWrapper,
+          {
+            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : colors.grey[5],
+            borderColor: isDark ? 'rgba(255,255,255,0.1)' : colors.grey[15],
+          }
+        ]}>
+          <Icon name="magnify" size={ms(20)} color={colors.primary.main} />
+          <TextInput
+            style={[styles.searchInput, { color: themeColors.text.primary }]}
+            placeholder="Search orders..."
+            placeholderTextColor={themeColors.text.hint}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              style={styles.searchClearButton}
+              onPress={() => setSearchQuery('')}
+              activeOpacity={0.7}
+            >
+              <Icon name="close-circle" size={ms(20)} color={themeColors.text.secondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
       {isLoading ? (
         <View style={[styles.loadingWrap, { backgroundColor: themeColors.background }]}>
           <TruckLoader size={80} message="Loading..." color={isDark ? 'light' : 'dark'} />
         </View>
       ) : (
         <FlatList
-          data={apiOrders}
+          data={filteredOrders}
           renderItem={renderOrderCard}
-          keyExtractor={(item) => item.order_id}
+          keyExtractor={(item) => item.id}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={renderEmpty}
+          ListFooterComponent={
+            filteredOrders.length > 0 && isFetchingNextPage ? (
+              <View style={styles.footerLoader}>
+                <ActivityIndicator size="small" color={colors.primary.main} />
+              </View>
+            ) : null
+          }
           contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + ms(60) }]}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           refreshControl={
@@ -407,6 +466,12 @@ export const TodayOrdersScreen: React.FC = () => {
             />
           }
           showsVerticalScrollIndicator={false}
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) {
+              fetchNextPage();
+            }
+          }}
+          onEndReachedThreshold={0.5}
         />
       )}
     </SafeAreaView>
@@ -417,291 +482,117 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  // Header
-  headerContainer: { paddingHorizontal: ms(12), paddingTop: ms(8), paddingBottom: ms(10) },
-  headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: ms(10) },
-  backBtn: { width: ms(32), height: ms(32), borderRadius: ms(8), justifyContent: 'center', alignItems: 'center', marginRight: ms(10) },
-  refreshBtn: { width: ms(32), height: ms(32), borderRadius: ms(8), justifyContent: 'center', alignItems: 'center' },
-  headerTitleWrap: { flex: 1 },
-  headerTitle: { fontSize: ms(17), fontFamily: fontFamily.bold },
-  headerSub: { fontSize: ms(11), fontFamily: fontFamily.regular, marginTop: ms(1) },
-
-  // Summary Card
-  summaryCard: { borderRadius: ms(10), padding: ms(10), marginBottom: ms(10), shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  summaryItem: { flex: 1, alignItems: 'center', gap: ms(2) },
-  summaryVal: { fontSize: ms(14), fontFamily: fontFamily.bold },
-  summaryLbl: { fontSize: ms(8), fontFamily: fontFamily.medium, textTransform: 'uppercase', letterSpacing: 0.3 },
-  summaryDivider: { width: 1, height: ms(24), opacity: 0.2 },
-  summaryProgress: { flexDirection: 'row', alignItems: 'center', marginTop: ms(8), paddingTop: ms(8), borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.04)', gap: ms(8) },
-  summaryProgressLbl: { fontSize: ms(10), fontFamily: fontFamily.medium },
-  summaryProgressTrack: { flex: 1, height: ms(5), borderRadius: ms(2.5), overflow: 'hidden' },
-  summaryProgressFill: { height: '100%', borderRadius: ms(2.5) },
-  summaryProgressPct: { fontSize: ms(11), fontFamily: fontFamily.bold, minWidth: ms(28) },
-
-  // List Header
-  listHeader: { flexDirection: 'row', alignItems: 'center', gap: ms(5) },
-  listHeaderTxt: { fontSize: ms(11), fontFamily: fontFamily.semiBold, textTransform: 'uppercase', letterSpacing: 0.4 },
-
-  // List
-  listContent: { paddingHorizontal: ms(12) },
-  separator: { height: ms(10) },
-
-  // ========================================
-  // REDESIGNED CARD - Production Ready
-  // ========================================
-  card: {
-    borderRadius: ms(14),
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-
-  // === TOP SECTION ===
-  cardTop: {
+  // Header Bar (like OrderListScreen)
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: ms(14),
-    paddingTop: ms(14),
-    paddingBottom: ms(10),
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
-  orderIdentity: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ms(10),
-  },
-  statusIndicator: {
-    width: ms(4),
-    height: ms(36),
-    borderRadius: ms(2),
-  },
-  orderCode: {
-    fontSize: ms(16),
-    fontFamily: fontFamily.bold,
-    letterSpacing: -0.3,
-  },
-  timeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ms(4),
-    marginTop: ms(2),
-  },
-  timeText: {
-    fontSize: ms(11),
-    fontFamily: fontFamily.medium,
-  },
-  statusBadge: {
-    paddingHorizontal: ms(10),
-    paddingVertical: ms(5),
-    borderRadius: ms(6),
-  },
-  statusText: {
-    fontSize: ms(10),
-    fontFamily: fontFamily.bold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-
-  // === DIVIDER ===
-  divider: {
-    height: 1,
-    marginHorizontal: ms(14),
-  },
-
-  // === MIDDLE SECTION ===
-  cardMiddle: {
-    paddingHorizontal: ms(14),
-    paddingVertical: ms(12),
-    gap: ms(10),
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: ms(10),
-  },
-  iconCircle: {
-    width: ms(28),
-    height: ms(28),
-    borderRadius: ms(14),
-    alignItems: 'center',
+  headerIcon: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(8),
     justifyContent: 'center',
-  },
-  infoContent: {
-    flex: 1,
-  },
-  customerName: {
-    fontSize: ms(13),
-    fontFamily: fontFamily.semiBold,
-    lineHeight: ms(18),
-  },
-  projectName: {
-    fontSize: ms(11),
-    fontFamily: fontFamily.regular,
-    marginTop: ms(1),
-  },
-  addressText: {
-    flex: 1,
-    fontSize: ms(12),
-    fontFamily: fontFamily.regular,
-    lineHeight: ms(17),
-  },
-  productInfo: {
-    flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: ms(8),
-  },
-  productCodeBadge: {
-    paddingHorizontal: ms(8),
-    paddingVertical: ms(3),
-    borderRadius: ms(4),
-  },
-  productCodeText: {
-    fontSize: ms(11),
-    fontFamily: fontFamily.bold,
-  },
-  productDesc: {
-    flex: 1,
-    fontSize: ms(11),
-    fontFamily: fontFamily.regular,
-  },
-  ticketBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ms(3),
-  },
-  ticketCount: {
-    fontSize: ms(11),
-    fontFamily: fontFamily.bold,
   },
 
-  // === PROGRESS SECTION ===
-  progressSection: {
-    marginHorizontal: ms(14),
-    marginBottom: ms(12),
-    paddingVertical: ms(10),
-    paddingHorizontal: ms(12),
-    borderRadius: ms(10),
+  // Search Bar
+  searchContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
   },
-  quantityRow: {
+  searchInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: ms(12),
+    paddingHorizontal: ms(14),
+    height: ms(44),
+    gap: ms(10),
+    borderWidth: 1,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: ms(15),
+    fontFamily: fontFamily.regular,
+    paddingVertical: 0,
+    height: '100%',
+  },
+  searchClearButton: {
+    padding: ms(4),
+  },
+
+  // Header Container (FlatList header)
+  headerContainer: {
+    paddingBottom: spacing.sm,
+  },
+
+  // Summary Card - Compact Stats
+  summaryCard: {
+    borderRadius: ms(10),
+    padding: ms(10),
+    marginBottom: spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  summaryStatsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    marginBottom: ms(10),
   },
-  qtyItem: {
-    alignItems: 'center',
+  summaryStatItem: {
     flex: 1,
+    alignItems: 'center',
   },
-  qtyLabel: {
+  summaryStatValue: {
+    fontSize: ms(16),
+    fontFamily: fontFamily.bold,
+  },
+  summaryStatLabel: {
     fontSize: ms(9),
     fontFamily: fontFamily.medium,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: ms(2),
+    letterSpacing: 0.3,
+    marginTop: ms(2),
   },
-  qtyValue: {
-    fontSize: ms(15),
-    fontFamily: fontFamily.bold,
-  },
-  qtyDivider: {
+  summaryStatDivider: {
     width: 1,
     height: ms(28),
     opacity: 0.2,
   },
-  progressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ms(10),
-  },
-  progressTrack: {
-    flex: 1,
-    height: ms(6),
-    borderRadius: ms(3),
+  summaryProgressBar: {
+    height: ms(3),
+    borderRadius: ms(1.5),
+    marginTop: ms(10),
     overflow: 'hidden',
   },
-  progressFill: {
+  summaryProgressFill: {
     height: '100%',
-    borderRadius: ms(3),
-  },
-  progressBadge: {
-    paddingHorizontal: ms(8),
-    paddingVertical: ms(3),
-    borderRadius: ms(4),
-    minWidth: ms(44),
-    alignItems: 'center',
-  },
-  progressText: {
-    fontSize: ms(11),
-    fontFamily: fontFamily.bold,
+    borderRadius: ms(1.5),
   },
 
-  // === WEATHER FOOTER ===
-  weatherFooter: {
+  // Orders Count
+  ordersCountRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: ms(14),
-    paddingVertical: ms(10),
-    borderTopWidth: 1,
-    gap: ms(8),
   },
-  weatherLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ms(6),
-    flex: 1,
-  },
-  weatherTemp: {
-    fontSize: ms(13),
-    fontFamily: fontFamily.bold,
-  },
-  weatherDesc: {
-    fontSize: ms(11),
-    fontFamily: fontFamily.regular,
-    textTransform: 'capitalize',
-  },
-  weatherRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ms(8),
-  },
-  weatherStat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ms(3),
-  },
-  weatherStatText: {
-    fontSize: ms(10),
-    fontFamily: fontFamily.medium,
-  },
-  evapBadge: {
-    paddingHorizontal: ms(6),
-    paddingVertical: ms(2),
-    borderRadius: ms(4),
-  },
-  evapText: {
-    fontSize: ms(9),
-    fontFamily: fontFamily.bold,
-    textTransform: 'uppercase',
-  },
-
-  // === SIMPLE FOOTER (no weather) ===
-  simpleFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingHorizontal: ms(14),
-    paddingVertical: ms(10),
-    borderTopWidth: 1,
-    gap: ms(4),
-  },
-  viewDetailsText: {
+  ordersCountText: {
     fontSize: ms(12),
-    fontFamily: fontFamily.semiBold,
+    fontFamily: fontFamily.regular,
+  },
+
+  // List
+  listContent: { paddingHorizontal: spacing.lg },
+  separator: { height: spacing.sm },
+  footerLoader: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // ===== EMPTY =====

@@ -153,92 +153,97 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     let realtimeWorking = false;
 
     const setupSubscription = () => {
-      console.log(`[Chat] Setting up realtime subscription for order ${orderId}`);
+      try {
+        console.log(`[Chat] Setting up realtime subscription for order ${orderId}`);
 
-      channel = supabase
-        .channel(`chat-order-${orderId}-${Date.now()}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-            schema: 'public',
-            table: 'chat_messages',
-            filter: `order_id=eq.${orderId}`,
-          },
-          (payload) => {
-            console.log('[Chat] Realtime event received:', payload.eventType, payload);
-            realtimeWorking = true;
+        channel = supabase
+          .channel(`chat-order-${orderId}-${Date.now()}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+              schema: 'public',
+              table: 'chat_messages',
+              filter: `order_id=eq.${orderId}`,
+            },
+            (payload) => {
+              try {
+                console.log('[Chat] Realtime event received:', payload.eventType);
+                realtimeWorking = true;
 
-            if (payload.eventType !== 'INSERT') {
-              console.log('[Chat] Ignoring non-INSERT event');
-              return;
-            }
+                if (payload.eventType !== 'INSERT') {
+                  return;
+                }
 
-            const msg = payload.new as RawChatMessage;
-            console.log('[Chat] New message from:', msg.sender_name, 'sender_id:', msg.sender_id);
+                const msg = payload.new as RawChatMessage;
 
-            // Don't add if it's our own message (already added optimistically)
-            if (supabaseUserId && msg.sender_id === supabaseUserId) {
-              console.log('[Chat] Ignoring own message');
-              return;
-            }
+                // Don't add if it's our own message (already added optimistically)
+                if (supabaseUserId && msg.sender_id === supabaseUserId) {
+                  return;
+                }
 
-            if (msg.is_deleted) {
-              console.log('[Chat] Ignoring deleted message');
-              return;
-            }
+                if (msg.is_deleted) {
+                  return;
+                }
 
-            const newMessage: Message = {
-              id: String(msg.id),
-              room_id: String(msg.order_id),
-              chat_id: msg.chat_id,
-              order_id: msg.order_id,
-              sender_id: msg.sender_id,
-              sender_name: msg.sender_name || 'User',
-              sender_role: msg.sender_role || 'contractor',
-              content: msg.message_text || '',
-              message_type: 'text',
-              attachments: msg.attachments || [],
-              created_at: msg.created_at,
-              is_deleted: msg.is_deleted,
-              timeline_visible: msg.timeline_visible,
-            };
+                const newMessage: Message = {
+                  id: String(msg.id),
+                  room_id: String(msg.order_id),
+                  chat_id: msg.chat_id,
+                  order_id: msg.order_id,
+                  sender_id: msg.sender_id,
+                  sender_name: msg.sender_name || 'User',
+                  sender_role: msg.sender_role || 'contractor',
+                  content: msg.message_text || '',
+                  message_type: 'text',
+                  attachments: msg.attachments || [],
+                  created_at: msg.created_at,
+                  is_deleted: msg.is_deleted,
+                  timeline_visible: msg.timeline_visible,
+                };
 
-            setRealtimeMessages((prev) => {
-              if (prev.some((m) => m.id === newMessage.id)) {
-                return prev;
+                setRealtimeMessages((prev) => {
+                  if (prev.some((m) => m.id === newMessage.id)) {
+                    return prev;
+                  }
+                  return [...prev, newMessage];
+                });
+
+                addMessage(roomId, newMessage);
+
+                if (currentRoomId !== roomId) {
+                  incrementUnreadCount(roomId);
+                }
+
+                // Update last message time for polling
+                lastMessageTimeRef.current = msg.created_at;
+              } catch (payloadError) {
+                console.warn('[Chat] Error processing realtime payload:', payloadError);
               }
-              return [...prev, newMessage];
-            });
-
-            addMessage(roomId, newMessage);
-
-            if (currentRoomId !== roomId) {
-              incrementUnreadCount(roomId);
             }
-
-            // Update last message time for polling
-            lastMessageTimeRef.current = msg.created_at;
-          }
-        )
-        .subscribe((status, err) => {
-          console.log(`[Chat] Subscription status for order ${orderId}:`, status);
-          if (err) {
-            console.error(`[Chat] Subscription error:`, err);
-            setIsRealtimeConnected(false);
-          }
-          if (status === 'SUBSCRIBED') {
-            console.log(`[Chat] Successfully subscribed to realtime for order ${orderId}`);
-            setIsRealtimeConnected(true);
-            // Keep polling running as backup - realtime may not work due to RLS
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            console.error(`[Chat] Channel error/timeout for order ${orderId}`);
-            setIsRealtimeConnected(false);
-          } else if (status === 'CLOSED') {
-            console.log(`[Chat] Channel closed for order ${orderId}`);
-            setIsRealtimeConnected(false);
-          }
-        });
+          )
+          .subscribe((status, err) => {
+            if (status === 'SUBSCRIBED') {
+              console.log(`[Chat] Realtime connected for order ${orderId}`);
+              setIsRealtimeConnected(true);
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || err) {
+              // Silently handle - polling is the fallback
+              console.warn('[Chat] Realtime not available, using polling fallback');
+              setIsRealtimeConnected(false);
+              // Clean up failed channel
+              if (channel) {
+                supabase.removeChannel(channel);
+                channel = null;
+              }
+            } else if (status === 'CLOSED') {
+              setIsRealtimeConnected(false);
+            }
+          });
+      } catch (error) {
+        // Silently fail - polling is the primary method anyway
+        console.warn('[Chat] Failed to setup realtime, using polling:', error);
+        setIsRealtimeConnected(false);
+      }
     };
 
     setupSubscription();

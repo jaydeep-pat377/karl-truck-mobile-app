@@ -32,19 +32,26 @@ export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
     retry: 1, // Reduce retries for faster failure
     refetchOnMount: 'always',
     refetchOnWindowFocus: false, // Don't refetch on app focus
-    placeholderData: (previousData) => previousData, // Show previous data while loading
   });
 
-  // Flatten all pages of orders into a single array
+  // Flatten all pages of orders into a single array and remove duplicates
   const orders: ApiOrder[] = useMemo(() => {
     if (!query.data?.pages) return [];
 
     // Console log the API response
     console.log('📦 Orders API Response:', JSON.stringify(query.data.pages, null, 2));
 
-    return query.data.pages.flatMap((page) =>
+    const allOrders = query.data.pages.flatMap((page) =>
       page.success ? page.data.orders : []
     );
+
+    // Remove duplicates by order_id to prevent key conflicts
+    const uniqueOrders = allOrders.filter(
+      (order, index, self) =>
+        index === self.findIndex((o) => o.order_id === order.order_id)
+    );
+
+    return uniqueOrders;
   }, [query.data?.pages]);
 
   // Get pagination from the last page
@@ -65,10 +72,10 @@ export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
     query.error?.response?.data?.message ||
     (query.error ? 'Failed to load orders' : null);
 
-  // Only show full loading state when there's no cached data
-  const isInitialLoading = query.isLoading && orders.length === 0;
-  // Show subtle loading when switching filters but have cached data
-  const isFilterLoading = query.isFetching && orders.length > 0;
+  // Show full loading state when loading initial data or when query key changes
+  const isInitialLoading = query.isLoading;
+  // Show subtle loading when refetching but have data to display
+  const isFilterLoading = query.isFetching && !query.isLoading && orders.length > 0;
 
   return {
     orders,

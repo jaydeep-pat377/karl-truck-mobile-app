@@ -2051,6 +2051,7 @@ export const OrderDetailsScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Jobs');
   const [refreshing, setRefreshing] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -2088,6 +2089,33 @@ export const OrderDetailsScreen: React.FC = () => {
   const handleMenuToggle = useCallback(() => {
     setMenuVisible(prev => !prev);
   }, []);
+
+  const handleToggleFavorite = useCallback(() => {
+    setIsFavorite(prev => !prev);
+  }, []);
+
+  const handleTicketPress = useCallback(() => {
+    navigation.navigate('Ticket', {
+      orderId: order.id,
+      orderCode: order.orderCode,
+      orderDate: order.scheduledDate,
+    });
+  }, [navigation, order]);
+
+  const handleChatPress = useCallback(() => {
+    navigation.navigate('ChatRoom', {
+      roomId: order.id,
+      roomName: `Order #${order.orderCode}`,
+      chatId: parseInt(order.id, 10),
+      orderId: parseInt(order.id, 10),
+    });
+  }, [navigation, order]);
+
+  const handleMapPress = useCallback(() => {
+    navigation.navigate('Tracking', {
+      orderId: order.id,
+    });
+  }, [navigation, order]);
 
   const handleShare = useCallback(async () => {
     setMenuVisible(false);
@@ -2248,6 +2276,13 @@ export const OrderDetailsScreen: React.FC = () => {
               </TouchableOpacity>
 
               <View style={styles.headerActions}>
+                <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={handleToggleFavorite}>
+                  <Icon
+                    name={isFavorite ? 'star' : 'star-outline'}
+                    size={18}
+                    color={isFavorite ? colors.warning.main : (isDark ? colors.common.white : colors.grey[80])}
+                  />
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7}>
                   <Icon name="refresh" size={18} color={isDark ? colors.common.white : colors.grey[80]} />
                 </TouchableOpacity>
@@ -2338,6 +2373,46 @@ export const OrderDetailsScreen: React.FC = () => {
           </AnimatedPress>
 
           <StatusPipeline statuses={jobData.statusPills} isDark={isDark} />
+
+          {/* Quick Actions Menu */}
+          <View style={[styles.quickActionsCard, { backgroundColor: themeColors.card }, SHADOWS.sm]}>
+            <TouchableOpacity
+              style={styles.quickActionItem}
+              onPress={handleTicketPress}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: colors.primary.main + '15' }]}>
+                <Icon name="ticket-outline" size={20} color={colors.primary.main} />
+              </View>
+              <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>Tickets</Text>
+            </TouchableOpacity>
+
+            <View style={[styles.quickActionDivider, { backgroundColor: themeColors.border }]} />
+
+            <TouchableOpacity
+              style={styles.quickActionItem}
+              onPress={handleChatPress}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: colors.secondary.main + '15' }]}>
+                <Icon name="chat-outline" size={20} color={colors.secondary.main} />
+              </View>
+              <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>Chat</Text>
+            </TouchableOpacity>
+
+            <View style={[styles.quickActionDivider, { backgroundColor: themeColors.border }]} />
+
+            <TouchableOpacity
+              style={styles.quickActionItem}
+              onPress={handleMapPress}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: colors.success.main + '15' }]}>
+                <Icon name="map-marker-outline" size={20} color={colors.success.main} />
+              </View>
+              <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>Map</Text>
+            </TouchableOpacity>
+          </View>
 
           <ProductScheduleCard
             scheduleDate={order.scheduledDate}
@@ -2675,6 +2750,37 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.xxl,
     padding: GRID.lg,
     marginBottom: GRID.md,
+  },
+  quickActionsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    borderRadius: RADIUS.lg,
+    paddingVertical: GRID.sm,
+    paddingHorizontal: GRID.sm,
+    marginBottom: GRID.md,
+  },
+  quickActionItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: GRID.xs,
+  },
+  quickActionIcon: {
+    width: ms(36),
+    height: ms(36),
+    borderRadius: ms(10),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: GRID.xs,
+  },
+  quickActionLabel: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(11),
+  },
+  quickActionDivider: {
+    width: 1,
+    height: ms(32),
   },
   metricsMainRow: {
     flexDirection: 'row',

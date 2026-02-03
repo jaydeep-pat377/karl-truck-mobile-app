@@ -22,12 +22,14 @@ interface OrderCardProps {
   onTicket?: () => void;
   onWeatherPress?: () => void;
   onChat?: () => void;
+  onFavoritePress?: () => void;
   orderDetailsDisabled?: boolean;
   ticketDisabled?: boolean;
   chatDisabled?: boolean;
   isLoading?: boolean;
   isWeatherLoading?: boolean;
   isChatLoading?: boolean;
+  isFavorite?: boolean;
   showOrderDetailsButton?: boolean;
   showTicketButton?: boolean;
   showChatButton?: boolean;
@@ -91,12 +93,14 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   onTicket,
   onWeatherPress,
   onChat,
+  onFavoritePress,
   orderDetailsDisabled = false,
   ticketDisabled = false,
   chatDisabled = false,
   isLoading = false,
   isWeatherLoading = false,
   isChatLoading = false,
+  isFavorite = false,
   showOrderDetailsButton = true,
   showTicketButton = true,
   showChatButton = true,
@@ -225,17 +229,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               variant="captionSmall"
               numberOfLines={1}
               style={[styles.productText, styles.productTextFlex, { color: isDark ? themeColors.text.hint : colors.grey[60] }]}>
-              {order.productType} | {order.product_description}
+              {order.productType} | {order.product_description} • {order.quantity ?? 0} CY
             </Text>
-
-            <View style={styles.quantityContainer}>
-              <View style={[styles.metricDot, { backgroundColor: themeColors.text.hint }]} />
-              <Text variant="captionSmall"
-                color="secondary"
-                style={[styles.productText, { color: isDark ? themeColors.text.hint : colors.grey[60] }]}>
-                {order.quantity ?? 0} CY
-              </Text>
-            </View>
           </View>
 
           {showDetails && (
@@ -287,17 +282,34 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 )}
 
                 {order.distance && (
-                  <View style={styles.metricItemRight}>
-                    <Icon
-                      name="map-marker-distance"
-                      size={ms(12)}
-                      color={themeColors.text.hint}
-                    />
-                    <Text variant="captionSmall" color="hint">
-                      {order.distance}
-                    </Text>
-                  </View>
+                  <>
+                    <View style={[styles.metricDot, { backgroundColor: themeColors.text.hint }]} />
+                    <View style={styles.metricItem}>
+                      <Icon
+                        name="map-marker-distance"
+                        size={ms(12)}
+                        color={themeColors.text.hint}
+                      />
+                      <Text variant="captionSmall" color="hint">
+                        {order.distance}
+                      </Text>
+                    </View>
+                  </>
                 )}
+
+                {/* Favorite Star Button */}
+                <TouchableOpacity
+                  style={styles.favoriteButtonBottom}
+                  onPress={onFavoritePress}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Icon
+                    name={isFavorite ? 'star' : 'star-outline'}
+                    size={ms(20)}
+                    color={isFavorite ? colors.warning.main : (isDark ? colors.grey[50] : colors.grey[40])}
+                  />
+                </TouchableOpacity>
               </View>
             </>
           )}
@@ -364,6 +376,12 @@ const styles = StyleSheet.create({
     paddingTop: ms(8),
     paddingBottom: ms(8),
   },
+  favoriteButtonBottom: {
+    marginLeft: 'auto',
+    paddingLeft: ms(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -416,7 +434,7 @@ const styles = StyleSheet.create({
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
     gap: ms(4),
     marginTop: ms(4),
   },
@@ -425,8 +443,8 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
   },
   productTextFlex: {
+    flex: 1,
     flexShrink: 1,
-    maxWidth: '70%',
   },
   quantityContainer: {
     flexDirection: 'row',

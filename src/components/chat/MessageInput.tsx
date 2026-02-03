@@ -244,6 +244,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             multiline
             maxLength={1000}
             editable={!isProcessing}
+            textAlignVertical="center"
+            scrollEnabled={true}
+            blurOnSubmit={false}
+            autoCorrect={true}
+            autoCapitalize="sentences"
           />
 
           {/* Camera Button */}

@@ -42,68 +42,86 @@ export const useChatRooms = () => {
   }, [query.data, setRooms]);
 
   // Real-time subscription for new messages (to update room list)
+  // Note: This is optional - the app works without realtime, just needs manual refresh
   useEffect(() => {
     if (!isConfigured || !supabase) return;
 
-    const channel = supabase
-      .channel('chat_messages_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-        },
-        (payload) => {
-          const msg = payload.new as RawChatMessage;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-          // Check if room already exists
-          const existingRooms = query.data || [];
-          const roomExists = existingRooms.some(
-            (room) => room.order_id === msg.order_id
-          );
+    const setupSubscription = async () => {
+      try {
+        channel = supabase
+          .channel('chat_messages_changes')
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'chat_messages',
+            },
+            (payload) => {
+              try {
+                const msg = payload.new as RawChatMessage;
 
-          if (!roomExists) {
-            // Add new room
-            const newRoom: ChatRoom = {
-              id: String(msg.chat_id),
-              name: `Order #${msg.order_id}`,
-              type: 'order',
-              order_id: msg.order_id,
-              created_at: msg.created_at,
-              is_active: true,
-              last_message_at: msg.created_at,
-              last_message_preview: msg.message_text || '',
-            };
-            addRoom(newRoom);
-          } else {
-            // Update existing room's last message
-            updateRoom(String(msg.chat_id), {
-              last_message_at: msg.created_at,
-              last_message_preview: msg.message_text || '',
-            });
-          }
+                // Check if room already exists
+                const existingRooms = query.data || [];
+                const roomExists = existingRooms.some(
+                  (room) => room.order_id === msg.order_id
+                );
 
-          // Invalidate to get fresh data
-          queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-        }
-      )
-      .subscribe((status, err) => {
-        console.log('Chat rooms subscription status:', status);
-        if (err) {
-          console.error('Chat rooms subscription error:', err);
-        }
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to chat rooms');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Channel error. Check if chat_messages table exists and realtime is enabled.');
-        } else if (status === 'TIMED_OUT') {
-          console.error('Chat rooms subscription timed out');
-        }
-      });
+                if (!roomExists) {
+                  // Add new room
+                  const newRoom: ChatRoom = {
+                    id: String(msg.chat_id),
+                    name: `Order #${msg.order_id}`,
+                    type: 'order',
+                    order_id: msg.order_id,
+                    created_at: msg.created_at,
+                    is_active: true,
+                    last_message_at: msg.created_at,
+                    last_message_preview: msg.message_text || '',
+                  };
+                  addRoom(newRoom);
+                } else {
+                  // Update existing room's last message
+                  updateRoom(String(msg.chat_id), {
+                    last_message_at: msg.created_at,
+                    last_message_preview: msg.message_text || '',
+                  });
+                }
+
+                // Invalidate to get fresh data
+                queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+              } catch (payloadError) {
+                console.warn('Error processing chat message payload:', payloadError);
+              }
+            }
+          )
+          .subscribe((status, err) => {
+            if (status === 'SUBSCRIBED') {
+              console.log('Successfully subscribed to chat rooms');
+            } else if (status === 'CHANNEL_ERROR' || err) {
+              // Silently handle - realtime is optional, app works without it
+              console.warn('Chat realtime not available. Using polling fallback.');
+              // Clean up the failed channel
+              if (channel) {
+                supabase.removeChannel(channel);
+                channel = null;
+              }
+            }
+          });
+      } catch (error) {
+        // Silently fail - realtime is optional
+        console.warn('Failed to setup chat realtime subscription:', error);
+      }
+    };
+
+    setupSubscription();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [addRoom, updateRoom, queryClient, isConfigured, query.data]);
 

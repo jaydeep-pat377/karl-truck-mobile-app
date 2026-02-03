@@ -326,8 +326,9 @@ export const ChatRoomScreen: React.FC = () => {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
+        enabled={Platform.OS === 'ios'}
       >
         <View style={[styles.chatBackground, { backgroundColor: isDark ? '#0D1117' : '#F0F2F5' }]}>
         <FlatList
@@ -340,6 +341,9 @@ export const ChatRoomScreen: React.FC = () => {
             processedMessages.length === 0 && styles.emptyList,
           ]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
           onContentSizeChange={() => {
             if (processedMessages.length > 0) {
               flatListRef.current?.scrollToEnd({ animated: false });
@@ -371,7 +375,7 @@ export const ChatRoomScreen: React.FC = () => {
         {typingUsers.length > 0 && <TypingIndicator users={typingUsers} />}
         </View>
 
-        <View style={{ paddingBottom: insets.bottom, backgroundColor: themeColors.background }}>
+        <View style={[styles.inputWrapper, { paddingBottom: Math.max(insets.bottom, spacing.xs), backgroundColor: themeColors.background }]}>
           <MessageInput
             onSend={handleSend}
             onTyping={handleTyping}
@@ -465,6 +469,10 @@ const styles = StyleSheet.create({
   loadMoreContainer: {
     alignItems: 'center',
     paddingVertical: spacing.sm,
+  },
+  inputWrapper: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.1)',
   },
 });
 
