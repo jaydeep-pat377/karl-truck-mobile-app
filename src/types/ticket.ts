@@ -309,9 +309,12 @@ export interface TruckStatusCount {
 export interface PlantDetails {
   code: string;
   description: string;
+  short_description?: string;
   address1: string;
   address2: string;
   phone: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 // Graph data types
@@ -375,6 +378,8 @@ export interface OrderDetailsOrder {
   removed?: boolean;
   remove_reason_code?: string;
   status: string;
+  can_chat: boolean;
+  can_ticketed: boolean;
   has_notes: boolean;
   products: OrderDetailsProduct[];
   tickets: OrderDetailsTicket[];
@@ -382,6 +387,8 @@ export interface OrderDetailsOrder {
   weather_data: OrderDetailsWeatherData | null;
   truck_status_count?: TruckStatusCount;
   plant_details?: PlantDetails;
+  order_location?: TicketDetailsLocation | null;
+  is_favourite?: boolean;
   tickets_count?: number;
   notes_count?: number;
   graphs?: OrderGraphs;
@@ -437,8 +444,8 @@ export interface TicketDetailsProduct {
 }
 
 export interface TicketDetailsLocation {
-  latitude: string;
-  longitude: string;
+  latitude: number;
+  longitude: number;
 }
 
 export interface TicketDetailsTicket {

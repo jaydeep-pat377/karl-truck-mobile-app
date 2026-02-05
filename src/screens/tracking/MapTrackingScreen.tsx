@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect } from 'react';
+import React, { useRef, useMemo, useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,6 +6,8 @@ import {
   Dimensions,
   StatusBar,
   ActivityIndicator,
+  Image,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Mapbox from '@rnmapbox/maps';
@@ -16,6 +18,8 @@ import { Text, Icon } from '../../components/common';
 import { colors } from '../../theme/colors';
 import { spacing, ms, iconSizes } from '../../utils/responsive';
 import { useTrucks, useDirections } from '../../hooks';
+import { truckImagesByStatus } from '../../assets/images';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 // Initialize Mapbox with access token
 Mapbox.setAccessToken('MAPBOX_TOKEN_REMOVED');
@@ -53,6 +57,7 @@ export const MapTrackingScreen: React.FC = () => {
   const route = useRoute<MapTrackingRouteProp>();
   const themeColors = isDark ? colors.dark : colors.light;
   const cameraRef = useRef<Mapbox.Camera>(null);
+  const [showRoute, setShowRoute] = useState(false);
 
   // Get params from navigation (from TicketDetailScreen)
   const {
@@ -87,9 +92,19 @@ export const MapTrackingScreen: React.FC = () => {
 
   // Calculate map center - prioritize params from navigation
   const getMapCenter = useMemo((): [number, number] => {
-    // If coordinates are passed from TicketDetailScreen, use them
+    // If truck coordinates are passed, use them
     if (paramLatitude && paramLongitude) {
       return [parseFloat(paramLongitude), parseFloat(paramLatitude)];
+    }
+
+    // If job location is passed, use it
+    if (paramJobLatitude && paramJobLongitude) {
+      return [parseFloat(paramJobLongitude), parseFloat(paramJobLatitude)];
+    }
+
+    // If plant location is passed, use it
+    if (paramPlantLatitude && paramPlantLongitude) {
+      return [parseFloat(paramPlantLongitude), parseFloat(paramPlantLatitude)];
     }
 
     if (trucks.length === 0) return [-98.6698, 35.5306];
@@ -103,18 +118,29 @@ export const MapTrackingScreen: React.FC = () => {
     const maxLong = Math.max(...longs);
 
     return [(minLong + maxLong) / 2, (minLat + maxLat) / 2];
-  }, [trucks, paramLatitude, paramLongitude]);
+  }, [trucks, paramLatitude, paramLongitude, paramJobLatitude, paramJobLongitude, paramPlantLatitude, paramPlantLongitude]);
 
   // Center camera on passed coordinates when screen loads
   useEffect(() => {
-    if (paramLatitude && paramLongitude && cameraRef.current) {
-      cameraRef.current.setCamera({
-        centerCoordinate: [parseFloat(paramLongitude), parseFloat(paramLatitude)],
-        zoomLevel: 14,
-        animationDuration: 1000,
-      });
+    if (cameraRef.current) {
+      // If truck location is passed
+      if (paramLatitude && paramLongitude) {
+        cameraRef.current.setCamera({
+          centerCoordinate: [parseFloat(paramLongitude), parseFloat(paramLatitude)],
+          zoomLevel: 14,
+          animationDuration: 1000,
+        });
+      }
+      // If only job/plant locations are passed (from OrderDetailsScreen)
+      else if (paramJobLatitude && paramJobLongitude) {
+        cameraRef.current.setCamera({
+          centerCoordinate: [parseFloat(paramJobLongitude), parseFloat(paramJobLatitude)],
+          zoomLevel: 12,
+          animationDuration: 1000,
+        });
+      }
     }
-  }, [paramLatitude, paramLongitude]);
+  }, [paramLatitude, paramLongitude, paramJobLatitude, paramJobLongitude]);
 
   // Highlighted truck from navigation params (from TicketDetailScreen)
   const highlightedTruck = useMemo(() => {
@@ -179,7 +205,7 @@ export const MapTrackingScreen: React.FC = () => {
     };
   }, [paramJobLatitude, paramJobLongitude, paramDestination, paramCustomerName]);
 
-  // Fetch real route directions between plant (truck) and job locations
+  // Fetch real route directions between plant and job locations
   const {
     routeGeoJSON,
     distanceFormatted,
@@ -194,8 +220,28 @@ export const MapTrackingScreen: React.FC = () => {
       profile: 'driving-traffic', // Use real-time traffic data
       overview: 'full', // Get full route geometry
     },
-    enabled: !!plantLocation && !!jobLocation,
+    enabled: showRoute && !!plantLocation && !!jobLocation,
   });
+
+  // Fallback straight line GeoJSON when directions API fails
+  const fallbackRouteGeoJSON = useMemo(() => {
+    if (!plantLocation || !jobLocation) return null;
+
+    return {
+      type: 'Feature' as const,
+      properties: {},
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: [
+          [plantLocation.longitude, plantLocation.latitude],
+          [jobLocation.longitude, jobLocation.latitude],
+        ],
+      },
+    };
+  }, [plantLocation, jobLocation]);
+
+  // Use directions route if available, otherwise use straight line
+  const displayRouteGeoJSON = routeGeoJSON || fallbackRouteGeoJSON;
 
   // Calculate bounds to fit both markers
   const routeBounds = useMemo(() => {
@@ -254,9 +300,9 @@ export const MapTrackingScreen: React.FC = () => {
             }}
           />
 
-          {/* Route Line between Plant and Job locations (real directions) */}
-          {routeGeoJSON && (
-            <Mapbox.ShapeSource id="routeLine" shape={routeGeoJSON}>
+          {/* Route Line between Plant and Job locations */}
+          {showRoute && displayRouteGeoJSON && (
+            <Mapbox.ShapeSource id="routeLine" shape={displayRouteGeoJSON}>
               {/* Route outline (darker/wider for visibility) */}
               <Mapbox.LineLayer
                 id="routeLineOutline"
@@ -281,25 +327,22 @@ export const MapTrackingScreen: React.FC = () => {
           )}
 
           {/* Truck Markers */}
-          {trucks.map((truck) => (
-            <Mapbox.MarkerView
-              key={truck.id}
-              coordinate={[truck.longitude, truck.latitude]}
-              anchor={{ x: 0.5, y: 1 }}
-            >
-              <TouchableOpacity style={styles.markerContainer}>
-                <View style={[styles.marker, { backgroundColor: STATUS_COLORS[truck.status] }]}>
-                  <Icon name="truck" size={ms(14)} color={colors.common.white} />
-                </View>
-                <View style={[styles.markerArrow, { borderTopColor: STATUS_COLORS[truck.status] }]} />
-                <View style={[styles.markerLabel, { backgroundColor: themeColors.card }]}>
-                  <Text variant="captionSmall" style={{ color: themeColors.text.primary }}>
-                    {truck.truckCode}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </Mapbox.MarkerView>
-          ))}
+          {trucks.map((truck) => {
+            const truckImage = truckImagesByStatus[truck.status] || truckImagesByStatus.ticketed;
+            return (
+              <Mapbox.MarkerView
+                key={truck.id}
+                coordinate={[truck.longitude, truck.latitude]}
+                anchor={{ x: 0.5, y: 0.5 }}
+              >
+                <Image
+                  source={truckImage}
+                  style={{ width: ms(70), height: ms(40) }}
+                  resizeMode="contain"
+                />
+              </Mapbox.MarkerView>
+            );
+          })}
 
           {/* Highlighted Truck Marker (from TicketDetailScreen navigation) */}
           {highlightedTruck && (
@@ -359,14 +402,13 @@ export const MapTrackingScreen: React.FC = () => {
             <Mapbox.MarkerView
               key="job-location"
               coordinate={[jobLocation.longitude, jobLocation.latitude]}
-              anchor={{ x: 0.5, y: 1 }}
-            >
+              anchor={{ x: 0.5, y: 1 }}>
               <View style={styles.markerContainer}>
-                {/* Main marker - Red/coral circle with pin */}
+                {/* Main marker - Red circle with white pin icon */}
                 <View style={styles.jobSiteMarker}>
-                  <View style={styles.jobSiteMarkerInner}>
-                    <Icon name="map-marker" size={ms(16)} color={colors.error.main} />
-                  </View>
+                  <Ionicons name="location-outline"
+                   size={ms(22)}
+                   color={colors.common.white} />
                 </View>
                 <View style={styles.jobSiteMarkerArrow} />
                 {/* Dark label showing "Job Site" */}
@@ -400,6 +442,28 @@ export const MapTrackingScreen: React.FC = () => {
             </View>
           </View>
         </SafeAreaView>
+
+        {/* Route Toggle Switch - Top Left */}
+        <View style={[styles.routeToggleContainer, { backgroundColor: themeColors.card }]}>
+          <Icon
+            name="directions"
+            size={ms(16)}
+            color={showRoute ? colors.primary.main : themeColors.text.hint}
+          />
+          <Text style={[
+            styles.routeToggleText,
+            { color: showRoute ? colors.primary.main : themeColors.text.hint }
+          ]}>
+            Route
+          </Text>
+          <Switch
+            value={showRoute}
+            onValueChange={setShowRoute}
+            trackColor={{ false: colors.grey[40], true: colors.primary.light }}
+            thumbColor={showRoute ? colors.primary.main : colors.grey[50]}
+            ios_backgroundColor={colors.grey[40]}
+          />
+        </View>
 
         {/* Map Controls */}
         <View style={styles.mapControls}>
@@ -633,14 +697,14 @@ const styles = StyleSheet.create({
     color: colors.common.white,
     fontSize: ms(11),
   },
-  // Job site marker styles (red pin icon)
+  // Job site marker styles - red circle with white location icon
   jobSiteMarker: {
-    width: ms(36),
-    height: ms(36),
-    borderRadius: ms(18),
+    width: ms(40),
+    height: ms(40),
+    borderRadius: ms(20),
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.mapMarker.jobSite,
+    backgroundColor: '#EF4444',
     borderWidth: 3,
     borderColor: colors.common.white,
     shadowColor: colors.common.black,
@@ -649,42 +713,34 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  jobSiteMarkerInner: {
-    width: ms(24),
-    height: ms(24),
-    borderRadius: ms(12),
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.common.white,
-  },
   jobSiteMarkerArrow: {
     width: 0,
     height: 0,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderTopWidth: 8,
+    borderLeftWidth: 7,
+    borderRightWidth: 7,
+    borderTopWidth: 9,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: colors.mapMarker.jobSite,
-    marginTop: -2,
+    borderTopColor: '#EF4444',
+    marginTop: -3,
   },
   jobSiteMarkerLabel: {
-    paddingHorizontal: ms(12),
-    paddingVertical: ms(6),
-    borderRadius: ms(6),
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(4),
+    borderRadius: ms(4),
     marginTop: ms(4),
-    backgroundColor: colors.grey[80],
+    backgroundColor: 'rgba(30, 30, 30, 0.9)',
     shadowColor: colors.common.black,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowRadius: 2,
+    elevation: 3,
     alignItems: 'center',
   },
   jobSiteMarkerText: {
     fontWeight: '600',
     color: colors.common.white,
-    fontSize: ms(11),
+    fontSize: ms(10),
   },
   headerButtons: {
     position: 'absolute',
@@ -727,6 +783,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: ms(8),
+  },
+  routeToggleContainer: {
+    position: 'absolute',
+    left: spacing.md,
+    top: height * 0.14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(6),
+    borderRadius: ms(20),
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    gap: ms(6),
+    marginBottom: ms(12),
+  },
+  routeToggleText: {
+    fontSize: ms(12),
+    fontWeight: '600',
   },
   mapControls: {
     position: 'absolute',

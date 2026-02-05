@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
-  KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Input, Button, Icon, AlertModal } from '../../components/common';
@@ -93,9 +93,15 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+      <KeyboardAwareScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
+        extraHeight={120}
       >
         <View style={styles.content}>
           {/* Back Button */}
@@ -171,7 +177,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
 
       {/* Success Modal */}
       <AlertModal
@@ -195,8 +201,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  keyboardView: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,

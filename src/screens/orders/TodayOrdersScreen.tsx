@@ -4,7 +4,7 @@
  * Designed for scannability, efficiency, and modern aesthetics
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -14,6 +14,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  Platform,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -25,6 +27,7 @@ import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, spacing } from '../../utils/responsive';
 import { useOrders, useChatRooms, useGlobalAlert } from '../../hooks';
+import { orderService } from '../../api/services/orderService';
 import { ApiOrder, WeatherCondition } from '../../types/order';
 import { Order } from '../../types';
 import { RootStackParamList } from '../../navigation/types';
@@ -115,6 +118,8 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
       evaporationRate: apiOrder.weather_data.evaporation_rate,
     } : undefined,
     canChat: apiOrder.can_chat,
+    canTicketed: apiOrder.can_ticketed,
+    isFavorite: apiOrder.is_favourite ?? false,
     product_description: apiOrder.product_description || '',
     createdAt: apiOrder.order_date,
     updatedAt: apiOrder.order_date,
@@ -130,8 +135,29 @@ export const TodayOrdersScreen: React.FC = () => {
   const { showAlert } = useGlobalAlert();
 
   const [chatLoadingOrderId, setChatLoadingOrderId] = useState<string | null>(null);
-  const [favoriteOrderIds, setFavoriteOrderIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeSearchQuery, setActiveSearchQuery] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [favoriteOverrides, setFavoriteOverrides] = useState<Record<string, boolean>>({});
+
+  // Listen for keyboard events to adjust bottom padding
+  useEffect(() => {
+    const keyboardShowEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const keyboardHideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(keyboardShowEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const hideSubscription = Keyboard.addListener(keyboardHideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   const {
     orders: apiOrders,
@@ -151,16 +177,35 @@ export const TodayOrdersScreen: React.FC = () => {
     sort_order: 'desc',
   });
 
+  // Track previous refetching state to detect when refetch completes
+  const wasRefetchingRef = useRef(false);
+
+  // Clear favorite overrides when refetch completes (pull to refresh)
+  useEffect(() => {
+    if (wasRefetchingRef.current && !isRefetching) {
+      // Refetch just completed, clear overrides to use fresh data
+      setFavoriteOverrides({});
+    }
+    wasRefetchingRef.current = isRefetching;
+  }, [isRefetching]);
+
   // Map API orders to Order type for OrderCard
   const mappedOrders = useMemo(() => {
-    return apiOrders.map(mapApiOrderToOrder);
-  }, [apiOrders]);
+    return apiOrders.map(order => {
+      const mapped = mapApiOrderToOrder(order);
+      // Apply optimistic favorite override if exists
+      if (favoriteOverrides[mapped.id] !== undefined) {
+        return { ...mapped, isFavorite: favoriteOverrides[mapped.id] };
+      }
+      return mapped;
+    });
+  }, [apiOrders, favoriteOverrides]);
 
-  // Filter orders based on search query
+  // Filter orders based on active search query (only when search button is pressed)
   const filteredOrders = useMemo(() => {
-    if (!searchQuery.trim()) return mappedOrders;
+    if (!activeSearchQuery.trim()) return mappedOrders;
 
-    const query = searchQuery.toLowerCase().trim();
+    const query = activeSearchQuery.toLowerCase().trim();
     return mappedOrders.filter((order) => {
       return (
         order.orderCode.toLowerCase().includes(query) ||
@@ -170,7 +215,19 @@ export const TodayOrdersScreen: React.FC = () => {
         order.productType?.toLowerCase().includes(query)
       );
     });
-  }, [mappedOrders, searchQuery]);
+  }, [mappedOrders, activeSearchQuery]);
+
+  // Handle search button press
+  const handleSearch = useCallback(() => {
+    setActiveSearchQuery(searchQuery.trim());
+  }, [searchQuery]);
+
+  // Handle clear search
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+    setActiveSearchQuery('');
+    refetch();
+  }, [refetch]);
 
   const summaryStats = useMemo(() => {
     const totalOrdered = apiOrders.reduce((sum, o) => sum + (o.ordered_qty || 0), 0);
@@ -220,16 +277,28 @@ export const TodayOrdersScreen: React.FC = () => {
   }, [navigation]);
 
   const handleToggleFavorite = useCallback((orderId: string) => {
-    setFavoriteOrderIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(orderId)) {
-        newSet.delete(orderId);
-      } else {
-        newSet.add(orderId);
-      }
-      return newSet;
-    });
-  }, []);
+    // Check if we have an override first, otherwise use API data
+    const hasOverride = favoriteOverrides[orderId] !== undefined;
+    const apiOrder = apiOrders.find(o => o.order_id === orderId);
+    const currentFavorite = hasOverride ? favoriteOverrides[orderId] : (apiOrder?.is_favourite ?? false);
+    const newFavorite = !currentFavorite;
+
+    // Optimistically update UI immediately
+    setFavoriteOverrides(prev => ({ ...prev, [orderId]: newFavorite }));
+
+    // Call API in background
+    orderService.toggleFavourite(orderId)
+      .catch((error) => {
+        console.error('Failed to toggle favorite:', error);
+        // Revert optimistic update on error
+        setFavoriteOverrides(prev => ({ ...prev, [orderId]: currentFavorite }));
+        showAlert({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to update favorite status',
+        });
+      });
+  }, [apiOrders, favoriteOverrides, showAlert]);
 
   const handleChat = useCallback(async (order: Order) => {
     setChatLoadingOrderId(order.id);
@@ -273,10 +342,10 @@ export const TodayOrdersScreen: React.FC = () => {
         onChat={() => handleChat(item)}
         onFavoritePress={() => handleToggleFavorite(item.id)}
         isChatLoading={chatLoadingOrderId === item.id}
-        isFavorite={favoriteOrderIds.has(item.id)}
+        isFavorite={item.isFavorite}
       />
     ),
-    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleChat, handleToggleFavorite, chatLoadingOrderId, favoriteOrderIds]
+    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleChat, handleToggleFavorite, chatLoadingOrderId]
   );
 
   const renderHeader = () => (
@@ -324,7 +393,7 @@ export const TodayOrdersScreen: React.FC = () => {
       <View style={styles.ordersCountRow}>
         <Text style={[styles.ordersCountText, { color: themeColors.text.secondary }]}>
           {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'} found
-          {searchQuery.trim() && ` (filtered from ${apiOrders.length})`}
+          {activeSearchQuery.trim() && ` (filtered from ${apiOrders.length})`}
         </Text>
       </View>
     </View>
@@ -355,7 +424,7 @@ export const TodayOrdersScreen: React.FC = () => {
           >
             <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
           </TouchableOpacity>
-          <Text variant="h2">Today's Orders</Text>
+          <Text variant="h2">Today's In Progress</Text>
           <TouchableOpacity
             style={[styles.headerIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
             onPress={handleRefresh}
@@ -387,7 +456,7 @@ export const TodayOrdersScreen: React.FC = () => {
           <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
         </TouchableOpacity>
 
-        <Text variant="h2">Today's Orders</Text>
+        <Text variant="h2">Today's In Progress</Text>
 
         <TouchableOpacity
           style={[styles.headerIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
@@ -398,43 +467,46 @@ export const TodayOrdersScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
-      <View style={[
-        styles.searchContainer,
-        {
-          backgroundColor: isDark ? themeColors.card : colors.common.white,
-          borderBottomColor: isDark ? themeColors.border : colors.grey[10],
-        }
-      ]}>
-        <View style={[
-          styles.searchInputWrapper,
-          {
-            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : colors.grey[5],
-            borderColor: isDark ? 'rgba(255,255,255,0.1)' : colors.grey[15],
-          }
-        ]}>
-          <Icon name="magnify" size={ms(20)} color={colors.primary.main} />
-          <TextInput
-            style={[styles.searchInput, { color: themeColors.text.primary }]}
-            placeholder="Search orders..."
-            placeholderTextColor={themeColors.text.hint}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
+      {/* Search Bar - Hidden during loading like OrderListScreen */}
+      {!isLoading && (
+        <View style={styles.searchContainer}>
+          <View
+            style={[
+              styles.searchBar,
+              {
+                backgroundColor: themeColors.surface,
+                borderColor: themeColors.border,
+              },
+            ]}>
+            <TextInput
+              style={[styles.searchInput, { color: themeColors.text.primary }]}
+              placeholder="Search by Order Code, Customer, Address..."
+              placeholderTextColor={themeColors.text.hint}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={handleClearSearch}
+                activeOpacity={0.7}
+                style={styles.searchClearBtn}
+              >
+                <Icon name="close-circle" size={ms(18)} color={themeColors.text.secondary} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              style={styles.searchClearButton}
-              onPress={() => setSearchQuery('')}
               activeOpacity={0.7}
+              style={[styles.searchIconBtn, { backgroundColor: colors.primary.main }]}
+              onPress={handleSearch}
             >
-              <Icon name="close-circle" size={ms(20)} color={themeColors.text.secondary} />
+              <Icon name="magnify" size={ms(18)} color={colors.common.white} />
             </TouchableOpacity>
-          )}
+          </View>
         </View>
-      </View>
+      )}
 
       {isLoading ? (
         <View style={[styles.loadingWrap, { backgroundColor: themeColors.background }]}>
@@ -443,6 +515,7 @@ export const TodayOrdersScreen: React.FC = () => {
       ) : (
         <FlatList
           data={filteredOrders}
+          extraData={filteredOrders}
           renderItem={renderOrderCard}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={renderHeader}
@@ -454,7 +527,10 @@ export const TodayOrdersScreen: React.FC = () => {
               </View>
             ) : null
           }
-          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + ms(60) }]}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: insets.bottom + ms(100) + keyboardHeight }
+          ]}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           refreshControl={
             <RefreshControl
@@ -466,6 +542,8 @@ export const TodayOrdersScreen: React.FC = () => {
             />
           }
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           onEndReached={() => {
             if (hasNextPage && !isFetchingNextPage) {
               fetchNextPage();
@@ -500,28 +578,35 @@ const styles = StyleSheet.create({
 
   // Search Bar
   searchContainer: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
   },
-  searchInputWrapper: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingLeft: spacing.sm,
+    paddingRight: spacing.xs,
+    paddingVertical: spacing.xs,
     borderRadius: ms(12),
-    paddingHorizontal: ms(14),
-    height: ms(44),
-    gap: ms(10),
     borderWidth: 1,
   },
   searchInput: {
     flex: 1,
-    fontSize: ms(15),
+    fontSize: ms(13),
     fontFamily: fontFamily.regular,
-    paddingVertical: 0,
-    height: '100%',
+    paddingVertical: spacing.sm,
+    paddingRight: spacing.xs,
   },
-  searchClearButton: {
+  searchClearBtn: {
     padding: ms(4),
+  },
+  searchIconBtn: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: ms(4),
   },
 
   // Header Container (FlatList header)

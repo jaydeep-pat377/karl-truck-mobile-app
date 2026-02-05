@@ -11,6 +11,8 @@ import {
   Animated,
   Pressable,
   Dimensions,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -26,6 +28,7 @@ import { fontFamily } from '../../theme/typography';
 import { spacing, ms, iconSizes, wp, hp } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useOrders, useChatRooms, useGlobalAlert } from '../../hooks';
+import { orderService } from '../../api/services/orderService';
 
 const dateFilters = [
   { id: 'today', label: 'Today' },
@@ -177,6 +180,8 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
       evaporationRate: apiOrder.weather_data.evaporation_rate,
     } : undefined,
     canChat: apiOrder.can_chat,
+    canTicketed: apiOrder.can_ticketed,
+    isFavorite: apiOrder.is_favourite ?? false,
     product_description: apiOrder.product_description || '',
     createdAt: apiOrder.order_date,
     updatedAt: apiOrder.order_date,
@@ -826,7 +831,27 @@ export const OrderListScreen: React.FC = () => {
 
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<FilterState>(defaultFilterState);
-  const [favoriteOrderIds, setFavoriteOrderIds] = useState<Set<string>>(new Set());
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [favoriteOverrides, setFavoriteOverrides] = useState<Record<string, boolean>>({});
+
+  // Listen for keyboard events to adjust bottom padding
+  useEffect(() => {
+    const keyboardShowEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const keyboardHideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(keyboardShowEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const hideSubscription = Keyboard.addListener(keyboardHideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   // Debounce filter changes to prevent rapid API calls
   useEffect(() => {
@@ -961,9 +986,28 @@ export const OrderListScreen: React.FC = () => {
     }).start();
   }, [activeFilterCount, filterBarAnim]);
 
+  // Track previous refetching state to detect when refetch completes
+  const wasRefetchingRef = useRef(false);
+
+  // Clear favorite overrides when refetch completes (pull to refresh)
+  useEffect(() => {
+    if (wasRefetchingRef.current && !isRefetching) {
+      // Refetch just completed, clear overrides to use fresh data
+      setFavoriteOverrides({});
+    }
+    wasRefetchingRef.current = isRefetching;
+  }, [isRefetching]);
+
   const mappedOrders = useMemo(() => {
-    return apiOrders.map(mapApiOrderToOrder);
-  }, [apiOrders]);
+    return apiOrders.map(order => {
+      const mapped = mapApiOrderToOrder(order);
+      // Apply optimistic favorite override if exists
+      if (favoriteOverrides[mapped.id] !== undefined) {
+        return { ...mapped, isFavorite: favoriteOverrides[mapped.id] };
+      }
+      return mapped;
+    });
+  }, [apiOrders, favoriteOverrides]);
 
   const filteredOrders = useMemo(() => {
     let orders = mappedOrders;
@@ -1001,7 +1045,8 @@ export const OrderListScreen: React.FC = () => {
   const handleClearSearch = useCallback(() => {
     setSearchQuery('');
     setAppliedSearchQuery('');
-  }, []);
+    refetch();
+  }, [refetch]);
 
   const handleDateSelect = useCallback((date: Date) => {
     setSelectedDate(date);
@@ -1169,16 +1214,28 @@ export const OrderListScreen: React.FC = () => {
   }, [navigation]);
 
   const handleToggleFavorite = useCallback((orderId: string) => {
-    setFavoriteOrderIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(orderId)) {
-        newSet.delete(orderId);
-      } else {
-        newSet.add(orderId);
-      }
-      return newSet;
-    });
-  }, []);
+    // Check if we have an override first, otherwise use API data
+    const hasOverride = favoriteOverrides[orderId] !== undefined;
+    const apiOrder = apiOrders.find(o => o.order_id === orderId);
+    const currentFavorite = hasOverride ? favoriteOverrides[orderId] : (apiOrder?.is_favourite ?? false);
+    const newFavorite = !currentFavorite;
+
+    // Optimistically update UI immediately
+    setFavoriteOverrides(prev => ({ ...prev, [orderId]: newFavorite }));
+
+    // Call API in background
+    orderService.toggleFavourite(orderId)
+      .catch((error) => {
+        console.error('Failed to toggle favorite:', error);
+        // Revert optimistic update on error
+        setFavoriteOverrides(prev => ({ ...prev, [orderId]: currentFavorite }));
+        showAlert({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to update favorite status',
+        });
+      });
+  }, [apiOrders, favoriteOverrides, showAlert]);
 
   const handleChat = useCallback(async (order: Order) => {
     setChatLoadingOrderId(order.id);
@@ -1223,10 +1280,10 @@ export const OrderListScreen: React.FC = () => {
         onChat={() => handleChat(item)}
         onFavoritePress={() => handleToggleFavorite(item.id)}
         isChatLoading={chatLoadingOrderId === item.id}
-        isFavorite={favoriteOrderIds.has(item.id)}
+        isFavorite={item.isFavorite}
       />
     ),
-    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleChat, handleToggleFavorite, chatLoadingOrderId, favoriteOrderIds]
+    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleChat, handleToggleFavorite, chatLoadingOrderId]
   );
 
   const renderListHeader = useCallback(
@@ -1399,6 +1456,7 @@ export const OrderListScreen: React.FC = () => {
       ) : (
         <FlatList
           data={filteredOrders}
+          extraData={filteredOrders}
           renderItem={renderOrderCard}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={renderListHeader}
@@ -1418,8 +1476,11 @@ export const OrderListScreen: React.FC = () => {
           contentContainerStyle={[
             styles.listContent,
             filteredOrders.length === 0 && styles.emptyListContent,
+            { paddingBottom: TAB_BAR_HEIGHT + spacing.xl + keyboardHeight },
           ]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}

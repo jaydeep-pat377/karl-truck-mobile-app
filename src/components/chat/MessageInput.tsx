@@ -283,8 +283,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 const styles = StyleSheet.create({
   wrapper: {
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingBottom: Platform.OS === 'ios' ? spacing.sm : spacing.sm,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
   },
   previewRow: {
     flexDirection: 'row',

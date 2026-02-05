@@ -751,7 +751,7 @@ const DashboardScreen: React.FC = () => {
     }
   };
 
-  const renderDeliveryCard = ({ item }: { item: ActiveDelivery }) => {
+  const renderDeliveryCard = ({ item, onPress }: { item: ActiveDelivery; onPress?: () => void }) => {
     const statusColor = getStatusColor(item.status);
     const progressPercent = Math.min(item.progressPercent, 100);
     const layout = deliveryCardLayout;
@@ -768,10 +768,11 @@ const DashboardScreen: React.FC = () => {
 
     return (
       <TouchableOpacity
-        activeOpacity={0.95}
-        onPress={() => navigation.navigate('Map')}
-        style={[styles.deliveryCardWrapper, { width: layout.cardWidth }]}
-      >
+        style={[styles.deliveryCardWrapper,
+        { width: layout.cardWidth }]}
+        activeOpacity={2}
+        onPress={onPress}
+        disabled={!onPress}>
         <View style={[styles.deliveryCard, { backgroundColor: themeColors.card }]}>
           {/* Compact Header */}
           <View style={styles.deliveryHeader}>
@@ -1067,7 +1068,7 @@ const DashboardScreen: React.FC = () => {
         <SectionHeader
           title="Active Deliveries"
           actionLabel="View All"
-          onAction={() => navigation.navigate('TodayOrders')}
+          onAction={() => navigation.navigate('Map')}
         />
         {activeDeliveryOrders && activeDeliveryOrders.length > 0 ? (
           <ScrollView
@@ -1078,15 +1079,13 @@ const DashboardScreen: React.FC = () => {
             snapToInterval={deliveryCardLayout.cardWidth + ms(6)}
             snapToAlignment="start"
             onScroll={({ nativeEvent }) => {
-              // Load more when near the end
               const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
               const isNearEnd = layoutMeasurement.width + contentOffset.x >= contentSize.width - 100;
               if (isNearEnd && hasNextPage && !isFetchingNextPage) {
                 fetchNextPage();
               }
             }}
-            scrollEventThrottle={400}
-          >
+            scrollEventThrottle={400}>
             {activeDeliveryOrders.map((order, index) => {
               const progressPercent = order.ordered_qty > 0
                 ? Math.round((order.delivered_qty / order.ordered_qty) * 100)
@@ -1109,7 +1108,15 @@ const DashboardScreen: React.FC = () => {
                   key={order.order_id}
                   style={index === activeDeliveryOrders.length - 1 ? { marginRight: spacing.sm } : undefined}
                 >
-                  {renderDeliveryCard({ item: deliveryItem })}
+                  {renderDeliveryCard({
+                    item: deliveryItem,
+                    onPress: () => navigation.navigate('OrderDetail', {
+                      orderId: order.order_id,
+                      orderCode: order.order_code,
+                      orderDate: order.order_date,
+                      status: order.status,
+                    }),
+                  })}
                 </View>
               );
             })}

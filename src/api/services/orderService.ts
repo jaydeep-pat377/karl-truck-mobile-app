@@ -26,6 +26,12 @@ export const orderService = {
       { params }
     );
   },
+
+  toggleFavourite: async (orderId: string): Promise<{ success: boolean; message: string }> => {
+    return apiClient.post<{ success: boolean; message: string }>(
+      `${API_ENDPOINTS.ORDERS.FAVOURITE}/${orderId}/favourite`
+    );
+  },
 };
 
 export default orderService;

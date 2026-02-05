@@ -157,11 +157,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       ]}>
       {/* Inner container for content clipping (rounded corners) */}
       <View style={styles.cardInnerContainer}>
-        <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={onPress}
-        disabled={isLoading}
-        style={styles.cardTouchable}>
+        <View style={styles.cardTouchable}>
         <View style={styles.cardContent}>
           <View style={styles.headerRow}>
             <View style={styles.headerLeft}>
@@ -228,9 +224,17 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <Text
               variant="captionSmall"
               numberOfLines={1}
-              style={[styles.productText, styles.productTextFlex, { color: isDark ? themeColors.text.hint : colors.grey[60] }]}>
-              {order.productType} | {order.product_description} • {order.quantity ?? 0} CY
+              style={[styles.productText, { color: isDark ? themeColors.text.hint : colors.grey[60] }]}>
+              {order.productType || ''}{order.product_description ? ` | ${order.product_description}` : ''}
             </Text>
+            <View style={styles.cyContainer}>
+              <Text style={[styles.cyText, { color: themeColors.text.primary }]}>
+                {(order.quantity ?? order.ordered_qty ?? 0).toFixed(2)}
+              </Text>
+              <Text style={[styles.cyLabel, { color: themeColors.text.primary }]}>
+                {' CY'}
+              </Text>
+            </View>
           </View>
 
           {showDetails && (
@@ -314,9 +318,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             </>
           )}
         </View>
-      </TouchableOpacity>
+      </View>
 
-      {(showOrderDetailsButton || showTicketButton || (showChatButton && order.canChat)) && (
+      {(showOrderDetailsButton || (showTicketButton && order.canTicketed) || (showChatButton && order.canChat)) && (
         <View style={[styles.actionRow, { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }]}>
           {showOrderDetailsButton && (
             <ActionButton
@@ -327,10 +331,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               isLoading={isLoading}
             />
           )}
-          {showOrderDetailsButton && showTicketButton && (
+          {showOrderDetailsButton && showTicketButton && order.canTicketed && (
             <View style={[styles.actionDivider, { backgroundColor: isDark ? colors.dark.border : colors.grey[25] }]} />
           )}
-          {showTicketButton && (
+          {showTicketButton && order.canTicketed && (
             <ActionButton
               icon="ticket-outline"
               label="Ticket"
@@ -340,7 +344,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           )}
           {showChatButton && order.canChat && (
             <>
-              <View style={[styles.actionDivider, { backgroundColor: isDark ? colors.dark.border : colors.grey[25] }]} />
+              {(showOrderDetailsButton || (showTicketButton && order.canTicketed)) && (
+                <View style={[styles.actionDivider, { backgroundColor: isDark ? colors.dark.border : colors.grey[25] }]} />
+              )}
               <ActionButton
                 icon="chat-outline"
                 label="Chat"
@@ -434,23 +440,27 @@ const styles = StyleSheet.create({
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: ms(4),
     marginTop: ms(4),
+    gap: ms(4),
   },
   productText: {
     fontSize: ms(11),
     fontFamily: fontFamily.medium,
-  },
-  productTextFlex: {
     flex: 1,
-    flexShrink: 1,
   },
-  quantityContainer: {
+  cyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: ms(3),
+    marginLeft: ms(8),
     flexShrink: 0,
+  },
+  cyText: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.bold,
+  },
+  cyLabel: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.bold,
   },
   progressRow: {
     flexDirection: 'row',

@@ -52,6 +52,8 @@ export interface Order {
   alertMessage?: string;
   weather?: WeatherData;
   canChat?: boolean;
+  canTicketed?: boolean;
+  isFavorite?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -159,12 +161,14 @@ export interface ApiOrder {
   remaining_display: string;
   status: string;
   can_chat: boolean;
+  can_ticketed: boolean;
   is_removed: boolean;
   has_notes: boolean;
   tickets_count: number;
   product_codes?: string;
   product_description?: string;
   weather_data: ApiOrderWeatherData | null;
+  is_favourite: boolean;
 }
 
 export interface OrdersPagination {

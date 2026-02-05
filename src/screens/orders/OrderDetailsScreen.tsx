@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo, useRef } from 'react';
+import React, { useCallback, useState, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -25,7 +25,9 @@ import { getStatusColor, getStatusLabel } from '../../utils/statusUtils';
 import { fontFamily } from '../../theme/typography';
 import { ms } from '../../utils/responsive';
 import { RootStackParamList } from '../../navigation/types';
+import { useQueryClient } from '@tanstack/react-query';
 import { useOrderDetails, useAlert } from '../../hooks';
+import { orderService } from '../../api/services/orderService';
 
 type OrderDetailsRouteProp = RouteProp<RootStackParamList, 'OrderDetail'>;
 
@@ -1177,8 +1179,9 @@ const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
     ...deliveredData.map(d => parseTimeToMinutes(d.time)),
     ...pouredData.map(d => parseTimeToMinutes(d.time)),
   ];
-  const dataMinTime = Math.min(...allTimes);
-  const dataMaxTime = Math.max(...allTimes);
+  // Default to 8:00-9:00 if no data
+  const dataMinTime = allTimes.length > 0 ? Math.min(...allTimes) : 480;
+  const dataMaxTime = allTimes.length > 0 ? Math.max(...allTimes) : 540;
   // Add 15 min padding on each side
   const minTime = Math.floor(dataMinTime / 15) * 15 - 15;
   const maxTime = Math.ceil(dataMaxTime / 15) * 15 + 15;
@@ -1196,12 +1199,15 @@ const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
   const yAxisSteps = 2;
   const yAxisValues = [50, 25, 0];
 
-  // Series config with colors
-  const seriesConfig = [
+  // All series config for legend - always show all labels
+  const allSeriesConfig = [
     { key: 'ordered', color: colors.chart.ordered, label: 'Ordered', data: orderedData, marker: 'circle' },
     { key: 'poured', color: colors.chart.poured, label: 'Poured', data: pouredData, marker: 'diamond' },
     { key: 'delivered', color: isDark ? colors.chart.delivered.dark : colors.chart.delivered.light, label: 'Delivered', data: deliveredData, marker: 'square' },
   ];
+
+  // Series config with data - only include series that have data for rendering
+  const seriesConfig = allSeriesConfig.filter(s => s.data.length > 0);
 
   const getX = (time: number) => {
     const normalized = (time - minTime) / timeRange;
@@ -1233,7 +1239,7 @@ const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
   };
 
   const visibleSeries = activeFilter
-    ? seriesConfig.filter(s => s.key === activeFilter)
+    ? allSeriesConfig.filter(s => s.key === activeFilter && s.data.length > 0)
     : seriesConfig;
 
   // Generate X-axis time labels
@@ -1452,9 +1458,9 @@ const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
           </ScrollView>
         </View>
 
-        {/* Legend - Pill style buttons */}
+        {/* Legend - Pill style buttons - always show all labels */}
         <View style={styles.pourSpeedLegend}>
-          {seriesConfig.map((s) => {
+          {allSeriesConfig.map((s) => {
             const isActive = activeFilter === null || activeFilter === s.key;
             return (
               <TouchableOpacity
@@ -1543,6 +1549,9 @@ const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   const padding = { top: 16, right: 20, bottom: 32, left: 10 };
   const chartHeight = height - padding.top - padding.bottom;
 
+  // Check if we have data
+  const hasData = timePoints && timePoints.length > 0;
+
   // Parse time from ISO string to minutes from midnight
   const parseTimeToMinutes = (timeStr: string): number => {
     if (timeStr.includes('T')) {
@@ -1553,8 +1562,8 @@ const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     return hours * 60 + minutes;
   };
 
-  // Get min/max time
-  const allTimes = timePoints.map(d => parseTimeToMinutes(d.time));
+  // Get min/max time - use defaults if no data
+  const allTimes = hasData ? timePoints.map(d => parseTimeToMinutes(d.time)) : [480, 600]; // Default 8:00 - 10:00
   const dataMinTime = Math.min(...allTimes);
   const dataMaxTime = Math.max(...allTimes);
   const minTime = Math.floor(dataMinTime / 15) * 15 - 15;
@@ -1730,8 +1739,8 @@ const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                   );
                 })}
 
-                {/* Lines */}
-                {visibleSeries.map((s) => (
+                {/* Lines - only render if we have data */}
+                {hasData && visibleSeries.map((s) => (
                   <Path
                     key={`line-${s.key}`}
                     d={createLinePath(s.key)}
@@ -1743,8 +1752,8 @@ const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                   />
                 ))}
 
-                {/* Data point markers */}
-                {visibleSeries.map((s) =>
+                {/* Data point markers - only render if we have data */}
+                {hasData && visibleSeries.map((s) =>
                   timePoints.map((d, i) => {
                     const x = getX(parseTimeToMinutes(d.time));
                     const value = d[s.key as keyof TrucksTimePoint] as number;
@@ -1769,6 +1778,7 @@ const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                     );
                   })
                 )}
+
               </Svg>
 
               {/* Tooltip */}
@@ -1912,6 +1922,7 @@ const BottomTabBar: React.FC<BottomTabProps> = ({ tabs, activeTab, onTabPress, i
 export const OrderDetailsScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<OrderDetailsRouteProp>();
+  const queryClient = useQueryClient();
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
   const { alertState, hideAlert, showError, showInfo } = useAlert();
@@ -2013,13 +2024,18 @@ export const OrderDetailsScreen: React.FC = () => {
         ];
       })(),
       // Pour Speed raw data from API for TimeBasedChart
+      // Only show chart if ANY of the data arrays have values
       pourSpeedRaw: {
         ordered: orderDetails.graphs?.pour_speed?.ordered || [],
         delivered: orderDetails.graphs?.pour_speed?.delivered || [],
         poured: orderDetails.graphs?.pour_speed?.poured || [],
         scheduleRate: orderDetails.graphs?.pour_speed?.schedule_rate || 30,
         yMax: orderDetails.graphs?.pour_speed?.y_max || 50,
-        hasData: !!(orderDetails.graphs?.pour_speed?.delivered?.length),
+        hasData: !!(
+          orderDetails.graphs?.pour_speed?.ordered?.length ||
+          orderDetails.graphs?.pour_speed?.delivered?.length ||
+          orderDetails.graphs?.pour_speed?.poured?.length
+        ),
       },
       // Legacy pourSpeedData for fallback (mock data)
       pourSpeedData: mockJobData.pourSpeedData,
@@ -2052,6 +2068,13 @@ export const OrderDetailsScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+
+  // Initialize isFavorite from API response
+  useEffect(() => {
+    if (orderDetails?.is_favourite !== undefined) {
+      setIsFavorite(orderDetails.is_favourite);
+    }
+  }, [orderDetails?.is_favourite]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -2091,8 +2114,24 @@ export const OrderDetailsScreen: React.FC = () => {
   }, []);
 
   const handleToggleFavorite = useCallback(() => {
+    const previousValue = isFavorite;
+
+    // Optimistically update UI immediately
     setIsFavorite(prev => !prev);
-  }, []);
+
+    // Call API in background
+    orderService.toggleFavourite(order.id)
+      .then(() => {
+        // Invalidate orders cache so OrderListScreen and TodayOrdersScreen will refetch
+        queryClient.invalidateQueries({ queryKey: ['orders'] });
+      })
+      .catch((error) => {
+        console.error('Failed to toggle favorite:', error);
+        // Revert optimistic update on error
+        setIsFavorite(previousValue);
+        showError('Error', 'Failed to update favorite status');
+      });
+  }, [order.id, isFavorite, showError, queryClient]);
 
   const handleTicketPress = useCallback(() => {
     navigation.navigate('Ticket', {
@@ -2112,10 +2151,27 @@ export const OrderDetailsScreen: React.FC = () => {
   }, [navigation, order]);
 
   const handleMapPress = useCallback(() => {
-    navigation.navigate('Tracking', {
-      orderId: order.id,
-    });
-  }, [navigation, order]);
+    const status = orderDetails?.status?.toLowerCase() || '';
+    const isInProgress = status === 'in progress' || status === 'in_progress' || status === 'inprogress';
+
+    if (isInProgress) {
+      navigation.navigate('Tracking', {
+        orderId: order.id,
+      });
+    } else {
+      navigation.navigate('MapTracking', {
+        orderCode: order.orderCode || undefined,
+        customerName: order.customerName || undefined,
+        destination: order.deliveryAddress || undefined,
+        jobLatitude: orderDetails?.order_location?.latitude ? String(orderDetails.order_location.latitude) : undefined,
+        jobLongitude: orderDetails?.order_location?.longitude ? String(orderDetails.order_location.longitude) : undefined,
+        plantName: orderDetails?.plant_details?.description || undefined,
+        plantCode: orderDetails?.plant_details?.code || undefined,
+        plantLatitude: orderDetails?.plant_details?.latitude ? String(orderDetails.plant_details.latitude) : undefined,
+        plantLongitude: orderDetails?.plant_details?.longitude ? String(orderDetails.plant_details.longitude) : undefined,
+      });
+    }
+  }, [navigation, order, orderDetails]);
 
   const handleShare = useCallback(async () => {
     setMenuVisible(false);
@@ -2141,8 +2197,25 @@ export const OrderDetailsScreen: React.FC = () => {
 
   const handleTrackOrder = useCallback(() => {
     setMenuVisible(false);
-    navigation.navigate('Tracking', { orderId: order.id });
-  }, [navigation, order.id]);
+    const status = orderDetails?.status?.toLowerCase() || '';
+    const isInProgress = status === 'in progress' || status === 'in_progress' || status === 'inprogress';
+
+    if (isInProgress) {
+      navigation.navigate('Tracking', { orderId: order.id });
+    } else {
+      navigation.navigate('MapTracking', {
+        orderCode: order.orderCode || undefined,
+        customerName: order.customerName || undefined,
+        destination: order.deliveryAddress || undefined,
+        jobLatitude: orderDetails?.order_location?.latitude ? String(orderDetails.order_location.latitude) : undefined,
+        jobLongitude: orderDetails?.order_location?.longitude ? String(orderDetails.order_location.longitude) : undefined,
+        plantName: orderDetails?.plant_details?.description || undefined,
+        plantCode: orderDetails?.plant_details?.code || undefined,
+        plantLatitude: orderDetails?.plant_details?.latitude ? String(orderDetails.plant_details.latitude) : undefined,
+        plantLongitude: orderDetails?.plant_details?.longitude ? String(orderDetails.plant_details.longitude) : undefined,
+      });
+    }
+  }, [navigation, order, orderDetails]);
 
   const handleWeatherPress = useCallback(() => {
     navigation.navigate('Weather', {
@@ -2376,31 +2449,37 @@ export const OrderDetailsScreen: React.FC = () => {
 
           {/* Quick Actions Menu */}
           <View style={[styles.quickActionsCard, { backgroundColor: themeColors.card }, SHADOWS.sm]}>
-            <TouchableOpacity
-              style={styles.quickActionItem}
-              onPress={handleTicketPress}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: colors.primary.main + '15' }]}>
-                <Icon name="ticket-outline" size={20} color={colors.primary.main} />
-              </View>
-              <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>Tickets</Text>
-            </TouchableOpacity>
+            {orderDetails?.can_ticketed && (
+              <>
+                <TouchableOpacity
+                  style={styles.quickActionItem}
+                  onPress={handleTicketPress}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.quickActionIcon, { backgroundColor: colors.primary.main + '15' }]}>
+                    <Icon name="ticket-outline" size={20} color={colors.primary.main} />
+                  </View>
+                  <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>Tickets</Text>
+                </TouchableOpacity>
+                <View style={[styles.quickActionDivider, { backgroundColor: themeColors.border }]} />
+              </>
+            )}
 
-            <View style={[styles.quickActionDivider, { backgroundColor: themeColors.border }]} />
-
-            <TouchableOpacity
-              style={styles.quickActionItem}
-              onPress={handleChatPress}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: colors.secondary.main + '15' }]}>
-                <Icon name="chat-outline" size={20} color={colors.secondary.main} />
-              </View>
-              <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>Chat</Text>
-            </TouchableOpacity>
-
-            <View style={[styles.quickActionDivider, { backgroundColor: themeColors.border }]} />
+            {orderDetails?.can_chat && (
+              <>
+                <TouchableOpacity
+                  style={styles.quickActionItem}
+                  onPress={handleChatPress}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.quickActionIcon, { backgroundColor: colors.secondary.main + '15' }]}>
+                    <Icon name="chat-outline" size={20} color={colors.secondary.main} />
+                  </View>
+                  <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>Chat</Text>
+                </TouchableOpacity>
+                <View style={[styles.quickActionDivider, { backgroundColor: themeColors.border }]} />
+              </>
+            )}
 
             <TouchableOpacity
               style={styles.quickActionItem}
@@ -2438,53 +2517,22 @@ export const OrderDetailsScreen: React.FC = () => {
             onCallPress={() => handleCall(jobData.plantPhone)}
           />
 
-          {jobData.pourSpeedRaw.hasData ? (
-            <TimeBasedChart
-              orderedData={jobData.pourSpeedRaw.ordered}
-              deliveredData={jobData.pourSpeedRaw.delivered}
-              pouredData={jobData.pourSpeedRaw.poured}
-              scheduleRate={jobData.pourSpeedRaw.scheduleRate}
-              yMax={jobData.pourSpeedRaw.yMax}
-              scheduledQty={jobData.orderedVolume}
-              isDark={isDark}
-            />
-          ) : (
-            <SmartChart
-              title="Pour Speed (CY/HR)"
-              data={pourSpeedChartData}
-              series={[
-                { key: 'delivered', color: colors.secondary.main, label: 'Delivered' },
-                { key: 'poured', color: colors.success.main, label: 'Poured' },
-                { key: 'ordered', color: colors.warning.main, label: 'Ordered' },
-              ]}
-              tooltipInfo={{ ordered: '18.5 CY/HR', spacing: '60 min' }}
-              isDark={isDark}
-              showPickPoint={true}
-              pickPointIndex={3}
-            />
-          )}
+          <TimeBasedChart
+            orderedData={jobData.pourSpeedRaw.ordered}
+            deliveredData={jobData.pourSpeedRaw.delivered}
+            pouredData={jobData.pourSpeedRaw.poured}
+            scheduleRate={jobData.pourSpeedRaw.scheduleRate}
+            yMax={jobData.pourSpeedRaw.yMax}
+            scheduledQty={jobData.orderedVolume}
+            isDark={isDark}
+          />
 
-          {jobData.trucksOnJobRaw.hasData ? (
-            <TrucksOnJobChart
-              timePoints={jobData.trucksOnJobRaw.timePoints}
-              averages={jobData.trucksOnJobRaw.averages}
-              isDark={isDark}
-            />
-          ) : (
-            <SmartChart
-              title="Trucks on the Job"
-              data={trucksChartData}
-              series={[
-                { key: 'trucks', color: colors.primary.main, label: 'Trucks' },
-                { key: 'spacing', color: colors.secondary.main, label: 'Spacing' },
-                { key: 'load', color: colors.success.main, label: 'Load' },
-              ]}
-              tooltipInfo={{ ordered: '13:52/HR', spacing: jobData.avgSpacing }}
-              isDark={isDark}
-              showPickPoint={true}
-              pickPointIndex={3}
-            />
-          )}
+          {/* Trucks on Job Chart - Always show with labels */}
+          <TrucksOnJobChart
+            timePoints={jobData.trucksOnJobRaw.timePoints}
+            averages={jobData.trucksOnJobRaw.averages}
+            isDark={isDark}
+          />
 
           <OrderCodeDetailsCard
             products={jobData.products}
