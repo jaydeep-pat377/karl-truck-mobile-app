@@ -188,67 +188,96 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           },
         ]}
       >
-        {!isOwnMessage && (
-          <View style={styles.avatarContainer}>
-            {isLastInGroup ? (
-              <View style={[styles.avatar, { backgroundColor: colors.secondary.main }]}>
-                <Text style={styles.avatarText}>{getInitials(message.sender_name)}</Text>
-              </View>
-            ) : (
-              <View style={styles.avatarPlaceholder} />
-            )}
+        {/* Sender name row - aligned with avatar */}
+        {isFirstInGroup && showSenderName && (
+          <View style={[
+            styles.senderNameRow,
+            isOwnMessage ? styles.senderNameRowOwn : styles.senderNameRowOther,
+          ]}>
+            <Text style={[
+              styles.senderName,
+              isOwnMessage ? styles.senderNameOwn : styles.senderNameOther,
+              { color: isOwnMessage ? colors.primary.main : colors.secondary.main },
+            ]}>
+              {isOwnMessage ? `${message.sender_name} (you)` : message.sender_name}
+            </Text>
           </View>
         )}
 
-        <View style={[styles.bubbleWrapper, isOwnMessage ? styles.ownBubbleWrapper : styles.otherBubbleWrapper]}>
-          {!isOwnMessage && isFirstInGroup && (
-            <Text style={[styles.senderName, { color: colors.secondary.main }]}>
-              {message.sender_name}
-            </Text>
-          )}
-          <View style={[styles.bubble, { backgroundColor: bubbleColor }, getBubbleRadius()]}>
-            {imageUrls.length > 0 && (
-              <View style={styles.imagesContainer}>
-                {imageUrls.map((imageUrl, index) => (
-                  <TouchableOpacity
-                    key={`${imageUrl}-${index}`}
-                    onPress={() => setSelectedImage(imageUrl)}
-                    activeOpacity={0.9}
-                  >
-                    {imageError.has(imageUrl) ? (
-                      <View style={[styles.imageError, { backgroundColor: isDark ? colors.chat.dark.inputBg : colors.semiTransparent.black05 }]}>
-                        <Icon name="image-off-outline" size={ms(28)} color={timeColor} />
-                      </View>
-                    ) : (
-                      <Image
-                        source={{ uri: imageUrl }}
-                        style={styles.messageImage}
-                        resizeMode="cover"
-                        onError={() => setImageError(prev => new Set(prev).add(imageUrl))}
-                      />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {message.content && message.content.trim().length > 0 && (
-              <Text style={[styles.content, { color: textColor }, imageUrls.length > 0 && styles.contentWithImage]}>
-                {message.content}
-              </Text>
-            )}
-
-            <View style={styles.metaRow}>
-              <Text style={[styles.time, { color: timeColor }]}>
-                {formatTime(message.created_at)}
-              </Text>
-              {isOwnMessage && (
-                <View style={styles.statusIcon}>
-                  {getDeliveryIcon()}
+        {/* Message row with avatar and bubble */}
+        <View style={[
+          styles.messageRow,
+          isOwnMessage ? styles.messageRowOwn : styles.messageRowOther,
+        ]}>
+          {!isOwnMessage && (
+            <View style={styles.avatarContainer}>
+              {isLastInGroup ? (
+                <View style={[styles.avatar, { backgroundColor: colors.secondary.main }]}>
+                  <Text style={styles.avatarText}>{getInitials(message.sender_name)}</Text>
                 </View>
+              ) : (
+                <View style={styles.avatarPlaceholder} />
               )}
             </View>
+          )}
+
+          <View style={[styles.bubbleWrapper, isOwnMessage ? styles.ownBubbleWrapper : styles.otherBubbleWrapper]}>
+            <View style={[styles.bubble, { backgroundColor: bubbleColor }, getBubbleRadius()]}>
+              {imageUrls.length > 0 && (
+                <View style={styles.imagesContainer}>
+                  {imageUrls.map((imageUrl, index) => (
+                    <TouchableOpacity
+                      key={`${imageUrl}-${index}`}
+                      onPress={() => setSelectedImage(imageUrl)}
+                      activeOpacity={0.9}
+                    >
+                      {imageError.has(imageUrl) ? (
+                        <View style={[styles.imageError, { backgroundColor: isDark ? colors.chat.dark.inputBg : colors.semiTransparent.black05 }]}>
+                          <Icon name="image-off-outline" size={ms(28)} color={timeColor} />
+                        </View>
+                      ) : (
+                        <Image
+                          source={{ uri: imageUrl }}
+                          style={styles.messageImage}
+                          resizeMode="cover"
+                          onError={() => setImageError(prev => new Set(prev).add(imageUrl))}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {message.content && message.content.trim().length > 0 && (
+                <Text style={[styles.content, { color: textColor }, imageUrls.length > 0 && styles.contentWithImage]}>
+                  {message.content}
+                </Text>
+              )}
+
+              <View style={styles.metaRow}>
+                <Text style={[styles.time, { color: timeColor }]}>
+                  {formatTime(message.created_at)}
+                </Text>
+                {isOwnMessage && (
+                  <View style={styles.statusIcon}>
+                    {getDeliveryIcon()}
+                  </View>
+                )}
+              </View>
+            </View>
           </View>
+
+          {isOwnMessage && (
+            <View style={styles.avatarContainerOwn}>
+              {isLastInGroup ? (
+                <View style={[styles.avatar, { backgroundColor: colors.primary.main }]}>
+                  <Text style={styles.avatarText}>{getInitials(message.sender_name)}</Text>
+                </View>
+              ) : (
+                <View style={styles.avatarPlaceholder} />
+              )}
+            </View>
+          )}
         </View>
       </Animated.View>
 
@@ -270,23 +299,50 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     marginBottom: ms(2),
-    paddingHorizontal: spacing.sm,
-    alignItems: 'flex-end',
+    width: '100%',
   },
   groupedContainer: {
     marginBottom: ms(1),
   },
   ownContainer: {
-    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
   },
   otherContainer: {
+    alignItems: 'flex-start',
+  },
+  senderNameRow: {
+    flexDirection: 'row',
+    marginBottom: ms(2),
+    paddingHorizontal: spacing.sm,
+  },
+  senderNameRowOwn: {
+    justifyContent: 'flex-end',
+    paddingRight: ms(38) + spacing.sm, // avatar width + margin + padding
+  },
+  senderNameRowOther: {
+    justifyContent: 'flex-start',
+    paddingLeft: ms(38) + spacing.sm, // avatar width + margin + padding
+  },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: spacing.sm,
+  },
+  messageRowOwn: {
+    justifyContent: 'flex-end',
+  },
+  messageRowOther: {
     justifyContent: 'flex-start',
   },
   avatarContainer: {
     width: ms(32),
     marginRight: ms(6),
+  },
+  avatarContainerOwn: {
+    width: ms(32),
+    marginLeft: ms(6),
   },
   avatar: {
     width: ms(28),
@@ -305,7 +361,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   bubbleWrapper: {
-    maxWidth: '80%',
+    maxWidth: '75%',
   },
   ownBubbleWrapper: {
     alignItems: 'flex-end',
@@ -316,8 +372,12 @@ const styles = StyleSheet.create({
   senderName: {
     fontSize: ms(12),
     fontWeight: '600',
-    marginBottom: ms(2),
-    marginLeft: ms(8),
+  },
+  senderNameOwn: {
+    textAlign: 'right',
+  },
+  senderNameOther: {
+    textAlign: 'left',
   },
   bubble: {
     paddingHorizontal: ms(12),
