@@ -185,19 +185,38 @@ export const normalizeStatus = (status: string): NormalizedStatus => {
 export const getStatusColor = (status: string, progress?: number): string => {
   const normalized = normalizeStatus(status);
 
-  // IN_PROCESS always shows green
+  // IN_PROCESS always shows green for label/shadow
   if (normalized === 'IN_PROCESS') {
-    return colors.success.main; // Always green for In Progress
+    return colors.success.main;
   }
 
-  // For COMPLETED, use performance-based color if progress is provided
-  if (normalized === 'COMPLETED' && progress !== undefined) {
-    const color = getPerformanceColor(progress);
-    return color;
+  // COMPLETED always shows green for label/shadow
+  if (normalized === 'COMPLETED') {
+    return colors.success.main;
   }
 
   const color = STATUS_COLOR_MAP[normalized] || DEFAULT_STATUS_COLOR;
   return color;
+};
+
+/**
+ * Get progress bar color based on status and progress
+ * For IN_PROCESS and COMPLETED: ≥90% → Green, 60%-<90% → Yellow, <60% → Red
+ * For other statuses: Use status-based color
+ * @param status - The status string
+ * @param progress - Progress percentage (0-100)
+ * @returns Color string for progress bar
+ */
+export const getProgressBarColor = (status: string, progress?: number): string => {
+  const normalized = normalizeStatus(status);
+
+  // For IN_PROCESS and COMPLETED, use performance-based color
+  if ((normalized === 'IN_PROCESS' || normalized === 'COMPLETED') && progress !== undefined) {
+    return getPerformanceColor(progress);
+  }
+
+  // For other statuses, use status-based color
+  return STATUS_COLOR_MAP[normalized] || DEFAULT_STATUS_COLOR;
 };
 
 /**

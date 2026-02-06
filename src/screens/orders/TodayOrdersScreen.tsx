@@ -489,7 +489,7 @@ export const TodayOrdersScreen: React.FC = () => {
 
       {isLoading ? (
         <View style={[styles.loadingWrap, { backgroundColor: themeColors.background }]}>
-          <TruckLoader size={80} message="Loading..." color={isDark ? 'light' : 'dark'} />
+          <TruckLoader size={120} message="Loading orders..." color={isDark ? 'light' : 'dark'} />
         </View>
       ) : (
         <FlatList

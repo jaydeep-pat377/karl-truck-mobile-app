@@ -264,16 +264,23 @@ interface TruckVisualProps {
 }
 
 const TruckVisual: React.FC<TruckVisualProps> = ({ isDark }) => {
-  const themeColors = isDark ? colors.dark : colors.light;
   const iconColor = isDark ? colors.ticket.ui.dark.accentBlue : colors.primary.main;
+  // Use subtle tinted backgrounds for better contrast on cards
+  const containerBgColor = isDark
+    ? `${colors.ticket.ui.dark.accentBlue}15` // Subtle blue tint for dark mode
+    : `${colors.primary.main}12`; // Subtle green tint for light mode
 
   return (
     <View
       style={[
         styles.truckVisualContainer,
         {
-          backgroundColor: themeColors.card,
-          shadowColor: isDark ? colors.common.shadow : colors.primary.main,
+          backgroundColor: containerBgColor,
+          shadowColor: isDark ? colors.ticket.ui.dark.accentBlue : colors.primary.main,
+          borderWidth: 1,
+          borderColor: isDark
+            ? `${colors.ticket.ui.dark.accentBlue}25`
+            : `${colors.primary.main}20`,
         },
       ]}>
       <View style={[styles.truckAccentLine, { backgroundColor: iconColor }]} />

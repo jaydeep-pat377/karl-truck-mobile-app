@@ -12,7 +12,7 @@ import { Text, Card, StatusBadge, WeatherBadge, Icon } from '../common';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms } from '../../utils/responsive';
-import { getStatusColor } from '../../utils/statusUtils';
+import { getStatusColor, getProgressBarColor } from '../../utils/statusUtils';
 
 interface OrderCardProps {
   order: any;
@@ -110,7 +110,11 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
   const progress = order.progress || 0;
 
+  // Status color for label and shadow (In Process/Completed = always green)
   const statusColor = getStatusColor(order.status, progress);
+
+  // Progress bar color (In Process/Completed = performance-based)
+  const progressBarColor = getProgressBarColor(order.status, progress);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -140,16 +144,17 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       style={[
         styles.card,
         {
-
+          // iOS colored shadow at bottom
           shadowColor: statusColor,
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: 0.35,
-          shadowRadius: 4,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.45,
+          shadowRadius: 6,
 
+          // Android: Use border to simulate colored shadow since elevation is always gray
           ...(Platform.OS === 'android' && {
-            elevation: 4,
-            borderBottomWidth: 2,
-            borderBottomColor: statusColor + '60',
+            elevation: 3,
+            borderBottomWidth: 3,
+            borderBottomColor: statusColor,
           }),
         },
       ]}>
@@ -243,14 +248,14 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                       styles.progressBarFill,
                       {
                         width: `${Math.min(progress, 100)}%`,
-                        backgroundColor: statusColor,
+                        backgroundColor: progressBarColor,
                       },
                     ]}
                   />
                 </View>
                 <Text
                   variant="captionSmall"
-                  style={[styles.progressPercent, { color: statusColor }]}>
+                  style={[styles.progressPercent, { color: progressBarColor }]}>
                   {progress}%
                 </Text>
               </View>
@@ -362,8 +367,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     borderRadius: ms(10),
-
+    // Allow shadow to be visible on iOS, but clip content on Android for proper border radius
     overflow: Platform.OS === 'ios' ? 'visible' : 'hidden',
+    // Ensure bottom margin for shadow visibility
+    marginBottom: Platform.OS === 'ios' ? 4 : 2,
   },
   cardInnerContainer: {
     borderRadius: ms(10),

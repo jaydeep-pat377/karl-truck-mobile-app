@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import { fontFamily } from '../../theme/typography';
 import { colors } from '../../theme/colors';
+import { ms } from '../../utils/responsive';
 import YellowTruck from '../../assets/svgs/yellowTruck.svg';
 
 interface TruckLoaderProps {
@@ -273,31 +274,40 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    padding: ms(20),
   },
   truckContainer: {
-    marginBottom: 8,
+    marginBottom: ms(8),
     position: 'relative',
   },
   roadLine: {
     borderBottomWidth: 2,
     borderStyle: 'dashed',
-    marginBottom: 16,
+    marginBottom: ms(16),
   },
   message: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontFamily: fontFamily.medium,
-    marginTop: 8,
+    marginTop: ms(8),
+    textAlign: 'center',
+    ...Platform.select({
+      ios: { lineHeight: ms(22) },
+      android: {},
+    }),
   },
   dotsContainer: {
     flexDirection: 'row',
-    marginTop: 8,
-    gap: 6,
+    marginTop: ms(8),
+    ...Platform.select({
+      ios: {},
+      android: { gap: 6 },
+    }),
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: ms(8),
+    height: ms(8),
+    borderRadius: ms(4),
+    marginHorizontal: Platform.OS === 'ios' ? ms(3) : 0,
   },
   wheelOverlay: {
     position: 'absolute',

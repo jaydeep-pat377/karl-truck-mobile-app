@@ -26,6 +26,7 @@ import { useDashboard } from '../../hooks/useDashboard';
 import { useOrders } from '../../hooks/useOrders';
 import { notificationService } from '../../services/notificationService';
 import { updateWidgetData } from '../../modules/TodayOverviewWidget';
+import { getProgressBarColor } from '../../utils/statusUtils';
 
 interface KPIData {
   id: string;
@@ -755,13 +756,10 @@ const DashboardScreen: React.FC = () => {
 
     const formatQty = (qty: number) => qty % 1 === 0 ? qty.toString() : qty.toFixed(1);
 
-    const getProgressColor = (percent: number) => {
-      if (percent >= 80) return colors.success.main;
-      if (percent >= 50) return colors.warning.main;
-      return colors.primary.main;
-    };
-
-    const progressColor = getProgressColor(progressPercent);
+    // Use status-based progress bar color
+    // In Process/Completed: ≥90% Green, 60%-<90% Yellow, <60% Red
+    // Other statuses: Status-based color
+    const progressColor = getProgressBarColor(item.status, progressPercent);
 
     return (
       <TouchableOpacity

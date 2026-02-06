@@ -341,8 +341,17 @@ const DetailRow: React.FC<DetailRowProps> = ({ label, value, icon, iconColor, is
           style={styles.detailIcon}
         />
       )}
-      <Text style={[styles.detailLabel, { color: labelColor }]}>{label}</Text>
-      <Text style={[styles.detailValue, { color: valueColor }]}>{value}</Text>
+      <Text
+        style={[styles.detailLabel, { color: labelColor }]}
+        numberOfLines={1}>
+        {label}
+      </Text>
+      <Text
+        style={[styles.detailValue, { color: valueColor }]}
+        numberOfLines={2}
+        ellipsizeMode="tail">
+        {value}
+      </Text>
     </View>
   );
 };
@@ -477,11 +486,16 @@ const QuickAction: React.FC<QuickActionProps> = ({ icon, label, color, onPress, 
         },
       ]}
       onPress={onPress}
-      activeOpacity={0.7}>
+      activeOpacity={0.7}
+      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
       <View style={[styles.quickActionIcon, { backgroundColor: `${color}15` }]}>
         <Icon name={icon} size={ms(20)} color={color} />
       </View>
-      <Text style={[styles.quickActionLabel, { color: labelColor }]}>{label}</Text>
+      <Text
+        style={[styles.quickActionLabel, { color: labelColor }]}
+        numberOfLines={1}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 };
@@ -706,17 +720,22 @@ export const TicketDetailScreen: React.FC = () => {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <StatusBar barStyle="light-content" backgroundColor={headerGradient[0]} />
-        <LinearGradient colors={headerGradient} style={[styles.header, { paddingTop: insets.top }]}>
+        <View style={[styles.headerContainer, styles.headerContainerLoading, { paddingTop: insets.top }]}>
+          <LinearGradient colors={headerGradient} style={StyleSheet.absoluteFill} />
           <View style={styles.headerBar}>
-            <TouchableOpacity style={styles.headerBtn} onPress={handleBack} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.headerBtn}
+              onPress={handleBack}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
             </TouchableOpacity>
             <View style={styles.headerTitleSection}>
               <Text style={styles.headerTitle}>Ticket Details</Text>
             </View>
-            <View style={styles.headerBtn} />
+            <View style={styles.headerBtnPlaceholder} />
           </View>
-        </LinearGradient>
+        </View>
         <View style={styles.loadingContainer} pointerEvents="box-none">
           <TruckLoader size={120} message="Loading ticket details..." color={isDark ? 'light' : 'dark'} />
         </View>
@@ -738,17 +757,22 @@ export const TicketDetailScreen: React.FC = () => {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <StatusBar barStyle="light-content" backgroundColor={headerGradient[0]} />
-        <LinearGradient colors={headerGradient} style={[styles.header, { paddingTop: insets.top }]}>
+        <View style={[styles.headerContainer, styles.headerContainerLoading, { paddingTop: insets.top }]}>
+          <LinearGradient colors={headerGradient} style={StyleSheet.absoluteFill} />
           <View style={styles.headerBar}>
-            <TouchableOpacity style={styles.headerBtn} onPress={handleBack} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.headerBtn}
+              onPress={handleBack}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
             </TouchableOpacity>
             <View style={styles.headerTitleSection}>
               <Text style={styles.headerTitle}>Ticket Details</Text>
             </View>
-            <View style={styles.headerBtn} />
+            <View style={styles.headerBtnPlaceholder} />
           </View>
-        </LinearGradient>
+        </View>
         <View style={styles.emptyStateContainer}>
           <View
             style={[
@@ -801,83 +825,85 @@ export const TicketDetailScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={headerGradient[0]} />
 
-      <LinearGradient
-        colors={headerGradient}
-        style={[styles.header, { paddingTop: insets.top }]}>
-
-        <View style={styles.headerBar}>
-          <TouchableOpacity
-            style={styles.headerBtn}
-            onPress={handleBack}
-            activeOpacity={0.7}>
-            <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
-          </TouchableOpacity>
-          <View style={styles.headerTitleSection}>
-            <Text style={styles.headerTitle}>Ticket Details</Text>
-            {apiOrderCode && (
-              <Text style={styles.headerSubtitle}>Order #{apiOrderCode}</Text>
-            )}
-          </View>
-          <View style={{ width: ms(40) }} />
-        </View>
-
-        <View style={styles.heroSection}>
-          <View style={styles.heroLeft}>
-            <View style={styles.ticketNumberRow}>
-              <Icon name="ticket-confirmation" size={ms(16)} color={colors.headerOverlay.textBright} />
-              <Text style={styles.ticketLabel}>TICKET</Text>
-            </View>
-            <Text style={styles.ticketNumber}>{apiTicketCode}</Text>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                alignSelf: 'flex-start',
-                backgroundColor: headerBadgeColors.bgColor,
-                paddingVertical: ms(5),
-                paddingHorizontal: ms(12),
-                borderRadius: ms(16),
-              }}>
-              <Icon name={statusInfo.icon} size={ms(14)} color={headerBadgeColors.iconColor} />
-              <AppText
-                style={{
-                  fontFamily: fontFamily.semiBold,
-                  fontSize: ms(12),
-                  color: headerBadgeColors.textColor,
-                  marginLeft: ms(6),
-                }}>
-                {statusInfo.label}
-              </AppText>
-            </View>
-          </View>
-          <View style={styles.heroRight}>
-
-            {etaAtJob && currentStatus !== 'at_plant' && (
-              <View style={styles.etaBadge}>
-                <Text style={styles.etaLabel}>ETA</Text>
-                <Text style={styles.etaValue}>{etaAtJob}</Text>
-              </View>
-            )}
-            <View style={styles.truckIconContainer}>
-              <Icon name="truck-delivery" size={ms(44)} color={colors.headerOverlay.textBrightest} />
-            </View>
-          </View>
-        </View>
-      </LinearGradient>
-
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        style={styles.fullScreenScrollView}
+        contentContainerStyle={[
+          styles.fullScreenScrollContent,
+          { paddingBottom: Math.max(vs(40), insets.bottom + GRID.xl) },
+        ]}
         showsVerticalScrollIndicator={false}
+        bounces={true}
+        overScrollMode="always"
+        keyboardShouldPersistTaps="handled"
+        contentInsetAdjustmentBehavior="never"
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor={colors.primary.main}
-            colors={[colors.primary.main, colors.secondary.main]}
-            progressBackgroundColor={isDark ? themeColors.cardElevated : colors.common.white}
+            tintColor={colors.common.white}
+            colors={[colors.common.white, colors.secondary.light]}
+            progressBackgroundColor={colors.primary.main}
+            progressViewOffset={insets.top + ms(40)}
           />
         }>
+        <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
+          <LinearGradient
+            colors={headerGradient}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.headerBar}>
+            <TouchableOpacity
+              style={styles.headerBtn}
+              onPress={handleBack}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
+            </TouchableOpacity>
+            <View style={styles.headerTitleSection}>
+              <Text style={styles.headerTitle}>Ticket Details</Text>
+              {apiOrderCode && (
+                <Text style={styles.headerSubtitle}>Order #{apiOrderCode}</Text>
+              )}
+            </View>
+            <View style={styles.headerBtnPlaceholder} />
+          </View>
+
+          <View style={styles.heroSection}>
+            <View style={styles.heroLeft}>
+              <View style={styles.ticketNumberRow}>
+                <Icon name="ticket-confirmation" size={ms(16)} color={colors.headerOverlay.textBright} />
+                <Text style={styles.ticketLabel}>TICKET</Text>
+              </View>
+              <Text
+                style={styles.ticketNumber}
+                numberOfLines={1}
+                ellipsizeMode="tail">
+                {apiTicketCode || '---'}
+              </Text>
+              <View style={[styles.statusBadgeInline, { backgroundColor: headerBadgeColors.bgColor }]}>
+                <Icon name={statusInfo.icon} size={ms(14)} color={headerBadgeColors.iconColor} />
+                <AppText
+                  numberOfLines={1}
+                  style={[styles.statusBadgeText, { color: headerBadgeColors.textColor }]}>
+                  {statusInfo.label}
+                </AppText>
+              </View>
+            </View>
+            <View style={styles.heroRight}>
+              {etaAtJob && currentStatus !== 'at_plant' && (
+                <View style={styles.etaBadge}>
+                  <Text style={styles.etaLabel}>ETA</Text>
+                  <Text style={styles.etaValue}>{etaAtJob}</Text>
+                </View>
+              )}
+              <View style={styles.truckIconContainer}>
+                <Icon name="truck-delivery" size={ms(44)} color={colors.headerOverlay.textBrightest} />
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.scrollContentWrapper}>
 
         <View style={styles.quickActionsRow}>
           <QuickAction
@@ -1060,16 +1086,22 @@ export const TicketDetailScreen: React.FC = () => {
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={handleTrackTruck}
-            activeOpacity={0.8}>
-            <LinearGradient
-              colors={headerGradient}
-              style={styles.primaryBtnGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}>
-              <Icon name="map-marker-radius" size={ms(20)} color={colors.common.white} />
-              <Text style={styles.primaryBtnText}>Track Truck on Map</Text>
-            </LinearGradient>
+            activeOpacity={0.8}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
+            <View style={styles.primaryBtnContainer}>
+              <LinearGradient
+                colors={headerGradient}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              />
+              <View style={styles.primaryBtnContent}>
+                <Icon name="map-marker-radius" size={ms(20)} color={colors.common.white} />
+                <Text style={styles.primaryBtnText}>Track Truck on Map</Text>
+              </View>
+            </View>
           </TouchableOpacity>
+        </View>
         </View>
       </ScrollView>
 
@@ -1242,28 +1274,27 @@ const styles = StyleSheet.create({
   },
   emptyStateActions: {
     flexDirection: 'row',
-    gap: GRID.md,
   },
   retryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: GRID.sm,
     backgroundColor: colors.primary.main,
     paddingHorizontal: GRID.lg,
     paddingVertical: GRID.md,
     borderRadius: RADIUS.md,
+    marginRight: GRID.sm,
   },
   retryBtnText: {
     fontFamily: fontFamily.semiBold,
     fontSize: ms(14),
     color: colors.common.white,
+    marginLeft: GRID.sm,
   },
   goBackBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: GRID.sm,
     paddingHorizontal: GRID.lg,
     paddingVertical: GRID.md,
     borderRadius: RADIUS.md,
@@ -1271,10 +1302,16 @@ const styles = StyleSheet.create({
   goBackBtnText: {
     fontFamily: fontFamily.medium,
     fontSize: ms(14),
+    marginLeft: GRID.sm,
   },
 
-  header: {
+  headerContainer: {
+    // Container for header with gradient background
     paddingBottom: GRID.lg,
+  },
+  headerContainerLoading: {
+    // Simpler header for loading/error states
+    paddingBottom: GRID.md,
   },
   headerBar: {
     flexDirection: 'row',
@@ -1283,6 +1320,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: GRID.md,
     paddingTop: GRID.sm,
     marginBottom: GRID.sm,
+    minHeight: ms(44), // iOS minimum touch target
   },
   headerBtn: {
     width: ms(40),
@@ -1292,39 +1330,56 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerBtnPlaceholder: {
+    width: ms(40),
+    height: ms(40),
+  },
   headerTitleSection: {
     alignItems: 'center',
+    flex: 1,
+    paddingHorizontal: GRID.sm,
   },
   headerTitle: {
     fontFamily: fontFamily.semiBold,
     fontSize: ms(17),
     color: colors.common.white,
+    ...Platform.select({
+      ios: { lineHeight: ms(22) },
+      android: {},
+    }),
   },
   headerSubtitle: {
     fontFamily: fontFamily.regular,
     fontSize: ms(11),
     color: colors.headerOverlay.text,
     marginTop: ms(2),
+    ...Platform.select({
+      ios: { lineHeight: ms(14) },
+      android: {},
+    }),
   },
 
   heroSection: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: GRID.lg,
+    paddingTop: GRID.sm,
+    paddingBottom: GRID.md,
+    minHeight: ms(100), // Ensure minimum height for content
   },
   heroLeft: {
     flex: 1,
-    marginRight: GRID.sm,
-    minWidth: 0,
+    marginRight: GRID.md,
   },
   heroRight: {
     alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: GRID.xs,
   },
   ticketNumberRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: GRID.xs,
     marginBottom: GRID.xs,
   },
   ticketLabel: {
@@ -1332,12 +1387,38 @@ const styles = StyleSheet.create({
     fontSize: ms(10),
     color: colors.headerOverlay.text,
     letterSpacing: 1,
+    marginLeft: GRID.xs,
+    ...Platform.select({
+      ios: { lineHeight: ms(12) },
+      android: {},
+    }),
   },
   ticketNumber: {
     fontFamily: fontFamily.bold,
     fontSize: ms(28),
     color: colors.common.white,
     marginBottom: GRID.sm,
+    ...Platform.select({
+      ios: { lineHeight: ms(34) },
+      android: {},
+    }),
+  },
+  statusBadgeInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: ms(5),
+    paddingHorizontal: ms(12),
+    borderRadius: ms(16),
+  },
+  statusBadgeText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+    marginLeft: ms(6),
+    ...Platform.select({
+      ios: { lineHeight: ms(16) },
+      android: {},
+    }),
   },
   statusBadge: {
     flexDirection: 'row',
@@ -1381,29 +1462,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
+  fullScreenScrollView: {
+    flex: 1,
+  },
+  fullScreenScrollContent: {
+    flexGrow: 1,
+  },
+  scrollContentWrapper: {
+    padding: GRID.md,
+    flexGrow: 1,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: GRID.md,
-    paddingBottom: vs(40),
+    flexGrow: 1,
   },
 
   quickActionsRow: {
     flexDirection: 'row',
     marginBottom: GRID.md,
-    gap: GRID.sm,
+    ...Platform.select({
+      ios: {},
+      android: { gap: GRID.sm },
+    }),
   },
   quickAction: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: GRID.md,
+    paddingHorizontal: GRID.xs,
     borderRadius: RADIUS.md,
-    shadowColor: colors.common.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    marginHorizontal: Platform.OS === 'ios' ? GRID.xs / 2 : 0,
+    minHeight: ms(80), // iOS minimum touch target
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.common.black,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   quickActionIcon: {
     width: ms(40),
@@ -1416,17 +1519,28 @@ const styles = StyleSheet.create({
   quickActionLabel: {
     fontFamily: fontFamily.medium,
     fontSize: ms(10),
+    textAlign: 'center',
+    ...Platform.select({
+      ios: { lineHeight: ms(14) },
+      android: {},
+    }),
   },
 
   progressCard: {
     borderRadius: RADIUS.lg,
     padding: GRID.md,
     marginBottom: GRID.md,
-    shadowColor: colors.common.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.common.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   progressCardHeader: {
     flexDirection: 'row',
@@ -1437,11 +1551,11 @@ const styles = StyleSheet.create({
   progressTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: GRID.sm,
   },
   progressCardTitle: {
     fontFamily: fontFamily.semiBold,
     fontSize: ms(14),
+    marginLeft: GRID.sm,
   },
   progressBadge: {
     paddingVertical: GRID.xs - 2,
@@ -1491,11 +1605,17 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     padding: GRID.md,
     marginBottom: GRID.md,
-    shadowColor: colors.common.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.common.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1517,25 +1637,36 @@ const styles = StyleSheet.create({
 
   detailRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingVertical: GRID.sm,
+    minHeight: ms(36), // Ensure minimum touch area
   },
   detailRowBorder: {
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   detailIcon: {
     marginRight: GRID.sm,
+    marginTop: Platform.OS === 'ios' ? ms(2) : 0,
   },
   detailLabel: {
     fontFamily: fontFamily.regular,
     fontSize: ms(12),
-    flex: 1,
+    flexShrink: 0,
+    marginRight: GRID.sm,
+    ...Platform.select({
+      ios: { lineHeight: ms(18) },
+      android: {},
+    }),
   },
   detailValue: {
     fontFamily: fontFamily.medium,
     fontSize: ms(13),
     textAlign: 'right',
-    maxWidth: '60%',
+    flex: 1,
+    ...Platform.select({
+      ios: { lineHeight: ms(18) },
+      android: {},
+    }),
   },
 
   mapPreview: {
@@ -1555,14 +1686,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: GRID.sm,
     marginTop: GRID.md,
     paddingVertical: GRID.sm,
+    paddingHorizontal: GRID.md,
     borderRadius: RADIUS.md,
+    minHeight: ms(44), // iOS minimum touch target
   },
   callCustomerText: {
     fontFamily: fontFamily.medium,
     fontSize: ms(13),
+    marginLeft: GRID.sm,
   },
 
   verticalTimeline: {},
@@ -1585,10 +1718,16 @@ const styles = StyleSheet.create({
   },
   timelineIconActive: {
     transform: [{ scale: 1.1 }],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   timelineVerticalLine: {
     width: ms(2),
@@ -1608,10 +1747,18 @@ const styles = StyleSheet.create({
   timelineStepLabel: {
     fontFamily: fontFamily.medium,
     fontSize: ms(12),
+    ...Platform.select({
+      ios: { lineHeight: ms(16) },
+      android: {},
+    }),
   },
   timelineTime: {
     fontFamily: fontFamily.regular,
     fontSize: ms(10),
+    ...Platform.select({
+      ios: { lineHeight: ms(14) },
+      android: {},
+    }),
   },
   activeIndicator: {
     flexDirection: 'row',
@@ -1631,41 +1778,83 @@ const styles = StyleSheet.create({
 
   actionSection: {
     marginTop: GRID.sm,
+    marginBottom: GRID.md,
   },
   primaryBtn: {
     borderRadius: RADIUS.md,
     overflow: 'hidden',
-    marginBottom: GRID.md,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary.dark,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
-  primaryBtnGradient: {
+  primaryBtnContainer: {
+    minHeight: ms(52),
+    borderRadius: RADIUS.md,
+    overflow: 'hidden',
+  },
+  primaryBtnContent: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: GRID.sm,
     paddingVertical: GRID.lg,
+    paddingHorizontal: GRID.md,
+    minHeight: ms(52),
+  },
+  primaryBtnGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: GRID.lg,
+    paddingHorizontal: GRID.md,
+    minHeight: ms(52),
   },
   primaryBtnText: {
     fontFamily: fontFamily.semiBold,
     fontSize: ms(15),
     color: colors.common.white,
+    marginLeft: GRID.sm,
+    ...Platform.select({
+      ios: { lineHeight: ms(20) },
+      android: {},
+    }),
   },
   secondaryBtnsRow: {
     flexDirection: 'row',
-    gap: GRID.md,
+    ...Platform.select({
+      ios: {},
+      android: { gap: GRID.md },
+    }),
   },
   secondaryBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: GRID.sm,
     paddingVertical: GRID.md,
+    paddingHorizontal: GRID.sm,
     borderRadius: RADIUS.md,
-    shadowColor: colors.common.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    marginHorizontal: Platform.OS === 'ios' ? GRID.xs / 2 : 0,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.common.black,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   secondaryBtnText: {
     fontFamily: fontFamily.medium,
@@ -1683,11 +1872,17 @@ const styles = StyleSheet.create({
   directionsMenuContent: {
     borderTopLeftRadius: RADIUS.xl,
     borderTopRightRadius: RADIUS.xl,
-    shadowColor: colors.common.black,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.common.black,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 20,
+      },
+    }),
   },
   directionsMenuHandle: {
     alignItems: 'center',
@@ -1707,13 +1902,13 @@ const styles = StyleSheet.create({
   },
   directionsMenuOptions: {
     paddingHorizontal: GRID.md,
-    gap: GRID.sm,
   },
   directionsMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: GRID.md,
     borderRadius: RADIUS.md,
+    marginBottom: GRID.sm,
   },
   directionsMenuIconBox: {
     width: ms(48),
