@@ -26,25 +26,22 @@ export type GradientCardVariant =
 
 interface GradientCardProps {
   children: React.ReactNode;
-  /** Gradient color scheme variant */
+
   variant?: GradientCardVariant;
-  /** Direction of the gradient flow */
+
   direction?: GradientCardDirection;
-  /** Custom gradient colors (overrides variant) */
+
   customColors?: string[];
-  /** Additional styles for the container */
+
   style?: StyleProp<ViewStyle>;
-  /** Border radius for the card corners */
+
   borderRadius?: number;
-  /** Whether to add shadow to the card */
+
   withShadow?: boolean;
-  /** Opacity of the gradient overlay (0-1), useful for subtle effects */
+
   gradientOpacity?: number;
 }
 
-/**
- * Returns gradient start/end points based on direction
- */
 const getGradientPoints = (direction: GradientCardDirection) => {
   switch (direction) {
     case 'horizontal':
@@ -59,10 +56,6 @@ const getGradientPoints = (direction: GradientCardDirection) => {
   }
 };
 
-/**
- * Gets theme-appropriate gradient colors for cards
- * Card gradients are intentionally subtle to not overpower content
- */
 const getCardGradientColors = (
   variant: GradientCardVariant,
   isDark: boolean
@@ -71,46 +64,33 @@ const getCardGradientColors = (
 
   switch (variant) {
     case 'primary':
-      // Subtle primary tint - good for highlighted/featured cards
+
       return isDark
         ? [`${colors.primary.dark}15`, `${colors.primary.main}08`]
         : [`${colors.primary.light}20`, `${colors.primary.main}08`];
     case 'primarySubtle':
-      // Very subtle primary - almost imperceptible but adds depth
+
       return themeGradients.primarySubtle;
     case 'secondary':
-      // Subtle secondary/accent tint
+
       return isDark
         ? [`${colors.secondary.dark}15`, `${colors.secondary.main}08`]
         : [`${colors.secondary.light}20`, `${colors.secondary.main}08`];
     case 'secondarySubtle':
-      // Very subtle secondary
+
       return themeGradients.secondarySubtle;
     case 'accent':
-      // Combined accent gradient for special emphasis
+
       return isDark
         ? [`${colors.primary.main}12`, `${colors.secondary.main}08`]
         : [`${colors.primary.light}15`, `${colors.secondary.light}10`];
     case 'surface':
     default:
-      // Neutral surface gradient - enhances depth without color
+
       return themeGradients.surface;
   }
 };
 
-/**
- * GradientCard Component
- *
- * A reusable card component with gradient background.
- * Designed for subtle, professional gradient effects on card surfaces.
- *
- * Usage:
- * ```tsx
- * <GradientCard variant="primarySubtle" direction="diagonal">
- *   <Text>Card content</Text>
- * </GradientCard>
- * ```
- */
 export const GradientCard: React.FC<GradientCardProps> = memo(({
   children,
   variant = 'surface',
@@ -147,7 +127,6 @@ export const GradientCard: React.FC<GradientCardProps> = memo(({
     }),
   }), [borderRadius, withShadow, isDark]);
 
-  // If gradient opacity is less than 1, we need to render with an overlay approach
   if (gradientOpacity < 1) {
     const themeColors = isDark ? colors.dark : colors.light;
     return (

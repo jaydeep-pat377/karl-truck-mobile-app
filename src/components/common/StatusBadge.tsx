@@ -1,8 +1,3 @@
-/**
- * StatusBadge Component
- * Polished, color-coded status indicator badges with subtle backgrounds
- * and strong, readable text colors.
- */
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
@@ -58,15 +53,14 @@ const statusIcons: Record<string, string> = {
   RETURNING: 'keyboard-return',
 };
 
-// Status color configuration with text and background opacity
 interface StatusColorConfig {
   text: string;
-  textDark: string; // Text color for dark mode (usually same or slightly adjusted)
-  bgOpacity: number; // Background opacity (0.08 - 0.12)
+  textDark: string;
+  bgOpacity: number;
 }
 
 const statusColors: Record<string, StatusColorConfig> = {
-  // Red statuses - Delayed, Cancelled
+
   DELAYED: {
     text: colors.statusBadge.red.text,
     textDark: colors.statusBadge.red.textDark,
@@ -77,49 +71,49 @@ const statusColors: Record<string, StatusColorConfig> = {
     textDark: colors.statusBadge.red.textDark,
     bgOpacity: 0.1,
   },
-  // Orange/Amber statuses - Pre-Pour
+
   PRE_POUR: {
     text: colors.statusBadge.amber.text,
     textDark: colors.statusBadge.amber.textDark,
     bgOpacity: 0.1,
   },
-  // Yellow status - Will Call
+
   WILL_CALL: {
     text: colors.statusBadge.yellow.text,
     textDark: colors.statusBadge.yellow.textDark,
     bgOpacity: 0.12,
   },
-  // Blue status - Weather Permitting
+
   WEATHER_PERMITTING: {
     text: colors.statusBadge.blue.text,
     textDark: colors.statusBadge.blue.textDark,
     bgOpacity: 0.1,
   },
-  // Green statuses - Completed
+
   COMPLETED: {
     text: colors.statusBadge.green.text,
     textDark: colors.statusBadge.green.textDark,
     bgOpacity: 0.1,
   },
-  // Green status - In Progress
+
   IN_PROCESS: {
     text: colors.statusBadge.green.text,
     textDark: colors.statusBadge.green.textDark,
     bgOpacity: 0.1,
   },
-  // Blue status - On Site
+
   ONSIT: {
     text: colors.statusBadge.blue.text,
     textDark: colors.statusBadge.blue.textDark,
     bgOpacity: 0.1,
   },
-  // Green status - Normal
+
   NORMAL: {
     text: colors.statusBadge.green.text,
     textDark: colors.statusBadge.green.textDark,
     bgOpacity: 0.1,
   },
-  // Purple statuses - En Route, Dispatched
+
   ENRT: {
     text: colors.statusBadge.purple.text,
     textDark: colors.statusBadge.purple.textDark,
@@ -130,13 +124,13 @@ const statusColors: Record<string, StatusColorConfig> = {
     textDark: colors.statusBadge.purple.textDark,
     bgOpacity: 0.1,
   },
-  // Red status - Hold
+
   HOLD: {
     text: colors.statusBadge.red.text,
     textDark: colors.statusBadge.red.textDark,
     bgOpacity: 0.1,
   },
-  // Gray status - Wait List
+
   WAIT_LIST: {
     text: colors.statusBadge.gray.text,
     textDark: colors.statusBadge.gray.textDark,
@@ -160,7 +154,6 @@ const defaultColorConfig: StatusColorConfig = {
   bgOpacity: 0.1,
 };
 
-// Helper to convert hex to rgba
 const hexToRgba = (hex: string, alpha: number): string => {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);

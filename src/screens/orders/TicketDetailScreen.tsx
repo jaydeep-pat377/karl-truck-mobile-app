@@ -26,11 +26,9 @@ import { ApiTicketStatus } from '../../types/ticket';
 
 type TicketDetailRouteProp = RouteProp<RootStackParamList, 'TicketDetail'>;
 
-// Design constants
 const GRID = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 };
 const RADIUS = { sm: 8, md: 12, lg: 16, xl: 24 };
 
-// Gradient colors for light/dark theme (green for both themes)
 const HEADER_GRADIENT_LIGHT = [colors.primary.dark, colors.primary.main, colors.primary.light];
 const HEADER_GRADIENT_DARK = [colors.primary.dark, colors.primary.main, colors.primary.light];
 
@@ -42,7 +40,6 @@ interface StatusConfig {
   progressStep: number;
 }
 
-// Header badge colors - designed to be visible on green gradient header
 interface HeaderBadgeColors {
   bgColor: string;
   textColor: string;
@@ -50,7 +47,7 @@ interface HeaderBadgeColors {
 }
 
 const getHeaderBadgeColors = (status: ApiTicketStatus, isDark: boolean): HeaderBadgeColors => {
-  // Colors designed to be visible on green gradient header - using centralized theme colors
+
   const statusColors: Record<ApiTicketStatus, HeaderBadgeColors> = {
     pending: {
       bgColor: colors.ticketBadge.pending.bg,
@@ -112,83 +109,82 @@ const getHeaderBadgeColors = (status: ApiTicketStatus, isDark: boolean): HeaderB
   return statusColors[status] || statusColors.pending;
 };
 
-// Status config matching API statuses - matching OrderTrackingScreen colors
 const STATUS_CONFIG_LIGHT: Record<ApiTicketStatus, StatusConfig> = {
   pending: {
     label: 'PENDING',
     icon: 'clock-outline',
-    color: '#9E9E9E',
-    bgColor: '#9E9E9E15',
+    color: colors.trackingStatus.ticketed,
+    bgColor: `${colors.trackingStatus.ticketed}15`,
     progressStep: 0,
   },
   ticketed: {
     label: 'TICKETED',
     icon: 'ticket-outline',
-    color: '#9E9E9E',
-    bgColor: '#9E9E9E15',
+    color: colors.trackingStatus.ticketed,
+    bgColor: `${colors.trackingStatus.ticketed}15`,
     progressStep: 1,
   },
   loading: {
     label: 'LOADING',
     icon: 'truck-loading',
-    color: '#8BC34A',
-    bgColor: '#8BC34A15',
+    color: colors.trackingStatus.loading,
+    bgColor: `${colors.trackingStatus.loading}15`,
     progressStep: 2,
   },
   loaded: {
     label: 'LOADED',
     icon: 'truck-check',
-    color: '#2E7D32',
-    bgColor: '#2E7D3215',
+    color: colors.trackingStatus.loaded,
+    bgColor: `${colors.trackingStatus.loaded}15`,
     progressStep: 3,
   },
   to_job: {
     label: 'TO JOB',
     icon: 'truck-fast',
-    color: '#2E7D32',
-    bgColor: '#2E7D3215',
+    color: colors.trackingStatus.toJob,
+    bgColor: `${colors.trackingStatus.toJob}15`,
     progressStep: 4,
   },
   at_job: {
     label: 'AT JOB',
     icon: 'map-marker-check',
-    color: '#64B5F6',
-    bgColor: '#64B5F615',
+    color: colors.trackingStatus.atJob,
+    bgColor: `${colors.trackingStatus.atJob}15`,
     progressStep: 5,
   },
   pouring: {
     label: 'POURING',
     icon: 'water',
-    color: '#1565C0',
-    bgColor: '#1565C015',
+    color: colors.trackingStatus.pouring,
+    bgColor: `${colors.trackingStatus.pouring}15`,
     progressStep: 6,
   },
   washing: {
     label: 'WASHING',
     icon: 'water-pump',
-    color: '#C62828',
-    bgColor: '#C6282815',
+    color: colors.trackingStatus.washing,
+    bgColor: `${colors.trackingStatus.washing}15`,
     progressStep: 7,
   },
   to_plant: {
     label: 'TO PLANT',
     icon: 'truck-delivery',
-    color: '#EC407A',
-    bgColor: '#EC407A15',
+    color: colors.trackingStatus.toPlant,
+    bgColor: `${colors.trackingStatus.toPlant}15`,
     progressStep: 8,
   },
   at_plant: {
     label: 'AT PLANT',
     icon: 'factory',
-    color: '#EC407A',
-    bgColor: '#EC407A15',
+    color: colors.trackingStatus.atPlant,
+    bgColor: `${colors.trackingStatus.atPlant}15`,
     progressStep: 9,
   },
   cancelled: {
     label: 'CANCELLED',
     icon: 'close-circle',
-    color: '#EF4444',
-    bgColor: '#EF444415',
+    color: colors.trackingStatus.cancelled,
+    bgColor: `${colors.trackingStatus.cancelled}15`,
     progressStep: -1,
   },
 };
@@ -197,83 +193,82 @@ const STATUS_CONFIG_DARK: Record<ApiTicketStatus, StatusConfig> = {
   pending: {
     label: 'PENDING',
     icon: 'clock-outline',
-    color: '#9E9E9E',
-    bgColor: '#9E9E9E20',
+    color: colors.trackingStatus.ticketed,
+    bgColor: `${colors.trackingStatus.ticketed}20`,
     progressStep: 0,
   },
   ticketed: {
     label: 'TICKETED',
     icon: 'ticket-outline',
-    color: '#9E9E9E',
-    bgColor: '#9E9E9E20',
+    color: colors.trackingStatus.ticketed,
+    bgColor: `${colors.trackingStatus.ticketed}20`,
     progressStep: 1,
   },
   loading: {
     label: 'LOADING',
     icon: 'truck-loading',
-    color: '#8BC34A',
-    bgColor: '#8BC34A20',
+    color: colors.trackingStatus.loading,
+    bgColor: `${colors.trackingStatus.loading}20`,
     progressStep: 2,
   },
   loaded: {
     label: 'LOADED',
     icon: 'truck-check',
-    color: '#2E7D32',
-    bgColor: '#2E7D3220',
+    color: colors.trackingStatus.loaded,
+    bgColor: `${colors.trackingStatus.loaded}20`,
     progressStep: 3,
   },
   to_job: {
     label: 'TO JOB',
     icon: 'truck-fast',
-    color: '#2E7D32',
-    bgColor: '#2E7D3220',
+    color: colors.trackingStatus.toJob,
+    bgColor: `${colors.trackingStatus.toJob}20`,
     progressStep: 4,
   },
   at_job: {
     label: 'AT JOB',
     icon: 'map-marker-check',
-    color: '#64B5F6',
-    bgColor: '#64B5F620',
+    color: colors.trackingStatus.atJob,
+    bgColor: `${colors.trackingStatus.atJob}20`,
     progressStep: 5,
   },
   pouring: {
     label: 'POURING',
     icon: 'water',
-    color: '#1565C0',
-    bgColor: '#1565C020',
+    color: colors.trackingStatus.pouring,
+    bgColor: `${colors.trackingStatus.pouring}20`,
     progressStep: 6,
   },
   washing: {
     label: 'WASHING',
     icon: 'water-pump',
-    color: '#C62828',
-    bgColor: '#C6282820',
+    color: colors.trackingStatus.washing,
+    bgColor: `${colors.trackingStatus.washing}20`,
     progressStep: 7,
   },
   to_plant: {
     label: 'TO PLANT',
     icon: 'truck-delivery',
-    color: '#EC407A',
-    bgColor: '#EC407A20',
+    color: colors.trackingStatus.toPlant,
+    bgColor: `${colors.trackingStatus.toPlant}20`,
     progressStep: 8,
   },
   at_plant: {
     label: 'AT PLANT',
     icon: 'factory',
-    color: '#EC407A',
-    bgColor: '#EC407A20',
+    color: colors.trackingStatus.atPlant,
+    bgColor: `${colors.trackingStatus.atPlant}20`,
     progressStep: 9,
   },
   cancelled: {
     label: 'CANCELLED',
     icon: 'close-circle',
-    color: '#EF4444',
-    bgColor: '#EF444420',
+    color: colors.trackingStatus.cancelled,
+    bgColor: `${colors.trackingStatus.cancelled}20`,
     progressStep: -1,
   },
 };
 
-// Timeline steps matching API status flow
 const TIMELINE_STEPS = [
   { key: 'ticketed', label: 'Ticketed', icon: 'ticket-outline' },
   { key: 'loading', label: 'Loading', icon: 'truck-loading' },
@@ -286,7 +281,6 @@ const TIMELINE_STEPS = [
   { key: 'at_plant', label: 'At Plant', icon: 'factory' },
 ];
 
-// Section Card Component
 interface SectionCardProps {
   title: string;
   icon: string;
@@ -320,7 +314,6 @@ const SectionCard: React.FC<SectionCardProps> = ({ title, icon, iconColor, child
   );
 };
 
-// Detail Row Component
 interface DetailRowProps {
   label: string;
   value?: string | null;
@@ -354,7 +347,6 @@ const DetailRow: React.FC<DetailRowProps> = ({ label, value, icon, iconColor, is
   );
 };
 
-// Vertical Timeline Component
 interface VerticalTimelineProps {
   timestamps: {
     ticketed?: string | null;
@@ -462,7 +454,6 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, current
   );
 };
 
-// Quick Action Button Component
 interface QuickActionProps {
   icon: string;
   label: string;
@@ -503,12 +494,10 @@ export const TicketDetailScreen: React.FC = () => {
   const themeColors = isDark ? colors.dark : colors.light;
   const { alertState, showWarning, hideAlert } = useAlert();
 
-  // Bottom sheet state for directions menu
   const [showDirectionsMenu, setShowDirectionsMenu] = useState(false);
 
   const { orderCode, orderDate, ticketCode, status: passedStatus, statusDisplay: passedStatusDisplay } = route.params;
 
-  // Fetch ticket details from API
   const {
     ticket,
     ticketCode: apiTicketCode,
@@ -545,11 +534,11 @@ export const TicketDetailScreen: React.FC = () => {
   });
 
   const statusConfigMap = isDark ? STATUS_CONFIG_DARK : STATUS_CONFIG_LIGHT;
-  // Use API status as primary, fall back to passed status from TicketScreen
+
   const currentStatus = statusCode || passedStatus || 'pending';
   const currentStatusDisplayText = statusDisplay || passedStatusDisplay;
   const statusInfo = statusConfigMap[currentStatus] || statusConfigMap.pending;
-  // Get header badge colors that are visible on green gradient
+
   const headerBadgeColors = getHeaderBadgeColors(currentStatus, isDark);
 
   const percentage = useMemo(() => {
@@ -560,7 +549,6 @@ export const TicketDetailScreen: React.FC = () => {
   const headerGradient = isDark ? HEADER_GRADIENT_DARK : HEADER_GRADIENT_LIGHT;
   const accentColor = isDark ? colors.primary.light : colors.primary.main;
 
-  // Product info from API
   const productInfo = useMemo(() => {
     if (!products || products.length === 0) return null;
     const product = products[0];
@@ -594,11 +582,11 @@ export const TicketDetailScreen: React.FC = () => {
         destination: deliveryAddress || undefined,
         orderCode: apiOrderCode || undefined,
         customerName: customerName || undefined,
-        // Plant location
+
         plantLatitude: plantLocationLatitude || undefined,
         plantLongitude: plantLocationLongitude || undefined,
         plantName: plantName || undefined,
-        // Job location (order_location)
+
         jobLatitude: orderLocationLatitude || undefined,
         jobLongitude: orderLocationLongitude || undefined,
       });
@@ -637,11 +625,11 @@ export const TicketDetailScreen: React.FC = () => {
         destination: deliveryAddress || undefined,
         orderCode: apiOrderCode || undefined,
         customerName: customerName || undefined,
-        // Plant location
+
         plantLatitude: plantLocationLatitude || undefined,
         plantLongitude: plantLocationLongitude || undefined,
         plantName: plantName || undefined,
-        // Job location (order_location)
+
         jobLatitude: orderLocationLatitude || undefined,
         jobLongitude: orderLocationLongitude || undefined,
       });
@@ -651,22 +639,21 @@ export const TicketDetailScreen: React.FC = () => {
   const handleOpenInGoogleMaps = useCallback(() => {
     closeDirectionsMenu();
     if (truckLatitude && truckLongitude) {
-      // If job location is available, show directions from truck to job site
-      // Otherwise, just show truck location as a marker
+
       const hasJobLocation = orderLocationLatitude && orderLocationLongitude;
 
       let url: string | undefined;
       let webFallbackUrl: string;
 
       if (hasJobLocation) {
-        // Directions mode: from truck to job site
+
         url = Platform.select({
           ios: `comgooglemaps://?saddr=${truckLatitude},${truckLongitude}&daddr=${orderLocationLatitude},${orderLocationLongitude}&directionsmode=driving`,
           android: `google.navigation:q=${orderLocationLatitude},${orderLocationLongitude}&mode=d`,
         });
-        webFallbackUrl = `https://www.google.com/maps/dir/?api=1&origin=${truckLatitude},${truckLongitude}&destination=${orderLocationLatitude},${orderLocationLongitude}&travelmode=driving`;
+        webFallbackUrl = `https://maps.google.com/?saddr=${truckLatitude},${truckLongitude}&daddr=${orderLocationLatitude},${orderLocationLongitude}&directionsmode=driving`;
       } else {
-        // No job location - just show truck marker
+
         url = Platform.select({
           ios: `comgooglemaps://?q=${truckLatitude},${truckLongitude}`,
           android: `geo:${truckLatitude},${truckLongitude}?q=${truckLatitude},${truckLongitude}`,
@@ -678,7 +665,7 @@ export const TicketDetailScreen: React.FC = () => {
         if (supported) {
           Linking.openURL(url || '');
         } else {
-          // Fallback to web Google Maps
+
           Linking.openURL(webFallbackUrl);
         }
       });
@@ -688,19 +675,18 @@ export const TicketDetailScreen: React.FC = () => {
   const handleOpenInAppleMaps = useCallback(() => {
     closeDirectionsMenu();
     if (truckLatitude && truckLongitude) {
-      // If job location is available, show directions from truck to job site
-      // Otherwise, just show truck location as a marker
+
       const hasJobLocation = orderLocationLatitude && orderLocationLongitude;
 
       let url: string;
       let webFallbackUrl: string;
 
       if (hasJobLocation) {
-        // Directions mode: from truck to job site (dirflg=d for driving)
+
         url = `maps://maps.apple.com/?saddr=${truckLatitude},${truckLongitude}&daddr=${orderLocationLatitude},${orderLocationLongitude}&dirflg=d`;
         webFallbackUrl = `https://maps.apple.com/?saddr=${truckLatitude},${truckLongitude}&daddr=${orderLocationLatitude},${orderLocationLongitude}&dirflg=d`;
       } else {
-        // No job location - just show truck marker
+
         url = `maps://maps.apple.com/?ll=${truckLatitude},${truckLongitude}&q=Truck%20Location`;
         webFallbackUrl = `https://maps.apple.com/?ll=${truckLatitude},${truckLongitude}`;
       }
@@ -709,14 +695,13 @@ export const TicketDetailScreen: React.FC = () => {
         if (supported) {
           Linking.openURL(url);
         } else {
-          // Fallback to web
+
           Linking.openURL(webFallbackUrl);
         }
       });
     }
   }, [closeDirectionsMenu, truckLatitude, truckLongitude, orderLocationLatitude, orderLocationLongitude]);
 
-  // Loading state
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -739,7 +724,6 @@ export const TicketDetailScreen: React.FC = () => {
     );
   }
 
-  // Error state or No Data state
   if (error || !ticket) {
     const isNoData = !error && !ticket;
     const iconName = isNoData ? 'ticket-outline' : 'alert-circle-outline';
@@ -983,7 +967,6 @@ export const TicketDetailScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Product/Mix Information */}
         {productInfo && (
           <SectionCard
             title="Product Information"
@@ -996,7 +979,6 @@ export const TicketDetailScreen: React.FC = () => {
           </SectionCard>
         )}
 
-        {/* Delivery Location */}
         <SectionCard
           title="Delivery Location"
           icon="map-marker"
@@ -1005,7 +987,6 @@ export const TicketDetailScreen: React.FC = () => {
           <DetailRow label="Address" value={deliveryAddress} isDark={isDark} />
           <DetailRow label="Customer" value={customerName} isDark={isDark} isLast />
 
-          {/* Map Preview Placeholder */}
           <TouchableOpacity
             style={[
               styles.mapPreview,
@@ -1024,7 +1005,6 @@ export const TicketDetailScreen: React.FC = () => {
           </TouchableOpacity>
         </SectionCard>
 
-        {/* Truck & Driver Information */}
         <SectionCard
           title="Truck & Driver"
           icon="truck"
@@ -1055,7 +1035,6 @@ export const TicketDetailScreen: React.FC = () => {
           )}
         </SectionCard>
 
-        {/* Plant Information */}
         <SectionCard
           title="Plant Information"
           icon="factory"
@@ -1065,7 +1044,6 @@ export const TicketDetailScreen: React.FC = () => {
           <DetailRow label="Address" value={plantAddress} isDark={isDark} isLast />
         </SectionCard>
 
-        {/* Delivery Timeline */}
         <SectionCard
           title="Delivery Timeline"
           icon="timeline-clock"
@@ -1104,7 +1082,6 @@ export const TicketDetailScreen: React.FC = () => {
         onClose={hideAlert}
       />
 
-      {/* Directions Bottom Sheet Menu */}
       <Modal
         visible={showDirectionsMenu}
         transparent
@@ -1113,14 +1090,13 @@ export const TicketDetailScreen: React.FC = () => {
         onRequestClose={closeDirectionsMenu}
       >
         <View style={styles.directionsModalContainer}>
-          {/* Backdrop - tap to close */}
+
           <TouchableOpacity
             style={styles.directionsModalBackdrop}
             activeOpacity={1}
             onPress={closeDirectionsMenu}
           />
 
-          {/* Modal Content */}
           <View style={[styles.directionsMenuContent, { backgroundColor: themeColors.card }]}>
             <View style={styles.directionsMenuHandle}>
               <View style={[styles.directionsMenuHandleBar, { backgroundColor: themeColors.border }]} />
@@ -1205,7 +1181,6 @@ export const TicketDetailScreen: React.FC = () => {
               </Text>
             </TouchableOpacity>
 
-            {/* Safe Area Spacer */}
             <View style={{ height: insets.bottom }} />
           </View>
         </View>
@@ -1236,7 +1211,7 @@ const styles = StyleSheet.create({
     marginTop: GRID.md,
     marginBottom: GRID.lg,
   },
-  // Empty State / No Data UI
+
   emptyStateContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1297,7 +1272,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     fontSize: ms(14),
   },
-  // Header
+
   header: {
     paddingBottom: GRID.lg,
   },
@@ -1331,7 +1306,7 @@ const styles = StyleSheet.create({
     color: colors.headerOverlay.text,
     marginTop: ms(2),
   },
-  // Hero Section
+
   heroSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1405,7 +1380,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // ScrollView
+
   scrollView: {
     flex: 1,
   },
@@ -1413,7 +1388,7 @@ const styles = StyleSheet.create({
     padding: GRID.md,
     paddingBottom: vs(40),
   },
-  // Quick Actions
+
   quickActionsRow: {
     flexDirection: 'row',
     marginBottom: GRID.md,
@@ -1442,7 +1417,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     fontSize: ms(10),
   },
-  // Progress Card
+
   progressCard: {
     borderRadius: RADIUS.lg,
     padding: GRID.md,
@@ -1511,7 +1486,7 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: ms(3),
   },
-  // Section Card
+
   sectionCard: {
     borderRadius: RADIUS.lg,
     padding: GRID.md,
@@ -1539,7 +1514,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     fontSize: ms(14),
   },
-  // Detail Row
+
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1562,7 +1537,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     maxWidth: '60%',
   },
-  // Map Preview
+
   mapPreview: {
     height: ms(80),
     borderRadius: RADIUS.md,
@@ -1575,7 +1550,7 @@ const styles = StyleSheet.create({
     fontSize: ms(11),
     marginTop: GRID.xs,
   },
-  // Call Customer Button
+
   callCustomerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1589,7 +1564,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     fontSize: ms(13),
   },
-  // Vertical Timeline
+
   verticalTimeline: {},
   timelineItem: {
     flexDirection: 'row',
@@ -1653,7 +1628,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     fontSize: ms(9),
   },
-  // Action Buttons
+
   actionSection: {
     marginTop: GRID.sm,
   },
@@ -1696,7 +1671,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     fontSize: ms(13),
   },
-  // Directions Menu Styles
+
   directionsModalContainer: {
     flex: 1,
     backgroundColor: colors.overlay.medium,

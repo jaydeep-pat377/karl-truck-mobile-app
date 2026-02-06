@@ -34,10 +34,8 @@ const RADIUS = {
   full: 999,
 } as const;
 
-// Weather theme colors for header gradient
 const WEATHER_COLORS = colors.weatherTheme;
 
-// Accent color for light mode content (from theme)
 const ACCENT_BLUE = colors.accent.blue;
 
 const mockData = {
@@ -95,7 +93,6 @@ const mockData = {
   ],
 };
 
-// Schedule Card Component - Light Mode
 interface ScheduleCardProps {
   schedule: (typeof mockData.schedules)[0];
   onPress: () => void;
@@ -103,11 +100,9 @@ interface ScheduleCardProps {
 
 const ScheduleCard: React.FC<ScheduleCardProps> = ({ schedule, onPress }) => (
   <TouchableOpacity style={styles.scheduleCard} onPress={onPress} activeOpacity={0.7}>
-    {/* Blue accent border */}
     <View style={styles.cardAccent} />
 
     <View style={styles.scheduleContent}>
-      {/* Schedule Header */}
       <View style={styles.scheduleHeader}>
         <Text style={styles.scheduleNumber}>{schedule.scheduleNumber}</Text>
         <View style={styles.scheduleDot} />
@@ -117,8 +112,6 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({ schedule, onPress }) => (
           {schedule.date} | {schedule.time}
         </Text>
       </View>
-
-      {/* Customer Check Title */}
       <View style={styles.customerCheckRow}>
         <Text style={styles.customerCheckTitle}>{schedule.customerCheck}</Text>
         <View
@@ -135,22 +128,16 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({ schedule, onPress }) => (
           </Text>
         </View>
       </View>
-
-      {/* Details Row */}
       <View style={styles.detailsRow}>
         <Icon name="timer-outline" size={ms(13)} color={colors.light.text.hint} />
         <Text style={styles.detailText}>Spacing: {schedule.spacing}</Text>
         <Text style={styles.detailDivider}>|</Text>
         <Text style={styles.detailText}>Pour Rate: {schedule.pourRate}</Text>
       </View>
-
-      {/* Location Row */}
       <View style={styles.detailsRow}>
         <Icon name="map-marker-outline" size={ms(13)} color={colors.light.text.hint} />
         <Text style={styles.detailText}>{schedule.location}</Text>
       </View>
-
-      {/* Product Code Row */}
       <View style={styles.productCodeRow}>
         <Icon name="cube-outline" size={ms(13)} color={ACCENT_BLUE} />
         <Text style={styles.productCodeText}>{schedule.productCode}</Text>
@@ -159,9 +146,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({ schedule, onPress }) => (
   </TouchableOpacity>
 );
 
-// Barcode Component - Vertical lines barcode
 const BarcodeImage: React.FC = () => {
-  // Generate barcode pattern with varying widths
+
   const bars = [];
   const pattern = [2, 1, 1, 3, 1, 2, 1, 1, 3, 2, 1, 3, 1, 1, 2, 1, 3, 1, 2, 1, 1, 3, 2, 1, 1, 2, 3, 1, 2, 1, 1, 3, 1, 2, 1, 1];
 
@@ -188,7 +174,6 @@ const BarcodeImage: React.FC = () => {
   );
 };
 
-// Order Code Card Component - Matching Image Layout
 interface OrderCodeCardProps {
   orderCode: (typeof mockData.orderCodes)[0];
   onPress: () => void;
@@ -197,14 +182,10 @@ interface OrderCodeCardProps {
 
 const OrderCodeCard: React.FC<OrderCodeCardProps> = ({ orderCode, onPress, showTruck }) => (
   <View style={styles.orderCodeCard}>
-    {/* Main Content Area */}
     <View style={styles.orderCodeContent}>
-      {/* Left - Barcode Section */}
       <View style={styles.barcodeSection}>
         <BarcodeImage />
       </View>
-
-      {/* Right - Info Section */}
       <View style={styles.orderCodeInfo}>
         <View style={[styles.typeBadge, { backgroundColor: orderCode.typeColor }]}>
           <Text style={styles.typeBadgeText}>{orderCode.type}</Text>
@@ -212,19 +193,13 @@ const OrderCodeCard: React.FC<OrderCodeCardProps> = ({ orderCode, onPress, showT
         <Text style={styles.quantityValue}>{orderCode.quantity}</Text>
         <Text style={styles.slumpText}>SLUMP: {orderCode.slump}</Text>
       </View>
-
-      {/* Truck Image - positioned in content area */}
       {showTruck && (
         <View style={styles.truckImageContainer}>
           <Icon name="truck-delivery" size={ms(60)} color={colors.productStatus.truckIcon} />
         </View>
       )}
     </View>
-
-    {/* Code Text */}
     <Text style={styles.codeText}>{orderCode.code}</Text>
-
-    {/* Check Details Button */}
     <TouchableOpacity style={styles.checkDetailsBtn} onPress={onPress} activeOpacity={0.7}>
       <Text style={styles.checkDetailsText}>Click here to check details</Text>
       <Icon name="chevron-right" size={ms(16)} color={colors.light.text.hint} />
@@ -232,13 +207,11 @@ const OrderCodeCard: React.FC<OrderCodeCardProps> = ({ orderCode, onPress, showT
   </View>
 );
 
-// Main Screen Component
 export const ProductCodeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ProductCodeRouteProp>();
   const insets = useSafeAreaInsets();
 
-  // Get params from navigation
   const {
     orderStatus = 'Pending',
     onJobTime = '--:--',
@@ -259,14 +232,11 @@ export const ProductCodeScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={WEATHER_COLORS.background} />
-
-      {/* Header with Weather Gradient - from WeatherScreen */}
       <LinearGradient
         colors={[...WEATHER_COLORS.gradient.colors]}
         locations={[...WEATHER_COLORS.gradient.locations]}
         style={[styles.header, { paddingTop: insets.top }]}
       >
-        {/* Title Bar */}
         <View style={styles.titleBar}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
             <Icon name="chevron-left" size={ms(24)} color={colors.common.white} />
@@ -274,8 +244,6 @@ export const ProductCodeScreen: React.FC = () => {
           <Text style={styles.headerTitle}>Product Details</Text>
           <View style={styles.backButton} />
         </View>
-
-        {/* Stats Row */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={styles.statLabel}>Status</Text>
@@ -294,14 +262,11 @@ export const ProductCodeScreen: React.FC = () => {
           </View>
         </View>
       </LinearGradient>
-
-      {/* Content - Light Mode */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Schedule Cards */}
         {mockData.schedules.map((schedule) => (
           <ScheduleCard
             key={schedule.id}
@@ -309,8 +274,6 @@ export const ProductCodeScreen: React.FC = () => {
             onPress={() => handleSchedulePress(schedule.id)}
           />
         ))}
-
-        {/* Order Code Details Section */}
         <View style={styles.orderCodeSection}>
           <Text style={styles.sectionTitle}>Order Code Details</Text>
 
@@ -329,13 +292,12 @@ export const ProductCodeScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  // Container - Light background
+
   container: {
     flex: 1,
     backgroundColor: colors.light.background,
   },
 
-  // Header - Weather gradient (dark)
   header: {
     paddingHorizontal: GRID.lg,
     paddingBottom: GRID.lg,
@@ -403,7 +365,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // ScrollView - Light Mode content
   scrollView: {
     flex: 1,
   },
@@ -412,7 +373,6 @@ const styles = StyleSheet.create({
     paddingBottom: vs(30),
   },
 
-  // Schedule Card - Light Mode
   scheduleCard: {
     backgroundColor: colors.light.surface,
     borderRadius: RADIUS.md,
@@ -524,7 +484,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Order Code Section - Light Mode
   orderCodeSection: {
     marginTop: GRID.sm,
   },
@@ -535,7 +494,6 @@ const styles = StyleSheet.create({
     marginBottom: GRID.sm,
   },
 
-  // Order Code Card - Matching Image Layout
   orderCodeCard: {
     backgroundColor: colors.light.surface,
     borderRadius: RADIUS.lg,
@@ -553,7 +511,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: GRID.sm,
   },
-  // Barcode Section
+
   barcodeSection: {
     marginRight: GRID.md,
   },
@@ -582,7 +540,7 @@ const styles = StyleSheet.create({
     marginTop: GRID.xs - 2,
     letterSpacing: 1,
   },
-  // Order Code Info
+
   orderCodeInfo: {
     flex: 1,
   },
@@ -610,7 +568,7 @@ const styles = StyleSheet.create({
     color: colors.light.text.secondary,
     marginTop: GRID.xs - 2,
   },
-  // Truck Image Container
+
   truckImageContainer: {
     position: 'absolute',
     right: 0,
@@ -624,7 +582,7 @@ const styles = StyleSheet.create({
     marginBottom: GRID.sm,
     marginTop: GRID.xs,
   },
-  // Check Details Button
+
   checkDetailsBtn: {
     flexDirection: 'row',
     alignItems: 'center',

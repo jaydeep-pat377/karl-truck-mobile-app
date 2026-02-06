@@ -1,7 +1,3 @@
-/**
- * Sentry Debug View
- * In-app component to test and verify Sentry integration in production
- */
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -37,7 +33,7 @@ export const SentryDebugView: React.FC = () => {
   };
 
   useEffect(() => {
-    // Initial status check
+
     checkSentryStatus();
   }, []);
 
@@ -141,7 +137,6 @@ export const SentryDebugView: React.FC = () => {
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <Text variant="h3" style={styles.title}>Sentry Debug</Text>
 
-      {/* Status Section */}
       <View style={[styles.statusCard, { backgroundColor: themeColors.card }]}>
         <View style={styles.statusRow}>
           <Text variant="body" style={{ color: themeColors.text.secondary }}>
@@ -166,7 +161,6 @@ export const SentryDebugView: React.FC = () => {
         </View>
       </View>
 
-      {/* Action Buttons */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.button, { backgroundColor: colors.primary.main }]}
@@ -197,7 +191,6 @@ export const SentryDebugView: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Logs Section */}
       <View style={styles.logsHeader}>
         <Text variant="body" style={{ fontWeight: '600' }}>Logs</Text>
         <TouchableOpacity onPress={clearLogs}>
@@ -206,7 +199,7 @@ export const SentryDebugView: React.FC = () => {
       </View>
 
       <ScrollView
-        style={[styles.logsContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}
+        style={[styles.logsContainer, { backgroundColor: isDark ? colors.dark.surface : colors.grey[5] }]}
         contentContainerStyle={styles.logsContent}>
         {logs.length === 0 ? (
           <Text variant="caption" color="secondary" style={styles.emptyText}>
@@ -266,7 +259,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: colors.common.white,
     fontWeight: '600',
   },
   logsHeader: {

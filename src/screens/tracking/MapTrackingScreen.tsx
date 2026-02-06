@@ -21,21 +21,18 @@ import { useTrucks, useDirections } from '../../hooks';
 import { truckImagesByStatus } from '../../assets/images';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-// Initialize Mapbox with access token
 Mapbox.setAccessToken('MAPBOX_TOKEN_REMOVED');
 
 const { height } = Dimensions.get('window');
 
-// Mapbox style URLs
 const MAP_STYLES = {
   light: Mapbox.StyleURL.Street,
   dark: Mapbox.StyleURL.Dark,
 };
 
-// Helper to get today's date range (default)
 const getDateRange = (): { dateFrom: string; dateTo: string } => {
   const today = new Date();
-  const formatDate = (date: Date) => date.toISOString().split('T')[0]; // YYYY-MM-DD
+  const formatDate = (date: Date) => date.toISOString().split('T')[0];
   return { dateFrom: formatDate(today), dateTo: formatDate(today) };
 };
 
@@ -59,7 +56,6 @@ export const MapTrackingScreen: React.FC = () => {
   const cameraRef = useRef<Mapbox.Camera>(null);
   const [showRoute, setShowRoute] = useState(false);
 
-  // Get params from navigation (from TicketDetailScreen)
   const {
     latitude: paramLatitude,
     longitude: paramLongitude,
@@ -69,19 +65,17 @@ export const MapTrackingScreen: React.FC = () => {
     destination: paramDestination,
     orderCode: paramOrderCode,
     customerName: paramCustomerName,
-    // Plant location
+
     plantLatitude: paramPlantLatitude,
     plantLongitude: paramPlantLongitude,
     plantName: paramPlantName,
-    // Job location
+
     jobLatitude: paramJobLatitude,
     jobLongitude: paramJobLongitude,
   } = route.params || {};
 
-  // Calculate date range (always today)
   const dateRange = useMemo(() => getDateRange(), []);
 
-  // Fetch trucks from API
   const { trucks } = useTrucks({
     pageSize: 10,
     sortBy: 'created_at',
@@ -90,19 +84,16 @@ export const MapTrackingScreen: React.FC = () => {
     dateTo: dateRange.dateTo,
   });
 
-  // Calculate map center - prioritize params from navigation
   const getMapCenter = useMemo((): [number, number] => {
-    // If truck coordinates are passed, use them
+
     if (paramLatitude && paramLongitude) {
       return [parseFloat(paramLongitude), parseFloat(paramLatitude)];
     }
 
-    // If job location is passed, use it
     if (paramJobLatitude && paramJobLongitude) {
       return [parseFloat(paramJobLongitude), parseFloat(paramJobLatitude)];
     }
 
-    // If plant location is passed, use it
     if (paramPlantLatitude && paramPlantLongitude) {
       return [parseFloat(paramPlantLongitude), parseFloat(paramPlantLatitude)];
     }
@@ -120,10 +111,9 @@ export const MapTrackingScreen: React.FC = () => {
     return [(minLong + maxLong) / 2, (minLat + maxLat) / 2];
   }, [trucks, paramLatitude, paramLongitude, paramJobLatitude, paramJobLongitude, paramPlantLatitude, paramPlantLongitude]);
 
-  // Center camera on passed coordinates when screen loads
   useEffect(() => {
     if (cameraRef.current) {
-      // If truck location is passed
+
       if (paramLatitude && paramLongitude) {
         cameraRef.current.setCamera({
           centerCoordinate: [parseFloat(paramLongitude), parseFloat(paramLatitude)],
@@ -131,7 +121,7 @@ export const MapTrackingScreen: React.FC = () => {
           animationDuration: 1000,
         });
       }
-      // If only job/plant locations are passed (from OrderDetailsScreen)
+
       else if (paramJobLatitude && paramJobLongitude) {
         cameraRef.current.setCamera({
           centerCoordinate: [parseFloat(paramJobLongitude), parseFloat(paramJobLatitude)],
@@ -142,14 +132,12 @@ export const MapTrackingScreen: React.FC = () => {
     }
   }, [paramLatitude, paramLongitude, paramJobLatitude, paramJobLongitude]);
 
-  // Highlighted truck from navigation params (from TicketDetailScreen)
   const highlightedTruck = useMemo(() => {
     if (!paramLatitude || !paramLongitude) return null;
 
     const lat = parseFloat(paramLatitude);
     const lng = parseFloat(paramLongitude);
 
-    // Validate coordinates
     if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
       return null;
     }
@@ -166,14 +154,12 @@ export const MapTrackingScreen: React.FC = () => {
     };
   }, [paramLatitude, paramLongitude, paramTruckCode, paramTicketCode, paramDriverName, paramDestination, paramOrderCode, paramCustomerName]);
 
-  // Plant location from navigation params (plant_location from API)
   const plantLocation = useMemo(() => {
     if (!paramPlantLatitude || !paramPlantLongitude) return null;
 
     const lat = parseFloat(paramPlantLatitude);
     const lng = parseFloat(paramPlantLongitude);
 
-    // Validate coordinates
     if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
       return null;
     }
@@ -185,14 +171,12 @@ export const MapTrackingScreen: React.FC = () => {
     };
   }, [paramPlantLatitude, paramPlantLongitude, paramPlantName]);
 
-  // Job location from navigation params (order_location from API)
   const jobLocation = useMemo(() => {
     if (!paramJobLatitude || !paramJobLongitude) return null;
 
     const lat = parseFloat(paramJobLatitude);
     const lng = parseFloat(paramJobLongitude);
 
-    // Validate coordinates
     if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
       return null;
     }
@@ -205,7 +189,6 @@ export const MapTrackingScreen: React.FC = () => {
     };
   }, [paramJobLatitude, paramJobLongitude, paramDestination, paramCustomerName]);
 
-  // Fetch real route directions between plant and job locations
   const {
     routeGeoJSON,
     distanceFormatted,
@@ -217,13 +200,12 @@ export const MapTrackingScreen: React.FC = () => {
     origin: plantLocation ? { latitude: plantLocation.latitude, longitude: plantLocation.longitude } : null,
     destination: jobLocation ? { latitude: jobLocation.latitude, longitude: jobLocation.longitude } : null,
     options: {
-      profile: 'driving-traffic', // Use real-time traffic data
-      overview: 'full', // Get full route geometry
+      profile: 'driving-traffic',
+      overview: 'full',
     },
     enabled: showRoute && !!plantLocation && !!jobLocation,
   });
 
-  // Fallback straight line GeoJSON when directions API fails
   const fallbackRouteGeoJSON = useMemo(() => {
     if (!plantLocation || !jobLocation) return null;
 
@@ -240,35 +222,32 @@ export const MapTrackingScreen: React.FC = () => {
     };
   }, [plantLocation, jobLocation]);
 
-  // Use directions route if available, otherwise use straight line
   const displayRouteGeoJSON = routeGeoJSON || fallbackRouteGeoJSON;
 
-  // Calculate bounds to fit both markers
   const routeBounds = useMemo(() => {
     if (!plantLocation || !jobLocation) return null;
 
-    const padding = 0.01; // Add some padding around markers
+    const padding = 0.01;
     const minLng = Math.min(plantLocation.longitude, jobLocation.longitude) - padding;
     const maxLng = Math.max(plantLocation.longitude, jobLocation.longitude) + padding;
     const minLat = Math.min(plantLocation.latitude, jobLocation.latitude) - padding;
     const maxLat = Math.max(plantLocation.latitude, jobLocation.latitude) + padding;
 
     return {
-      ne: [maxLng, maxLat] as [number, number], // Northeast
-      sw: [minLng, minLat] as [number, number], // Southwest
+      ne: [maxLng, maxLat] as [number, number],
+      sw: [minLng, minLat] as [number, number],
     };
   }, [plantLocation, jobLocation]);
 
-  // Fit camera to show both markers when they exist
   useEffect(() => {
     if (routeBounds && cameraRef.current) {
-      // Delay slightly to ensure map is ready
+
       const timer = setTimeout(() => {
         cameraRef.current?.fitBounds(
           routeBounds.ne,
           routeBounds.sw,
-          [80, 80, 200, 80], // Padding: [top, right, bottom, left] - more bottom padding for bottom sheet
-          1000 // Animation duration
+          [80, 80, 200, 80],
+          1000
         );
       }, 500);
 
@@ -283,8 +262,6 @@ export const MapTrackingScreen: React.FC = () => {
         barStyle={isDark ? 'light-content' : 'dark-content'}
         translucent
       />
-
-      {/* Map Section */}
       <View style={styles.mapContainer}>
         <Mapbox.MapView
           style={styles.map}
@@ -299,11 +276,8 @@ export const MapTrackingScreen: React.FC = () => {
               zoomLevel: 10,
             }}
           />
-
-          {/* Route Line between Plant and Job locations */}
           {showRoute && displayRouteGeoJSON && (
             <Mapbox.ShapeSource id="routeLine" shape={displayRouteGeoJSON}>
-              {/* Route outline (darker/wider for visibility) */}
               <Mapbox.LineLayer
                 id="routeLineOutline"
                 style={{
@@ -313,7 +287,6 @@ export const MapTrackingScreen: React.FC = () => {
                   lineJoin: 'round',
                 }}
               />
-              {/* Main route line */}
               <Mapbox.LineLayer
                 id="routeLineLayer"
                 style={{
@@ -325,8 +298,6 @@ export const MapTrackingScreen: React.FC = () => {
               />
             </Mapbox.ShapeSource>
           )}
-
-          {/* Truck Markers */}
           {trucks.map((truck) => {
             const truckImage = truckImagesByStatus[truck.status] || truckImagesByStatus.ticketed;
             return (
@@ -343,8 +314,6 @@ export const MapTrackingScreen: React.FC = () => {
               </Mapbox.MarkerView>
             );
           })}
-
-          {/* Highlighted Truck Marker (from TicketDetailScreen navigation) */}
           {highlightedTruck && (
             <Mapbox.MarkerView
               key="highlighted-truck"
@@ -352,14 +321,11 @@ export const MapTrackingScreen: React.FC = () => {
               anchor={{ x: 0.5, y: 1 }}
             >
               <TouchableOpacity style={styles.markerContainer}>
-                {/* Pulse animation ring */}
                 <View style={styles.highlightedMarkerPulse} />
-                {/* Main marker */}
                 <View style={styles.highlightedMarker}>
                   <Icon name="truck-delivery" size={ms(20)} color={colors.common.white} />
                 </View>
                 <View style={styles.highlightedMarkerArrow} />
-                {/* Info label */}
                 <View style={[styles.highlightedMarkerLabel, { backgroundColor: themeColors.card }]}>
                   <Text variant="captionSmall" style={[styles.highlightedMarkerText, { color: colors.primary.main }]}>
                     {highlightedTruck.truckCode}
@@ -373,8 +339,6 @@ export const MapTrackingScreen: React.FC = () => {
               </TouchableOpacity>
             </Mapbox.MarkerView>
           )}
-
-          {/* Plant Location Marker (plant_location from API) - Blue truck icon */}
           {plantLocation && (
             <Mapbox.MarkerView
               key="plant-location"
@@ -382,12 +346,10 @@ export const MapTrackingScreen: React.FC = () => {
               anchor={{ x: 0.5, y: 1 }}
             >
               <View style={styles.markerContainer}>
-                {/* Main marker - Blue circle with truck */}
                 <View style={styles.plantMarker}>
                   <Icon name="truck" size={ms(18)} color={colors.common.white} />
                 </View>
                 <View style={styles.plantMarkerArrow} />
-                {/* Dark label showing plant name */}
                 <View style={styles.plantMarkerLabel}>
                   <Text variant="captionSmall" style={styles.plantMarkerText} numberOfLines={1}>
                     {plantLocation.plantName || 'Plant Location'}
@@ -396,22 +358,18 @@ export const MapTrackingScreen: React.FC = () => {
               </View>
             </Mapbox.MarkerView>
           )}
-
-          {/* Job Site Marker (order_location from API) - Red pin icon */}
           {jobLocation && (
             <Mapbox.MarkerView
               key="job-location"
               coordinate={[jobLocation.longitude, jobLocation.latitude]}
               anchor={{ x: 0.5, y: 1 }}>
               <View style={styles.markerContainer}>
-                {/* Main marker - Red circle with white pin icon */}
                 <View style={styles.jobSiteMarker}>
                   <Ionicons name="location-outline"
                    size={ms(22)}
                    color={colors.common.white} />
                 </View>
                 <View style={styles.jobSiteMarkerArrow} />
-                {/* Dark label showing "Job Site" */}
                 <View style={styles.jobSiteMarkerLabel}>
                   <Text variant="captionSmall" style={styles.jobSiteMarkerText}>
                     Job Site
@@ -421,8 +379,6 @@ export const MapTrackingScreen: React.FC = () => {
             </Mapbox.MarkerView>
           )}
         </Mapbox.MapView>
-
-        {/* Header */}
         <SafeAreaView edges={['top']} style={styles.headerButtons}>
           <TouchableOpacity
             style={[styles.backButton, { backgroundColor: themeColors.card }]}
@@ -442,8 +398,6 @@ export const MapTrackingScreen: React.FC = () => {
             </View>
           </View>
         </SafeAreaView>
-
-        {/* Route Toggle Switch - Top Left */}
         <View style={[styles.routeToggleContainer, { backgroundColor: themeColors.card }]}>
           <Icon
             name="directions"
@@ -464,8 +418,6 @@ export const MapTrackingScreen: React.FC = () => {
             ios_backgroundColor={colors.grey[40]}
           />
         </View>
-
-        {/* Map Controls */}
         <View style={styles.mapControls}>
           <TouchableOpacity
             style={[styles.mapControlButton, { backgroundColor: themeColors.card }]}
@@ -491,7 +443,6 @@ export const MapTrackingScreen: React.FC = () => {
           >
             <Icon name="minus" size={ms(18)} color={themeColors.text.primary} />
           </TouchableOpacity>
-          {/* Fit to Route Button */}
           {routeBounds && (
             <TouchableOpacity
               style={[styles.mapControlButton, { backgroundColor: themeColors.card }]}
@@ -508,8 +459,6 @@ export const MapTrackingScreen: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
-
-        {/* Route Info Card - shows distance and ETA */}
         {(distanceFormatted || durationFormatted || isRouteLoading) && (
           <View style={[styles.routeInfoCard, { backgroundColor: themeColors.card }]}>
             {isRouteLoading ? (
@@ -538,8 +487,6 @@ export const MapTrackingScreen: React.FC = () => {
             )}
           </View>
         )}
-
-        {/* Route Error Message */}
         {isRouteError && routeErrorMessage && (
           <View style={[styles.routeErrorCard, { backgroundColor: colors.error.light }]}>
             <Icon name="alert-circle-outline" size={ms(16)} color={colors.error.main} />
@@ -597,7 +544,7 @@ const styles = StyleSheet.create({
     borderRadius: ms(4),
     marginTop: ms(2),
   },
-  // Highlighted truck marker styles (from TicketDetailScreen)
+
   highlightedMarkerPulse: {
     position: 'absolute',
     top: -ms(8),
@@ -651,7 +598,7 @@ const styles = StyleSheet.create({
   highlightedMarkerText: {
     fontWeight: '700',
   },
-  // Plant location marker styles (blue truck icon)
+
   plantMarker: {
     width: ms(36),
     height: ms(36),
@@ -697,14 +644,14 @@ const styles = StyleSheet.create({
     color: colors.common.white,
     fontSize: ms(11),
   },
-  // Job site marker styles - red circle with white location icon
+
   jobSiteMarker: {
     width: ms(40),
     height: ms(40),
     borderRadius: ms(20),
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.trackingStatus.cancelled,
     borderWidth: 3,
     borderColor: colors.common.white,
     shadowColor: colors.common.black,
@@ -721,7 +668,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 9,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: '#EF4444',
+    borderTopColor: colors.trackingStatus.cancelled,
     marginTop: -3,
   },
   jobSiteMarkerLabel: {
@@ -729,7 +676,7 @@ const styles = StyleSheet.create({
     paddingVertical: ms(4),
     borderRadius: ms(4),
     marginTop: ms(4),
-    backgroundColor: 'rgba(30, 30, 30, 0.9)',
+    backgroundColor: colors.semiTransparent.darkGray90,
     shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
@@ -823,7 +770,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  // Route Info Card Styles
+
   routeInfoCard: {
     position: 'absolute',
     left: spacing.md,

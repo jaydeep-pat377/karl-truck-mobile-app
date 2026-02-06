@@ -1,13 +1,8 @@
-/**
- * Global Alert Context
- * Provides app-wide alert functionality and listens to alertService events
- */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { AlertModal, AlertType, AlertButton } from '../components/common/AlertModal';
 import { alertService, AlertConfig } from '../services/alertService';
 
-// Context state
 interface AlertState {
   visible: boolean;
   type: AlertType;
@@ -18,7 +13,6 @@ interface AlertState {
   showCloseButton?: boolean;
 }
 
-// Context value
 interface GlobalAlertContextValue {
   showAlert: (config: AlertConfig) => void;
   showError: (title: string, message?: string, onOk?: () => void) => void;
@@ -36,7 +30,6 @@ interface GlobalAlertContextValue {
   hideAlert: () => void;
 }
 
-// Default state
 const initialState: AlertState = {
   visible: false,
   type: 'info',
@@ -45,22 +38,15 @@ const initialState: AlertState = {
   buttons: [{ text: 'OK', style: 'default' }],
 };
 
-// Create context
 const GlobalAlertContext = createContext<GlobalAlertContextValue | undefined>(undefined);
 
-// Provider props
 interface GlobalAlertProviderProps {
   children: ReactNode;
 }
 
-/**
- * GlobalAlertProvider
- * Wraps the app and provides global alert functionality
- */
 export const GlobalAlertProvider: React.FC<GlobalAlertProviderProps> = ({ children }) => {
   const [alertState, setAlertState] = useState<AlertState>(initialState);
 
-  // Show alert
   const showAlert = useCallback((config: AlertConfig) => {
     setAlertState({
       visible: true,
@@ -73,12 +59,10 @@ export const GlobalAlertProvider: React.FC<GlobalAlertProviderProps> = ({ childr
     });
   }, []);
 
-  // Hide alert
   const hideAlert = useCallback(() => {
     setAlertState(prev => ({ ...prev, visible: false }));
   }, []);
 
-  // Convenience methods
   const showError = useCallback(
     (title: string, message?: string, onOk?: () => void) => {
       showAlert({
@@ -149,7 +133,6 @@ export const GlobalAlertProvider: React.FC<GlobalAlertProviderProps> = ({ childr
     [showAlert]
   );
 
-  // Subscribe to alertService events (for alerts from outside React)
   useEffect(() => {
     const unsubscribe = alertService.subscribe(showAlert);
     return unsubscribe;
@@ -182,10 +165,6 @@ export const GlobalAlertProvider: React.FC<GlobalAlertProviderProps> = ({ childr
   );
 };
 
-/**
- * useGlobalAlert hook
- * Access global alert functions from any component
- */
 export const useGlobalAlert = (): GlobalAlertContextValue => {
   const context = useContext(GlobalAlertContext);
   if (!context) {

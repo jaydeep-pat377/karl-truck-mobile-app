@@ -1,13 +1,3 @@
-/**
- * SignupScreen
- *
- * User registration screen with:
- * - Full name, email, phone, password fields
- * - Password strength indicator
- * - Terms & conditions checkbox
- * - Link to login
- * - Theme-aware (light/dark)
- */
 
 import React, { useState, useRef } from 'react';
 import {

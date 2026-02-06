@@ -7,31 +7,22 @@ import { ms, vs } from '../../utils/responsive';
 import Text from './Text';
 import Icon from './Icon';
 
-// ============================================
-// EmptyView Component
-// A reusable empty state component for FlatLists
-// ============================================
-
 export interface EmptyViewProps {
-  // Icon configuration
+
   icon?: string;
   iconSize?: number;
   iconColor?: string;
 
-  // Text content
   title?: string;
   subtitle?: string;
 
-  // Action button (optional)
   actionLabel?: string;
   onAction?: () => void;
 
-  // Customization
-  compact?: boolean; // Smaller version for inline use
+  compact?: boolean;
   style?: object;
 }
 
-// Preset configurations for common empty states
 export const EmptyViewPresets = {
   orders: {
     icon: 'clipboard-text-outline',
@@ -79,13 +70,12 @@ export type EmptyViewPresetKey = keyof typeof EmptyViewPresets;
 
 interface EmptyViewWithPresetProps extends Omit<EmptyViewProps, 'icon' | 'title' | 'subtitle'> {
   preset: EmptyViewPresetKey;
-  // Allow overriding preset values
+
   title?: string;
   subtitle?: string;
   icon?: string;
 }
 
-// Main EmptyView component
 export const EmptyView: React.FC<EmptyViewProps> = ({
   icon = 'inbox-outline',
   iconSize,
@@ -105,7 +95,6 @@ export const EmptyView: React.FC<EmptyViewProps> = ({
 
   return (
     <View style={[styles.container, compact && styles.containerCompact, style]}>
-      {/* Icon */}
       <View style={[styles.iconContainer, { backgroundColor: finalIconColor + '10' }]}>
         <Icon
           name={icon}
@@ -113,8 +102,6 @@ export const EmptyView: React.FC<EmptyViewProps> = ({
           color={finalIconColor}
         />
       </View>
-
-      {/* Title */}
       <Text
         variant={compact ? 'body' : 'h3'}
         style={[
@@ -124,8 +111,6 @@ export const EmptyView: React.FC<EmptyViewProps> = ({
         ]}>
         {title}
       </Text>
-
-      {/* Subtitle */}
       {subtitle && (
         <Text
           variant={compact ? 'caption' : 'body'}
@@ -137,8 +122,6 @@ export const EmptyView: React.FC<EmptyViewProps> = ({
           {subtitle}
         </Text>
       )}
-
-      {/* Action Button */}
       {actionLabel && onAction && (
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: colors.primary.main }]}
@@ -151,7 +134,6 @@ export const EmptyView: React.FC<EmptyViewProps> = ({
   );
 };
 
-// EmptyView with preset configuration
 export const EmptyViewWithPreset: React.FC<EmptyViewWithPresetProps> = ({
   preset,
   title,
@@ -171,9 +153,6 @@ export const EmptyViewWithPreset: React.FC<EmptyViewWithPresetProps> = ({
   );
 };
 
-// ============================================
-// Styles
-// ============================================
 const styles = StyleSheet.create({
   container: {
     flex: 1,

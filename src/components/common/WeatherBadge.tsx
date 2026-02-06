@@ -1,8 +1,3 @@
-/**
- * WeatherBadge Component
- * Compact, tappable weather indicator for order cards.
- * Displays weather icon and temperature in a single line.
- */
 
 import React from 'react';
 import {
@@ -26,7 +21,6 @@ interface WeatherBadgeProps {
   size?: 'small' | 'medium';
 }
 
-// Weather condition to icon mapping
 const weatherIcons: Record<WeatherCondition, string> = {
   sunny: 'weather-sunny',
   partly_cloudy: 'weather-partly-cloudy',
@@ -37,7 +31,6 @@ const weatherIcons: Record<WeatherCondition, string> = {
   fog: 'weather-fog',
 };
 
-// Weather condition to color mapping (muted colors)
 const weatherColors: Record<WeatherCondition, string> = {
   sunny: colors.weatherBadge.sunny,
   partly_cloudy: colors.weatherBadge.partlyCloudy,
@@ -57,7 +50,6 @@ export const WeatherBadge: React.FC<WeatherBadgeProps> = ({
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
 
-  // Don't render if no weather data and not loading
   if (!weather && !isLoading) {
     return null;
   }
@@ -118,7 +110,7 @@ export const WeatherBadge: React.FC<WeatherBadgeProps> = ({
 const styles = StyleSheet.create({
   pressable: {
     borderRadius: ms(4),
-    minWidth: ms(44), // Minimum touch target
+    minWidth: ms(44),
     minHeight: ms(24),
     justifyContent: 'center',
   },

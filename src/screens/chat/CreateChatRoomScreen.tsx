@@ -50,7 +50,6 @@ export const CreateChatRoomScreen: React.FC = () => {
     try {
       const room = await getOrCreateRoom(orderIdNum);
 
-      // Navigate to the chat room
       navigation.replace('ChatRoom', {
         roomId: room.id,
         roomName: room.name,
@@ -164,7 +163,7 @@ export const CreateChatRoomScreen: React.FC = () => {
                 placeholderTextColor={themeColors.text.hint}
                 value={orderId}
                 onChangeText={(text) => {
-                  // Only allow numbers
+
                   const numericText = text.replace(/[^0-9]/g, '');
                   setOrderId(numericText);
                   setError('');

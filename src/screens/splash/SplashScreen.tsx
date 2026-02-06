@@ -1,12 +1,3 @@
-/**
- * SplashScreen
- *
- * App startup loading screen with brand identity
- * - Displays app logo and company name
- * - Subtle fade-in animation
- * - Loading indicator
- * - Theme-aware (light/dark)
- */
 
 import React, { useEffect, useRef } from 'react';
 import {
@@ -30,7 +21,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 }) => {
   const { theme, isDark } = useTheme();
 
-  // Animation values
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.8)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
@@ -38,9 +28,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Sequence of animations
+
     Animated.sequence([
-      // Logo fade in and scale
+
       Animated.parallel([
         Animated.timing(logoOpacity, {
           toValue: 1,
@@ -54,13 +44,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           useNativeDriver: true,
         }),
       ]),
-      // Text fade in
+
       Animated.timing(textOpacity, {
         toValue: 1,
         duration: 400,
         useNativeDriver: true,
       }),
-      // Loading indicator fade in
+
       Animated.timing(loadingOpacity, {
         toValue: 1,
         duration: 300,
@@ -68,7 +58,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       }),
     ]).start();
 
-    // Pulse animation for loading dots
     const pulseAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -85,7 +74,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     );
     pulseAnimation.start();
 
-    // Navigate after duration
     const timer = setTimeout(() => {
       onFinish?.();
     }, duration);
@@ -102,8 +90,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={theme.colors.background}
       />
-
-      {/* Logo Section */}
       <Animated.View
         style={[
           styles.logoContainer,
@@ -113,7 +99,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           },
         ]}
       >
-        {/* App Icon/Logo */}
         <View
           style={[
             styles.logoCircle,
@@ -131,8 +116,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           </Text>
         </View>
       </Animated.View>
-
-      {/* App Name */}
       <Animated.View style={[styles.textContainer, { opacity: textOpacity }]}>
         <Text
           variant="h2"
@@ -149,8 +132,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           Dolese ReadyMix
         </Text>
       </Animated.View>
-
-      {/* Loading Indicator */}
       <Animated.View style={[styles.loadingContainer, { opacity: loadingOpacity }]}>
         <View style={styles.dotsContainer}>
           {[0, 1, 2].map((index) => (
@@ -183,8 +164,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           Loading...
         </Text>
       </Animated.View>
-
-      {/* Version */}
       <View style={styles.versionContainer}>
         <Text variant="captionSmall" color="hint">
           Version 1.0.0

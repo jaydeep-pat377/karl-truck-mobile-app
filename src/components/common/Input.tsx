@@ -1,7 +1,3 @@
-/**
- * Input Component
- * Themed text input with label and error support
- */
 
 import React, { useState } from 'react';
 import {

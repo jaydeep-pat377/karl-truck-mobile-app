@@ -1,8 +1,3 @@
-/**
- * OrderTrackingScreen
- * Production-ready order tracking with live map and ticket timeline
- * Modern, polished UI with clear visual hierarchy
- */
 
 import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
 import {
@@ -33,7 +28,6 @@ import { useOrderTracking, useDirections } from '../../hooks';
 import { TrackingTicket } from '../../types/orderTracking';
 import { truckImagesByStatus } from '../../assets/images';
 
-// Truck Marker Component - Separate component to force re-renders
 interface TruckMarkerProps {
   ticket: TrackingTicket;
   isSelected: boolean;
@@ -49,7 +43,6 @@ const TruckMarkerContent: React.FC<TruckMarkerProps> = React.memo(({ ticket, isS
       style={truckMarkerStyles.wrap}
       onPress={onPress}
       activeOpacity={0.8}>
-      {/* Selected indicator ring */}
       {isSelected && <View style={truckMarkerStyles.selectedRing} />}
 
       <Image
@@ -60,8 +53,6 @@ const TruckMarkerContent: React.FC<TruckMarkerProps> = React.memo(({ ticket, isS
         ]}
         resizeMode="contain"
       />
-
-      {/* Load badge */}
       <View style={[
         truckMarkerStyles.loadBadge,
         { backgroundColor: config.color },
@@ -77,13 +68,12 @@ const TruckMarkerContent: React.FC<TruckMarkerProps> = React.memo(({ ticket, isS
     </TouchableOpacity>
   );
 }, (prevProps, nextProps) => {
-  // Custom comparison - re-render when selection changes
+
   return prevProps.isSelected === nextProps.isSelected &&
     prevProps.ticket.ticket_id === nextProps.ticket.ticket_id &&
     prevProps.ticket.status === nextProps.ticket.status;
 });
 
-// Truck marker styles
 const truckMarkerStyles = StyleSheet.create({
   wrap: {
     alignItems: 'center',
@@ -130,7 +120,6 @@ const truckMarkerStyles = StyleSheet.create({
   },
 });
 
-// Initialize Mapbox
 Mapbox.setAccessToken('MAPBOX_TOKEN_REMOVED');
 
 const MAP_STYLES = {
@@ -138,20 +127,19 @@ const MAP_STYLES = {
   dark: Mapbox.StyleURL.Dark,
 };
 
-// Status configuration with colors and icons (matching the legend)
 const STATUS_CONFIG: Record<string, { color: string; icon: string; label: string }> = {
-  ticketed: { color: '#9E9E9E', icon: 'ticket-outline', label: 'Ticketed' },
-  loading: { color: '#8BC34A', icon: 'package-variant', label: 'Loading' },
-  loaded: { color: '#2E7D32', icon: 'package-variant-closed', label: 'Loaded' },
-  to_job: { color: '#2E7D32', icon: 'truck-fast', label: 'To Job' },
-  at_job: { color: '#64B5F6', icon: 'map-marker-check', label: 'At Job' },
-  pouring: { color: '#1565C0', icon: 'water', label: 'Begin Pour' },
-  begin_pour: { color: '#1565C0', icon: 'water', label: 'Begin Pour' },
-  begin_pouring: { color: '#1565C0', icon: 'water', label: 'Begin Pour' },
-  washing: { color: '#C62828', icon: 'water-pump', label: 'Washing' },
-  to_plant: { color: '#EC407A', icon: 'arrow-u-left-top', label: 'Returning' },
-  at_plant: { color: '#EC407A', icon: 'home-circle', label: 'At Plant' },
-  cancelled: { color: '#EF4444', icon: 'close-circle', label: 'Cancelled' },
+  ticketed: { color: colors.trackingStatus.ticketed, icon: 'ticket-outline', label: 'Ticketed' },
+  loading: { color: colors.trackingStatus.loading, icon: 'package-variant', label: 'Loading' },
+  loaded: { color: colors.trackingStatus.loaded, icon: 'package-variant-closed', label: 'Loaded' },
+  to_job: { color: colors.trackingStatus.toJob, icon: 'truck-fast', label: 'To Job' },
+  at_job: { color: colors.trackingStatus.atJob, icon: 'map-marker-check', label: 'At Job' },
+  pouring: { color: colors.trackingStatus.pouring, icon: 'water', label: 'Begin Pour' },
+  begin_pour: { color: colors.trackingStatus.pouring, icon: 'water', label: 'Begin Pour' },
+  begin_pouring: { color: colors.trackingStatus.pouring, icon: 'water', label: 'Begin Pour' },
+  washing: { color: colors.trackingStatus.washing, icon: 'water-pump', label: 'Washing' },
+  to_plant: { color: colors.trackingStatus.toPlant, icon: 'arrow-u-left-top', label: 'Returning' },
+  at_plant: { color: colors.trackingStatus.atPlant, icon: 'home-circle', label: 'At Plant' },
+  cancelled: { color: colors.trackingStatus.cancelled, icon: 'close-circle', label: 'Cancelled' },
 };
 
 type OrderTrackingRouteProp = RouteProp<RootStackParamList, 'Tracking'>;
@@ -169,32 +157,29 @@ export const OrderTrackingScreen: React.FC = () => {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
 
-  // Responsive bottom sheet heights
   const SHEET_MIN_HEIGHT = useMemo(() => screenHeight * 0.38, [screenHeight]);
   const SHEET_MAX_HEIGHT = useMemo(() => screenHeight * 0.78, [screenHeight]);
 
-  // Bottom sheet animation
   const sheetHeight = useRef(new Animated.Value(screenHeight * 0.38)).current;
   const lastGestureY = useRef(0);
 
-  // Pan responder for drag gestures
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Only respond to vertical gestures
+
         return Math.abs(gestureState.dy) > Math.abs(gestureState.dx) && Math.abs(gestureState.dy) > 5;
       },
       onPanResponderGrant: () => {
-        // Store current height value
+
         sheetHeight.stopAnimation((value) => {
           lastGestureY.current = value;
         });
       },
       onPanResponderMove: (_, gestureState) => {
-        // Calculate new height (drag up = increase height, drag down = decrease height)
+
         const newHeight = lastGestureY.current - gestureState.dy;
-        // Clamp between min and max
+
         const clampedHeight = Math.max(SHEET_MIN_HEIGHT, Math.min(SHEET_MAX_HEIGHT, newHeight));
         sheetHeight.setValue(clampedHeight);
       },
@@ -202,16 +187,15 @@ export const OrderTrackingScreen: React.FC = () => {
         const currentHeight = lastGestureY.current - gestureState.dy;
         const velocity = gestureState.vy;
 
-        // Determine snap point based on velocity and position
         let snapTo: number;
         if (velocity < -0.5) {
-          // Fast swipe up -> expand
+
           snapTo = SHEET_MAX_HEIGHT;
         } else if (velocity > 0.5) {
-          // Fast swipe down -> collapse
+
           snapTo = SHEET_MIN_HEIGHT;
         } else {
-          // Slow drag -> snap to nearest
+
           const midPoint = (SHEET_MIN_HEIGHT + SHEET_MAX_HEIGHT) / 2;
           snapTo = currentHeight > midPoint ? SHEET_MAX_HEIGHT : SHEET_MIN_HEIGHT;
         }
@@ -228,7 +212,6 @@ export const OrderTrackingScreen: React.FC = () => {
     })
   ).current;
 
-  // Toggle sheet expansion
   const toggleSheet = useCallback(() => {
     const toValue = isSheetExpanded ? SHEET_MIN_HEIGHT : SHEET_MAX_HEIGHT;
     setIsSheetExpanded(!isSheetExpanded);
@@ -241,20 +224,17 @@ export const OrderTrackingScreen: React.FC = () => {
     }).start();
   }, [isSheetExpanded, sheetHeight, SHEET_MIN_HEIGHT, SHEET_MAX_HEIGHT]);
 
-  // Update sheet height when screen dimensions change (e.g., orientation change)
   useEffect(() => {
     const newValue = isSheetExpanded ? SHEET_MAX_HEIGHT : SHEET_MIN_HEIGHT;
     sheetHeight.setValue(newValue);
   }, [screenHeight, SHEET_MIN_HEIGHT, SHEET_MAX_HEIGHT]);
 
-  // Calculate map height based on sheet height
   const mapHeight = sheetHeight.interpolate({
     inputRange: [SHEET_MIN_HEIGHT, SHEET_MAX_HEIGHT],
     outputRange: [screenHeight - SHEET_MIN_HEIGHT, screenHeight - SHEET_MAX_HEIGHT],
     extrapolate: 'clamp',
   });
 
-  // Fetch tracking data with pagination
   const {
     trackingData,
     tickets,
@@ -272,13 +252,11 @@ export const OrderTrackingScreen: React.FC = () => {
     refetchInterval: 30000,
   });
 
-  // Selected ticket - only return ticket when explicitly selected (not by default)
   const selectedTicket = useMemo(() => {
     if (!selectedTicketId) return null;
     return tickets.find(t => t.ticket_id === selectedTicketId) || null;
   }, [selectedTicketId, tickets]);
 
-  // Locations - check for valid lat/lng values (not null/undefined)
   const plantLocation = useMemo(() => {
     if (!trackingData?.plant?.latitude || !trackingData?.plant?.longitude) return null;
     return {
@@ -305,20 +283,18 @@ export const OrderTrackingScreen: React.FC = () => {
     };
   }, [selectedTicket]);
 
-  // Directions - disabled, not showing route line
   const { distanceFormatted, durationFormatted } = useDirections({
     origin: selectedTruckLocation,
     destination: jobLocation,
     options: { profile: 'driving-traffic', overview: 'full' },
-    enabled: false, // Disabled - no route line needed
+    enabled: false,
   });
 
-  // Map bounds - includes plant, job, and all trucks
   const mapBounds = useMemo(() => {
     const points: Array<{ lat: number; lng: number }> = [];
     if (plantLocation) points.push({ lat: plantLocation.latitude, lng: plantLocation.longitude });
     if (jobLocation) points.push({ lat: jobLocation.latitude, lng: jobLocation.longitude });
-    // Add all truck locations
+
     tickets.forEach(ticket => {
       if (ticket.truck?.latitude && ticket.truck?.longitude) {
         points.push({ lat: ticket.truck.latitude, lng: ticket.truck.longitude });
@@ -334,7 +310,6 @@ export const OrderTrackingScreen: React.FC = () => {
     };
   }, [plantLocation, jobLocation, tickets]);
 
-  // Fit bounds on load
   useEffect(() => {
     if (mapBounds && cameraRef.current) {
       const timer = setTimeout(() => {
@@ -344,41 +319,35 @@ export const OrderTrackingScreen: React.FC = () => {
     }
   }, [mapBounds]);
 
-  // Handlers
   const handleTicketPress = useCallback((ticket: TrackingTicket) => {
     setSelectedTicketId(ticket.ticket_id);
 
-    // Fit camera to show all three locations: plant, job, and truck
     if (cameraRef.current) {
       const points: Array<{ lat: number; lng: number }> = [];
 
-      // Add plant location
       if (trackingData?.plant?.latitude && trackingData?.plant?.longitude) {
         points.push({ lat: trackingData.plant.latitude, lng: trackingData.plant.longitude });
       }
 
-      // Add job/order location
       if (trackingData?.order_location?.latitude && trackingData?.order_location?.longitude) {
         points.push({ lat: trackingData.order_location.latitude, lng: trackingData.order_location.longitude });
       }
 
-      // Add truck location
       if (ticket.truck?.latitude && ticket.truck?.longitude) {
         points.push({ lat: ticket.truck.latitude, lng: ticket.truck.longitude });
       }
 
       if (points.length > 1) {
-        // Calculate bounds to fit all locations with extra padding
+
         const padding = 0.02;
         const lats = points.map(p => p.lat);
         const lngs = points.map(p => p.lng);
         const ne: [number, number] = [Math.max(...lngs) + padding, Math.max(...lats) + padding];
         const sw: [number, number] = [Math.min(...lngs) - padding, Math.min(...lats) - padding];
 
-        // Increased edge insets to account for header and bottom sheet
         cameraRef.current.fitBounds(ne, sw, [120, 50, 100, 50], 800);
       } else if (ticket.truck?.latitude && ticket.truck?.longitude) {
-        // Fallback: center on truck if only one point
+
         cameraRef.current.setCamera({
           centerCoordinate: [ticket.truck.longitude, ticket.truck.latitude],
           zoomLevel: 13,
@@ -405,14 +374,12 @@ export const OrderTrackingScreen: React.FC = () => {
 
   const fmtQty = (qty: number) => (qty % 1 === 0 ? qty.toString() : qty.toFixed(1));
 
-  // Get progress color
   const getProgressColor = (percent: number) => {
     if (percent >= 80) return colors.success.main;
-    if (percent >= 50) return '#F59E0B';
+    if (percent >= 50) return colors.warning.main;
     return colors.info.main;
   };
 
-  // Render enhanced ticket card
   const renderTicketCard = useCallback((ticket: TrackingTicket, index: number) => {
     const isSelected = selectedTicketId === ticket.ticket_id;
     const config = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.ticketed;
@@ -428,16 +395,15 @@ export const OrderTrackingScreen: React.FC = () => {
         activeOpacity={0.8}
         onPress={() => handleTicketPress(ticket)}
       >
-        {/* Left: Load indicator with status color */}
+
         <View style={styles.ticketLeft}>
           <View style={[styles.loadIndicator, { backgroundColor: config.color }]}>
             <Text style={styles.loadNum}>{ticket.load}</Text>
           </View>
         </View>
 
-        {/* Center: Ticket info */}
         <View style={styles.ticketCenter}>
-          {/* Row 1: Ticket code + Status */}
+
           <View style={styles.ticketRow1}>
             <Text style={[styles.ticketCode, { color: themeColors.text.primary }]} numberOfLines={1}>
               #{ticket.ticket_code}
@@ -460,7 +426,6 @@ export const OrderTrackingScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Row 2: Driver + Truck */}
           <View style={styles.ticketRow2}>
             <View style={styles.infoChip}>
               <Icon name="account-circle" size={ms(10)} color={themeColors.text.hint} />
@@ -477,7 +442,6 @@ export const OrderTrackingScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Row 3: Quantity + ETA */}
           <View style={styles.ticketRow3}>
             <View style={styles.qtyChip}>
               <Icon name="package-variant-closed" size={ms(11)} color={colors.primary.main} />
@@ -509,7 +473,6 @@ export const OrderTrackingScreen: React.FC = () => {
     );
   }, [themeColors, isDark, selectedTicketId, handleTicketPress]);
 
-  // Loading state
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -521,7 +484,6 @@ export const OrderTrackingScreen: React.FC = () => {
     );
   }
 
-  // Error state
   if (isError) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -552,7 +514,6 @@ export const OrderTrackingScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar backgroundColor="transparent" barStyle="light-content" translucent />
 
-      {/* === MAP SECTION === */}
       <Animated.View style={[styles.mapWrap, { height: mapHeight }]}>
         <Mapbox.MapView
           style={styles.map}
@@ -568,7 +529,6 @@ export const OrderTrackingScreen: React.FC = () => {
             }}
           />
 
-          {/* All Truck Markers - Rendered first so plant/job appear on top */}
           {tickets.map(ticket => {
             if (!ticket.truck?.latitude || !ticket.truck?.longitude) return null;
             const isSelected = selectedTicketId === ticket.ticket_id;
@@ -588,7 +548,6 @@ export const OrderTrackingScreen: React.FC = () => {
             );
           })}
 
-          {/* Plant Marker - Always visible */}
           {plantLocation && (
             <Mapbox.MarkerView coordinate={[plantLocation.longitude, plantLocation.latitude]} anchor={{ x: 0.5, y: 1 }} allowOverlap={true}>
               <View style={styles.markerWrap}>
@@ -608,7 +567,6 @@ export const OrderTrackingScreen: React.FC = () => {
             </Mapbox.MarkerView>
           )}
 
-          {/* Job Marker - Always visible */}
           {jobLocation && (
             <Mapbox.MarkerView coordinate={[jobLocation.longitude, jobLocation.latitude]} anchor={{ x: 0.5, y: 1 }} allowOverlap={true}>
               <View style={styles.markerWrap}>
@@ -629,7 +587,6 @@ export const OrderTrackingScreen: React.FC = () => {
           )}
         </Mapbox.MapView>
 
-        {/* Header */}
         <SafeAreaView edges={['top']} style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
@@ -648,16 +605,15 @@ export const OrderTrackingScreen: React.FC = () => {
           </View>
         </SafeAreaView>
 
-        {/* Status Legend */}
         <View style={styles.statusLegend}>
           <Text style={styles.legendTitle}>Status Legend</Text>
           {[
-            { key: 'loading', color: '#8BC34A', label: 'Loading' },
-            { key: 'to_job', color: '#2E7D32', label: 'To Job' },
-            { key: 'at_job', color: '#64B5F6', label: 'At Job' },
-            { key: 'pouring', color: '#1565C0', label: 'Begin Pour' },
-            { key: 'washing', color: '#C62828', label: 'Washing' },
-            { key: 'to_plant', color: '#EC407A', label: 'Returning' },
+            { key: 'loading', color: colors.trackingStatus.loading, label: 'Loading' },
+            { key: 'to_job', color: colors.trackingStatus.toJob, label: 'To Job' },
+            { key: 'at_job', color: colors.trackingStatus.atJob, label: 'At Job' },
+            { key: 'pouring', color: colors.trackingStatus.pouring, label: 'Begin Pour' },
+            { key: 'washing', color: colors.trackingStatus.washing, label: 'Washing' },
+            { key: 'to_plant', color: colors.trackingStatus.toPlant, label: 'Returning' },
           ].map((status) => (
             <View key={status.key} style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: status.color }]} />
@@ -666,7 +622,6 @@ export const OrderTrackingScreen: React.FC = () => {
           ))}
         </View>
 
-        {/* Map Controls */}
         <View style={[styles.mapControls, { top: insets.top + ms(70) }]}>
           <TouchableOpacity style={[styles.mapBtn, { backgroundColor: themeColors.card }]} onPress={handleFitAll}>
             <Icon name="fit-to-screen-outline" size={ms(18)} color={themeColors.text.primary} />
@@ -678,16 +633,15 @@ export const OrderTrackingScreen: React.FC = () => {
 
       </Animated.View>
 
-      {/* === BOTTOM SHEET === */}
       <Animated.View style={[styles.sheet, { height: sheetHeight, backgroundColor: themeColors.background }]}>
-        {/* Drag Handle */}
+
         <View {...panResponder.panHandlers}>
           <TouchableOpacity
             style={styles.handleWrap}
             onPress={toggleSheet}
             activeOpacity={0.8}
           >
-            <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)' }]} />
+            <View style={[styles.handle, { backgroundColor: isDark ? colors.semiTransparent.white30 : colors.semiTransparent.black15 }]} />
             <Animated.View
               style={[
                 styles.handleIndicator,
@@ -706,7 +660,6 @@ export const OrderTrackingScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Progress Section */}
         <View style={[styles.progressCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.progressTop}>
             <View style={styles.progressStats}>
@@ -736,13 +689,11 @@ export const OrderTrackingScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Progress Bar */}
-          <View style={[styles.progressTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+          <View style={[styles.progressTrack, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black05 }]}>
             <View style={[styles.progressFill, { width: `${Math.min(progressPercent, 100)}%`, backgroundColor: progressColor }]} />
           </View>
         </View>
 
-        {/* Tickets Section */}
         <View style={styles.ticketsSection}>
           <View style={styles.ticketsHeader}>
             <View style={styles.ticketsHeaderLeft}>
@@ -814,31 +765,28 @@ const styles = StyleSheet.create({
   retryBtn: { flexDirection: 'row', alignItems: 'center', gap: ms(6), backgroundColor: colors.primary.main, paddingHorizontal: ms(20), paddingVertical: ms(10), borderRadius: ms(10) },
   retryText: { color: colors.common.white, fontSize: ms(14), fontFamily: fontFamily.semiBold },
 
-  // Map
   mapWrap: { overflow: 'hidden' },
   map: { flex: 1 },
 
-  // Header
   header: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: ms(12), gap: ms(10) },
-  backBtn: { width: ms(42), height: ms(42), borderRadius: ms(21), backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  headerInfo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: ms(12), paddingHorizontal: ms(14), paddingVertical: ms(10) },
+  backBtn: { width: ms(42), height: ms(42), borderRadius: ms(21), backgroundColor: colors.semiTransparent.black40, justifyContent: 'center', alignItems: 'center' },
+  headerInfo: { flex: 1, backgroundColor: colors.semiTransparent.black40, borderRadius: ms(12), paddingHorizontal: ms(14), paddingVertical: ms(10) },
   headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   orderCode: { fontSize: ms(16), fontFamily: fontFamily.bold, color: colors.common.white },
-  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: ms(4), backgroundColor: 'rgba(16,185,129,0.2)', paddingHorizontal: ms(8), paddingVertical: ms(3), borderRadius: ms(6) },
-  liveDot: { width: ms(6), height: ms(6), borderRadius: ms(3), backgroundColor: '#10B981' },
-  liveText: { fontSize: ms(9), fontFamily: fontFamily.bold, color: '#10B981', letterSpacing: 0.5 },
-  customerName: { fontSize: ms(12), fontFamily: fontFamily.regular, color: 'rgba(255,255,255,0.85)', marginTop: ms(2) },
+  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: ms(4), backgroundColor: colors.semiTransparent.teal20, paddingHorizontal: ms(8), paddingVertical: ms(3), borderRadius: ms(6) },
+  liveDot: { width: ms(6), height: ms(6), borderRadius: ms(3), backgroundColor: colors.trackingStatus.live },
+  liveText: { fontSize: ms(9), fontFamily: fontFamily.bold, color: colors.trackingStatus.live, letterSpacing: 0.5 },
+  customerName: { fontSize: ms(12), fontFamily: fontFamily.regular, color: colors.semiTransparent.white85, marginTop: ms(2) },
 
-  // Status Legend
   statusLegend: {
     position: 'absolute',
     top: ms(100),
     right: ms(12),
-    backgroundColor: 'rgba(30, 30, 30, 0.9)',
+    backgroundColor: colors.semiTransparent.darkGray90,
     borderRadius: ms(12),
     paddingHorizontal: ms(12),
     paddingVertical: ms(10),
-    shadowColor: '#000',
+    shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -867,34 +815,30 @@ const styles = StyleSheet.create({
     color: colors.common.white,
   },
 
-  // Map controls
   mapControls: { position: 'absolute', right: ms(12), gap: ms(8) },
-  mapBtn: { width: ms(40), height: ms(40), borderRadius: ms(20), justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4 },
+  mapBtn: { width: ms(40), height: ms(40), borderRadius: ms(20), justifyContent: 'center', alignItems: 'center', shadowColor: colors.common.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4 },
 
-  // Route pill
-  routePill: { position: 'absolute', left: ms(12), bottom: ms(16), flexDirection: 'row', alignItems: 'center', gap: ms(6), paddingHorizontal: ms(12), paddingVertical: ms(8), borderRadius: ms(20), shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  routePill: { position: 'absolute', left: ms(12), bottom: ms(16), flexDirection: 'row', alignItems: 'center', gap: ms(6), paddingHorizontal: ms(12), paddingVertical: ms(8), borderRadius: ms(20), shadowColor: colors.common.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   routeText: { fontSize: ms(12), fontFamily: fontFamily.semiBold },
-  routeDivider: { width: 1, height: ms(12), backgroundColor: 'rgba(0,0,0,0.1)', marginHorizontal: ms(4) },
+  routeDivider: { width: 1, height: ms(12), backgroundColor: colors.semiTransparent.black10, marginHorizontal: ms(4) },
 
-  // Markers
   markerWrap: { alignItems: 'center' },
   markerLabelContainer: { marginBottom: ms(4) },
-  markerLabel: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: ms(8), paddingVertical: ms(4), borderRadius: ms(6), maxWidth: ms(180), shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3, elevation: 4 },
+  markerLabel: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: ms(8), paddingVertical: ms(4), borderRadius: ms(6), maxWidth: ms(180), shadowColor: colors.common.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3, elevation: 4 },
   markerLabelText: { fontSize: ms(11), fontFamily: fontFamily.semiBold, color: colors.common.white, textAlign: 'center' },
-  plantMarker: { width: ms(40), height: ms(40), borderRadius: ms(20), backgroundColor: '#3B82F6', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: colors.common.white, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
-  plantArrow: { width: 0, height: 0, borderLeftWidth: 7, borderRightWidth: 7, borderTopWidth: 9, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#3B82F6', marginTop: -3 },
-  jobMarker: { width: ms(40), height: ms(40), borderRadius: ms(20), backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: colors.common.white, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
-  jobArrow: { width: 0, height: 0, borderLeftWidth: 7, borderRightWidth: 7, borderTopWidth: 9, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#EF4444', marginTop: -3 },
-  jobSiteLabel: { backgroundColor: '#EF4444', paddingHorizontal: ms(8), paddingVertical: ms(3), borderRadius: ms(4), marginTop: ms(4), shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 3 },
+  plantMarker: { width: ms(40), height: ms(40), borderRadius: ms(20), backgroundColor: colors.mapMarker.plant, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: colors.common.white, shadowColor: colors.common.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
+  plantArrow: { width: 0, height: 0, borderLeftWidth: 7, borderRightWidth: 7, borderTopWidth: 9, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: colors.mapMarker.plant, marginTop: -3 },
+  jobMarker: { width: ms(40), height: ms(40), borderRadius: ms(20), backgroundColor: colors.mapMarker.jobSite, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: colors.common.white, shadowColor: colors.common.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
+  jobArrow: { width: 0, height: 0, borderLeftWidth: 7, borderRightWidth: 7, borderTopWidth: 9, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: colors.mapMarker.jobSite, marginTop: -3 },
+  jobSiteLabel: { backgroundColor: colors.mapMarker.jobSite, paddingHorizontal: ms(8), paddingVertical: ms(3), borderRadius: ms(4), marginTop: ms(4), shadowColor: colors.common.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 3 },
   jobSiteLabelText: { fontSize: ms(10), fontFamily: fontFamily.semiBold, color: colors.common.white },
-  // Bottom sheet
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: ms(20), borderTopRightRadius: ms(20), shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 10 },
+
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: ms(20), borderTopRightRadius: ms(20), shadowColor: colors.common.black, shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 10 },
   handleWrap: { alignItems: 'center', paddingTop: ms(8), paddingBottom: ms(4) },
   handle: { width: ms(36), height: ms(4), borderRadius: ms(2) },
   handleIndicator: { marginTop: ms(2) },
 
-  // Progress card - Compact
-  progressCard: { marginHorizontal: ms(12), borderRadius: ms(10), paddingHorizontal: ms(10), paddingVertical: ms(8), shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 2 },
+  progressCard: { marginHorizontal: ms(12), borderRadius: ms(10), paddingHorizontal: ms(10), paddingVertical: ms(8), shadowColor: colors.common.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 2 },
   progressTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: ms(6) },
   progressStats: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   progressStat: { flex: 1, alignItems: 'center' },
@@ -906,7 +850,6 @@ const styles = StyleSheet.create({
   progressTrack: { height: ms(4), borderRadius: ms(2), overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: ms(2) },
 
-  // Tickets
   ticketsSection: { flex: 1, paddingTop: ms(8) },
   ticketsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: ms(14), marginBottom: ms(6) },
   ticketsHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: ms(6) },
@@ -919,7 +862,6 @@ const styles = StyleSheet.create({
   footerLoader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: ms(16), gap: ms(8) },
   footerLoaderText: { fontSize: ms(12), fontFamily: fontFamily.medium },
 
-  // Ticket card - Compact
   ticketCard: { flexDirection: 'row', alignItems: 'center', paddingVertical: ms(4), paddingHorizontal: ms(8), borderRadius: ms(8), marginBottom: ms(8) },
   ticketCardSelected: { borderWidth: 1, borderColor: colors.primary.main },
   ticketLeft: { alignItems: 'center', marginRight: ms(8), flexShrink: 0 },

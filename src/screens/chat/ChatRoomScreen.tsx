@@ -1,29 +1,3 @@
-/**
- * ChatRoomScreen - Production-Ready Chat with Keyboard Handling
- *
- * KEYBOARD HANDLING EXPLANATION:
- *
- * Problem: When keyboard opens, the TextInput at bottom gets hidden behind keyboard
- *
- * Solution differs by platform:
- *
- * iOS:
- * - Uses KeyboardAvoidingView with behavior="padding"
- * - keyboardVerticalOffset accounts for header height + safe area
- * - Uses 'keyboardWillShow'/'keyboardWillHide' for smoother animations
- * - Needs explicit paddingBottom for home indicator when keyboard is closed
- *
- * Android:
- * - Relies on android:windowSoftInputMode="adjustResize" in AndroidManifest.xml
- * - This automatically resizes the window when keyboard appears
- * - KeyboardAvoidingView with behavior="height" as fallback
- * - Uses 'keyboardDidShow'/'keyboardDidHide' events
- *
- * Key Props:
- * - keyboardShouldPersistTaps="handled" - allows tapping messages while keyboard open
- * - keyboardDismissMode="interactive" - smooth dismiss on scroll (iOS)
- */
-
 import React, { useCallback, useRef, useMemo, useState, useEffect } from 'react';
 import {
   View,
@@ -57,9 +31,6 @@ import { Message } from '../../types/chat';
 import { useAuthStore } from '../../store/authStore';
 
 type RouteParams = RouteProp<RootStackParamList, 'ChatRoom'>;
-
-// Header height constant - adjust if your header height differs
-const HEADER_HEIGHT = ms(56);
 
 const formatDateSeparator = (dateString: string): string => {
   const date = new Date(dateString);
@@ -116,16 +87,12 @@ export const ChatRoomScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
 
-  // State
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set());
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
-  // Refs for tracking
   const previousMessageCountRef = useRef(0);
   const lastMessageIdRef = useRef<string | null>(null);
 
-  // Animated value for smooth keyboard transitions (optional enhancement)
   const keyboardHeight = useRef(new Animated.Value(0)).current;
 
   const { roomId, roomName, chatId, orderId } = route.params;
@@ -137,49 +104,28 @@ export const ChatRoomScreen: React.FC = () => {
 
   const themeColors = isDark ? colors.dark : colors.light;
 
-  /**
-   * KEYBOARD EVENT LISTENERS
-   *
-   * iOS: Uses 'keyboardWillShow/Hide' for animations that start BEFORE keyboard appears
-   * Android: Uses 'keyboardDidShow/Hide' as 'will' events aren't reliable on Android
-   *
-   * We track keyboard visibility to:
-   * 1. Adjust bottom padding for safe area
-   * 2. Auto-scroll to latest message
-   */
   useEffect(() => {
     const keyboardWillShowEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const keyboardWillHideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const showSubscription = Keyboard.addListener(keyboardWillShowEvent, (event) => {
-      setIsKeyboardVisible(true);
+      Animated.timing(keyboardHeight, {
+        toValue: Platform.OS === 'ios' ? event.endCoordinates.height - insets.bottom : 0,
+        duration: Platform.OS === 'ios' ? (event.duration || 250) : 0,
+        useNativeDriver: false,
+      }).start();
 
-      // Animate keyboard height for smooth transitions (iOS)
-      if (Platform.OS === 'ios') {
-        Animated.timing(keyboardHeight, {
-          toValue: event.endCoordinates.height,
-          duration: event.duration || 250,
-          useNativeDriver: false,
-        }).start();
-      }
-
-      // Auto-scroll to bottom when keyboard opens
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     });
 
     const hideSubscription = Keyboard.addListener(keyboardWillHideEvent, (event) => {
-      setIsKeyboardVisible(false);
-
-      // Animate keyboard height back to 0
-      if (Platform.OS === 'ios') {
-        Animated.timing(keyboardHeight, {
-          toValue: 0,
-          duration: event?.duration || 250,
-          useNativeDriver: false,
-        }).start();
-      }
+      Animated.timing(keyboardHeight, {
+        toValue: 0,
+        duration: Platform.OS === 'ios' ? (event?.duration || 250) : 0,
+        useNativeDriver: false,
+      }).start();
     });
 
     return () => {
@@ -188,7 +134,6 @@ export const ChatRoomScreen: React.FC = () => {
     };
   }, [keyboardHeight]);
 
-  // Process messages for display
   const processedMessages = useMemo((): ProcessedMessage[] => {
     if (!messages || messages.length === 0) return [];
 
@@ -243,7 +188,6 @@ export const ChatRoomScreen: React.FC = () => {
     return result;
   }, [messages, newMessageIds]);
 
-  // Auto-scroll when new messages arrive
   useEffect(() => {
     if (messages && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
@@ -257,7 +201,6 @@ export const ChatRoomScreen: React.FC = () => {
     }
   }, [messages]);
 
-  // Handlers
   const handleSend = useCallback(
     async (content: string, images?: ImageAttachment[]) => {
       try {
@@ -282,7 +225,6 @@ export const ChatRoomScreen: React.FC = () => {
     await loadMore();
   }, [loadMore]);
 
-  // Render functions
   const renderMessage = useCallback(
     ({ item }: { item: ProcessedMessage }) => {
       const isOwnMessage = item.sender_id === user?.id;
@@ -330,11 +272,6 @@ export const ChatRoomScreen: React.FC = () => {
     </View>
   );
 
-  // Calculate keyboard vertical offset for iOS
-  // This accounts for: status bar + safe area top + header height
-  const keyboardVerticalOffset = Platform.OS === 'ios' ? insets.top + HEADER_HEIGHT : 0;
-
-  // Loading state
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background, paddingTop: insets.top }]}>
@@ -348,98 +285,87 @@ export const ChatRoomScreen: React.FC = () => {
     );
   }
 
-  /**
-   * MAIN RENDER
-   *
-   * Structure:
-   * - Container (flex: 1, paddingTop for status bar)
-   *   - ChatHeader (fixed at top)
-   *   - KeyboardAvoidingView (flex: 1, handles keyboard)
-   *     - Messages FlatList (flex: 1)
-   *     - Input Wrapper (with safe area padding when keyboard closed)
-   *
-   * KeyboardAvoidingView behavior:
-   * - iOS: "padding" - adds padding at bottom to push content up
-   * - Android: "height" - adjusts height (works with adjustResize)
-   */
+  const chatContent = (
+    <>
+      <View style={[styles.messagesWrapper, { backgroundColor: isDark ? colors.chat.dark.messageArea : colors.chat.light.messageArea }]}>
+        <FlatList
+          ref={flatListRef}
+          data={processedMessages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={[
+            styles.messageList,
+            processedMessages.length === 0 && styles.emptyList,
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          onContentSizeChange={() => {
+            if (processedMessages.length > 0) {
+              flatListRef.current?.scrollToEnd({ animated: false });
+            }
+          }}
+          ListEmptyComponent={renderEmpty}
+          ListHeaderComponent={renderHeader}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary.main}
+              colors={[colors.primary.main]}
+            />
+          }
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.1}
+          removeClippedSubviews={Platform.OS === 'android'}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+        />
+        {typingUsers.length > 0 && <TypingIndicator users={typingUsers} />}
+      </View>
+      <View
+        style={[
+          styles.inputWrapper,
+          { backgroundColor: themeColors.background, paddingBottom: insets.bottom },
+        ]}
+      >
+        <MessageInput
+          onSend={handleSend}
+          onTyping={handleTyping}
+          isSending={isSending}
+        />
+      </View>
+    </>
+  );
+
+  if (Platform.OS === 'ios') {
+    return (
+      <View style={[styles.container, { backgroundColor: themeColors.background, paddingTop: insets.top }]}>
+        <StatusBar
+          backgroundColor={themeColors.background}
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+        />
+        <ChatHeader title={roomName} onBack={() => navigation.goBack()} />
+        <Animated.View style={[styles.keyboardAvoidingView, { paddingBottom: keyboardHeight }]}>
+          {chatContent}
+        </Animated.View>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background, paddingTop: insets.top }]}>
       <StatusBar
         backgroundColor={themeColors.background}
         barStyle={isDark ? 'light-content' : 'dark-content'}
       />
-
-      {/* Header - Outside KeyboardAvoidingView so it stays fixed */}
       <ChatHeader title={roomName} onBack={() => navigation.goBack()} />
-
-      {/* KeyboardAvoidingView wraps content that should move with keyboard */}
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={keyboardVerticalOffset}
+        behavior="height"
+        keyboardVerticalOffset={0}
       >
-        {/* Messages Area */}
-        <View style={[styles.messagesWrapper, { backgroundColor: isDark ? '#0D1117' : '#F0F2F5' }]}>
-          <FlatList
-            ref={flatListRef}
-            data={processedMessages}
-            renderItem={renderMessage}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={[
-              styles.messageList,
-              processedMessages.length === 0 && styles.emptyList,
-            ]}
-            showsVerticalScrollIndicator={false}
-            // Important: Allows tapping on buttons/messages while keyboard is open
-            keyboardShouldPersistTaps="handled"
-            // iOS: Interactive dismiss allows dragging to dismiss keyboard
-            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-            // Auto-scroll when content changes
-            onContentSizeChange={() => {
-              if (processedMessages.length > 0) {
-                flatListRef.current?.scrollToEnd({ animated: false });
-              }
-            }}
-            ListEmptyComponent={renderEmpty}
-            ListHeaderComponent={renderHeader}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={handleRefresh}
-                tintColor={colors.primary.main}
-                colors={[colors.primary.main]}
-              />
-            }
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.1}
-            // Performance optimizations
-            removeClippedSubviews={Platform.OS === 'android'}
-            maxToRenderPerBatch={10}
-            windowSize={10}
-          />
-
-          {/* Typing Indicator */}
-          {typingUsers.length > 0 && <TypingIndicator users={typingUsers} />}
-        </View>
-
-        {/* Input Area */}
-        {/* paddingBottom handles iPhone home indicator when keyboard is closed */}
-        <View
-          style={[
-            styles.inputWrapper,
-            {
-              backgroundColor: themeColors.background,
-              // Only add bottom padding for home indicator when keyboard is NOT visible
-              paddingBottom: isKeyboardVisible ? 0 : insets.bottom,
-            },
-          ]}
-        >
-          <MessageInput
-            onSend={handleSend}
-            onTyping={handleTyping}
-            isSending={isSending}
-          />
-        </View>
+        {chatContent}
       </KeyboardAvoidingView>
     </View>
   );
@@ -516,7 +442,7 @@ const styles = StyleSheet.create({
   },
   inputWrapper: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0,0,0,0.1)',
+    borderTopColor: colors.semiTransparent.black10,
   },
 });
 

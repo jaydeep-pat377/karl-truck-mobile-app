@@ -27,7 +27,6 @@ import { ApiTicketStatus, TicketByOrderItem } from '../../types/ticket';
 
 type TicketScreenRouteProp = RouteProp<RootStackParamList, 'Ticket'>;
 
-// Use API status type - redefining for backward compatibility with UI components
 type TicketStatus = ApiTicketStatus;
 
 interface DeliveryTicket {
@@ -56,186 +55,184 @@ interface StatusConfig {
   progressStep: number;
 }
 
-// Light mode status colors - matching OrderTrackingScreen colors
 const STATUS_CONFIG: Record<TicketStatus, StatusConfig> = {
   pending: {
     label: 'PENDING',
     icon: 'clock-outline',
-    bgColor: '#9E9E9E15',
-    textColor: '#9E9E9E',
-    iconBg: '#9E9E9E15',
+    bgColor: `${colors.trackingStatus.ticketed}15`,
+    textColor: colors.trackingStatus.ticketed,
+    iconBg: `${colors.trackingStatus.ticketed}15`,
     progressStep: 0,
   },
   ticketed: {
     label: 'TICKETED',
     icon: 'ticket-outline',
-    bgColor: '#9E9E9E15',
-    textColor: '#9E9E9E',
-    iconBg: '#9E9E9E15',
+    bgColor: `${colors.trackingStatus.ticketed}15`,
+    textColor: colors.trackingStatus.ticketed,
+    iconBg: `${colors.trackingStatus.ticketed}15`,
     progressStep: 1,
   },
   loading: {
     label: 'LOADING',
     icon: 'truck-loading',
-    bgColor: '#8BC34A15',
-    textColor: '#8BC34A',
-    iconBg: '#8BC34A15',
+    bgColor: `${colors.trackingStatus.loading}15`,
+    textColor: colors.trackingStatus.loading,
+    iconBg: `${colors.trackingStatus.loading}15`,
     progressStep: 2,
   },
   loaded: {
     label: 'LOADED',
     icon: 'truck-check',
-    bgColor: '#2E7D3215',
-    textColor: '#2E7D32',
-    iconBg: '#2E7D3215',
+    bgColor: `${colors.trackingStatus.loaded}15`,
+    textColor: colors.trackingStatus.loaded,
+    iconBg: `${colors.trackingStatus.loaded}15`,
     progressStep: 3,
   },
   to_job: {
     label: 'TO JOB',
     icon: 'truck-fast',
-    bgColor: '#2E7D3215',
-    textColor: '#2E7D32',
-    iconBg: '#2E7D3215',
+    bgColor: `${colors.trackingStatus.toJob}15`,
+    textColor: colors.trackingStatus.toJob,
+    iconBg: `${colors.trackingStatus.toJob}15`,
     progressStep: 4,
   },
   at_job: {
     label: 'AT JOB',
     icon: 'map-marker-check',
-    bgColor: '#64B5F615',
-    textColor: '#64B5F6',
-    iconBg: '#64B5F615',
+    bgColor: `${colors.trackingStatus.atJob}15`,
+    textColor: colors.trackingStatus.atJob,
+    iconBg: `${colors.trackingStatus.atJob}15`,
     progressStep: 5,
   },
   pouring: {
     label: 'POURING',
     icon: 'water',
-    bgColor: '#1565C015',
-    textColor: '#1565C0',
-    iconBg: '#1565C015',
+    bgColor: `${colors.trackingStatus.pouring}15`,
+    textColor: colors.trackingStatus.pouring,
+    iconBg: `${colors.trackingStatus.pouring}15`,
     progressStep: 6,
   },
   washing: {
     label: 'WASHING',
     icon: 'water-pump',
-    bgColor: '#C6282815',
-    textColor: '#C62828',
-    iconBg: '#C6282815',
+    bgColor: `${colors.trackingStatus.washing}15`,
+    textColor: colors.trackingStatus.washing,
+    iconBg: `${colors.trackingStatus.washing}15`,
     progressStep: 7,
   },
   to_plant: {
     label: 'TO PLANT',
     icon: 'truck-delivery',
-    bgColor: '#EC407A15',
-    textColor: '#EC407A',
-    iconBg: '#EC407A15',
+    bgColor: `${colors.trackingStatus.toPlant}15`,
+    textColor: colors.trackingStatus.toPlant,
+    iconBg: `${colors.trackingStatus.toPlant}15`,
     progressStep: 8,
   },
   at_plant: {
     label: 'AT PLANT',
     icon: 'factory',
-    bgColor: '#EC407A15',
-    textColor: '#EC407A',
-    iconBg: '#EC407A15',
+    bgColor: `${colors.trackingStatus.atPlant}15`,
+    textColor: colors.trackingStatus.atPlant,
+    iconBg: `${colors.trackingStatus.atPlant}15`,
     progressStep: 9,
   },
   cancelled: {
     label: 'CANCELLED',
     icon: 'close-circle',
-    bgColor: '#EF444415',
-    textColor: '#EF4444',
-    iconBg: '#EF444415',
+    bgColor: `${colors.trackingStatus.cancelled}15`,
+    textColor: colors.trackingStatus.cancelled,
+    iconBg: `${colors.trackingStatus.cancelled}15`,
     progressStep: -1,
   },
 };
 
-// Dark mode status colors - matching OrderTrackingScreen colors
 const STATUS_CONFIG_DARK: Record<TicketStatus, StatusConfig> = {
   pending: {
     label: 'PENDING',
     icon: 'clock-outline',
-    bgColor: '#9E9E9E20',
-    textColor: '#9E9E9E',
-    iconBg: '#9E9E9E20',
+    bgColor: `${colors.trackingStatus.ticketed}20`,
+    textColor: colors.trackingStatus.ticketed,
+    iconBg: `${colors.trackingStatus.ticketed}20`,
     progressStep: 0,
   },
   ticketed: {
     label: 'TICKETED',
     icon: 'ticket-outline',
-    bgColor: '#9E9E9E20',
-    textColor: '#9E9E9E',
-    iconBg: '#9E9E9E20',
+    bgColor: `${colors.trackingStatus.ticketed}20`,
+    textColor: colors.trackingStatus.ticketed,
+    iconBg: `${colors.trackingStatus.ticketed}20`,
     progressStep: 1,
   },
   loading: {
     label: 'LOADING',
     icon: 'truck-loading',
-    bgColor: '#8BC34A20',
-    textColor: '#8BC34A',
-    iconBg: '#8BC34A20',
+    bgColor: `${colors.trackingStatus.loading}20`,
+    textColor: colors.trackingStatus.loading,
+    iconBg: `${colors.trackingStatus.loading}20`,
     progressStep: 2,
   },
   loaded: {
     label: 'LOADED',
     icon: 'truck-check',
-    bgColor: '#2E7D3220',
-    textColor: '#2E7D32',
-    iconBg: '#2E7D3220',
+    bgColor: `${colors.trackingStatus.loaded}20`,
+    textColor: colors.trackingStatus.loaded,
+    iconBg: `${colors.trackingStatus.loaded}20`,
     progressStep: 3,
   },
   to_job: {
     label: 'TO JOB',
     icon: 'truck-fast',
-    bgColor: '#2E7D3220',
-    textColor: '#2E7D32',
-    iconBg: '#2E7D3220',
+    bgColor: `${colors.trackingStatus.toJob}20`,
+    textColor: colors.trackingStatus.toJob,
+    iconBg: `${colors.trackingStatus.toJob}20`,
     progressStep: 4,
   },
   at_job: {
     label: 'AT JOB',
     icon: 'map-marker-check',
-    bgColor: '#64B5F620',
-    textColor: '#64B5F6',
-    iconBg: '#64B5F620',
+    bgColor: `${colors.trackingStatus.atJob}20`,
+    textColor: colors.trackingStatus.atJob,
+    iconBg: `${colors.trackingStatus.atJob}20`,
     progressStep: 5,
   },
   pouring: {
     label: 'POURING',
     icon: 'water',
-    bgColor: '#1565C020',
-    textColor: '#1565C0',
-    iconBg: '#1565C020',
+    bgColor: `${colors.trackingStatus.pouring}20`,
+    textColor: colors.trackingStatus.pouring,
+    iconBg: `${colors.trackingStatus.pouring}20`,
     progressStep: 6,
   },
   washing: {
     label: 'WASHING',
     icon: 'water-pump',
-    bgColor: '#C6282820',
-    textColor: '#C62828',
-    iconBg: '#C6282820',
+    bgColor: `${colors.trackingStatus.washing}20`,
+    textColor: colors.trackingStatus.washing,
+    iconBg: `${colors.trackingStatus.washing}20`,
     progressStep: 7,
   },
   to_plant: {
     label: 'TO PLANT',
     icon: 'truck-delivery',
-    bgColor: '#EC407A20',
-    textColor: '#EC407A',
-    iconBg: '#EC407A20',
+    bgColor: `${colors.trackingStatus.toPlant}20`,
+    textColor: colors.trackingStatus.toPlant,
+    iconBg: `${colors.trackingStatus.toPlant}20`,
     progressStep: 8,
   },
   at_plant: {
     label: 'AT PLANT',
     icon: 'factory',
-    bgColor: '#EC407A20',
-    textColor: '#EC407A',
-    iconBg: '#EC407A20',
+    bgColor: `${colors.trackingStatus.atPlant}20`,
+    textColor: colors.trackingStatus.atPlant,
+    iconBg: `${colors.trackingStatus.atPlant}20`,
     progressStep: 9,
   },
   cancelled: {
     label: 'CANCELLED',
     icon: 'close-circle',
-    bgColor: '#EF444420',
-    textColor: '#EF4444',
-    iconBg: '#EF444420',
+    bgColor: `${colors.trackingStatus.cancelled}20`,
+    textColor: colors.trackingStatus.cancelled,
+    iconBg: `${colors.trackingStatus.cancelled}20`,
     progressStep: -1,
   },
 };
@@ -389,12 +386,12 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
 
   const progressData = useMemo(() => {
     const rawPercentage = orderedQty > 0 ? (totalDeliveredQty / orderedQty) * 100 : 0;
-    const percentage = Math.min(rawPercentage, 100); // Cap at 100%
+    const percentage = Math.min(rawPercentage, 100);
     return {
       totalDelivered: totalDeliveredQty,
       totalOrdered: orderedQty,
       percentage,
-      displayPercentage: Math.round(rawPercentage), // Show actual percentage in text
+      displayPercentage: Math.round(rawPercentage),
       ticketCount: totalTickets,
     };
   }, [totalDeliveredQty, orderedQty, totalTickets]);
@@ -519,10 +516,6 @@ const EmptyState: React.FC<EmptyStateProps> = ({ hasFilter, hasSearch, isDark })
   );
 };
 
-// ============================================================================
-// SEARCH BAR COMPONENT
-// ============================================================================
-
 interface SearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
@@ -601,10 +594,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
     </View>
   );
 };
-
-// ============================================================================
-// FILTER MODAL COMPONENT
-// ============================================================================
 
 interface FilterOptions {
   statuses: TicketStatus[];
@@ -720,7 +709,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
             },
           ]}>
           <Pressable onPress={() => Keyboard.dismiss()}>
-            {/* Modal Header */}
+
             <View style={[styles.modalHeader, { borderBottomColor: themeColors.border }]}>
               <Text style={[styles.modalTitle, { color: themeColors.text.primary }]}>
                 Filter Tickets
@@ -733,7 +722,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
             <ScrollView
               style={styles.modalScroll}
               showsVerticalScrollIndicator={false}>
-              {/* Status Filter */}
+
               <View style={styles.filterSection}>
                 <Text style={[styles.filterSectionTitle, { color: themeColors.text.primary }]}>
                   Status
@@ -772,7 +761,6 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 </View>
               </View>
 
-              {/* Sort By */}
               <View style={styles.filterSection}>
                 <Text style={[styles.filterSectionTitle, { color: themeColors.text.primary }]}>
                   Sort By
@@ -817,7 +805,6 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   })}
                 </View>
 
-                {/* Sort Order */}
                 <View style={styles.sortOrderContainer}>
                   <TouchableOpacity
                     style={[
@@ -899,7 +886,6 @@ const FilterModal: React.FC<FilterModalProps> = ({
               <View style={{ height: ms(120) }} />
             </ScrollView>
 
-            {/* Modal Footer */}
             <View style={[styles.modalFooter, { borderTopColor: themeColors.border, backgroundColor: themeColors.card }]}>
               <TouchableOpacity
                 style={[
@@ -957,11 +943,9 @@ export const TicketScreen: React.FC = () => {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<FilterOptions>(DEFAULT_FILTERS);
 
-  // Pagination state
   const ITEMS_PER_PAGE = 10;
   const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_PAGE);
 
-  // Use the tickets by order hook
   const {
     order,
     tickets: apiTickets,
@@ -977,13 +961,11 @@ export const TicketScreen: React.FC = () => {
     sort_order: advancedFilters.sortOrder,
   });
 
-  // Get order info from order data
   const displayDate = order?.order_date
     ? new Date(order.order_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
     : 'Order';
   const deliveryAddress = order?.delivery_address || 'Loading...';
 
-  // Map API tickets to UI format
   const allTickets = useMemo(
     () => (apiTickets || []).map((ticket: TicketByOrderItem): DeliveryTicket => ({
       id: ticket.ticket_code || '',
@@ -1004,7 +986,6 @@ export const TicketScreen: React.FC = () => {
     [apiTickets]
   );
 
-  // Count active filters for badge
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (advancedFilters.statuses.length > 0) count += advancedFilters.statuses.length;
@@ -1012,11 +993,9 @@ export const TicketScreen: React.FC = () => {
     return count;
   }, [advancedFilters]);
 
-  // Tickets are now filtered by API, just apply any client-side filters if needed
   const filteredTickets = useMemo(() => {
     let tickets = allTickets;
 
-    // Apply search filter (only when search button is clicked)
     if (appliedSearchQuery.trim()) {
       const query = appliedSearchQuery.toLowerCase().trim();
       tickets = tickets.filter(ticket =>
@@ -1027,7 +1006,6 @@ export const TicketScreen: React.FC = () => {
       );
     }
 
-    // Apply status filter
     if (advancedFilters.statuses.length > 0) {
       tickets = tickets.filter(ticket => advancedFilters.statuses.includes(ticket.status));
     }
@@ -1035,19 +1013,16 @@ export const TicketScreen: React.FC = () => {
     return tickets;
   }, [allTickets, advancedFilters.statuses, appliedSearchQuery]);
 
-  // Reset displayed count when filters change
   React.useEffect(() => {
     setDisplayedCount(ITEMS_PER_PAGE);
   }, [appliedSearchQuery, advancedFilters]);
 
-  // Paginated tickets for display
   const paginatedTickets = useMemo(() => {
     return filteredTickets.slice(0, displayedCount);
   }, [filteredTickets, displayedCount]);
 
-  // Pagination helpers
   const hasNextPage = displayedCount < filteredTickets.length;
-  const isFetchingNextPage = false; // Client-side pagination, no fetching
+  const isFetchingNextPage = false;
 
   const handleBack = useCallback(() => {
     navigation.goBack();
@@ -1158,7 +1133,7 @@ export const TicketScreen: React.FC = () => {
         </View>
 
         <TouchableOpacity
-          style={[styles.headerBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+          style={[styles.headerBtn, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
           onPress={handleRefresh}
           activeOpacity={0.7}>
           <Icon name="refresh" size={ms(18)} color={colors.primary.main} />
@@ -1380,16 +1355,16 @@ const styles = StyleSheet.create({
     fontSize: ms(11),
     marginTop: ms(5),
   },
-  // FlatList takes remaining space
+
   flatList: {
     flex: 1,
   },
-  // Content styles - no flexGrow to prevent centering
+
   listContent: {
     paddingHorizontal: spacing.md,
     paddingBottom: TAB_BAR_HEIGHT + spacing.xl,
   },
-  // Only for empty state - enables vertical centering
+
   listContentEmpty: {
     flexGrow: 1,
     paddingHorizontal: spacing.md,
@@ -1562,7 +1537,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     lineHeight: ms(20),
   },
-  // Search Bar Styles
+
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1625,7 +1600,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
     lineHeight: ms(12),
   },
-  // Filter Modal Styles
+
   modalOverlay: {
     flex: 1,
     backgroundColor: colors.overlay.medium,

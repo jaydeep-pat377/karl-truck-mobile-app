@@ -46,7 +46,6 @@ const RADIUS = {
 
 const WEATHER_COLORS = colors.weatherTheme;
 
-
 const WeatherIcon: React.FC<{ size?: number }> = ({ size = 100 }) => {
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100">
@@ -100,13 +99,11 @@ const PressureCard: React.FC<PressureCardProps> = ({ value, unit }) => {
   const centerY = radius + responsive(ms(8), ms(10));
   const dotRadius = responsive(ms(6), ms(7));
 
-  // Pressure range for normalization
   const minPressure = 29.0;
   const maxPressure = 31.0;
   const normalizedValue = (value - minPressure) / (maxPressure - minPressure);
   const clampedValue = Math.max(0, Math.min(1, normalizedValue));
 
-  // Arc angles: 180° (left) to 0° (right) - semi-circle opening downward
   const startAngle = 180;
   const endAngle = 0;
   const arcSpan = 180;
@@ -114,20 +111,16 @@ const PressureCard: React.FC<PressureCardProps> = ({ value, unit }) => {
 
   const toRad = (deg: number) => (deg * Math.PI) / 180;
 
-  // Calculate arc points
   const startX = centerX + Math.cos(toRad(startAngle)) * radius;
   const startY = centerY - Math.sin(toRad(startAngle)) * radius;
   const endX = centerX + Math.cos(toRad(endAngle)) * radius;
   const endY = centerY - Math.sin(toRad(endAngle)) * radius;
 
-  // Calculate progress dot position
   const progressX = centerX + Math.cos(toRad(progressAngle)) * radius;
   const progressY = centerY - Math.sin(toRad(progressAngle)) * radius;
 
-  // Arc path for background (full semi-circle)
   const backgroundArc = `M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${endX} ${endY}`;
 
-  // Arc path for progress
   const progressEndX = centerX + Math.cos(toRad(progressAngle)) * radius;
   const progressEndY = centerY - Math.sin(toRad(progressAngle)) * radius;
   const progressArc = `M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${progressEndX} ${progressEndY}`;
@@ -136,7 +129,7 @@ const PressureCard: React.FC<PressureCardProps> = ({ value, unit }) => {
     <WeatherMetricCard title="PRESSURE" titleIcon="arrow-up-down">
       <View style={styles.pressureContent}>
         <Svg width={svgWidth} height={svgHeight}>
-          {/* Background arc */}
+
           <Path
             d={backgroundArc}
             stroke={WEATHER_COLORS.text.hint + '50'}
@@ -145,7 +138,6 @@ const PressureCard: React.FC<PressureCardProps> = ({ value, unit }) => {
             strokeLinecap="round"
           />
 
-          {/* Progress arc */}
           {clampedValue > 0 && (
             <Path
               d={progressArc}
@@ -156,15 +148,13 @@ const PressureCard: React.FC<PressureCardProps> = ({ value, unit }) => {
             />
           )}
 
-          {/* Indicator dot */}
           <Circle
             cx={progressX}
             cy={progressY}
             r={dotRadius}
-            fill="#FF6B6B"
+            fill={colors.weatherIcon.indicatorDot}
           />
 
-          {/* Value text */}
           <SvgText
             x={centerX}
             y={centerY + responsive(ms(5), ms(8))}
@@ -175,7 +165,6 @@ const PressureCard: React.FC<PressureCardProps> = ({ value, unit }) => {
             {value.toFixed(2)}
           </SvgText>
 
-          {/* Unit text */}
           <SvgText
             x={centerX}
             y={centerY + responsive(ms(22), ms(28))}
@@ -823,7 +812,6 @@ export const WeatherScreen: React.FC = () => {
         </Pressable>
       </Modal>
 
-      {/* Custom Alert Modal */}
       <AlertModal
         visible={alertState.visible}
         type={alertState.type}

@@ -1,7 +1,3 @@
-/**
- * Card Component
- * Themed card with shadow and border radius
- */
 
 import React from 'react';
 import {
@@ -98,8 +94,7 @@ export const Card: React.FC<CardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    // Note: overflow: 'visible' allows shadows to render on all sides
-    // Child content that needs clipping should handle it individually
+
     overflow: 'visible',
   },
 });

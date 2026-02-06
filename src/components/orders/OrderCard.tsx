@@ -110,7 +110,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
   const progress = order.progress || 0;
 
-  // Use centralized utility for consistent color across all screens
   const statusColor = getStatusColor(order.status, progress);
 
   const formatDate = (dateStr: string) => {
@@ -121,13 +120,12 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     });
   };
 
-  // Get evaporation rate - check both weather and weather_data (for backwards compatibility)
   const getEvaporationRate = () => {
-    // Try weather.evaporationRate first (mapped data)
+
     if (order.weather?.evaporationRate !== undefined && order.weather?.evaporationRate !== null) {
       return order.weather.evaporationRate;
     }
-    // Try weather_data.evaporation_rate (raw API data)
+
     if ((order as any).weather_data?.evaporation_rate !== undefined && (order as any).weather_data?.evaporation_rate !== null) {
       return (order as any).weather_data.evaporation_rate;
     }
@@ -142,12 +140,12 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       style={[
         styles.card,
         {
-          // iOS shadow - bottom only
+
           shadowColor: statusColor,
           shadowOffset: { width: 0, height: 6 },
           shadowOpacity: 0.35,
           shadowRadius: 4,
-          // Android shadow
+
           ...(Platform.OS === 'android' && {
             elevation: 4,
             borderBottomWidth: 2,
@@ -155,7 +153,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           }),
         },
       ]}>
-      {/* Inner container for content clipping (rounded corners) */}
       <View style={styles.cardInnerContainer}>
         <View style={styles.cardTouchable}>
         <View style={styles.cardContent}>
@@ -301,7 +298,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                   </>
                 )}
 
-                {/* Favorite Star Button */}
                 <TouchableOpacity
                   style={styles.favoriteButtonBottom}
                   onPress={onFavoritePress}
@@ -366,8 +362,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     borderRadius: ms(10),
-    // Note: overflow must be 'visible' for iOS shadows to render
-    // Content clipping is handled by cardInnerContainer
+
     overflow: Platform.OS === 'ios' ? 'visible' : 'hidden',
   },
   cardInnerContainer: {

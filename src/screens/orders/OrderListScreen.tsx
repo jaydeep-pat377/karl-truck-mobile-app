@@ -42,7 +42,6 @@ type DateFilterId = typeof dateFilters[number]['id'] | null;
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Status values matching API
 const statusFilters = [
   { id: 'all', label: 'All', icon: 'format-list-bulleted' },
   { id: 'Normal', label: 'Normal', icon: 'checkbox-marked-circle-outline' },
@@ -107,7 +106,7 @@ const mapWeatherCondition = (condition: string | undefined): WeatherCondition =>
 
 const mapOrderStatus = (status: string): Order['status'] => {
   const statusMap: Record<string, Order['status']> = {
-    // API status values (space-separated)
+
     'normal': 'NORMAL',
     'in progress': 'IN_PROCESS',
     'completed': 'COMPLETED',
@@ -118,7 +117,7 @@ const mapOrderStatus = (status: string): Order['status'] => {
     'delayed': 'DELAYED',
     'canceled': 'CANCELLED',
     'cancelled': 'CANCELLED',
-    // Alternative formats (underscore-separated)
+
     'in_process': 'IN_PROCESS',
     'will_call': 'WILL_CALL',
     'weather_permitting': 'WEATHER_PERMITTING',
@@ -130,7 +129,7 @@ const mapOrderStatus = (status: string): Order['status'] => {
     'hold': 'HOLD',
     'on hold': 'HOLD',
     'on_hold': 'HOLD',
-    // Combined word formats
+
     'waitlist': 'WAIT_LIST',
     'willcall': 'WILL_CALL',
     'inprogress': 'IN_PROCESS',
@@ -143,10 +142,8 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     ? Math.round((apiOrder.delivered_qty / apiOrder.ordered_qty) * 100)
     : 0;
 
-  // product_codes is a string from API, not an array
   const productCode = apiOrder.product_codes || 'N/A';
 
-  // Calculate loads - estimate based on ~10 CY per load (typical truck capacity)
   const estimatedLoadsPerTruck = 10;
   const totalLoads = Math.ceil(apiOrder.ordered_qty / estimatedLoadsPerTruck) || 1;
   const completedLoads = apiOrder.tickets_count || 0;
@@ -219,7 +216,6 @@ const OrderCardSkeleton: React.FC<{ isDark: boolean }> = ({ isDark }) => {
   );
 };
 
-
 interface FilterModalProps {
   visible: boolean;
   onClose: () => void;
@@ -250,7 +246,6 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
 
   const [tempDate, setTempDate] = useState<Date>(selectedDate);
 
-  // Quick date options
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -329,7 +324,7 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
   return (
     <Modal transparent visible={visible} animationType="none" onRequestClose={handleCancel} statusBarTranslucent>
       <View style={styles.centeredModalContainer}>
-        {/* Semi-transparent backdrop overlay */}
+
         <Animated.View
           style={[
             styles.modalBackdrop,
@@ -371,7 +366,6 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Selected Date Display */}
           <View style={[
             styles.selectedDateDisplay,
             {
@@ -436,7 +430,6 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
             />
           </View>
 
-          {/* Action Buttons */}
           <View style={[
             styles.datePickerModalActions,
             {
@@ -465,14 +458,14 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
 
 const statusColorMap: Record<string, string> = {
   all: colors.primary.main,
-  'Normal': colors.success.main,        // Green
-  'In Progress': colors.success.main,   // Green
-  'Completed': colors.success.main,     // Green
-  'Will Call': '#EAB308',               // Yellow
-  'Weather Permitting': colors.info.main, // Blue
-  'Hold Delivery': colors.error.main,   // Red
-  'Wait List': colors.grey[50],         // Gray
-  'Canceled': colors.error.main,        // Red
+  'Normal': colors.success.main,
+  'In Progress': colors.success.main,
+  'Completed': colors.success.main,
+  'Will Call': colors.warning.main,
+  'Weather Permitting': colors.info.main,
+  'Hold Delivery': colors.error.main,
+  'Wait List': colors.grey[50],
+  'Canceled': colors.error.main,
 };
 
 const FilterModal: React.FC<FilterModalProps> = ({
@@ -814,7 +807,6 @@ export const OrderListScreen: React.FC = () => {
   const { getOrCreateRoom } = useChatRooms();
   const { showAlert } = useGlobalAlert();
 
-  // Get status filter from route params (from Dashboard)
   const statusFilterFromRoute = route.params?.statusFilter;
   const filterTimestamp = route.params?._timestamp;
 
@@ -825,7 +817,6 @@ export const OrderListScreen: React.FC = () => {
     const [showDatePicker, setShowDatePicker] = useState(false);
   const [chatLoadingOrderId, setChatLoadingOrderId] = useState<string | null>(null);
 
-  // Single date state for calendar filter
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [debouncedDate, setDebouncedDate] = useState<Date>(new Date());
 
@@ -834,7 +825,6 @@ export const OrderListScreen: React.FC = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [favoriteOverrides, setFavoriteOverrides] = useState<Record<string, boolean>>({});
 
-  // Listen for keyboard events to adjust bottom padding
   useEffect(() => {
     const keyboardShowEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const keyboardHideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
@@ -853,21 +843,19 @@ export const OrderListScreen: React.FC = () => {
     };
   }, []);
 
-  // Debounce filter changes to prevent rapid API calls
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedFilter(activeFilter);
       setDebouncedDate(selectedDate);
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [activeFilter, selectedDate]);
 
-  // Apply status filter from route params when screen gains focus
   useFocusEffect(
     useCallback(() => {
       if (statusFilterFromRoute) {
-        // Map the route status filter to the correct status filter ID
+
         const statusMap: Record<string, StatusFilterId> = {
           'Will Call': 'Will Call',
           'Hold Delivery': 'Hold Delivery',
@@ -891,7 +879,6 @@ export const OrderListScreen: React.FC = () => {
 
   const themeColors = isDark ? colors.dark : colors.light;
 
-  // Map sort option to API params
   const getSortParams = (sortBy: SortOptionId): { sort_by: OrdersQueryParams['sort_by']; sort_order: OrdersQueryParams['sort_order'] } => {
     switch (sortBy) {
       case 'date_asc':
@@ -911,12 +898,11 @@ export const OrderListScreen: React.FC = () => {
     }
   };
 
-  // Get API status value - status IDs now directly match API values
   const getApiStatus = (statuses: StatusFilterId[]): string | undefined => {
     if (statuses.includes('all') || statuses.length === 0) {
       return undefined;
     }
-    // Filter out 'all' and join with comma for multiple selections
+
     return statuses
       .filter(s => s !== 'all')
       .join(',');
@@ -925,28 +911,24 @@ export const OrderListScreen: React.FC = () => {
   const queryParams = useMemo((): Omit<OrdersQueryParams, 'page'> => {
     const params: Omit<OrdersQueryParams, 'page'> = {
       date_filter: getApiDateFilter(debouncedFilter, debouncedDate),
-      limit: 10, // Reduced for faster initial load
+      limit: 10,
     };
 
-    // Add date for calendar filter (single date - same start and end)
     if (debouncedFilter === 'calendar') {
       const dateStr = debouncedDate.toISOString().split('T')[0];
       params.start_date = dateStr;
       params.end_date = dateStr;
     }
 
-    // Add search query (only when search button is clicked)
     if (appliedSearchQuery.trim()) {
       params.search = appliedSearchQuery.trim();
     }
 
-    // Add status filter from modal
     const apiStatus = getApiStatus(appliedFilters.statuses);
     if (apiStatus) {
       params.status = apiStatus;
     }
 
-    // Add sort params from modal
     const sortParams = getSortParams(appliedFilters.sortBy);
     params.sort_by = sortParams.sort_by;
     params.sort_order = sortParams.sort_order;
@@ -986,13 +968,11 @@ export const OrderListScreen: React.FC = () => {
     }).start();
   }, [activeFilterCount, filterBarAnim]);
 
-  // Track previous refetching state to detect when refetch completes
   const wasRefetchingRef = useRef(false);
 
-  // Clear favorite overrides when refetch completes (pull to refresh)
   useEffect(() => {
     if (wasRefetchingRef.current && !isRefetching) {
-      // Refetch just completed, clear overrides to use fresh data
+
       setFavoriteOverrides({});
     }
     wasRefetchingRef.current = isRefetching;
@@ -1001,7 +981,7 @@ export const OrderListScreen: React.FC = () => {
   const mappedOrders = useMemo(() => {
     return apiOrders.map(order => {
       const mapped = mapApiOrderToOrder(order);
-      // Apply optimistic favorite override if exists
+
       if (favoriteOverrides[mapped.id] !== undefined) {
         return { ...mapped, isFavorite: favoriteOverrides[mapped.id] };
       }
@@ -1012,10 +992,6 @@ export const OrderListScreen: React.FC = () => {
   const filteredOrders = useMemo(() => {
     let orders = mappedOrders;
 
-    // Note: Status and sorting filters are now handled by the API
-    // Only apply client-side filters for options not supported by API
-
-    // Product type filter (client-side only)
     if (appliedFilters.productType !== 'all') {
       const productMap: Record<string, string> = {
         mix_3000: 'Concrete Mix 3000',
@@ -1029,7 +1005,6 @@ export const OrderListScreen: React.FC = () => {
       );
     }
 
-    // Has alert filter (client-side only)
     if (appliedFilters.hasAlertOnly) {
       orders = orders.filter((order) => order.hasAlert);
     }
@@ -1083,7 +1058,7 @@ export const OrderListScreen: React.FC = () => {
   }, [refetch]);
 
   const handleLoadMore = useCallback(() => {
-    // Only fetch if there are more pages and not currently fetching
+
     if (hasNextPage === true && !isFetchingNextPage && !isLoading) {
       fetchNextPage();
     }
@@ -1102,7 +1077,7 @@ export const OrderListScreen: React.FC = () => {
 
     return (
       <View style={styles.emptyWrap}>
-        <View style={[styles.emptyIcon, { backgroundColor: isDark ? 'rgba(107,177,48,0.1)' : 'rgba(107,177,48,0.08)' }]}>
+        <View style={[styles.emptyIcon, { backgroundColor: isDark ? colors.semiTransparent.green10 : colors.semiTransparent.green08 }]}>
           <Icon name={hasActiveFilter ? 'filter-off-outline' : 'clipboard-text-outline'} size={ms(40)} color={colors.primary.main} />
         </View>
         <Text style={[styles.emptyTitle, { color: themeColors.text.primary }]}>
@@ -1214,20 +1189,18 @@ export const OrderListScreen: React.FC = () => {
   }, [navigation]);
 
   const handleToggleFavorite = useCallback((orderId: string) => {
-    // Check if we have an override first, otherwise use API data
+
     const hasOverride = favoriteOverrides[orderId] !== undefined;
     const apiOrder = apiOrders.find(o => o.order_id === orderId);
     const currentFavorite = hasOverride ? favoriteOverrides[orderId] : (apiOrder?.is_favourite ?? false);
     const newFavorite = !currentFavorite;
 
-    // Optimistically update UI immediately
     setFavoriteOverrides(prev => ({ ...prev, [orderId]: newFavorite }));
 
-    // Call API in background
     orderService.toggleFavourite(orderId)
       .catch((error) => {
         console.error('Failed to toggle favorite:', error);
-        // Revert optimistic update on error
+
         setFavoriteOverrides(prev => ({ ...prev, [orderId]: currentFavorite }));
         showAlert({
           type: 'error',
@@ -1245,7 +1218,6 @@ export const OrderListScreen: React.FC = () => {
         throw new Error('Invalid order ID');
       }
 
-      // Get or create room - this will work with fallbacks
       const room = await getOrCreateRoom(orderId);
 
       navigation.navigate('ChatRoom', {
@@ -1321,8 +1293,7 @@ export const OrderListScreen: React.FC = () => {
         <TouchableOpacity
           style={styles.headerIcon}
           onPress={() => {
-            // OrderListScreen is a tab screen, so goBack won't work
-            // Navigate to Home tab instead
+
             if (navigation.canGoBack()) {
               navigation.goBack();
             } else {
@@ -1350,7 +1321,7 @@ export const OrderListScreen: React.FC = () => {
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={[styles.headerIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+            style={[styles.headerIcon, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
             onPress={handleRefresh}
             activeOpacity={0.7}>
             <Icon name="refresh" size={ms(18)} color={colors.primary.main} />
@@ -1810,7 +1781,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.md,
   },
-  // Date range picker styles
+
   dateRangeDisplayContainer: {
     flexDirection: 'row',
     alignItems: 'center',

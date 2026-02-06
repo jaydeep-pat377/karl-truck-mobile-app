@@ -62,7 +62,6 @@ const getStatusColor = (rate: number): string => {
   return colors.success.main;
 };
 
-
 interface StatusTableRowProps {
   label: string;
   value: string;
@@ -374,7 +373,6 @@ export const EvaporationListScreen: React.FC = () => {
         )}
       </ScrollView>
 
-      {/* Menu Modal */}
       <Modal
         visible={menuVisible}
         transparent={true}

@@ -35,14 +35,12 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
   const [error, setError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // Handle API success
   useEffect(() => {
     if (isSuccess) {
       setShowSuccessModal(true);
     }
   }, [isSuccess]);
 
-  // Handle API error
   useEffect(() => {
     if (isError && apiError) {
       setError(apiError);
@@ -68,7 +66,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
     try {
       await forgotPassword(email);
     } catch (err) {
-      // Error is handled by the hook
+
     }
   };
 
@@ -104,7 +102,6 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
         extraHeight={120}
       >
         <View style={styles.content}>
-          {/* Back Button */}
           <TouchableOpacity
             style={[styles.backButton, { backgroundColor: theme.colors.card }]}
             onPress={handleBack}
@@ -112,8 +109,6 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
           >
             <Icon name="arrow-left" size={ms(24)} color={theme.colors.text} />
           </TouchableOpacity>
-
-          {/* Header */}
           <View style={styles.header}>
             <View
               style={[
@@ -135,8 +130,6 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
               {t('auth.forgotPassword.subtitle')}
             </Text>
           </View>
-
-          {/* Form */}
           <View style={styles.form}>
             <Input
               label={t('auth.emailAddress')}
@@ -178,8 +171,6 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
           </View>
         </View>
       </KeyboardAwareScrollView>
-
-      {/* Success Modal */}
       <AlertModal
         visible={showSuccessModal}
         type="success"

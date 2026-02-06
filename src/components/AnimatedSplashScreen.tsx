@@ -13,7 +13,6 @@ import GreenTruck from '../assets/svgs/greenTruck.svg';
 
 const { width, height } = Dimensions.get('window');
 
-// Truck dimensions
 const TRUCK_WIDTH = 200;
 const TRUCK_HEIGHT = (TRUCK_WIDTH * 86) / 157;
 
@@ -24,7 +23,7 @@ interface AnimatedSplashScreenProps {
 export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
   onAnimationComplete,
 }) => {
-  // Animation values
+
   const logoScale = useRef(new Animated.Value(0.3)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
 
@@ -39,18 +38,16 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
 
   const footerOpacity = useRef(new Animated.Value(0)).current;
 
-  // Pulse animation for loader dots
   const dot1Scale = useRef(new Animated.Value(1)).current;
   const dot2Scale = useRef(new Animated.Value(1)).current;
   const dot3Scale = useRef(new Animated.Value(1)).current;
 
-  // Wheel rotation animation
   const wheelRotation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Start the intro animation sequence (without auto-fade)
+
     const introAnimation = Animated.sequence([
-      // Phase 1: Logo appears with scale
+
       Animated.parallel([
         Animated.spring(logoScale, {
           toValue: 1,
@@ -65,7 +62,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
         }),
       ]),
 
-      // Phase 2: Title slides up and fades in
       Animated.parallel([
         Animated.timing(titleOpacity, {
           toValue: 1,
@@ -80,7 +76,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
         }),
       ]),
 
-      // Phase 3: Subtitle appears
       Animated.parallel([
         Animated.timing(subtitleOpacity, {
           toValue: 1,
@@ -95,7 +90,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
         }),
       ]),
 
-      // Phase 4: Loader and footer appear
       Animated.parallel([
         Animated.timing(loaderOpacity, {
           toValue: 1,
@@ -115,11 +109,9 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
         }),
       ]),
 
-      // Phase 5: Minimum hold time to ensure smooth experience
       Animated.delay(500),
     ]);
 
-    // Start pulsing dots animation (runs continuously)
     const createPulse = (dotScale: Animated.Value, delay: number) => {
       return Animated.loop(
         Animated.sequence([
@@ -144,7 +136,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
       createPulse(dot3Scale, 300),
     ]).start();
 
-    // Wheel spinning animation - continuous
     const wheelAnimation = Animated.loop(
       Animated.timing(wheelRotation, {
         toValue: 1,
@@ -155,8 +146,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
     );
     wheelAnimation.start();
 
-    // Run intro animation, then notify parent that animation is complete
-    // Parent will hide splash when navigation is ready
     introAnimation.start(() => {
       onAnimationComplete();
     });
@@ -171,7 +160,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
     outputRange: ['0deg', '360deg'],
   });
 
-  // Calculate wheel positions based on truck size
   const scale = TRUCK_WIDTH / 157;
   const frontWheelSize = 16 * scale;
   const middleWheelSize = 20 * scale;
@@ -191,11 +179,9 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
         style={styles.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}>
-        {/* Decorative circles */}
         <View style={styles.decorativeCircle1} />
         <View style={styles.decorativeCircle2} />
 
-        {/* Truck with rotating wheels */}
         <Animated.View
           style={[
             styles.logoContainer,
@@ -208,7 +194,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
             <View style={styles.truckWrapper}>
               <GreenTruck width={TRUCK_WIDTH} height={TRUCK_HEIGHT} />
 
-            {/* Animated Wheel Overlays - Front Wheel */}
             <Animated.View
               style={[
                 styles.wheelOverlay,
@@ -235,7 +220,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
               />
             </Animated.View>
 
-            {/* Animated Wheel Overlays - Middle Wheel */}
             <Animated.View
               style={[
                 styles.wheelOverlay,
@@ -262,7 +246,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
               />
             </Animated.View>
 
-            {/* Animated Wheel Overlays - Rear Wheel */}
             <Animated.View
               style={[
                 styles.wheelOverlay,
@@ -292,7 +275,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
           </View>
         </Animated.View>
 
-        {/* App Title */}
         <Animated.Text
           style={[
             styles.title,
@@ -304,7 +286,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
           Truckast
         </Animated.Text>
 
-        {/* Subtitle */}
         <Animated.Text
           style={[
             styles.subtitle,
@@ -316,7 +297,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
           Ready Mix Delivery
         </Animated.Text>
 
-        {/* Animated Loader Dots */}
         <Animated.View
           style={[
             styles.loaderContainer,
@@ -336,7 +316,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
           />
         </Animated.View>
 
-        {/* Footer */}
         <Animated.Text style={[styles.footer, { opacity: footerOpacity }]}>
           Powered by TruckApp
         </Animated.Text>
@@ -363,7 +342,7 @@ const styles = StyleSheet.create({
     width: width * 0.7,
     height: width * 0.7,
     borderRadius: width * 0.35,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: colors.splash.decorativeCircle1,
   },
   decorativeCircle2: {
     position: 'absolute',
@@ -372,13 +351,13 @@ const styles = StyleSheet.create({
     width: width * 0.8,
     height: width * 0.8,
     borderRadius: width * 0.4,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: colors.splash.decorativeCircle2,
   },
   logoContainer: {
     marginBottom: 24,
   },
   truckShadow: {
-    shadowColor: '#000000',
+    shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -396,7 +375,7 @@ const styles = StyleSheet.create({
   },
   wheelSpoke: {
     position: 'absolute',
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: colors.splash.wheelSpokes,
     borderRadius: 1,
   },
   spokeRotated: {
@@ -407,14 +386,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.common.white,
     letterSpacing: 1,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowColor: colors.semiTransparent.black20,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   subtitle: {
     fontSize: 16,
     fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: colors.splash.subtitle,
     marginTop: 8,
     letterSpacing: 0.5,
   },
@@ -427,13 +406,13 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: colors.splash.loaderDots,
   },
   footer: {
     position: 'absolute',
     bottom: 50,
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: colors.splash.footer,
     letterSpacing: 0.5,
   },
 });

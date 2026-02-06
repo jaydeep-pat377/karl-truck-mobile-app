@@ -27,7 +27,6 @@ interface LoginScreenProps {
   };
 }
 
-// Additional storage keys for remember me
 const REMEMBER_ME_EMAIL = 'rememberMeEmail';
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
@@ -90,7 +89,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
     return Object.keys(newErrors).length === 0;
   };
 
-  // Save or clear remember me credentials
   const handleRememberMe = async (shouldRemember: boolean, userEmail: string) => {
     try {
       if (shouldRemember) {
@@ -134,7 +132,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
     const newValue = !rememberMe;
     setRememberMe(newValue);
 
-    // If unchecking, clear saved credentials immediately
     if (!newValue) {
       await handleRememberMe(false, '');
     }
@@ -234,7 +231,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
               returnKeyType="done"
               onSubmitEditing={handleLogin}
             />
-
 
             <View style={styles.optionsRow}>
               <TouchableOpacity

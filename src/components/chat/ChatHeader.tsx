@@ -17,7 +17,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onInfo,
   orderCode,
 }) => {
-  // Remove "Order #" prefix from title if present
+
   const displayTitle = title.replace(/^Order\s*#/i, '').trim();
 
   return (
@@ -39,7 +39,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         </Text>
         {orderCode && (
           <View style={styles.orderBadge}>
-            <Icon name="clipboard-text-outline" size={ms(10)} color="rgba(255,255,255,0.8)" />
+            <Icon name="clipboard-text-outline" size={ms(10)} color={colors.headerOverlay.textBright} />
             <Text style={styles.orderText}>
               {orderCode}
             </Text>
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingTop: Platform.OS === 'ios' ? spacing.md : spacing.md,
     backgroundColor: colors.primary.main,
-    shadowColor: '#000',
+    shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     borderRadius: ms(18),
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: colors.headerOverlay.bg,
   },
   titleContainer: {
     flex: 1,
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     marginTop: ms(2),
   },
   orderText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: colors.headerOverlay.textBright,
     fontSize: ms(12),
     fontWeight: '500',
   },

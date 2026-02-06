@@ -113,7 +113,6 @@ const TabItem: React.FC<TabItemProps> = ({
     new Animated.Value(isFocused ? ms(12) : 0),
   ).current;
 
-  // Animate on focus change
   useEffect(() => {
     Animated.parallel([
       Animated.spring(scaleAnim, {
@@ -298,7 +297,6 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
     };
   }, [translateY]);
 
-  // Ensure minimum padding for devices without safe areas, plus the actual safe area
   const bottomPadding = Math.max(insets.bottom, spacing.sm) + spacing.xs;
 
   return (

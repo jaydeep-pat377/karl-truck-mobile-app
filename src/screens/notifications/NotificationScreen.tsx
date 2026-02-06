@@ -1,6 +1,3 @@
-/**
- * Notification Screen
- */
 
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
@@ -40,7 +37,6 @@ export const NotificationScreen: React.FC = () => {
   const { notifications, markAsRead, markAllAsRead } = useNotificationStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Get theme-specific colors
   const themeColors = isDark ? colors.dark : colors.light;
 
   const handleGoBack = () => {
@@ -49,7 +45,7 @@ export const NotificationScreen: React.FC = () => {
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    // Notifications are pushed, so refresh just provides visual feedback
+
     setTimeout(() => {
       setIsRefreshing(false);
     }, 500);
@@ -101,7 +97,6 @@ export const NotificationScreen: React.FC = () => {
       style={[styles.container, { backgroundColor: themeColors.background }]}
       edges={['top']}
     >
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={[styles.headerButton, { backgroundColor: themeColors.surface }]}
@@ -112,7 +107,7 @@ export const NotificationScreen: React.FC = () => {
         </TouchableOpacity>
         <Text variant="h2">{t('notifications.title')}</Text>
         <TouchableOpacity
-          style={[styles.headerButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+          style={[styles.headerButton, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
           onPress={handleRefresh}
           activeOpacity={0.7}
           disabled={isRefreshing}
@@ -124,8 +119,6 @@ export const NotificationScreen: React.FC = () => {
           )}
         </TouchableOpacity>
       </View>
-
-      {/* Mark All Read */}
       {notifications.length > 0 && (
         <View style={styles.markAllContainer}>
           <TouchableOpacity onPress={markAllAsRead}>
@@ -135,8 +128,6 @@ export const NotificationScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       )}
-
-      {/* Notification List */}
       <FlatList
         data={notifications}
         renderItem={renderNotification}

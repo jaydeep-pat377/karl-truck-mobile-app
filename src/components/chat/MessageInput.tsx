@@ -28,7 +28,6 @@ interface MessageInputProps {
   placeholder?: string;
 }
 
-// Image Picker Modal
 interface ImagePickerModalProps {
   visible: boolean;
   onClose: () => void;
@@ -45,9 +44,9 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
   const { isDark } = useTheme();
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  const bgColor = isDark ? '#1F2C34' : '#FFFFFF';
-  const textColor = isDark ? '#E9EDEF' : '#111B21';
-  const hintColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
+  const bgColor = isDark ? colors.chat.dark.receivedBubble : colors.chat.light.receivedBubble;
+  const textColor = isDark ? colors.chat.dark.textPrimary : colors.chat.light.textPrimary;
+  const hintColor = isDark ? colors.chat.dark.timeText : colors.semiTransparent.black50;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -72,15 +71,15 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
 
           <View style={styles.modalOptions}>
             <TouchableOpacity style={styles.modalOption} onPress={() => { onClose(); setTimeout(onCameraPress, 300); }}>
-              <View style={[styles.modalOptionIcon, { backgroundColor: '#00A884' }]}>
-                <Icon name="camera" size={ms(24)} color="#FFF" />
+              <View style={[styles.modalOptionIcon, { backgroundColor: colors.chat.whatsappGreen }]}>
+                <Icon name="camera" size={ms(24)} color={colors.common.white} />
               </View>
               <Text style={[styles.modalOptionText, { color: textColor }]}>Camera</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.modalOption} onPress={() => { onClose(); setTimeout(onGalleryPress, 300); }}>
-              <View style={[styles.modalOptionIcon, { backgroundColor: '#7C3AED' }]}>
-                <Icon name="image-multiple" size={ms(24)} color="#FFF" />
+              <View style={[styles.modalOptionIcon, { backgroundColor: colors.statusBadge.purple.text }]}>
+                <Icon name="image-multiple" size={ms(24)} color={colors.common.white} />
               </View>
               <Text style={[styles.modalOptionText, { color: textColor }]}>Gallery</Text>
             </TouchableOpacity>
@@ -91,7 +90,6 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
   );
 };
 
-// Main Component
 export const MessageInput: React.FC<MessageInputProps> = ({
   onSend,
   onTyping,
@@ -107,7 +105,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [showImageModal, setShowImageModal] = useState(false);
   const sendAnim = useRef(new Animated.Value(1)).current;
 
-  // Colors - using theme colors
   const inputBg = themeColors.card;
   const containerBg = themeColors.background;
   const textColor = themeColors.text.primary;
@@ -206,25 +203,23 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         onGalleryPress={openGallery}
       />
 
-      {/* Image Preview */}
       {selectedImages.length > 0 && (
         <View style={styles.previewRow}>
           {selectedImages.map((img, index) => (
             <View key={`${img.uri}-${index}`} style={styles.previewItem}>
               <Image source={{ uri: img.uri }} style={styles.previewImage} />
               <TouchableOpacity style={styles.previewRemove} onPress={() => removeImage(index)}>
-                <Icon name="close" size={ms(12)} color="#FFF" />
+                <Icon name="close" size={ms(12)} color={colors.common.white} />
               </TouchableOpacity>
             </View>
           ))}
         </View>
       )}
 
-      {/* Input Row */}
       <View style={styles.inputRow}>
-        {/* Input Field */}
-        <View style={[styles.inputContainer, { backgroundColor: inputBg, borderColor: isFocused ? colors.primary.main : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)') }]}>
-          {/* Attachment Button */}
+
+        <View style={[styles.inputContainer, { backgroundColor: inputBg, borderColor: isFocused ? colors.primary.main : (isDark ? colors.chat.dark.inputBg : colors.semiTransparent.black10) }]}>
+
           <TouchableOpacity
             style={styles.attachBtn}
             onPress={() => setShowImageModal(true)}
@@ -251,13 +246,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             autoCapitalize="sentences"
           />
 
-          {/* Camera Button */}
           <TouchableOpacity style={styles.cameraBtn} onPress={openCamera} disabled={isProcessing}>
             <Icon name="camera-outline" size={ms(20)} color={iconColor} />
           </TouchableOpacity>
         </View>
 
-        {/* Send Button */}
         <Animated.View style={{ transform: [{ scale: sendAnim }] }}>
           <TouchableOpacity
             onPress={handleSend}
@@ -265,7 +258,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             disabled={!canSend}
             style={[
               styles.sendBtn,
-              { backgroundColor: canSend ? colors.primary.main : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)') }
+              { backgroundColor: canSend ? colors.primary.main : (isDark ? colors.chat.dark.inputBg : colors.semiTransparent.black10) }
             ]}
           >
             {isProcessing ? (
@@ -298,7 +291,7 @@ const styles = StyleSheet.create({
     width: ms(56),
     height: ms(56),
     borderRadius: ms(8),
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: colors.semiTransparent.black10,
   },
   previewRemove: {
     position: 'absolute',
@@ -352,10 +345,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: colors.semiTransparent.black50,
     justifyContent: 'flex-end',
   },
   modalSheet: {
@@ -368,7 +360,7 @@ const styles = StyleSheet.create({
   modalHandle: {
     width: ms(40),
     height: ms(4),
-    backgroundColor: 'rgba(128,128,128,0.3)',
+    backgroundColor: colors.semiTransparent.gray30,
     borderRadius: ms(2),
     alignSelf: 'center',
     marginBottom: spacing.md,

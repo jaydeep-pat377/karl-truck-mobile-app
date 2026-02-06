@@ -24,7 +24,6 @@ export const RootNavigator: React.FC = () => {
     initialize();
   }, [initialize]);
 
-  // Show loading screen while checking auth
   if (!isInitialized || isLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
@@ -43,7 +42,7 @@ export const RootNavigator: React.FC = () => {
         animation: 'fade',
       }}>
       {isAuthenticated ? (
-        // Authenticated routes
+
         <>
           <Stack.Screen name="Main" component={MainNavigator} />
           <Stack.Screen
@@ -118,7 +117,7 @@ export const RootNavigator: React.FC = () => {
           />
         </>
       ) : (
-        // Auth routes
+
         <Stack.Screen name="Auth" component={AuthNavigator} />
       )}
     </Stack.Navigator>

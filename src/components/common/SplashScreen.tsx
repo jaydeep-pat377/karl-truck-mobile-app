@@ -13,50 +13,22 @@ import { fontFamily, fontSize } from '../../theme/typography';
 import { FrameSvg } from '../../assets/svgs/FrameSvg';
 
 interface SplashScreenProps {
-  /**
-   * App name to display below the truck. Defaults to 'TruckApp'.
-   */
+
   appName?: string;
-  /**
-   * Custom primary color for the truck. Defaults to theme primary color.
-   */
+
   primaryColor?: string;
-  /**
-   * Custom secondary color for truck shadows. Defaults to theme primary dark color.
-   */
+
   secondaryColor?: string;
-  /**
-   * Custom width for the SVG. Defaults to 200.
-   */
+
   svgWidth?: number;
-  /**
-   * Custom height for the SVG. Defaults to 110.
-   */
+
   svgHeight?: number;
-  /**
-   * Duration of fade-in animation in milliseconds. Defaults to 800.
-   */
+
   fadeInDuration?: number;
-  /**
-   * Delay before fade-in animation starts in milliseconds. Defaults to 200.
-   */
+
   fadeInDelay?: number;
 }
 
-/**
- * SplashScreen Component
- *
- * A clean, centered splash screen with the truck frame SVG, app name, and fade-in animation.
- * The truck uses the app's primary theme color by default.
- *
- * Features:
- * - White background
- * - Centered SVG and app name (vertical and horizontal)
- * - Smooth staggered fade-in animation
- * - Customizable truck colors via theme
- * - Compatible with both Android and iOS
- * - Uses react-native-svg for rendering
- */
 const SplashScreen: React.FC<SplashScreenProps> = ({
   appName = 'TruckApp',
   primaryColor = colors.primary.main,
@@ -72,7 +44,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
   const textSlideAnim = useRef(new Animated.Value(10)).current;
 
   useEffect(() => {
-    // Truck animation
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -90,7 +62,6 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
       }),
     ]).start();
 
-    // Text animation (slightly delayed for staggered effect)
     Animated.parallel([
       Animated.timing(textFadeAnim, {
         toValue: 1,

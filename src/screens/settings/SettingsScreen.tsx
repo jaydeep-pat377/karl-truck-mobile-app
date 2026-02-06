@@ -126,7 +126,7 @@ export const SettingsScreen: React.FC = () => {
   const themeColors = isDark ? colors.dark : colors.light;
 
   const handleGoBack = () => {
-    // Navigate to Home tab
+
     navigation.navigate('Home' as any);
   };
 
@@ -139,7 +139,6 @@ export const SettingsScreen: React.FC = () => {
     }
   };
 
-  // Get initials from name
   const getInitials = (name: string | undefined): string => {
     if (!name) return '';
     return name
@@ -190,7 +189,7 @@ export const SettingsScreen: React.FC = () => {
           </TouchableOpacity>
           <Text variant="h2">{t('settings.title')}</Text>
           <TouchableOpacity
-            style={[styles.headerButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+            style={[styles.headerButton, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
             onPress={handleRefresh}
             activeOpacity={0.7}
             disabled={isRefreshing}
@@ -294,11 +293,6 @@ export const SettingsScreen: React.FC = () => {
               onPress={handleNavigateToChangePassword}
             />
             <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
-            {/* <SettingsItem
-              icon="numeric"
-              title={t('settings.changePin')}
-              onPress={handleNavigateToChangePIN}
-            /> */}
           </Card>
         </View>
 
@@ -331,20 +325,6 @@ export const SettingsScreen: React.FC = () => {
             />
           </Card>
         </View>
-
-        {/* <View style={styles.section}>
-          <Text variant="label" color="secondary" style={styles.sectionTitle}>
-            {t('settings.security')}
-          </Text>
-          <Card padding="none">
-            <SettingsItem
-              icon="fingerprint"
-              title={t('settings.biometricLogin')}
-              onPress={() => { }}
-            />
-          </Card>
-        </View> */}
-
         <View style={styles.section}>
           <Text variant="label" color="secondary" style={styles.sectionTitle}>
             {t('settings.about')}

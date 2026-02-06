@@ -1,13 +1,3 @@
-/**
- * ChangePINScreen
- *
- * Secure PIN change flow with:
- * - Step-by-step process (verify → create → confirm)
- * - Numeric keypad
- * - Visual PIN dots
- * - Error feedback with shake animation
- * - Theme-aware (light/dark)
- */
 
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -40,14 +30,12 @@ export const ChangePINScreen: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Animation refs
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const dotScales = useRef([...Array(PIN_LENGTH)].map(() => new Animated.Value(0))).current;
 
   const activePIN = step === 'verify' ? currentPIN : step === 'create' ? newPIN : confirmPIN;
   const setActivePIN = step === 'verify' ? setCurrentPIN : step === 'create' ? setNewPIN : setConfirmPIN;
 
-  // Animate dots when PIN changes
   useEffect(() => {
     const pinLength = activePIN.length;
     if (pinLength > 0) {
@@ -60,7 +48,6 @@ export const ChangePINScreen: React.FC = () => {
     }
   }, [activePIN]);
 
-  // Reset dot animations when step changes
   useEffect(() => {
     dotScales.forEach(scale => scale.setValue(0));
   }, [step]);
@@ -83,7 +70,6 @@ export const ChangePINScreen: React.FC = () => {
     setActivePIN(newValue);
     setError('');
 
-    // Auto-submit when PIN is complete
     if (newValue.length === PIN_LENGTH) {
       await handlePINComplete(newValue);
     }
@@ -100,7 +86,7 @@ export const ChangePINScreen: React.FC = () => {
 
   const handlePINComplete = async (pin: string) => {
     if (step === 'verify') {
-      // Verify current PIN (mock: 1234 is correct)
+
       setIsLoading(true);
       await new Promise(resolve => setTimeout(resolve, 500));
       setIsLoading(false);
@@ -116,7 +102,7 @@ export const ChangePINScreen: React.FC = () => {
         }, 300);
       }
     } else if (step === 'create') {
-      // Check for weak PINs
+
       const weakPINs = ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999', '1234', '4321'];
       if (weakPINs.includes(pin)) {
         setError('This PIN is too easy to guess. Please choose a different PIN.');
@@ -130,7 +116,7 @@ export const ChangePINScreen: React.FC = () => {
       }
     } else if (step === 'confirm') {
       if (pin === newPIN) {
-        // Save new PIN
+
         setIsLoading(true);
         await new Promise(resolve => setTimeout(resolve, 1000));
         setIsLoading(false);
@@ -225,7 +211,6 @@ export const ChangePINScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={[styles.backButton, { backgroundColor: theme.colors.card }]}
@@ -234,8 +219,6 @@ export const ChangePINScreen: React.FC = () => {
         >
           <Icon name="arrow-left" size={ms(24)} color={theme.colors.text} />
         </TouchableOpacity>
-
-        {/* Step Indicator */}
         <View style={styles.stepIndicator}>
           {['verify', 'create', 'confirm'].map((s, index) => (
             <View
@@ -259,10 +242,7 @@ export const ChangePINScreen: React.FC = () => {
 
         <View style={styles.headerSpacer} />
       </View>
-
-      {/* Content */}
       <View style={styles.content}>
-        {/* Icon */}
         <View
           style={[
             styles.iconContainer,
@@ -275,16 +255,12 @@ export const ChangePINScreen: React.FC = () => {
             color={theme.colors.primary.main}
           />
         </View>
-
-        {/* Title & Subtitle */}
         <Text variant="h3" color="primary" style={styles.title}>
           {stepInfo.title}
         </Text>
         <Text variant="body" color="secondary" style={styles.subtitle}>
           {stepInfo.subtitle}
         </Text>
-
-        {/* PIN Dots */}
         <Animated.View
           style={[
             styles.dotsContainer,
@@ -325,8 +301,6 @@ export const ChangePINScreen: React.FC = () => {
             );
           })}
         </Animated.View>
-
-        {/* Error Message */}
         {error ? (
           <View style={styles.errorContainer}>
             <Icon name="alert-circle" size={ms(16)} color={theme.colors.error.main} />
@@ -341,8 +315,6 @@ export const ChangePINScreen: React.FC = () => {
           <View style={styles.errorPlaceholder} />
         )}
       </View>
-
-      {/* Numeric Keypad */}
       <View style={styles.keypad}>
         <View style={styles.keypadRow}>
           {['1', '2', '3'].map((key, i) => renderKeypadButton(key, i))}
@@ -359,8 +331,6 @@ export const ChangePINScreen: React.FC = () => {
           )}
         </View>
       </View>
-
-      {/* Forgot PIN Link (only on verify step) */}
       {step === 'verify' && (
         <TouchableOpacity
           onPress={() => {
@@ -377,8 +347,6 @@ export const ChangePINScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
       )}
-
-      {/* Custom Alert Modal */}
       <AlertModal
         visible={alertState.visible}
         type={alertState.type}

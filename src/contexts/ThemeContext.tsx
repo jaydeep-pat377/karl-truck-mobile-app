@@ -23,13 +23,12 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   children,
-  initialMode = 'dark', // Default to dark theme based on design reference
+  initialMode = 'dark',
 }) => {
   const systemColorScheme = useColorScheme();
   const [themeMode, setThemeModeState] = useState<ColorTheme | 'system'>(initialMode);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load saved theme on mount
   useEffect(() => {
     const loadSavedTheme = async () => {
       try {
@@ -46,7 +45,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     loadSavedTheme();
   }, []);
 
-  // Save theme when it changes
   const setThemeMode = useCallback(async (mode: ColorTheme | 'system') => {
     setThemeModeState(mode);
     try {
@@ -104,7 +102,6 @@ export const useTheme = (): ThemeContextType => {
   return context;
 };
 
-// Hook to get just the theme object
 export const useAppTheme = (): Theme => {
   const { theme } = useTheme();
   return theme;

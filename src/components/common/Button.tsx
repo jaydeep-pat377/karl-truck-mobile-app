@@ -1,7 +1,3 @@
-/**
- * Button Component
- * Themed button with multiple variants
- */
 
 import React from 'react';
 import {

@@ -154,6 +154,7 @@ export const colors = {
     cloudLight: '#E0E7FF',
     cloudBlue: '#A5B4FC',
     rain: '#60A5FA',
+    indicatorDot: '#FF6B6B',    // Coral red for gauge indicators
   },
   // Product Recommendation Colors
   productChip: {
@@ -164,6 +165,15 @@ export const colors = {
   // Loader/Animation Colors
   loader: {
     wheelSpoke: '#3A3B4A',
+  },
+  // Splash Screen Colors
+  splash: {
+    decorativeCircle1: 'rgba(255,255,255,0.08)',
+    decorativeCircle2: 'rgba(255,255,255,0.05)',
+    wheelSpokes: 'rgba(255,255,255,0.6)',
+    subtitle: 'rgba(255,255,255,0.85)',
+    loaderDots: 'rgba(255,255,255,0.9)',
+    footer: 'rgba(255,255,255,0.6)',
   },
   // External App/Brand Colors
   brands: {
@@ -188,9 +198,50 @@ export const colors = {
   },
   // Map Marker Colors
   mapMarker: {
-    jobSite: '#FF6B6B',       // Red/coral for job site
+    jobSite: '#EF4444',       // Red for job site
     truck: '#04BCEF',         // Blue for truck (uses secondary.main)
-    plant: '#04BCEF',         // Blue for plant location
+    plant: '#3B82F6',         // Blue for plant location
+  },
+  // Tracking Status Colors (for Order/Map tracking screens)
+  trackingStatus: {
+    ticketed: '#9E9E9E',      // Gray
+    loading: '#8BC34A',       // Light Green
+    loaded: '#2E7D32',        // Dark Green
+    toJob: '#2E7D32',         // Dark Green
+    atJob: '#64B5F6',         // Light Blue
+    pouring: '#1565C0',       // Dark Blue
+    washing: '#C62828',       // Dark Red
+    toPlant: '#EC407A',       // Pink
+    atPlant: '#EC407A',       // Pink
+    cancelled: '#EF4444',     // Red
+    live: '#10B981',          // Teal Green
+  },
+  // Chat Colors
+  chat: {
+    light: {
+      sentBubble: '#DCF8C6',      // Light green for sent messages
+      receivedBubble: '#FFFFFF',   // White for received messages
+      textPrimary: '#111B21',      // Dark text
+      timeText: 'rgba(0,0,0,0.45)',
+      inputBg: 'rgba(0,0,0,0.06)',
+      messageArea: '#F0F2F5',      // Light gray message area background
+    },
+    dark: {
+      sentBubble: '#005C4B',       // Dark teal for sent messages
+      receivedBubble: '#1F2C34',   // Dark gray for received messages
+      textPrimary: '#E9EDEF',      // Light text
+      timeText: 'rgba(255,255,255,0.6)',
+      inputBg: 'rgba(255,255,255,0.1)',
+      background: '#0D1117',       // Very dark background
+      messageArea: '#0D1117',      // Messages wrapper background
+    },
+    whatsappGreen: '#00A884',      // WhatsApp-style green
+    readTick: '#53BDEB',            // Blue tick for read status
+  },
+  // Evaporation Progress Colors (gradient from safe to danger)
+  evaporation: {
+    gradient: ['#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800', '#F44336'],
+    indicatorDot: '#FFFFFF',
   },
   // Info Section Icon Colors
   infoIcons: {
@@ -350,11 +401,35 @@ export const colors = {
   },
   // Semi-transparent white/dark overlays
   semiTransparent: {
+    white03: 'rgba(255,255,255,0.03)',
+    white05: 'rgba(255,255,255,0.05)',
+    white06: 'rgba(255,255,255,0.06)',
     white08: 'rgba(255,255,255,0.08)',
     white10: 'rgba(255,255,255,0.1)',
     white15: 'rgba(255,255,255,0.15)',
     white20: 'rgba(255,255,255,0.2)',
     white30: 'rgba(255,255,255,0.3)',
+    white60: 'rgba(255,255,255,0.6)',
+    white85: 'rgba(255,255,255,0.85)',
+    white90: 'rgba(255,255,255,0.9)',
+    black02: 'rgba(0,0,0,0.02)',
+    black04: 'rgba(0,0,0,0.04)',
+    black05: 'rgba(0,0,0,0.05)',
+    black06: 'rgba(0,0,0,0.06)',
+    black10: 'rgba(0,0,0,0.1)',
+    black15: 'rgba(0,0,0,0.15)',
+    black20: 'rgba(0,0,0,0.2)',
+    black40: 'rgba(0,0,0,0.4)',
+    black45: 'rgba(0,0,0,0.45)',
+    black50: 'rgba(0,0,0,0.5)',
+    black90: 'rgba(0,0,0,0.9)',
+    black95: 'rgba(0,0,0,0.95)',
+    gray30: 'rgba(128,128,128,0.3)',
+    darkGray90: 'rgba(30,30,30,0.9)',
+    teal20: 'rgba(16,185,129,0.2)',
+    green08: 'rgba(107,177,48,0.08)',
+    green10: 'rgba(107,177,48,0.1)',
+    green15: 'rgba(107,177,48,0.15)',
   },
   // Product status colors (for weather/product screens)
   productStatus: {

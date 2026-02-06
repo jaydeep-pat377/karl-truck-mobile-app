@@ -30,7 +30,6 @@ export const ChatListScreen: React.FC = () => {
 
   const themeColors = isDark ? colors.dark : colors.light;
 
-  // Show setup required message if Supabase is not configured
   if (!isConfigured) {
     return (
       <SafeAreaView

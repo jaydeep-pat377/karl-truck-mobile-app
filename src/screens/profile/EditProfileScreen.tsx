@@ -111,10 +111,9 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
     try {
       let newAvatarUrl: string | null | undefined = undefined;
 
-      // Check if avatar changed and is a local file (needs upload)
       if (avatar !== profile?.avatarUrl) {
         if (avatar && isLocalFile(avatar)) {
-          // Upload new avatar
+
           const uploadResponse = await uploadAvatar(avatar);
           if (uploadResponse.success) {
             newAvatarUrl = uploadResponse.data.avatarUrl;
@@ -123,7 +122,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
             return;
           }
         } else {
-          // Avatar was removed (null) or is already a URL
+
           newAvatarUrl = avatar;
         }
       }
@@ -662,8 +661,6 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
           </Pressable>
         </Pressable>
       </Modal>
-
-      {/* Custom Alert Modal */}
       <AlertModal
         visible={alertState.visible}
         type={alertState.type}

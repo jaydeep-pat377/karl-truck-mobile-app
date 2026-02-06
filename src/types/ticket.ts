@@ -224,12 +224,13 @@ export interface OrderDetailsProduct {
   order_product_id: string;
   product_id: string;
   item_code: string;
+  description?: string;
   is_mix?: boolean;
   ordered_qty: number;
   delivered_qty: number;
-  remaining_qty: number;
-  start_time: string;
-  plant_code: string;
+  remaining_qty?: number;
+  start_time?: string;
+  plant_code?: string;
   ticket_code?: string;
   truck_code?: string;
   load?: number;
@@ -248,6 +249,8 @@ export interface OrderDetailsProduct {
   washing?: string | null;
   to_plant?: string | null;
   at_plant?: string | null;
+  slump?: string;
+  qr?: string;
 }
 
 export interface OrderDetailsTicket {

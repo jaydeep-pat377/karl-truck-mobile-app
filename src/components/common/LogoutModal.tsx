@@ -41,22 +41,18 @@ export const LogoutModal: React.FC<LogoutModalProps> = ({
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
             <View style={[styles.modalContainer, { backgroundColor: theme.colors.card }]}>
-              {/* Icon */}
               <View style={[styles.iconContainer, { backgroundColor: colors.error.main + '15' }]}>
                 <Icon name="logout" size={ms(26)} color={colors.error.main} />
               </View>
 
-              {/* Title */}
               <Text variant="h3" color="primary" style={styles.title}>
                 {t('auth.logout') || 'Sign Out'}
               </Text>
 
-              {/* Message */}
               <Text variant="body" color="secondary" style={styles.message}>
                 {t('auth.logoutConfirm') || 'Are you sure you want to sign out of your account?'}
               </Text>
 
-              {/* Buttons */}
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
                   style={[
@@ -109,7 +105,7 @@ export const LogoutModal: React.FC<LogoutModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,

@@ -1,8 +1,3 @@
-/**
- * ProductDetailsScreen
- * Weather card details and product recommendations screen.
- * Shows detailed information based on the selected weather card.
- */
 
 import React, { useCallback, useState } from 'react';
 import {
@@ -45,7 +40,6 @@ const RADIUS = {
 
 const THEME_COLORS = colors.weatherTheme;
 
-// Card configuration for each type
 const cardConfig: Record<WeatherCardType, {
   title: string;
   icon: string;
@@ -139,7 +133,6 @@ const cardConfig: Record<WeatherCardType, {
   },
 };
 
-// Circular Gauge Component
 interface CircularGaugeProps {
   value: number;
   maxValue: number;
@@ -159,7 +152,6 @@ const CircularGauge: React.FC<CircularGaugeProps> = ({ value, maxValue, unit, co
   return (
     <View style={styles.gaugeContainer}>
       <Svg width={size} height={size}>
-        {/* Background arc */}
         <Circle
           cx={center}
           cy={center}
@@ -172,7 +164,7 @@ const CircularGauge: React.FC<CircularGaugeProps> = ({ value, maxValue, unit, co
           rotation={135}
           origin={`${center}, ${center}`}
         />
-        {/* Progress arc */}
+
         <Circle
           cx={center}
           cy={center}
@@ -199,7 +191,6 @@ const CircularGauge: React.FC<CircularGaugeProps> = ({ value, maxValue, unit, co
   );
 };
 
-// Info Card Component
 interface InfoCardProps {
   label: string;
   description: string;
@@ -226,7 +217,6 @@ const InfoCard: React.FC<InfoCardProps> = ({ label, description, index }) => {
   );
 };
 
-// Main Screen Component
 export const ProductDetailsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ProductDetailsRouteProp>();
@@ -240,7 +230,6 @@ export const ProductDetailsScreen: React.FC = () => {
     navigation.goBack();
   }, [navigation]);
 
-  // Determine max value for gauge based on card type
   const getMaxValue = (type: WeatherCardType): number => {
     switch (type) {
       case 'concrete': return 120;
@@ -268,7 +257,7 @@ export const ProductDetailsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         bounces={true}
       >
-        {/* Header */}
+
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
@@ -280,7 +269,6 @@ export const ProductDetailsScreen: React.FC = () => {
             <View style={styles.headerPlaceholder} />
           </View>
 
-          {/* Location Info */}
           {weatherData?.location && (
             <View style={styles.locationRow}>
               <Icon name="map-marker" size={ms(14)} color={colors.common.white + 'CC'} />
@@ -289,9 +277,8 @@ export const ProductDetailsScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Main Content */}
         <View style={styles.content}>
-          {/* Value Card with Gauge */}
+
           <View style={[styles.mainCard, { backgroundColor: THEME_COLORS.cardBackground, borderColor: THEME_COLORS.cardBorder }]}>
             <View style={styles.mainCardHeader}>
               <View style={[styles.iconContainer, { backgroundColor: config.color + '20' }]}>
@@ -307,7 +294,6 @@ export const ProductDetailsScreen: React.FC = () => {
               </View>
             </View>
 
-            {/* Circular Gauge */}
             <CircularGauge
               value={Number(cardValue)}
               maxValue={getMaxValue(cardType)}
@@ -315,7 +301,6 @@ export const ProductDetailsScreen: React.FC = () => {
               color={config.color}
             />
 
-            {/* Weather Context */}
             {weatherData && (
               <View style={[styles.weatherContext, { backgroundColor: colors.secondary.main + '10' }]}>
                 <Icon name="weather-partly-cloudy" size={ms(18)} color={colors.secondary.main} />
@@ -326,7 +311,6 @@ export const ProductDetailsScreen: React.FC = () => {
             )}
           </View>
 
-          {/* Info Section */}
           <View style={styles.infoSection}>
             <Text style={[styles.sectionTitle, { color: THEME_COLORS.text.primary }]}>
               {config.infoTitle}
@@ -342,7 +326,6 @@ export const ProductDetailsScreen: React.FC = () => {
             ))}
           </View>
 
-          {/* Tips Section */}
           <View style={[styles.tipsCard, { backgroundColor: THEME_COLORS.cardBackground, borderColor: THEME_COLORS.cardBorder }]}>
             <View style={styles.tipsHeader}>
               <Icon name="lightbulb-outline" size={ms(20)} color={colors.warning.main} />
@@ -392,7 +375,6 @@ const styles = StyleSheet.create({
     paddingBottom: vs(40),
   },
 
-  // Header
   header: {
     paddingHorizontal: GRID.md,
     paddingBottom: GRID.md,
@@ -434,12 +416,10 @@ const styles = StyleSheet.create({
     color: colors.common.white + 'CC',
   },
 
-  // Content
   content: {
     padding: GRID.md,
   },
 
-  // Main Card
   mainCard: {
     borderRadius: RADIUS.xl,
     padding: GRID.lg,
@@ -475,7 +455,6 @@ const styles = StyleSheet.create({
     lineHeight: ms(18),
   },
 
-  // Gauge
   gaugeContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -496,7 +475,6 @@ const styles = StyleSheet.create({
     marginTop: GRID.xs,
   },
 
-  // Weather Context
   weatherContext: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -511,7 +489,6 @@ const styles = StyleSheet.create({
     fontSize: ms(13),
   },
 
-  // Info Section
   infoSection: {
     marginBottom: GRID.md,
   },
@@ -521,7 +498,6 @@ const styles = StyleSheet.create({
     marginBottom: GRID.md,
   },
 
-  // Info Card
   infoCard: {
     flexDirection: 'row',
     borderRadius: RADIUS.lg,
@@ -556,7 +532,6 @@ const styles = StyleSheet.create({
     lineHeight: responsive(ms(18), ms(20)),
   },
 
-  // Tips Card
   tipsCard: {
     borderRadius: RADIUS.xl,
     padding: GRID.md,

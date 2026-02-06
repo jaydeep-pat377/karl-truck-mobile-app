@@ -443,7 +443,6 @@ const DashboardScreen: React.FC = () => {
     refetch,
   } = useDashboard();
 
-  // Separate paginated query for active deliveries
   const {
     orders: activeDeliveryOrders,
     isLoading: isDeliveriesLoading,
@@ -474,7 +473,6 @@ const DashboardScreen: React.FC = () => {
     initNotifications();
   }, []);
 
-  // Update Android widget when todayOverview data changes
   useEffect(() => {
     if (Platform.OS === 'android' && todayOverview) {
       const totalOrders = todayOverview.total_orders ?? 0;
@@ -673,7 +671,6 @@ const DashboardScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
-  // Calculate responsive delivery card dimensions - compact with larger fonts
   const deliveryCardLayout = useMemo(() => {
     const horizontalPadding = spacing.md * 2;
     const gapBetweenCards = ms(6);
@@ -774,13 +771,13 @@ const DashboardScreen: React.FC = () => {
         onPress={onPress}
         disabled={!onPress}>
         <View style={[styles.deliveryCard, { backgroundColor: themeColors.card }]}>
-          {/* Compact Header */}
+
           <View style={styles.deliveryHeader}>
             <View style={styles.deliveryHeaderLeft}>
               <Text style={[styles.deliveryOrderCode, { color: themeColors.text.primary }]} numberOfLines={1}>
                 #{item.orderCode}
               </Text>
-              <View style={[styles.deliveryTimeBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+              <View style={[styles.deliveryTimeBadge, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black05 }]}>
                 <Icon name="clock-outline" size={ms(9)} color={themeColors.text.hint} />
                 <Text style={[styles.deliveryTime, { color: themeColors.text.hint }]}>
                   {item.startTime}
@@ -795,7 +792,6 @@ const DashboardScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Customer & Location - Compact */}
           <View style={styles.deliveryInfoSection}>
             <Text style={[styles.deliveryCustomerName, { color: themeColors.text.primary }]} numberOfLines={1}>
               {item.customerName}
@@ -808,8 +804,7 @@ const DashboardScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Inline Stats with Progress */}
-          <View style={[styles.deliveryStatsRow, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]}>
+          <View style={[styles.deliveryStatsRow, { backgroundColor: isDark ? colors.semiTransparent.white03 : colors.semiTransparent.black02 }]}>
             <View style={styles.deliveryStatItem}>
               <Text style={[styles.deliveryStatValue, { color: themeColors.text.primary }]}>
                 {formatQty(item.orderedQty)}
@@ -839,8 +834,7 @@ const DashboardScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Slim Progress Bar */}
-          <View style={[styles.deliveryProgressTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
+          <View style={[styles.deliveryProgressTrack, { backgroundColor: isDark ? colors.semiTransparent.white06 : colors.semiTransparent.black04 }]}>
             <View style={[styles.deliveryProgressFill, { width: `${progressPercent}%`, backgroundColor: progressColor }]} />
           </View>
         </View>
@@ -913,7 +907,6 @@ const DashboardScreen: React.FC = () => {
           <View style={{ width: ms(40), height: ms(40), backgroundColor: shimmerColor, borderRadius: ms(20) }} />
         </View>
 
-        {/* KPI cards skeleton */}
         <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md }}>
           <View style={{ width: ms(140), height: ms(20), backgroundColor: shimmerColor, borderRadius: ms(4), marginBottom: spacing.sm }} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -923,7 +916,6 @@ const DashboardScreen: React.FC = () => {
           </ScrollView>
         </View>
 
-        {/* Quick actions skeleton */}
         <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg }}>
           <View style={{ width: ms(120), height: ms(20), backgroundColor: shimmerColor, borderRadius: ms(4), marginBottom: spacing.sm }} />
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
@@ -933,13 +925,11 @@ const DashboardScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Deliveries skeleton */}
         <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg }}>
           <View style={{ width: ms(150), height: ms(20), backgroundColor: shimmerColor, borderRadius: ms(4), marginBottom: spacing.sm }} />
           <View style={{ height: ms(140), backgroundColor: shimmerColor, borderRadius: ms(12) }} />
         </View>
 
-        {/* Recent Alerts skeleton */}
         <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg }}>
           <View style={{ width: ms(120), height: ms(20), backgroundColor: shimmerColor, borderRadius: ms(4), marginBottom: spacing.sm }} />
           <View style={{ backgroundColor: shimmerColor, borderRadius: ms(12), padding: spacing.md }}>
@@ -1029,7 +1019,6 @@ const DashboardScreen: React.FC = () => {
             progressBackgroundColor={isDark ? themeColors.cardElevated : colors.common.white}
           />
         }>
-        {/* {renderWeatherCard()} */}
 
         <SectionHeader title="Today's Overview" actionLabel={`Total: ${todayOverview?.total_orders ?? 0}`} onAction={() => navigation.navigate('Orders')} showScrollHint />
         <ScrollView
@@ -1120,7 +1109,7 @@ const DashboardScreen: React.FC = () => {
                 </View>
               );
             })}
-            {/* Load More Indicator */}
+
             {(isFetchingNextPage || (hasNextPage && !isFetchingNextPage)) && (
               <TouchableOpacity
                 style={[styles.loadMoreButton, { backgroundColor: themeColors.card }]}
@@ -1146,7 +1135,7 @@ const DashboardScreen: React.FC = () => {
         ) : (
           <View style={styles.emptyDeliveryCard}>
             <View style={[styles.emptyDeliveryContent, { backgroundColor: themeColors.card }]}>
-              <View style={[styles.emptyDeliveryIconBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}>
+              <View style={[styles.emptyDeliveryIconBg, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}>
                 <Icon name="truck-check-outline" size={ms(32)} color={themeColors.text.hint} />
               </View>
               <Text variant="body" color="secondary" style={styles.emptyDeliveryTitle}>
@@ -1196,7 +1185,6 @@ const DashboardScreen: React.FC = () => {
         <View style={{ height: TAB_BAR_HEIGHT }} />
       </ScrollView>
 
-      {/* Quick Actions Edit Modal */}
       <Modal
         visible={showQuickActionsModal}
         transparent={true}
@@ -1670,7 +1658,7 @@ const createStyles = (themeColors: typeof colors.dark | typeof colors.light, isT
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      borderColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black06,
       borderStyle: 'dashed',
     },
     emptyDeliveryIconBg: {

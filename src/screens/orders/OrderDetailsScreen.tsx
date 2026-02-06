@@ -165,9 +165,15 @@ const mockJobData = {
     hasData: false,
   },
   products: [
-    { productId: '1', itemCode: '552B301 (4000 PSI BLD NBS)', isMix: true, orderedQty: 10.50, slump: '4.00 IN', qr: '4000' },
-    { productId: '2', itemCode: '668B301 (4000 PSI BLD NBS)', isMix: false, orderedQty: 10.50, slump: '4.00 IN', qr: '4000' },
+    { productId: '1', itemCode: '552B301', description: '4000 PSI BLD NBS', isMix: true, orderedQty: 10.50, deliveredQty: 10.50, remainingQty: 0, slump: '4.00 IN', qr: '4000' },
+    { productId: '2', itemCode: '668B301', description: '4000 PSI BLD NBS', isMix: false, orderedQty: 10.50, deliveredQty: 5.25, remainingQty: 5.25, slump: '4.00 IN', qr: '4000' },
   ],
+  displayDate: '07 Nov 2025',
+  estimatedFinishTime: '04:30PM',
+  scheduleRate: 8,
+  avgWaitingMinutes: 15,
+  avgPouringMinutes: 45,
+  avgWashoutMinutes: 10,
 };
 
 interface AnimatedPressProps {
@@ -428,6 +434,8 @@ const StatusPipeline: React.FC<StatusPipelineProps> = ({ statuses, isDark }) => 
 interface ProductScheduleCardProps {
   scheduleDate: string;
   scheduleTime: string;
+  displayDate?: string;
+  estimatedFinish?: string;
   productType: string;
   productMix: string;
   plantName: string;
@@ -437,24 +445,54 @@ interface ProductScheduleCardProps {
   statusColor: string;
   isDark: boolean;
   onCallPress: () => void;
+  // Schedule enhancement props
+  scheduleRate?: number;
+  deliveredQty?: number;
+  pouredQty?: number;
+  avgWaitingMinutes?: number;
+  avgPouringMinutes?: number;
+  avgWashoutMinutes?: number;
 }
 
 const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
   scheduleDate,
   scheduleTime,
+  displayDate,
+  estimatedFinish,
   productType,
   productMix,
   statusText,
   statusColor,
   isDark,
   onCallPress,
+  scheduleRate,
+  deliveredQty,
+  pouredQty,
+  avgWaitingMinutes,
+  avgPouringMinutes,
+  avgWashoutMinutes,
 }) => {
   const themeColors = isDark ? colors.dark : colors.light;
 
   const formatDateOnly = (dateStr: string) => {
+    if (!dateStr) return '';
     const date = new Date(dateStr);
     return `${date.getDate()} ${date.toLocaleString('en-US', { month: 'short' })} ${date.getFullYear()}`;
   };
+
+  // Use displayDate from API if available, otherwise format scheduleDate
+  const formattedDate = displayDate || formatDateOnly(scheduleDate);
+
+  // Format schedule time with estimated finish
+  const scheduleDisplay = estimatedFinish
+    ? `${scheduleTime || 'N/A'} - ${estimatedFinish}`
+    : scheduleTime || 'N/A';
+
+  // Check if we have truck averages data
+  const hasAverages = (avgWaitingMinutes ?? 0) > 0 || (avgPouringMinutes ?? 0) > 0 || (avgWashoutMinutes ?? 0) > 0;
+
+  // Check if we have pour data
+  const hasPourData = (deliveredQty ?? 0) > 0 || (pouredQty ?? 0) > 0;
 
   return (
     <View style={[styles.productScheduleCard, { backgroundColor: themeColors.card }]}>
@@ -479,11 +517,11 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
             <Icon name="calendar-clock" size={14} color={colors.primary.main} />
             <Text style={[styles.psInfoItemLabel, { color: themeColors.text.hint }]}>Schedule</Text>
           </View>
-          <Text style={[styles.psInfoItemValue, { color: themeColors.text.primary }]}>
-            {scheduleTime}
+          <Text style={[styles.psInfoItemValue, { color: themeColors.text.primary }]} numberOfLines={1}>
+            {scheduleDisplay}
           </Text>
           <Text style={[styles.psInfoItemSubValue, { color: themeColors.text.secondary }]}>
-            {formatDateOnly(scheduleDate)}
+            {formattedDate}
           </Text>
         </View>
 
@@ -500,6 +538,65 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
           </Text>
         </View>
       </View>
+
+      {/* Pour Progress Row - Only show if data available */}
+      {hasPourData && (
+        <View style={[styles.psInfoGrid, { marginTop: GRID.xs }]}>
+          <View style={[styles.psInfoItem, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
+            <View style={styles.psInfoItemHeader}>
+              <Icon name="truck-delivery" size={14} color={colors.success.main} />
+              <Text style={[styles.psInfoItemLabel, { color: themeColors.text.hint }]}>Delivered</Text>
+            </View>
+            <Text style={[styles.psInfoItemValue, { color: colors.success.main }]}>
+              {(deliveredQty ?? 0).toFixed(1)} CY
+            </Text>
+            {scheduleRate ? (
+              <Text style={[styles.psInfoItemSubValue, { color: themeColors.text.hint }]}>
+                Rate: {scheduleRate} CY/hr
+              </Text>
+            ) : null}
+          </View>
+
+          <View style={[styles.psInfoItem, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
+            <View style={styles.psInfoItemHeader}>
+              <Icon name="water" size={14} color={colors.info.main} />
+              <Text style={[styles.psInfoItemLabel, { color: themeColors.text.hint }]}>Poured</Text>
+            </View>
+            <Text style={[styles.psInfoItemValue, { color: colors.info.main }]}>
+              {(pouredQty ?? 0).toFixed(1)} CY
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Truck Averages Row - Only show if data available */}
+      {hasAverages && (
+        <View style={[styles.psAveragesRow, { backgroundColor: isDark ? themeColors.surface : colors.grey[3], marginTop: GRID.xs, marginHorizontal: GRID.md, marginBottom: GRID.sm }]}>
+          <View style={styles.psAverageItem}>
+            <Icon name="clock-outline" size={12} color={colors.warning.main} />
+            <Text style={[styles.psAverageLabel, { color: themeColors.text.hint }]}>Wait</Text>
+            <Text style={[styles.psAverageValue, { color: themeColors.text.primary }]}>
+              {(avgWaitingMinutes ?? 0).toFixed(0)}m
+            </Text>
+          </View>
+          <View style={[styles.psAverageDivider, { backgroundColor: themeColors.border }]} />
+          <View style={styles.psAverageItem}>
+            <Icon name="water" size={12} color={colors.success.main} />
+            <Text style={[styles.psAverageLabel, { color: themeColors.text.hint }]}>Pour</Text>
+            <Text style={[styles.psAverageValue, { color: themeColors.text.primary }]}>
+              {(avgPouringMinutes ?? 0).toFixed(0)}m
+            </Text>
+          </View>
+          <View style={[styles.psAverageDivider, { backgroundColor: themeColors.border }]} />
+          <View style={styles.psAverageItem}>
+            <Icon name="shower" size={12} color={colors.info.main} />
+            <Text style={[styles.psAverageLabel, { color: themeColors.text.hint }]}>Wash</Text>
+            <Text style={[styles.psAverageValue, { color: themeColors.text.primary }]}>
+              {(avgWashoutMinutes ?? 0).toFixed(0)}m
+            </Text>
+          </View>
+        </View>
+      )}
 
     </View>
   );
@@ -598,8 +695,11 @@ const ContactDetailsCard: React.FC<ContactDetailsCardProps> = ({
 interface ProductCardItem {
   productId: string;
   itemCode: string;
+  description?: string;
   isMix: boolean;
   orderedQty: number;
+  deliveredQty: number;
+  remainingQty: number;
   slump?: string;
   qr?: string;
 }
@@ -695,21 +795,37 @@ const OrderCodeDetailsCard: React.FC<OrderCodeDetailsCardProps> = ({
                 </Text>
               </View>
 
+              {/* Product Description */}
+              {product.description ? (
+                <Text style={[styles.ocProductSlump, { color: themeColors.text.primary, marginBottom: 4 }]} numberOfLines={1}>
+                  {product.description}
+                </Text>
+              ) : null}
+
+              {/* Ordered Quantity */}
               <Text style={[styles.ocProductQty, { color: themeColors.text.primary }]}>
                 {product.orderedQty.toFixed(2)} CY
               </Text>
 
-              {product.slump && (
+              {/* Delivered & Remaining Quantities */}
+              <Text style={[styles.ocProductSlump, { color: colors.success.main }]}>
+                Delivered: {product.deliveredQty.toFixed(2)} CY
+              </Text>
+              <Text style={[styles.ocProductSlump, { color: product.remainingQty > 0 ? colors.warning.main : colors.success.main }]}>
+                Remaining: {product.remainingQty.toFixed(2)} CY
+              </Text>
+
+              {product.slump ? (
                 <Text style={[styles.ocProductSlump, { color: themeColors.text.secondary }]}>
                   SLUMP: {product.slump}
                 </Text>
-              )}
+              ) : null}
 
-              {product.qr && (
+              {product.qr ? (
                 <Text style={[styles.ocProductSlump, { color: themeColors.text.secondary }]}>
                   QR: {product.qr}
                 </Text>
-              )}
+              ) : null}
             </View>
           </View>
 
@@ -1957,7 +2073,7 @@ export const OrderDetailsScreen: React.FC = () => {
       status: orderDetails.status as Order['status'],
       productType: orderDetails.products?.[0]?.item_code || 'N/A',
       productMix: orderDetails.products?.length > 0
-        ? `${orderDetails.products[0].item_code} | ${(orderDetails.products[0].ordered_qty ?? 0).toFixed(2)} CY`
+        ? `${(orderDetails.delivered_qty ?? 0).toFixed(2)}/${(orderDetails.ordered_qty ?? 0).toFixed(2)} CY`
         : '',
       quantity: orderDetails.ordered_qty,
       unit: 'CY',
@@ -2055,12 +2171,22 @@ export const OrderDetailsScreen: React.FC = () => {
       avgSpacing: '45 min',
       products: orderDetails.products?.map(p => ({
         productId: p.product_id || p.order_product_id,
-        itemCode: p.item_code,
+        itemCode: p.item_code || '',
+        description: p.description || '',
         isMix: p.is_mix ?? true,
         orderedQty: p.ordered_qty ?? 0,
-        slump: '4.00 IN',
-        qr: '4000',
+        deliveredQty: p.delivered_qty ?? 0,
+        remainingQty: (p.ordered_qty ?? 0) - (p.delivered_qty ?? 0),
+        slump: p.slump || '',
+        qr: p.qr || '',
       })) || [],
+      // Schedule enhancement data
+      displayDate: orderDetails.display_date || '',
+      estimatedFinishTime: orderDetails.estimated_finish_time || '',
+      scheduleRate: orderDetails.graphs?.pour_speed?.schedule_rate || 0,
+      avgWaitingMinutes: orderDetails.graphs?.trucks_on_job?.averages?.avg_waiting_minutes || 0,
+      avgPouringMinutes: orderDetails.graphs?.trucks_on_job?.averages?.avg_pouring_minutes || 0,
+      avgWashoutMinutes: orderDetails.graphs?.trucks_on_job?.averages?.avg_washout_minutes || 0,
     };
   }, [orderDetails]);
 
@@ -2496,6 +2622,8 @@ export const OrderDetailsScreen: React.FC = () => {
           <ProductScheduleCard
             scheduleDate={order.scheduledDate}
             scheduleTime={order.scheduledTime}
+            displayDate={jobData.displayDate}
+            estimatedFinish={jobData.estimatedFinishTime}
             productType={order.productType}
             productMix={order.productMix || ''}
             plantName={jobData.plantName}
@@ -2505,6 +2633,12 @@ export const OrderDetailsScreen: React.FC = () => {
             statusColor={statusColor}
             isDark={isDark}
             onCallPress={() => handleCall(jobData.plantPhone)}
+            scheduleRate={jobData.scheduleRate}
+            deliveredQty={jobData.deliveredVolume}
+            pouredQty={jobData.pouredVolume}
+            avgWaitingMinutes={jobData.avgWaitingMinutes}
+            avgPouringMinutes={jobData.avgPouringMinutes}
+            avgWashoutMinutes={jobData.avgWashoutMinutes}
           />
 
           <ContactDetailsCard
@@ -3062,6 +3196,32 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: ms(11),
     marginTop: 2,
+  },
+  psAveragesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingVertical: GRID.sm,
+    paddingHorizontal: GRID.sm,
+    borderRadius: RADIUS.md,
+  },
+  psAverageItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  psAverageLabel: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(9),
+  },
+  psAverageValue: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+  },
+  psAverageDivider: {
+    width: 1,
+    height: ms(28),
+    marginHorizontal: GRID.xs,
   },
   psPlantContainer: {
     flexDirection: 'row',

@@ -248,8 +248,7 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
                         style={{
                           color: req.met ? theme.colors.success.main : theme.colors.secondary.main,
                           marginLeft: ms(8),
-                        }}
-                      >
+                        }}>
                         {req.text}
                       </Text>
                     </View>
@@ -310,18 +309,9 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
             style={styles.submitButton}
           />
 
-          <TouchableOpacity
-            onPress={() => navigation?.navigate('ForgotPassword')}
-            activeOpacity={0.7}
-            style={styles.forgotLink}>
-            <Text variant="body" style={{ color: theme.colors.primary.main }}>
-              Forgot your current password?
-            </Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Custom Alert Modal */}
       <AlertModal
         visible={alertState.visible}
         type={alertState.type}

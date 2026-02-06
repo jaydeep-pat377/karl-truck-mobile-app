@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { fontFamily } from '../../theme/typography';
+import { colors } from '../../theme/colors';
 import YellowTruck from '../../assets/svgs/yellowTruck.svg';
 
 interface TruckLoaderProps {
@@ -14,13 +15,13 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
   message = 'Loading...',
   color = 'light',
 }) => {
-  // Wheel rotation animation
+
   const wheelRotation = useRef(new Animated.Value(0)).current;
-  // Truck bounce animation
+
   const truckBounce = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Wheel spinning animation - continuous
+
     const wheelAnimation = Animated.loop(
       Animated.timing(wheelRotation, {
         toValue: 1,
@@ -30,7 +31,6 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
       }),
     );
 
-    // Truck bounce animation - subtle up and down
     const bounceAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(truckBounce, {
@@ -62,23 +62,17 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
     outputRange: ['0deg', '360deg'],
   });
 
-  const textColor = color === 'light' ? '#FFFFFF' : '#333333';
+  const textColor = color === 'light' ? colors.common.white : colors.text.dark;
 
-  // Calculate truck dimensions maintaining aspect ratio (157:86)
   const truckWidth = size;
   const truckHeight = (size * 86) / 157;
 
-  // Calculate wheel positions based on size
-  // Front wheel center in SVG: approximately x=132, y=70
-  // Rear wheel center in SVG: approximately x=47, y=70
   const scale = size / 157;
 
-  // Wheel overlay sizes
   const frontWheelSize = 16 * scale;
   const middleWheelSize = 20 * scale;
   const rearWheelSize = 20 * scale;
 
-  // Position calculations - subtract half the wheel size to center it
   const frontWheelRight = (157 - 127) * scale - frontWheelSize / 2;
   const frontWheelBottom = (86 - 75) * scale - frontWheelSize / 2;
   const middleWheelLeft = 63 * scale - middleWheelSize / 2;
@@ -98,8 +92,6 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
           },
         ]}>
         <YellowTruck width={truckWidth} height={truckHeight} />
-
-        {/* Animated Wheel Overlays - Front Wheel */}
         <Animated.View
           style={[
             styles.wheelOverlay,
@@ -125,8 +117,6 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
             ]}
           />
         </Animated.View>
-
-        {/* Animated Wheel Overlays - Middle Wheel */}
         <Animated.View
           style={[
             styles.wheelOverlay,
@@ -152,8 +142,6 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
             ]}
           />
         </Animated.View>
-
-        {/* Animated Wheel Overlays - Rear Wheel */}
         <Animated.View
           style={[
             styles.wheelOverlay,
@@ -180,15 +168,13 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
           />
         </Animated.View>
       </Animated.View>
-
-      {/* Road line */}
       <View
         style={[
           styles.roadLine,
           {
             width: truckWidth + 20,
             borderColor:
-              color === 'light' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
+              color === 'light' ? colors.semiTransparent.white30 : colors.semiTransparent.black20,
           },
         ]}
       />
@@ -196,14 +182,11 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
       {message && (
         <Text style={[styles.message, { color: textColor }]}>{message}</Text>
       )}
-
-      {/* Animated dots */}
       <LoadingDots color={textColor} />
     </View>
   );
 };
 
-// Animated loading dots component
 const LoadingDots: React.FC<{ color: string }> = ({ color }) => {
   const dot1 = useRef(new Animated.Value(0)).current;
   const dot2 = useRef(new Animated.Value(0)).current;
@@ -323,7 +306,7 @@ const styles = StyleSheet.create({
   },
   wheelSpoke: {
     position: 'absolute',
-    backgroundColor: '#3A3B4A',
+    backgroundColor: colors.loader.wheelSpoke,
     borderRadius: 1,
   },
   spokeRotated: {

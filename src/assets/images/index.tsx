@@ -22,21 +22,20 @@ export const truckImages = [
   truck8,
 ];
 
-// Truck images mapped by status for OrderTrackingScreen (matching status legend colors)
 export const truckImagesByStatus: Record<string, any> = {
-  ticketed: truck7,       // Gray
-  loading: truck2,        // Light Green
-  loaded: truck8,         // Dark Green
-  to_job: truck8,         // Dark Green
-  at_job: truck5,         // Light Blue
-  pouring: truck3,        // Dark Blue
-  begin_pour: truck3,     // Dark Blue
-  begin_pouring: truck3,  // Dark Blue
-  washing: truck6,        // Red
-  to_plant: truck4,       // Pink
-  at_plant: truck4,       // Pink
-  cancelled: truck6,      // Red
-  cancel: truck6,         // Red
+  ticketed: truck7,
+  loading: truck2,
+  loaded: truck8,
+  to_job: truck8,
+  at_job: truck5,
+  pouring: truck3,
+  begin_pour: truck3,
+  begin_pouring: truck3,
+  washing: truck6,
+  to_plant: truck4,
+  at_plant: truck4,
+  cancelled: truck6,
+  cancel: truck6,
 };
 
 export default {

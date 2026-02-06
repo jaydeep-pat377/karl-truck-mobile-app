@@ -1,12 +1,3 @@
-/**
- * VerifyOTPScreen
- *
- * OTP verification screen with:
- * - 6-digit code input with auto-focus
- * - Countdown timer for resend
- * - Clear visual feedback
- * - Theme-aware (light/dark)
- */
 
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -34,7 +25,7 @@ interface VerifyOTPScreenProps {
 }
 
 const OTP_LENGTH = 6;
-const RESEND_TIMEOUT = 60; // seconds
+const RESEND_TIMEOUT = 60;
 
 export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
   navigation,
@@ -54,7 +45,6 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
-  // Countdown timer
   useEffect(() => {
     if (resendTimer > 0) {
       const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
@@ -64,13 +54,12 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
     }
   }, [resendTimer]);
 
-  // Auto-focus first input
   useEffect(() => {
     setTimeout(() => inputRefs.current[0]?.focus(), 500);
   }, []);
 
   const handleOtpChange = (value: string, index: number) => {
-    // Only allow numbers
+
     const numericValue = value.replace(/[^0-9]/g, '');
 
     if (numericValue.length <= 1) {
@@ -79,12 +68,10 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
       setOtp(newOtp);
       setError('');
 
-      // Auto-focus next input
       if (numericValue && index < OTP_LENGTH - 1) {
         inputRefs.current[index + 1]?.focus();
       }
 
-      // Auto-submit when all digits entered
       if (index === OTP_LENGTH - 1 && numericValue) {
         const fullOtp = newOtp.join('');
         if (fullOtp.length === OTP_LENGTH) {
@@ -93,7 +80,7 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
         }
       }
     } else if (numericValue.length === OTP_LENGTH) {
-      // Handle paste
+
       const digits = numericValue.split('');
       setOtp(digits);
       inputRefs.current[OTP_LENGTH - 1]?.focus();
@@ -117,10 +104,9 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
 
     setIsLoading(true);
     try {
-      // Simulate API call
+
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // For demo: 123456 is valid
       if (code === '123456') {
         if (isPasswordReset) {
           navigation?.navigate('ResetPassword', { token: code });
@@ -170,7 +156,7 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
-        {/* Back Button */}
+
         <TouchableOpacity
           style={[styles.backButton, { backgroundColor: theme.colors.card }]}
           onPress={handleBack}
@@ -179,7 +165,6 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
           <Icon name="arrow-left" size={ms(24)} color={theme.colors.text} />
         </TouchableOpacity>
 
-        {/* Header */}
         <View style={styles.header}>
           <View
             style={[
@@ -205,7 +190,6 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
           </Text>
         </View>
 
-        {/* OTP Input */}
         <View style={styles.otpContainer}>
           {otp.map((digit, index) => (
             <TextInput
@@ -234,7 +218,6 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
           ))}
         </View>
 
-        {/* Error Message */}
         {error && (
           <View style={styles.errorContainer}>
             <Icon name="alert-circle" size={ms(16)} color={theme.colors.error.main} />
@@ -247,7 +230,6 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
           </View>
         )}
 
-        {/* Verify Button */}
         <Button
           title={t('auth.otp.verifyCode')}
           onPress={() => handleVerify()}
@@ -257,7 +239,6 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
           style={styles.verifyButton}
         />
 
-        {/* Resend Section */}
         <View style={styles.resendContainer}>
           {!canResend ? (
             <View style={styles.timerContainer}>
@@ -286,7 +267,6 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
           )}
         </View>
 
-        {/* Help Text */}
         <View style={styles.helpContainer}>
           <Icon name="information-outline" size={ms(18)} color={theme.colors.secondary.main} />
           <Text variant="caption" color="hint" style={styles.helpText}>

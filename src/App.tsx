@@ -1,7 +1,3 @@
-/**
- * TruckAst Dolese ReadyMix Mobile App
- * Main Application Entry Point
- */
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { StatusBar, LogBox } from 'react-native';
@@ -10,38 +6,30 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// Theme Provider
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
-// Components
 import { SplashScreen } from './components/common';
 
-// Supabase
 import { initializeSupabaseAuth } from './services/supabase/supabaseClient';
 
-// i18n
 import './locales';
 
-// Navigation
 import { RootNavigator } from './navigation';
 
-// Ignore specific warnings (optional)
 LogBox.ignoreLogs([
   'Non-serializable values were found in the navigation state',
 ]);
 
-// Create a React Query client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 2,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
     },
   },
 });
 
-// Inner app component that uses theme context
 interface AppContentProps {
   onReady?: () => void;
 }
@@ -93,15 +81,13 @@ const AppContentWithSplash: React.FC<AppContentProps> = ({ onReady }) => {
   );
 };
 
-// Main App component with all providers
 const App: React.FC = () => {
   const [isAppReady, setIsAppReady] = useState(false);
 
-  // Initialize Supabase auth on app startup
   useEffect(() => {
     initializeSupabaseAuth().then((session) => {
       console.log('session>>>>>>',session);
-      
+
       if (session) {
         console.log('@@@@@@ Supabase auth initialized successfully');
       }
@@ -109,7 +95,7 @@ const App: React.FC = () => {
   }, []);
 
   const onNavigationReady = useCallback(() => {
-    // Hide splash screen when navigation is ready
+
     setIsAppReady(true);
   }, []);
 

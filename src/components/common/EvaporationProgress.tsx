@@ -51,7 +51,7 @@ const EvaporationProgress: React.FC<EvaporationProps> = ({ evaporation }) => {
 
       <View style={styles.progressBarWrapper}>
         <LinearGradient
-          colors={['#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800', '#F44336']}
+          colors={colors.evaporation.gradient}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={styles.gradientBar}
@@ -131,8 +131,8 @@ const styles = StyleSheet.create({
     width: responsive(ms(12), ms(16)),
     height: responsive(ms(12), ms(16)),
     borderRadius: responsive(ms(6), ms(8)),
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: colors.evaporation.indicatorDot,
+    shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: ms(1) },
     shadowOpacity: 0.3,
     shadowRadius: ms(2),

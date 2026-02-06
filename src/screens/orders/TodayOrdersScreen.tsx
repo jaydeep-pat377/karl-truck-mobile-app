@@ -1,8 +1,3 @@
-/**
- * TodayOrdersScreen
- * Production-ready order card UI with clear visual hierarchy
- * Designed for scannability, efficiency, and modern aesthetics
- */
 
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import {
@@ -34,7 +29,6 @@ import { RootStackParamList } from '../../navigation/types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-// Map weather condition string to WeatherCondition type
 const mapWeatherCondition = (condition: string | undefined): WeatherCondition => {
   if (!condition) return 'sunny';
   const conditionLower = condition.toLowerCase();
@@ -47,7 +41,6 @@ const mapWeatherCondition = (condition: string | undefined): WeatherCondition =>
   return 'sunny';
 };
 
-// Map API status to Order status
 const mapOrderStatus = (status: string): Order['status'] => {
   const statusMap: Record<string, Order['status']> = {
     'normal': 'NORMAL',
@@ -78,7 +71,6 @@ const mapOrderStatus = (status: string): Order['status'] => {
   return statusMap[status.toLowerCase()] || 'NORMAL';
 };
 
-// Map ApiOrder to Order type for OrderCard
 const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
   const progress = apiOrder.ordered_qty > 0
     ? Math.round((apiOrder.delivered_qty / apiOrder.ordered_qty) * 100)
@@ -140,7 +132,6 @@ export const TodayOrdersScreen: React.FC = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [favoriteOverrides, setFavoriteOverrides] = useState<Record<string, boolean>>({});
 
-  // Listen for keyboard events to adjust bottom padding
   useEffect(() => {
     const keyboardShowEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const keyboardHideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
@@ -177,23 +168,20 @@ export const TodayOrdersScreen: React.FC = () => {
     sort_order: 'desc',
   });
 
-  // Track previous refetching state to detect when refetch completes
   const wasRefetchingRef = useRef(false);
 
-  // Clear favorite overrides when refetch completes (pull to refresh)
   useEffect(() => {
     if (wasRefetchingRef.current && !isRefetching) {
-      // Refetch just completed, clear overrides to use fresh data
+
       setFavoriteOverrides({});
     }
     wasRefetchingRef.current = isRefetching;
   }, [isRefetching]);
 
-  // Map API orders to Order type for OrderCard
   const mappedOrders = useMemo(() => {
     return apiOrders.map(order => {
       const mapped = mapApiOrderToOrder(order);
-      // Apply optimistic favorite override if exists
+
       if (favoriteOverrides[mapped.id] !== undefined) {
         return { ...mapped, isFavorite: favoriteOverrides[mapped.id] };
       }
@@ -201,7 +189,6 @@ export const TodayOrdersScreen: React.FC = () => {
     });
   }, [apiOrders, favoriteOverrides]);
 
-  // Filter orders based on active search query (only when search button is pressed)
   const filteredOrders = useMemo(() => {
     if (!activeSearchQuery.trim()) return mappedOrders;
 
@@ -217,12 +204,10 @@ export const TodayOrdersScreen: React.FC = () => {
     });
   }, [mappedOrders, activeSearchQuery]);
 
-  // Handle search button press
   const handleSearch = useCallback(() => {
     setActiveSearchQuery(searchQuery.trim());
   }, [searchQuery]);
 
-  // Handle clear search
   const handleClearSearch = useCallback(() => {
     setSearchQuery('');
     setActiveSearchQuery('');
@@ -241,7 +226,6 @@ export const TodayOrdersScreen: React.FC = () => {
 
   const handleRefresh = useCallback(() => refetch(), [refetch]);
 
-  // Format quantity with smart decimal display
   const fmtQty = (qty: number) => qty % 1 === 0 ? qty.toString() : qty.toFixed(1);
 
   const handleOrderPress = useCallback((order: Order) => {
@@ -277,20 +261,18 @@ export const TodayOrdersScreen: React.FC = () => {
   }, [navigation]);
 
   const handleToggleFavorite = useCallback((orderId: string) => {
-    // Check if we have an override first, otherwise use API data
+
     const hasOverride = favoriteOverrides[orderId] !== undefined;
     const apiOrder = apiOrders.find(o => o.order_id === orderId);
     const currentFavorite = hasOverride ? favoriteOverrides[orderId] : (apiOrder?.is_favourite ?? false);
     const newFavorite = !currentFavorite;
 
-    // Optimistically update UI immediately
     setFavoriteOverrides(prev => ({ ...prev, [orderId]: newFavorite }));
 
-    // Call API in background
     orderService.toggleFavourite(orderId)
       .catch((error) => {
         console.error('Failed to toggle favorite:', error);
-        // Revert optimistic update on error
+
         setFavoriteOverrides(prev => ({ ...prev, [orderId]: currentFavorite }));
         showAlert({
           type: 'error',
@@ -350,7 +332,7 @@ export const TodayOrdersScreen: React.FC = () => {
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
-      {/* Summary Stats Card */}
+
       {apiOrders.length > 0 && (
         <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.cardElevated : themeColors.card }]}>
           <View style={styles.summaryStatsRow}>
@@ -382,14 +364,13 @@ export const TodayOrdersScreen: React.FC = () => {
               <Text style={[styles.summaryStatLabel, { color: themeColors.text.hint }]}>Progress</Text>
             </View>
           </View>
-          {/* Progress Bar */}
-          <View style={[styles.summaryProgressBar, { backgroundColor: isDark ? 'rgba(107,177,48,0.15)' : 'rgba(107,177,48,0.1)' }]}>
+
+          <View style={[styles.summaryProgressBar, { backgroundColor: isDark ? colors.semiTransparent.green15 : colors.semiTransparent.green10 }]}>
             <View style={[styles.summaryProgressFill, { width: `${summaryStats.avgProgress}%`, backgroundColor: colors.primary.main }]} />
           </View>
         </View>
       )}
 
-      {/* Orders Count */}
       <View style={styles.ordersCountRow}>
         <Text style={[styles.ordersCountText, { color: themeColors.text.secondary }]}>
           {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'} found
@@ -403,7 +384,7 @@ export const TodayOrdersScreen: React.FC = () => {
     if (isLoading) return null;
     return (
       <View style={styles.emptyWrap}>
-        <View style={[styles.emptyIcon, { backgroundColor: isDark ? 'rgba(107,177,48,0.1)' : 'rgba(107,177,48,0.08)' }]}>
+        <View style={[styles.emptyIcon, { backgroundColor: isDark ? colors.semiTransparent.green10 : colors.semiTransparent.green08 }]}>
           <Icon name="clipboard-check-outline" size={ms(40)} color={colors.primary.main} />
         </View>
         <Text style={[styles.emptyTitle, { color: themeColors.text.primary }]}>No Active Orders</Text>
@@ -426,7 +407,7 @@ export const TodayOrdersScreen: React.FC = () => {
           </TouchableOpacity>
           <Text variant="h2">Today's In Progress</Text>
           <TouchableOpacity
-            style={[styles.headerIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+            style={[styles.headerIcon, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
             onPress={handleRefresh}
             activeOpacity={0.7}
           >
@@ -446,7 +427,6 @@ export const TodayOrdersScreen: React.FC = () => {
     <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
       <StatusBar backgroundColor="transparent" barStyle={isDark ? 'light-content' : 'dark-content'} translucent />
 
-      {/* Header Bar */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerIcon}
@@ -459,7 +439,7 @@ export const TodayOrdersScreen: React.FC = () => {
         <Text variant="h2">Today's In Progress</Text>
 
         <TouchableOpacity
-          style={[styles.headerIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+          style={[styles.headerIcon, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
           onPress={handleRefresh}
           activeOpacity={0.7}
         >
@@ -467,7 +447,6 @@ export const TodayOrdersScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar - Hidden during loading like OrderListScreen */}
       {!isLoading && (
         <View style={styles.searchContainer}>
           <View
@@ -560,7 +539,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  // Header Bar (like OrderListScreen)
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -576,7 +554,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Search Bar
   searchContainer: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -609,17 +586,15 @@ const styles = StyleSheet.create({
     marginLeft: ms(4),
   },
 
-  // Header Container (FlatList header)
   headerContainer: {
     paddingBottom: spacing.sm,
   },
 
-  // Summary Card - Compact Stats
   summaryCard: {
     borderRadius: ms(10),
     padding: ms(10),
     marginBottom: spacing.sm,
-    shadowColor: '#000',
+    shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
@@ -661,7 +636,6 @@ const styles = StyleSheet.create({
     borderRadius: ms(1.5),
   },
 
-  // Orders Count
   ordersCountRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -671,7 +645,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
   },
 
-  // List
   listContent: { paddingHorizontal: spacing.lg },
   separator: { height: spacing.sm },
   footerLoader: {
@@ -680,13 +653,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // ===== EMPTY =====
   emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: ms(60), paddingHorizontal: ms(20) },
   emptyIcon: { width: ms(70), height: ms(70), borderRadius: ms(35), justifyContent: 'center', alignItems: 'center', marginBottom: ms(12) },
   emptyTitle: { fontSize: ms(15), fontFamily: fontFamily.semiBold, marginBottom: ms(4) },
   emptySub: { fontSize: ms(12), fontFamily: fontFamily.regular, textAlign: 'center' },
 
-  // ===== ERROR =====
   errorWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: ms(20) },
   errorTxt: { fontSize: ms(13), fontFamily: fontFamily.regular, textAlign: 'center', marginTop: ms(10) },
   retryTxt: { fontSize: ms(12), fontFamily: fontFamily.semiBold, marginTop: ms(10) },
