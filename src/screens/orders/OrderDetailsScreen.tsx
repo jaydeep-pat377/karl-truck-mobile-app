@@ -2114,7 +2114,7 @@ export const OrderDetailsScreen: React.FC = () => {
       plantPhone: orderDetails.plant_details?.phone || '',
       plantAddress1: orderDetails.plant_details?.address1 || '',
       plantAddress2: orderDetails.plant_details?.address2 || '',
-      truckCount: new Set(orderDetails.tickets?.map(t => t.truck_code) || []).size,
+      truckCount: orderDetails.truck_status_count?.total || 0,
       status: orderDetails.status || 'Pending',
       statusPills: (() => {
         const truckStatus = orderDetails.truck_status_count;
