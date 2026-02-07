@@ -389,6 +389,7 @@ export interface OrderDetailsOrder {
   notes: OrderDetailsNote[];
   weather_data: OrderDetailsWeatherData | null;
   truck_status_count?: TruckStatusCount;
+  truck_count?: number;
   plant_details?: PlantDetails;
   order_location?: TicketDetailsLocation | null;
   is_favourite?: boolean;

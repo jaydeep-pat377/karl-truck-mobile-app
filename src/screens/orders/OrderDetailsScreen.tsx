@@ -1271,7 +1271,6 @@ const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
 }) => {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; time: string; label: string; value: number; color: string } | null>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
   const themeColors = isDark ? colors.dark : colors.light;
 
   const containerWidth = SCREEN_WIDTH - GRID.md * 4;
@@ -1279,21 +1278,17 @@ const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
   const padding = { top: 16, right: 20, bottom: 32, left: 10 };
   const chartHeight = height - padding.top - padding.bottom;
 
-  // Parse time from ISO string to minutes from midnight
-  const parseTimeToMinutes = (timeStr: string): number => {
-    if (timeStr.includes('T')) {
-      const date = new Date(timeStr);
-      return date.getHours() * 60 + date.getMinutes();
-    }
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    return hours * 60 + minutes;
+  // Parse time_display (HH:MM format) to minutes from midnight
+  const parseTimeToMinutes = (timeDisplay: string): number => {
+    const [hours, minutes] = timeDisplay.split(':').map(Number);
+    return hours * 60 + (minutes || 0);
   };
 
-  // Get min/max time across all series (in minutes from midnight)
+  // Get min/max time across all series using time_display (in minutes from midnight)
   const allTimes = [
-    ...orderedData.map(d => parseTimeToMinutes(d.time)),
-    ...deliveredData.map(d => parseTimeToMinutes(d.time)),
-    ...pouredData.map(d => parseTimeToMinutes(d.time)),
+    ...orderedData.map(d => parseTimeToMinutes(d.time_display)),
+    ...deliveredData.map(d => parseTimeToMinutes(d.time_display)),
+    ...pouredData.map(d => parseTimeToMinutes(d.time_display)),
   ];
   // Default to 8:00-9:00 if no data
   const dataMinTime = allTimes.length > 0 ? Math.min(...allTimes) : 480;
@@ -1303,12 +1298,8 @@ const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
   const maxTime = Math.ceil(dataMaxTime / 15) * 15 + 15;
   const timeRange = maxTime - minTime || 1;
 
-  // Calculate chart width: 50px per 15 minutes, minimum is container width
-  const timeLabelsCount = Math.ceil(timeRange / 15);
-  const minChartWidth = containerWidth - yAxisWidth;
-  const calculatedWidth = timeLabelsCount * 50;
-  const chartWidth = Math.max(calculatedWidth, minChartWidth);
-  const needsScroll = chartWidth > minChartWidth;
+  // Fixed chart width - no horizontal scrolling
+  const chartWidth = containerWidth - yAxisWidth;
 
   // Y-axis: 0, 25, 50 style
   const maxValue = Math.max(yMax, 50);
@@ -1339,7 +1330,7 @@ const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
     if (seriesData.length < 1) return '';
 
     const points = seriesData.map(d => ({
-      x: getX(parseTimeToMinutes(d.time)),
+      x: getX(parseTimeToMinutes(d.time_display)),
       y: getY(d.rate),
     }));
 
@@ -1358,34 +1349,58 @@ const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
     ? allSeriesConfig.filter(s => s.key === activeFilter && s.data.length > 0)
     : seriesConfig;
 
-  // Generate X-axis time labels
+  // Generate X-axis time labels from actual data points' time_display
   const generateXAxisLabels = () => {
-    const labels: { time: number; display: string }[] = [];
-    // Start from minTime, end at maxTime (already rounded to 15 min intervals with padding)
-    for (let m = minTime; m <= maxTime; m += 15) {
-      const hours = Math.floor(m / 60);
-      const mins = m % 60;
-      if (hours >= 0 && hours < 24) {
-        labels.push({
-          time: m,
-          display: `${hours}:${mins.toString().padStart(2, '0')}`,
-        });
+    // Collect all unique time_display values from data points
+    const allTimeDisplays = new Map<number, string>();
+
+    [...orderedData, ...deliveredData, ...pouredData].forEach(d => {
+      const minutes = parseTimeToMinutes(d.time_display);
+      if (!allTimeDisplays.has(minutes)) {
+        allTimeDisplays.set(minutes, d.time_display);
+      }
+    });
+
+    // Sort by time and create labels
+    const labels = Array.from(allTimeDisplays.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([time, display]) => ({ time, display }));
+
+    if (labels.length === 0) return [];
+
+    // Filter labels to prevent overlap - minimum 40px between labels
+    const minPixelGap = 40;
+    const filteredLabels: typeof labels = [labels[0]];
+
+    for (let i = 1; i < labels.length; i++) {
+      const lastLabel = filteredLabels[filteredLabels.length - 1];
+      const currentX = getX(labels[i].time);
+      const lastX = getX(lastLabel.time);
+
+      if (currentX - lastX >= minPixelGap) {
+        filteredLabels.push(labels[i]);
       }
     }
 
-    // Show max 10 labels for better readability
-    const maxLabels = 10;
-    if (labels.length <= maxLabels) return labels;
+    // Always include the last label if it doesn't overlap
+    const lastLabel = labels[labels.length - 1];
+    const lastFilteredLabel = filteredLabels[filteredLabels.length - 1];
+    if (lastLabel.time !== lastFilteredLabel.time) {
+      const lastX = getX(lastLabel.time);
+      const prevX = getX(lastFilteredLabel.time);
+      if (lastX - prevX >= minPixelGap) {
+        filteredLabels.push(lastLabel);
+      }
+    }
 
-    const step = Math.ceil(labels.length / maxLabels);
-    return labels.filter((_, i) => i % step === 0);
+    return filteredLabels;
   };
 
   const xAxisLabels = generateXAxisLabels();
 
   // Calculate spacing (difference between first two ordered times in minutes)
   const spacing = orderedData.length >= 2
-    ? Math.round(parseTimeToMinutes(orderedData[1].time) - parseTimeToMinutes(orderedData[0].time)) || 20
+    ? Math.round(parseTimeToMinutes(orderedData[1].time_display) - parseTimeToMinutes(orderedData[0].time_display)) || 20
     : 20;
 
   const hideTooltip = () => setTooltip(null);
@@ -1459,16 +1474,8 @@ const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
             </Svg>
           </View>
 
-          {/* Scrollable Chart Area */}
-          <ScrollView
-            ref={scrollViewRef}
-            horizontal
-            showsHorizontalScrollIndicator={needsScroll}
-            scrollEnabled={needsScroll}
-            style={styles.pourSpeedScrollView}
-            contentContainerStyle={{ width: chartWidth }}
-            onScrollBeginDrag={hideTooltip}
-          >
+          {/* Chart Area - Fixed width, no scrolling */}
+          <View style={[styles.pourSpeedScrollView, { width: chartWidth }]}>
             <View style={{ position: 'relative' }}>
               <Svg width={chartWidth} height={height}>
                 {/* Grid lines */}
@@ -1518,7 +1525,7 @@ const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
                 {/* Data point markers with touch areas */}
                 {visibleSeries.map((s) =>
                   s.data.map((d, i) => {
-                    const x = getX(parseTimeToMinutes(d.time));
+                    const x = getX(parseTimeToMinutes(d.time_display));
                     const y = getY(d.rate);
                     return (
                       <G
@@ -1571,7 +1578,7 @@ const TimeBasedChart: React.FC<TimeBasedChartProps> = ({
                 </View>
               )}
             </View>
-          </ScrollView>
+          </View>
         </View>
 
         {/* Legend - Pill style buttons - always show all labels */}
@@ -1657,7 +1664,6 @@ const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
 }) => {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; time: string; label: string; value: number; color: string } | null>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
   const themeColors = isDark ? colors.dark : colors.light;
 
   const containerWidth = SCREEN_WIDTH - GRID.md * 4;
@@ -1679,19 +1685,15 @@ const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   };
 
   // Get min/max time - use defaults if no data
-  const allTimes = hasData ? timePoints.map(d => parseTimeToMinutes(d.time)) : [480, 600]; // Default 8:00 - 10:00
+  const allTimes = hasData ? timePoints.map(d => parseTimeToMinutes(d.time_display)) : [480, 600]; // Default 8:00 - 10:00
   const dataMinTime = Math.min(...allTimes);
   const dataMaxTime = Math.max(...allTimes);
   const minTime = Math.floor(dataMinTime / 15) * 15 - 15;
   const maxTime = Math.ceil(dataMaxTime / 15) * 15 + 15;
   const timeRange = maxTime - minTime || 1;
 
-  // Calculate chart width
-  const timeLabelsCount = Math.ceil(timeRange / 15);
-  const minChartWidth = containerWidth - yAxisWidth;
-  const calculatedWidth = timeLabelsCount * 50;
-  const chartWidth = Math.max(calculatedWidth, minChartWidth);
-  const needsScroll = chartWidth > minChartWidth;
+  // Fixed chart width - no horizontal scrolling
+  const chartWidth = containerWidth - yAxisWidth;
 
   // Y-axis max based on total trucks
   const maxTotal = Math.max(...timePoints.map(d => d.total), 1);
@@ -1719,7 +1721,7 @@ const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     if (timePoints.length < 1) return '';
 
     const points = timePoints.map(d => ({
-      x: getX(parseTimeToMinutes(d.time)),
+      x: getX(parseTimeToMinutes(d.time_display)),
       y: getY(d[key as keyof TrucksTimePoint] as number),
     }));
 
@@ -1740,23 +1742,52 @@ const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
 
   const hideTooltip = () => setTooltip(null);
 
-  // Generate X-axis labels
+  // Generate X-axis labels from actual data points' time_display
   const generateXAxisLabels = () => {
-    const labels: { time: number; display: string }[] = [];
-    for (let m = minTime; m <= maxTime; m += 15) {
-      const hours = Math.floor(m / 60);
-      const mins = m % 60;
-      if (hours >= 0 && hours < 24) {
-        labels.push({
-          time: m,
-          display: `${hours}:${mins.toString().padStart(2, '0')}`,
-        });
+    if (!hasData) return [];
+
+    // Collect unique time_display values from data points
+    const allTimeDisplays = new Map<number, string>();
+    timePoints.forEach(d => {
+      const minutes = parseTimeToMinutes(d.time_display);
+      if (!allTimeDisplays.has(minutes)) {
+        allTimeDisplays.set(minutes, d.time_display);
+      }
+    });
+
+    // Sort by time and create labels
+    const labels = Array.from(allTimeDisplays.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([time, display]) => ({ time, display }));
+
+    if (labels.length === 0) return [];
+
+    // Filter labels to prevent overlap - minimum 40px between labels
+    const minPixelGap = 40;
+    const filteredLabels: typeof labels = [labels[0]];
+
+    for (let i = 1; i < labels.length; i++) {
+      const lastLabel = filteredLabels[filteredLabels.length - 1];
+      const currentX = getX(labels[i].time);
+      const lastX = getX(lastLabel.time);
+
+      if (currentX - lastX >= minPixelGap) {
+        filteredLabels.push(labels[i]);
       }
     }
-    const maxLabels = 10;
-    if (labels.length <= maxLabels) return labels;
-    const step = Math.ceil(labels.length / maxLabels);
-    return labels.filter((_, i) => i % step === 0);
+
+    // Always include the last label if it doesn't overlap
+    const lastLabel = labels[labels.length - 1];
+    const lastFilteredLabel = filteredLabels[filteredLabels.length - 1];
+    if (lastLabel.time !== lastFilteredLabel.time) {
+      const lastX = getX(lastLabel.time);
+      const prevX = getX(lastFilteredLabel.time);
+      if (lastX - prevX >= minPixelGap) {
+        filteredLabels.push(lastLabel);
+      }
+    }
+
+    return filteredLabels;
   };
 
   const xAxisLabels = generateXAxisLabels();
@@ -1812,16 +1843,8 @@ const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
             </Svg>
           </View>
 
-          {/* Scrollable Chart Area */}
-          <ScrollView
-            ref={scrollViewRef}
-            horizontal
-            showsHorizontalScrollIndicator={needsScroll}
-            scrollEnabled={needsScroll}
-            style={styles.pourSpeedScrollView}
-            contentContainerStyle={{ width: chartWidth }}
-            onScrollBeginDrag={hideTooltip}
-          >
+          {/* Chart Area - Fixed width, no scrolling */}
+          <View style={[styles.pourSpeedScrollView, { width: chartWidth }]}>
             <View style={{ position: 'relative' }}>
               <Svg width={chartWidth} height={height}>
                 {/* Grid lines */}
@@ -1871,7 +1894,7 @@ const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                 {/* Data point markers - only render if we have data */}
                 {hasData && visibleSeries.map((s) =>
                   timePoints.map((d, i) => {
-                    const x = getX(parseTimeToMinutes(d.time));
+                    const x = getX(parseTimeToMinutes(d.time_display));
                     const value = d[s.key as keyof TrucksTimePoint] as number;
                     const y = getY(value);
                     return (
@@ -1924,7 +1947,7 @@ const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                 </View>
               )}
             </View>
-          </ScrollView>
+          </View>
         </View>
 
         {/* Legend */}
@@ -2114,7 +2137,7 @@ export const OrderDetailsScreen: React.FC = () => {
       plantPhone: orderDetails.plant_details?.phone || '',
       plantAddress1: orderDetails.plant_details?.address1 || '',
       plantAddress2: orderDetails.plant_details?.address2 || '',
-      truckCount: orderDetails.truck_status_count?.total || 0,
+      truckCount: orderDetails.truck_count ?? 0,
       status: orderDetails.status || 'Pending',
       statusPills: (() => {
         const truckStatus = orderDetails.truck_status_count;
@@ -2507,10 +2530,12 @@ export const OrderDetailsScreen: React.FC = () => {
                 <Text style={[styles.headerChipText, { color: isDark ? colors.common.white : colors.grey[80] }]}>{jobData.temperature}°C</Text>
               </TouchableOpacity>
 
-              <View style={[styles.headerChip, { backgroundColor: isDark ? colors.common.white + '20' : colors.common.black + '15' }]}>
-                <Icon name="truck" size={12} color={isDark ? colors.common.white : colors.grey[80]} />
-                <Text style={[styles.headerChipText, { color: isDark ? colors.common.white : colors.grey[80] }]}>{jobData.truckCount} Trucks</Text>
-              </View>
+              {jobData.truckCount > 0 && (
+                <View style={[styles.headerChip, { backgroundColor: isDark ? colors.common.white + '20' : colors.common.black + '15' }]}>
+                  <Icon name="truck" size={12} color={isDark ? colors.common.white : colors.grey[80]} />
+                  <Text style={[styles.headerChipText, { color: isDark ? colors.common.white : colors.grey[80] }]}>{jobData.truckCount} Trucks</Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.headerAddressRow}>
