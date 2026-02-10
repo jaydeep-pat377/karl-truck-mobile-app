@@ -538,7 +538,7 @@ export const colors = {
   // Chart colors (for OrderDetailsScreen and other charts)
   chart: {
     ordered: '#04BCEF',      // Same as secondary.main
-    poured: '#6BB130',       // Same as primary.main
+    poured: '#8BC34A',       // Light green
     delivered: {
       dark: '#FFFFFF',
       light: '#1a1a2e',

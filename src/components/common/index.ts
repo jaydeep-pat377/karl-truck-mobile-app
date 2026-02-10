@@ -11,6 +11,7 @@ export { default as TruckLoader } from './TruckLoader';
 export { default as SplashScreen } from './SplashScreen';
 export { ScreenContainer, useSafeAreaInsets } from './ScreenContainer';
 export { WeatherBadge } from './WeatherBadge';
+export { WeatherEvaporationPill } from './WeatherEvaporationPill';
 export { GradientHeader } from './GradientHeader';
 export type { GradientDirection, GradientVariant } from './GradientHeader';
 export { GradientCard } from './GradientCard';

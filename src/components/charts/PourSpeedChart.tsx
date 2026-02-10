@@ -98,10 +98,10 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   orderedData,
   deliveredData,
   pouredData,
-  scheduleRate,
+  scheduleRate: _scheduleRate,
   yMax,
-  scheduledQty,
-  truckSpace = 0,
+  scheduledQty: _scheduledQty,
+  truckSpace: _truckSpace = 0,
   isDark,
   height = ms(180),
   horizontalPadding = 16,
@@ -164,34 +164,34 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   const chartWidth = scrollable ? scrollableWidth : baseChartWidth;
 
   // Y-axis configuration
-  const maxValue = Math.max(yMax, 50);
-  const yAxisValues = [50, 25, 0]; // Fixed values for consistency
+  const maxValue = Math.max(yMax, 100);
+  const yAxisValues = [100, 50, 0]; // Fixed values for consistency
 
-  // Series configuration
+  // Series configuration - order: Delivered, Poured, Ordered (as per design)
   const allSeriesConfig = useMemo(() => [
     {
-      key: 'ordered',
-      color: colors.chart.ordered,
-      label: 'Ordered',
-      data: orderedData,
-      marker: 'circle',
-      lineType: 'linear', // Straight lines for ordered
+      key: 'delivered',
+      color: isDark ? colors.chart.delivered.dark : colors.chart.delivered.light,
+      label: 'Delivered',
+      data: deliveredData,
+      marker: 'filledCircle', // Rounded/filled circle
+      lineType: 'smooth',
     },
     {
       key: 'poured',
       color: colors.chart.poured,
       label: 'Poured',
       data: pouredData,
-      marker: 'diamond',
-      lineType: 'smooth', // Smooth curves for poured
+      marker: 'diamond', // Diamond/cross square
+      lineType: 'smooth',
     },
     {
-      key: 'delivered',
-      color: isDark ? colors.chart.delivered.dark : colors.chart.delivered.light,
-      label: 'Delivered',
-      data: deliveredData,
-      marker: 'square',
-      lineType: 'smooth', // Smooth curves for delivered
+      key: 'ordered',
+      color: colors.chart.ordered,
+      label: 'Ordered',
+      data: orderedData,
+      marker: 'filledSquare', // Filled square
+      lineType: 'linear',
     },
   ], [orderedData, deliveredData, pouredData, isDark]);
 
@@ -291,18 +291,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     return labels;
   }, [timeRange]);
 
-  // Calculate spacing for header
-  const spacing = useMemo(() => {
-    if (truckSpace > 0) return truckSpace;
-    if (orderedData.length >= 2) {
-      return Math.round(
-        parseTimeToMinutes(orderedData[1].time_display) -
-        parseTimeToMinutes(orderedData[0].time_display)
-      ) || 20;
-    }
-    return 20;
-  }, [orderedData, truckSpace]);
-
   // Render marker based on type
   const renderMarker = (
     type: string,
@@ -321,6 +309,15 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
             fill={themeColors.card}
             stroke={color}
             strokeWidth={2}
+          />
+        );
+      case 'filledCircle':
+        return (
+          <Circle
+            cx={x}
+            cy={y}
+            r={size}
+            fill={color}
           />
         );
       case 'diamond':
@@ -343,6 +340,24 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
             strokeWidth={1}
           />
         );
+      case 'filledSquare':
+        const fs = size - 1;
+        return (
+          <Path
+            d={`M ${x - fs} ${y - fs} L ${x + fs} ${y - fs} L ${x + fs} ${y + fs} L ${x - fs} ${y + fs} Z`}
+            fill={color}
+          />
+        );
+      case 'hollowSquare':
+        const hs = size - 1;
+        return (
+          <Path
+            d={`M ${x - hs} ${y - hs} L ${x + hs} ${y - hs} L ${x + hs} ${y + hs} L ${x - hs} ${y + hs} Z`}
+            fill={themeColors.card}
+            stroke={color}
+            strokeWidth={2}
+          />
+        );
       default:
         return <Circle cx={x} cy={y} r={size} fill={color} />;
     }
@@ -355,10 +370,10 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: themeColors.text.primary }]}>
-          Pour Speed
+          Pour Speed (CY/HR)
         </Text>
         <Text style={[styles.subtitle, { color: themeColors.text.hint }]}>
-          {spacing} min spacing  •  {scheduleRate.toFixed(2)} yards/hour  •  {scheduledQty.toFixed(2)} CY scheduled
+          Drag your finger over the plot to zoom in
         </Text>
       </View>
 
@@ -587,26 +602,43 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
               onPress={() => toggleFilter(s.key)}
               activeOpacity={0.7}
             >
-              <View
-                style={[
-                  styles.legendMarker,
-                  s.marker === 'circle' && {
-                    borderRadius: 6,
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    borderColor: s.color,
-                  },
-                  s.marker === 'diamond' && {
-                    transform: [{ rotate: '45deg' }],
-                    backgroundColor: s.color,
-                    borderRadius: 1,
-                  },
-                  s.marker === 'square' && {
-                    backgroundColor: s.color,
-                    borderRadius: 1,
-                  },
-                ]}
-              />
+              {/* Legend line with marker */}
+              <View style={styles.legendLineContainer}>
+                <Svg width={ms(32)} height={ms(12)}>
+                  {/* Solid line */}
+                  <Line
+                    x1={0}
+                    y1={ms(6)}
+                    x2={ms(32)}
+                    y2={ms(6)}
+                    stroke={s.color}
+                    strokeWidth={2}
+                  />
+                  {/* Filled circle marker (Delivered) */}
+                  {s.marker === 'filledCircle' && (
+                    <Circle
+                      cx={ms(16)}
+                      cy={ms(6)}
+                      r={ms(4)}
+                      fill={s.color}
+                    />
+                  )}
+                  {/* Diamond marker (Poured) */}
+                  {s.marker === 'diamond' && (
+                    <Path
+                      d={`M ${ms(16)} ${ms(1)} L ${ms(21)} ${ms(6)} L ${ms(16)} ${ms(11)} L ${ms(11)} ${ms(6)} Z`}
+                      fill={s.color}
+                    />
+                  )}
+                  {/* Filled square marker (Ordered) */}
+                  {s.marker === 'filledSquare' && (
+                    <Path
+                      d={`M ${ms(12)} ${ms(2)} L ${ms(20)} ${ms(2)} L ${ms(20)} ${ms(10)} L ${ms(12)} ${ms(10)} Z`}
+                      fill={s.color}
+                    />
+                  )}
+                </Svg>
+              </View>
               <Text
                 style={[
                   styles.legendText,
@@ -663,7 +695,7 @@ const styles = StyleSheet.create({
   legend: {
     flexDirection: 'row',
     justifyContent: 'center',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     marginTop: ms(12),
     gap: ms(8),
   },
@@ -675,9 +707,7 @@ const styles = StyleSheet.create({
     borderRadius: ms(16),
     borderWidth: 1,
   },
-  legendMarker: {
-    width: ms(10),
-    height: ms(10),
+  legendLineContainer: {
     marginRight: ms(6),
   },
   legendText: {

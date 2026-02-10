@@ -8,7 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text, Card, StatusBadge, WeatherBadge, Icon } from '../common';
+import { Text, Card, StatusBadge, WeatherEvaporationPill, Icon } from '../common';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms } from '../../utils/responsive';
@@ -175,15 +175,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 style={[styles.dateTime, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
                 {formatDate(order.scheduledDate)} • {order.scheduledTime}
               </Text>
-              {evaporationRateValue !== null && (
-                <View style={styles.evaporationBadge}>
-                  <Text
-                    variant="captionSmall"
-                    style={styles.evaporationText}>
-                    ER: {evaporationRateValue}
-                  </Text>
-                </View>
-              )}
             </View>
           </View>
 
@@ -208,8 +199,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             </Text>
 
             {(order.weather || isWeatherLoading) && (
-              <WeatherBadge
+              <WeatherEvaporationPill
                 weather={order.weather}
+                evaporationRate={evaporationRateValue}
                 onPress={onWeatherPress}
                 isLoading={isWeatherLoading}
                 size="small"
@@ -411,15 +403,6 @@ const styles = StyleSheet.create({
     marginLeft: ms(2),
     fontSize: 12,
     fontFamily: fontFamily.medium,
-  },
-  evaporationBadge: {
-    paddingHorizontal: ms(6),
-    paddingVertical: ms(2),
-    borderRadius: ms(4),
-  },
-  evaporationText: {
-    fontSize: ms(11),
-    fontFamily: fontFamily.semiBold,
   },
   ESTTitle: {
     fontSize: ms(11),

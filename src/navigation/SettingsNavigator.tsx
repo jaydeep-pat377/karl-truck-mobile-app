@@ -5,6 +5,7 @@ import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { EditProfileScreen } from '../screens/profile/EditProfileScreen';
 import { ChangePasswordScreen } from '../screens/settings/ChangePasswordScreen';
 import { ChangePINScreen } from '../screens/settings/ChangePINScreen';
+import { WebViewScreen } from '../screens/settings/WebViewScreen';
 
 export type SettingsStackParamList = {
   SettingsMain: undefined;
@@ -12,6 +13,7 @@ export type SettingsStackParamList = {
   EditProfile: undefined;
   ChangePassword: undefined;
   ChangePIN: undefined;
+  WebView: { url: string; title: string };
 };
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
@@ -32,6 +34,7 @@ export const SettingsNavigator: React.FC = () => {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <Stack.Screen name="ChangePIN" component={ChangePINScreen} />
+      <Stack.Screen name="WebView" component={WebViewScreen} />
     </Stack.Navigator>
   );
 };

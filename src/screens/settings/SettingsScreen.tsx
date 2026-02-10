@@ -169,6 +169,20 @@ export const SettingsScreen: React.FC = () => {
     setShowLogoutModal(true);
   };
 
+  const handleNavigateToPrivacyPolicy = () => {
+    navigation.navigate('WebView', {
+      url: 'https://dolese.truckast.ai/privacy',
+      title: t('settings.privacyPolicy'),
+    });
+  };
+
+  const handleNavigateToTermsOfService = () => {
+    navigation.navigate('WebView', {
+      url: 'https://dolese.truckast.ai/privacy',
+      title: t('settings.termsOfService'),
+    });
+  };
+
   const performLogout = async () => {
     await logout();
     setShowLogoutModal(false);
@@ -341,13 +355,13 @@ export const SettingsScreen: React.FC = () => {
             <SettingsItem
               icon="file-document-outline"
               title={t('settings.termsOfService')}
-              onPress={() => { }}
+              onPress={handleNavigateToTermsOfService}
             />
             <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
             <SettingsItem
               icon="shield-outline"
               title={t('settings.privacyPolicy')}
-              onPress={() => { }}
+              onPress={handleNavigateToPrivacyPolicy}
             />
             <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
             <SettingsItem

@@ -152,7 +152,6 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
           }}
           isDark={isDark}
           height={chartHeight}
-          displayMode={trucksDisplayMode}
           scrollable={scrollable}
           minPointSpacing={pointSpacing}
         />

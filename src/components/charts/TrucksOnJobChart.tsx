@@ -1,49 +1,38 @@
 /**
  * Trucks on Job Chart Component
- *
- * Displays a multi-line/area chart showing truck states over time:
- * - Waiting: Trucks on job site waiting to pour
- * - Pouring: Trucks actively pouring concrete
- * - Washout: Trucks washing out after pour
- *
- * Based on web app performance-charts.tsx logic.
+ * Stacked AREA chart showing truck states (Waiting & Pouring) over time
  */
 
 import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   Pressable,
+  TouchableOpacity,
   StyleSheet,
   Dimensions,
   ScrollView,
 } from 'react-native';
 import Svg, {
   Path,
-  Circle,
   G,
   Text as SvgText,
-  Defs,
-  LinearGradient,
-  Stop,
+  Line,
+  Circle,
 } from 'react-native-svg';
 import { moderateScale as ms } from 'react-native-size-matters';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 
-// Shadow styles for tooltips
-const SHADOWS = {
-  lg: {
-    shadowColor: colors.common.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-};
-
 const SCREEN_WIDTH = Dimensions.get('window').width;
+
+// Chart colors - matching the image
+const COLORS = {
+  waiting: '#4A4A4A',  // Dark gray
+  pouring: '#4CAF50',  // Green
+  washout: '#64B5F6',  // Light blue
+  grid: '#E0E0E0',
+};
 
 // ============================================================================
 // TYPES
@@ -54,7 +43,7 @@ export interface TrucksTimePoint {
   time_display: string;
   waiting: number;
   pouring: number;
-  washout: number;
+  washout?: number;
   total: number;
   avg_waiting_minutes?: number | null;
   avg_pouring_minutes?: number | null;
@@ -68,21 +57,12 @@ export interface TrucksAverages {
 }
 
 export interface TrucksOnJobChartProps {
-  /** Time point data */
   timePoints: TrucksTimePoint[];
-  /** Overall averages */
-  averages: TrucksAverages;
-  /** Dark mode flag */
+  averages?: TrucksAverages;
   isDark: boolean;
-  /** Chart height */
   height?: number;
-  /** Horizontal padding */
   horizontalPadding?: number;
-  /** Display mode: 'line' for line chart, 'area' for stacked area chart */
-  displayMode?: 'line' | 'area';
-  /** Enable horizontal scrolling */
   scrollable?: boolean;
-  /** Minimum width per data point when scrollable (default: 40) */
   minPointSpacing?: number;
 }
 
@@ -92,18 +72,13 @@ export interface TrucksOnJobChartProps {
 
 export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   timePoints,
-  averages,
+  averages: _averages,
   isDark,
-  height = ms(180),
+  height = ms(220),
   horizontalPadding = 16,
-  displayMode = 'line',
   scrollable = true,
-  minPointSpacing = 120,
+  minPointSpacing = 80, // Increased for better scrolling
 }) => {
-  // Multi-select filter - all selected by default
-  const [selectedFilters, setSelectedFilters] = useState<Set<string>>(
-    new Set(['waiting', 'pouring', 'washout'])
-  );
   const [tooltip, setTooltip] = useState<{
     x: number;
     y: number;
@@ -112,182 +87,14 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     pouring: number;
     washout: number;
     total: number;
-    avgWaiting?: number | null;
-    avgPouring?: number | null;
-    avgWashing?: number | null;
   } | null>(null);
 
-  const themeColors = isDark ? colors.dark : colors.light;
-  const containerWidth = SCREEN_WIDTH - horizontalPadding * 2;
-  const yAxisWidth = 35;
-  const padding = { top: 16, right: 20, bottom: 32, left: 10 };
-  const chartHeight = height - padding.top - padding.bottom;
-  const baseChartWidth = containerWidth - yAxisWidth;
+  // Filter state - all enabled by default
+  const [selectedFilters, setSelectedFilters] = useState<Set<string>>(
+    new Set(['waiting', 'pouring', 'washout'])
+  );
 
-  const hasData = timePoints && timePoints.length > 0;
-
-  // Parse time to minutes from midnight
-  const parseTimeToMinutes = (timeStr: string): number => {
-    if (timeStr.includes('T')) {
-      const date = new Date(timeStr);
-      return date.getUTCHours() * 60 + date.getUTCMinutes();
-    }
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    return hours * 60 + (minutes || 0);
-  };
-
-  // Calculate time range
-  const timeRange = useMemo(() => {
-    const allTimes = hasData
-      ? timePoints.map(d => parseTimeToMinutes(d.time_display))
-      : [480, 600]; // Default 8:00 - 10:00
-
-    const dataMinTime = Math.min(...allTimes);
-    const dataMaxTime = Math.max(...allTimes);
-    const minTime = Math.floor(dataMinTime / 15) * 15 - 15;
-    const maxTime = Math.ceil(dataMaxTime / 15) * 15 + 15;
-    const range = maxTime - minTime || 1;
-
-    return { minTime, maxTime, range };
-  }, [timePoints, hasData]);
-
-  // Calculate chart width - expand based on time duration if scrollable
-  const timeSlots = Math.ceil(timeRange.range / 15); // Number of 15-min slots
-  const scrollableWidth = Math.max(timeSlots * minPointSpacing, baseChartWidth);
-  const chartWidth = scrollable ? scrollableWidth : baseChartWidth;
-
-  // Y-axis configuration - based on max total trucks
-  const { maxValue, yAxisValues } = useMemo(() => {
-    const maxTotal = hasData ? Math.max(...timePoints.map(d => d.total), 1) : 3;
-    const max = Math.ceil(maxTotal / 2) * 2 + 2; // Round up to even + buffer
-    const values = Array.from({ length: max + 1 }, (_, i) => max - i);
-    return { maxValue: max, yAxisValues: values };
-  }, [timePoints, hasData]);
-
-  // Series configuration
-  const seriesConfig = useMemo(() => [
-    {
-      key: 'waiting',
-      color: colors.chart.waiting,
-      label: 'Waiting',
-      marker: 'circle',
-    },
-    {
-      key: 'pouring',
-      color: colors.chart.pouring,
-      label: 'Pouring',
-      marker: 'diamond',
-    },
-    {
-      key: 'washout',
-      color: colors.chart.washout,
-      label: 'Washout',
-      marker: 'square',
-    },
-  ], []);
-
-  // Coordinate transformations
-  const getX = (time: number) => {
-    const normalized = (time - timeRange.minTime) / timeRange.range;
-    return padding.left + normalized * (chartWidth - padding.left - padding.right);
-  };
-
-  const getY = (value: number) => {
-    return padding.top + chartHeight - (value / maxValue) * chartHeight;
-  };
-
-  // Create line path for a series
-  const createLinePath = (key: string) => {
-    if (!hasData || timePoints.length < 1) return '';
-
-    const points = timePoints.map(d => ({
-      x: getX(parseTimeToMinutes(d.time_display)),
-      y: getY(d[key as keyof TrucksTimePoint] as number),
-    }));
-
-    let path = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 1; i < points.length; i++) {
-      path += ` L ${points[i].x} ${points[i].y}`;
-    }
-    return path;
-  };
-
-  // Create filled area path for a series (area from line to bottom)
-  const createFilledAreaPath = (key: string) => {
-    if (!hasData || timePoints.length < 1) return '';
-
-    const points = timePoints.map(d => ({
-      x: getX(parseTimeToMinutes(d.time_display)),
-      y: getY(d[key as keyof TrucksTimePoint] as number),
-    }));
-
-    const bottomY = getY(0);
-
-    // Start from bottom-left
-    let path = `M ${points[0].x} ${bottomY}`;
-
-    // Line up to first point
-    path += ` L ${points[0].x} ${points[0].y}`;
-
-    // Draw line through all points
-    for (let i = 1; i < points.length; i++) {
-      path += ` L ${points[i].x} ${points[i].y}`;
-    }
-
-    // Line down to bottom-right
-    path += ` L ${points[points.length - 1].x} ${bottomY}`;
-
-    // Close path
-    path += ' Z';
-
-    return path;
-  };
-
-  // Create stacked area path for a series
-  const createStackedAreaPath = (key: string, stackedKeys: string[]) => {
-    if (!hasData || timePoints.length < 1) return '';
-
-    const keyIndex = stackedKeys.indexOf(key);
-    if (keyIndex === -1) return '';
-
-    // Calculate cumulative values for this series
-    const points = timePoints.map(d => {
-      let cumulative = 0;
-      for (let i = 0; i <= keyIndex; i++) {
-        cumulative += d[stackedKeys[i] as keyof TrucksTimePoint] as number;
-      }
-      return {
-        x: getX(parseTimeToMinutes(d.time_display)),
-        y: getY(cumulative),
-        baseY: keyIndex === 0
-          ? getY(0)
-          : getY(stackedKeys.slice(0, keyIndex).reduce((sum, k) =>
-              sum + (d[k as keyof TrucksTimePoint] as number), 0)),
-      };
-    });
-
-    // Create closed area path
-    let path = `M ${points[0].x} ${points[0].baseY}`;
-
-    // Top line
-    for (let i = 0; i < points.length; i++) {
-      if (i === 0) {
-        path += ` L ${points[i].x} ${points[i].y}`;
-      } else {
-        path += ` L ${points[i].x} ${points[i].y}`;
-      }
-    }
-
-    // Bottom line (reverse)
-    for (let i = points.length - 1; i >= 0; i--) {
-      path += ` L ${points[i].x} ${points[i].baseY}`;
-    }
-
-    path += ' Z';
-    return path;
-  };
-
-  // Filter handling - toggle individual filters
+  // Toggle filter
   const toggleFilter = (key: string) => {
     setSelectedFilters(prev => {
       const newSet = new Set(prev);
@@ -300,75 +107,172 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     });
   };
 
-  const visibleSeries = seriesConfig.filter(s => selectedFilters.has(s.key));
+  const themeColors = isDark ? colors.dark : colors.light;
+  const containerWidth = SCREEN_WIDTH - horizontalPadding * 2;
+  const yAxisWidth = 25;
+  const chartPadding = { top: 15, right: 20, bottom: 30, left: 10 };
+  const chartAreaHeight = height - chartPadding.top - chartPadding.bottom;
+  const baseChartWidth = containerWidth - yAxisWidth;
 
-  // Format minutes to time string (e.g., 480 -> "8:00")
-  const formatMinutesToTime = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}:${mins.toString().padStart(2, '0')}`;
+  const hasData = timePoints && timePoints.length > 0;
+
+  // Calculate max Y value (including washout)
+  const maxY = useMemo(() => {
+    if (!hasData) return 4;
+    const maxTotal = Math.max(...timePoints.map(d => d.waiting + d.pouring + (d.washout || 0)), 1);
+    return Math.max(maxTotal + 1, 4);
+  }, [timePoints, hasData]);
+
+  // Y-axis values
+  const yAxisValues = useMemo(() => {
+    return Array.from({ length: maxY + 1 }, (_, i) => maxY - i);
+  }, [maxY]);
+
+  // Chart width calculation - always make it wider than container for scrolling
+  const chartWidth = useMemo(() => {
+    if (!hasData) return baseChartWidth;
+    // Calculate width based on number of points with proper spacing
+    const calculatedWidth = (timePoints.length * minPointSpacing) + chartPadding.left + chartPadding.right;
+    // If scrollable, use calculated width; otherwise fit to container
+    if (scrollable) {
+      return Math.max(calculatedWidth, baseChartWidth);
+    }
+    return baseChartWidth;
+  }, [hasData, timePoints.length, minPointSpacing, scrollable, baseChartWidth]);
+
+  // Check if scrolling is needed
+  const needsScroll = chartWidth > baseChartWidth;
+
+  // Get X position for a data point
+  const getX = (index: number): number => {
+    if (timePoints.length === 1) {
+      return chartPadding.left + (chartWidth - chartPadding.left - chartPadding.right) / 2;
+    }
+    const availableWidth = chartWidth - chartPadding.left - chartPadding.right;
+    return chartPadding.left + (index / (timePoints.length - 1)) * availableWidth;
   };
 
-  // X-axis labels at 15-minute intervals
+  // Get Y position for a value
+  const getY = (value: number): number => {
+    return chartPadding.top + chartAreaHeight - (value / maxY) * chartAreaHeight;
+  };
+
+  // Create filled area path for Waiting (bottom layer)
+  const createWaitingAreaPath = (): string => {
+    if (!hasData || timePoints.length === 0) return '';
+    if (!selectedFilters.has('waiting')) return '';
+
+    const baseY = getY(0);
+    let path = `M ${getX(0)} ${baseY}`;
+
+    // Go up to first waiting value
+    path += ` L ${getX(0)} ${getY(timePoints[0].waiting)}`;
+
+    // Draw top edge through all points
+    for (let i = 1; i < timePoints.length; i++) {
+      path += ` L ${getX(i)} ${getY(timePoints[i].waiting)}`;
+    }
+
+    // Go down to baseline at last point
+    path += ` L ${getX(timePoints.length - 1)} ${baseY}`;
+
+    // Close path
+    path += ' Z';
+
+    return path;
+  };
+
+  // Create filled area path for Pouring (middle layer, stacked on waiting)
+  const createPouringAreaPath = (): string => {
+    if (!hasData || timePoints.length === 0) return '';
+    if (!selectedFilters.has('pouring')) return '';
+
+    const waitingActive = selectedFilters.has('waiting');
+
+    // Start at first point's base level (waiting if active, else 0)
+    const getBaseValue = (point: TrucksTimePoint) => waitingActive ? point.waiting : 0;
+
+    let path = `M ${getX(0)} ${getY(getBaseValue(timePoints[0]))}`;
+
+    // Draw top edge (base + pouring) through all points
+    for (let i = 0; i < timePoints.length; i++) {
+      const topY = getY(getBaseValue(timePoints[i]) + timePoints[i].pouring);
+      if (i === 0) {
+        path += ` L ${getX(i)} ${topY}`;
+      } else {
+        path += ` L ${getX(i)} ${topY}`;
+      }
+    }
+
+    // Draw bottom edge (base level) in reverse
+    for (let i = timePoints.length - 1; i >= 0; i--) {
+      path += ` L ${getX(i)} ${getY(getBaseValue(timePoints[i]))}`;
+    }
+
+    // Close path
+    path += ' Z';
+
+    return path;
+  };
+
+  // Create filled area path for Washout (top layer, stacked on waiting + pouring)
+  const createWashoutAreaPath = (): string => {
+    if (!hasData || timePoints.length === 0) return '';
+    if (!selectedFilters.has('washout')) return '';
+
+    // Check if there's any washout data
+    const hasWashout = timePoints.some(d => (d.washout || 0) > 0);
+    if (!hasWashout) return '';
+
+    const waitingActive = selectedFilters.has('waiting');
+    const pouringActive = selectedFilters.has('pouring');
+
+    // Calculate base value based on active filters
+    const getBaseValue = (point: TrucksTimePoint) => {
+      let base = 0;
+      if (waitingActive) base += point.waiting;
+      if (pouringActive) base += point.pouring;
+      return base;
+    };
+
+    // Start at first point's base level
+    let path = `M ${getX(0)} ${getY(getBaseValue(timePoints[0]))}`;
+
+    // Draw top edge (base + washout) through all points
+    for (let i = 0; i < timePoints.length; i++) {
+      const topY = getY(getBaseValue(timePoints[i]) + (timePoints[i].washout || 0));
+      if (i === 0) {
+        path += ` L ${getX(i)} ${topY}`;
+      } else {
+        path += ` L ${getX(i)} ${topY}`;
+      }
+    }
+
+    // Draw bottom edge (base level) in reverse
+    for (let i = timePoints.length - 1; i >= 0; i--) {
+      path += ` L ${getX(i)} ${getY(getBaseValue(timePoints[i]))}`;
+    }
+
+    // Close path
+    path += ' Z';
+
+    return path;
+  };
+
+  // X-axis labels
   const xAxisLabels = useMemo(() => {
-    const labels: { time: number; display: string }[] = [];
+    if (!hasData) return [];
 
-    // Generate labels at every 15-minute interval
-    for (let time = timeRange.minTime; time <= timeRange.maxTime; time += 15) {
-      labels.push({
-        time,
-        display: formatMinutesToTime(time),
-      });
-    }
+    const interval = timePoints.length > 12 ? 3 : timePoints.length > 8 ? 2 : 1;
 
-    return labels;
-  }, [timeRange]);
-
-  // Render marker based on type
-  const renderMarker = (
-    type: string,
-    x: number,
-    y: number,
-    color: string,
-    size: number = 5
-  ) => {
-    switch (type) {
-      case 'circle':
-        return (
-          <Circle
-            cx={x}
-            cy={y}
-            r={size}
-            fill={themeColors.card}
-            stroke={color}
-            strokeWidth={2}
-          />
-        );
-      case 'diamond':
-        const d = size;
-        return (
-          <Path
-            d={`M ${x} ${y - d} L ${x + d} ${y} L ${x} ${y + d} L ${x - d} ${y} Z`}
-            fill={color}
-          />
-        );
-      case 'square':
-        const s = size - 1;
-        return (
-          <Path
-            d={`M ${x - s} ${y - s} L ${x + s} ${y - s} L ${x + s} ${y + s} L ${x - s} ${y + s} Z`}
-            fill={color}
-          />
-        );
-      default:
-        return <Circle cx={x} cy={y} r={size} fill={color} />;
-    }
-  };
+    return timePoints.map((point, index) => ({
+      index,
+      display: point.time_display,
+      show: index % interval === 0 || index === timePoints.length - 1,
+    }));
+  }, [timePoints, hasData]);
 
   const hideTooltip = () => setTooltip(null);
-
-  // Stack order for area chart
-  const stackOrder = ['waiting', 'pouring', 'washout'];
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.card }]}>
@@ -378,306 +282,238 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
           Trucks on the Job
         </Text>
         <Text style={[styles.subtitle, { color: themeColors.text.hint }]}>
-          Avg Wait: {averages.avg_waiting_minutes.toFixed(1)} min  •  Avg Pour: {averages.avg_pouring_minutes.toFixed(1)} min  •  Avg Washout: {averages.avg_washout_minutes.toFixed(1)} min
+          Drag your finger over the plot to zoom in
         </Text>
       </View>
 
-      {/* Chart - wrapped in Pressable to hide tooltip on tap */}
-      <Pressable onPress={hideTooltip} style={{ position: 'relative' }}>
-        <View style={styles.chartContainer}>
-          {/* Y-axis */}
-          <View style={[styles.yAxis, { width: yAxisWidth }]}>
-            <Text style={[styles.yAxisLabel, { color: themeColors.text.hint }]}>
-              Trucks
-            </Text>
+      {/* Chart */}
+      <Pressable onPress={hideTooltip}>
+        <View style={styles.chartRow}>
+          {/* Y-Axis */}
+          <View style={{ width: yAxisWidth }}>
             <Svg width={yAxisWidth} height={height}>
-              {yAxisValues
-                .filter((_, i) => i % 2 === 0 || maxValue <= 4)
-                .map((value, i) => {
-                  const y = getY(value);
-                  return (
-                    <SvgText
-                      key={`y-label-${i}`}
-                      x={yAxisWidth - 5}
-                      y={y + 4}
-                      fontSize={ms(10)}
-                      fill={themeColors.text.hint}
-                      textAnchor="end"
-                      fontFamily={fontFamily.medium}
-                    >
-                      {value}
-                    </SvgText>
-                  );
-                })}
+              {yAxisValues.map((value) => {
+                const y = getY(value);
+                return (
+                  <SvgText
+                    key={`y-${value}`}
+                    x={yAxisWidth - 5}
+                    y={y + 4}
+                    fontSize={ms(11)}
+                    fill={themeColors.text.hint}
+                    textAnchor="end"
+                    fontFamily={fontFamily.medium}
+                  >
+                    {value}
+                  </SvgText>
+                );
+              })}
             </Svg>
           </View>
 
-          {/* Chart Area with horizontal scroll */}
-          <View style={{
-            flex: 1,
-            maxWidth: baseChartWidth,
-            backgroundColor: themeColors.card,
-            borderRadius: ms(8),
-            overflow: 'hidden',
-          }}>
+          {/* Chart Area */}
+          <View style={{ flex: 1, maxWidth: baseChartWidth, overflow: 'hidden' }}>
             <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={scrollable && chartWidth > baseChartWidth}
-              scrollEnabled={scrollable && chartWidth > baseChartWidth}
+              horizontal={true}
+              showsHorizontalScrollIndicator={needsScroll}
+              scrollEnabled={scrollable && needsScroll}
               nestedScrollEnabled={true}
               bounces={false}
-              scrollEventThrottle={16}
-              style={{
-                backgroundColor: themeColors.card,
-                flexGrow: 0,
-              }}
-              contentContainerStyle={{
-                minWidth: chartWidth,
-                backgroundColor: themeColors.card,
-              }}
+              contentContainerStyle={{ width: chartWidth }}
             >
-              <View style={[styles.chartArea, { width: chartWidth, backgroundColor: themeColors.card, overflow: 'visible' }]}>
-                <View style={{ position: 'relative', overflow: 'visible' }}>
-                  <Svg width={chartWidth} height={height}>
-                {/* Gradients for filled areas */}
-                <Defs>
-                  {seriesConfig.map(s => (
-                    <LinearGradient
-                      key={`gradient-${s.key}`}
-                      id={`gradient-${s.key}`}
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <Stop offset="0%" stopColor={s.color} stopOpacity={0.4} />
-                      <Stop offset="100%" stopColor={s.color} stopOpacity={0.05} />
-                    </LinearGradient>
-                  ))}
-                </Defs>
-
-                {/* Grid lines */}
-                {yAxisValues
-                  .filter((_, i) => i % 2 === 0 || maxValue <= 4)
-                  .map((value, i) => {
+              <View style={{ width: chartWidth, position: 'relative' }}>
+                <Svg width={chartWidth} height={height}>
+                  {/* Grid lines */}
+                  {yAxisValues.map((value) => {
                     const y = getY(value);
                     return (
-                      <Path
-                        key={`grid-${i}`}
-                        d={`M ${padding.left} ${y} L ${chartWidth - padding.right} ${y}`}
-                        stroke={isDark ? colors.grey[60] + '30' : colors.grey[15]}
+                      <Line
+                        key={`grid-${value}`}
+                        x1={chartPadding.left}
+                        y1={y}
+                        x2={chartWidth - chartPadding.right}
+                        y2={y}
+                        stroke={isDark ? '#333' : COLORS.grid}
                         strokeWidth={1}
                       />
                     );
                   })}
 
-                {/* X-axis labels */}
-                {xAxisLabels.map((label, i) => {
-                  const x = getX(label.time);
-                  if (x < padding.left - 10 || x > chartWidth - padding.right + 10) return null;
-                  return (
-                    <SvgText
-                      key={`x-label-${i}`}
-                      x={x}
-                      y={height - 8}
-                      fontSize={ms(9)}
-                      fill={themeColors.text.hint}
-                      textAnchor="middle"
-                      fontFamily={fontFamily.medium}
-                    >
-                      {label.display}
-                    </SvgText>
-                  );
-                })}
-
-                {/* Filled areas under lines (line mode) */}
-                {displayMode === 'line' && hasData && visibleSeries.map(s => (
-                  <Path
-                    key={`filled-area-${s.key}`}
-                    d={createFilledAreaPath(s.key)}
-                    fill={`url(#gradient-${s.key})`}
-                    stroke="none"
-                  />
-                ))}
-
-                {/* Stacked area fills (area mode) */}
-                {displayMode === 'area' && hasData && visibleSeries.map(s => {
-                  const visibleKeys = visibleSeries.map(vs => vs.key);
-                  return (
+                  {/* Waiting Area (bottom - dark gray) */}
+                  {hasData && (
                     <Path
-                      key={`area-${s.key}`}
-                      d={createStackedAreaPath(s.key, activeFilter ? [activeFilter] : stackOrder)}
-                      fill={`url(#gradient-${s.key})`}
-                      stroke="none"
+                      d={createWaitingAreaPath()}
+                      fill={COLORS.waiting}
                     />
-                  );
-                })}
+                  )}
 
-                {/* Lines */}
-                {hasData && visibleSeries.map(s => (
-                  <Path
-                    key={`line-${s.key}`}
-                    d={createLinePath(s.key)}
-                    stroke={s.color}
-                    strokeWidth={2}
-                    fill="transparent"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                ))}
+                  {/* Pouring Area (middle - green, stacked on waiting) */}
+                  {hasData && (
+                    <Path
+                      d={createPouringAreaPath()}
+                      fill={COLORS.pouring}
+                    />
+                  )}
 
-                {/* Data point markers */}
-                {hasData && visibleSeries.map(s =>
-                  timePoints.map((d, i) => {
-                    const x = getX(parseTimeToMinutes(d.time_display));
-                    const value = d[s.key as keyof TrucksTimePoint] as number;
-                    const y = getY(value);
+                  {/* Washout Area (top - blue, stacked on waiting + pouring) */}
+                  {hasData && (
+                    <Path
+                      d={createWashoutAreaPath()}
+                      fill={COLORS.washout}
+                    />
+                  )}
+
+                  {/* Touch points for tooltip */}
+                  {hasData && timePoints.map((point, index) => {
+                    const x = getX(index);
+                    const washout = point.washout || 0;
+                    const topY = getY(point.waiting + point.pouring + washout);
                     return (
                       <G
-                        key={`marker-${s.key}-${i}`}
+                        key={`touch-${index}`}
                         onPress={() => {
                           setTooltip({
                             x,
-                            y,
-                            time: d.time_display,
-                            waiting: d.waiting,
-                            pouring: d.pouring,
-                            washout: d.washout,
-                            total: d.total,
-                            avgWaiting: d.avg_waiting_minutes,
-                            avgPouring: d.avg_pouring_minutes,
-                            avgWashing: d.avg_washing_minutes,
+                            y: topY,
+                            time: point.time_display,
+                            waiting: point.waiting,
+                            pouring: point.pouring,
+                            washout: washout,
+                            total: point.waiting + point.pouring + washout,
                           });
                         }}
                       >
-                        <Circle cx={x} cy={y} r={15} fill="transparent" />
-                        {renderMarker(s.marker, x, y, s.color, 5)}
+                        <Circle
+                          cx={x}
+                          cy={topY}
+                          r={20}
+                          fill="transparent"
+                        />
                       </G>
                     );
-                  })
-                )}
-              </Svg>
+                  })}
 
-                  {/* Tooltip - positioned on the chart */}
-                  {tooltip && (
-                    <View
-                      style={[
-                        styles.tooltip,
-                        {
-                          backgroundColor: colors.chart.background.dark,
-                          left: Math.min(Math.max(tooltip.x - 60, 10), chartWidth - 150),
-                          top: Math.max(tooltip.y - 140, 10),
-                          ...SHADOWS.lg,
-                        },
-                      ]}
-                    >
-                      <Text style={styles.tooltipTime}>{tooltip.time}</Text>
+                  {/* X-axis labels */}
+                  {xAxisLabels.filter(l => l.show).map((label) => {
+                    const x = getX(label.index);
+                    return (
+                      <SvgText
+                        key={`x-${label.index}`}
+                        x={x}
+                        y={height - 8}
+                        fontSize={ms(10)}
+                        fill={themeColors.text.hint}
+                        textAnchor="middle"
+                        fontFamily={fontFamily.medium}
+                      >
+                        {label.display}
+                      </SvgText>
+                    );
+                  })}
+                </Svg>
 
-                      {/* Truck counts */}
-                      <View style={styles.tooltipRow}>
-                        <View style={[styles.tooltipDot, { backgroundColor: colors.chart.waiting }]} />
-                        <Text style={styles.tooltipLabel}>Waiting</Text>
-                        <Text style={styles.tooltipValue}>{tooltip.waiting}</Text>
-                      </View>
-                      <View style={styles.tooltipRow}>
-                        <View style={[styles.tooltipDot, { backgroundColor: colors.chart.pouring }]} />
-                        <Text style={styles.tooltipLabel}>Pouring</Text>
-                        <Text style={styles.tooltipValue}>{tooltip.pouring}</Text>
-                      </View>
-                      <View style={styles.tooltipRow}>
-                        <View style={[styles.tooltipDot, { backgroundColor: colors.chart.washout }]} />
-                        <Text style={styles.tooltipLabel}>Washout</Text>
-                        <Text style={styles.tooltipValue}>{tooltip.washout}</Text>
-                      </View>
-
-                      {/* Avg durations section */}
-                      {(tooltip.avgWaiting != null || tooltip.avgPouring != null || tooltip.avgWashing != null) && (
-                        <>
-                          <View style={styles.tooltipDivider} />
-                          <Text style={styles.tooltipSectionTitle}>Avg Time Durations:</Text>
-                          {tooltip.avgWaiting != null && (
-                            <View style={styles.tooltipRow}>
-                              <Text style={styles.tooltipLabel}>Waiting:</Text>
-                              <Text style={styles.tooltipValue}>{tooltip.avgWaiting.toFixed(1)} min</Text>
-                            </View>
-                          )}
-                          {tooltip.avgPouring != null && (
-                            <View style={styles.tooltipRow}>
-                              <Text style={styles.tooltipLabel}>Pouring:</Text>
-                              <Text style={styles.tooltipValue}>{tooltip.avgPouring.toFixed(1)} min</Text>
-                            </View>
-                          )}
-                          {tooltip.avgWashing != null && (
-                            <View style={styles.tooltipRow}>
-                              <Text style={styles.tooltipLabel}>Washing:</Text>
-                              <Text style={styles.tooltipValue}>{tooltip.avgWashing.toFixed(1)} min</Text>
-                            </View>
-                          )}
-                        </>
-                      )}
+                {/* Tooltip */}
+                {tooltip && (
+                  <View
+                    style={[
+                      styles.tooltip,
+                      {
+                        left: Math.min(Math.max(tooltip.x - 45, 5), chartWidth - 100),
+                        top: Math.max(tooltip.y - 75, 5),
+                      },
+                    ]}
+                  >
+                    <Text style={styles.tooltipTitle}>{tooltip.time}</Text>
+                    <View style={styles.tooltipRow}>
+                      <View style={[styles.tooltipDot, { backgroundColor: COLORS.waiting }]} />
+                      <Text style={styles.tooltipText}>Waiting: {tooltip.waiting}</Text>
                     </View>
-                  )}
-                </View>
+                    <View style={styles.tooltipRow}>
+                      <View style={[styles.tooltipDot, { backgroundColor: COLORS.pouring }]} />
+                      <Text style={styles.tooltipText}>Pouring: {tooltip.pouring}</Text>
+                    </View>
+                    <View style={styles.tooltipRow}>
+                      <View style={[styles.tooltipDot, { backgroundColor: COLORS.washout }]} />
+                      <Text style={styles.tooltipText}>Washout: {tooltip.washout}</Text>
+                    </View>
+                  </View>
+                )}
               </View>
             </ScrollView>
           </View>
         </View>
-
       </Pressable>
 
-      {/* Legend */}
+      {/* Legend - Toggleable buttons */}
       <View style={styles.legend}>
-        {seriesConfig.map(s => {
-          const isActive = selectedFilters.has(s.key);
-          return (
-            <TouchableOpacity
-              key={s.key}
-              style={[
-                styles.legendPill,
-                {
-                  backgroundColor: isActive
-                    ? isDark
-                      ? themeColors.surface
-                      : colors.grey[5]
-                    : 'transparent',
-                  borderColor: isDark ? themeColors.border : colors.grey[15],
-                  opacity: isActive ? 1 : 0.5,
-                },
-              ]}
-              onPress={() => toggleFilter(s.key)}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.legendMarker,
-                  s.marker === 'circle' && {
-                    borderRadius: 6,
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    borderColor: s.color,
-                  },
-                  s.marker === 'diamond' && {
-                    transform: [{ rotate: '45deg' }],
-                    backgroundColor: s.color,
-                    borderRadius: 1,
-                  },
-                  s.marker === 'square' && {
-                    backgroundColor: s.color,
-                    borderRadius: 1,
-                  },
-                ]}
-              />
-              <Text
-                style={[
-                  styles.legendText,
-                  { color: isActive ? themeColors.text.primary : themeColors.text.hint },
-                ]}
-              >
-                {s.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+        <TouchableOpacity
+          style={[
+            styles.legendButton,
+            {
+              backgroundColor: selectedFilters.has('waiting')
+                ? isDark ? themeColors.surface : colors.grey[5]
+                : 'transparent',
+              borderColor: isDark ? themeColors.border : colors.grey[15],
+              opacity: selectedFilters.has('waiting') ? 1 : 0.5,
+            },
+          ]}
+          onPress={() => toggleFilter('waiting')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.legendBox, { backgroundColor: COLORS.waiting }]} />
+          <Text style={[
+            styles.legendLabel,
+            { color: selectedFilters.has('waiting') ? themeColors.text.primary : themeColors.text.hint }
+          ]}>
+            "Waiting"
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.legendButton,
+            {
+              backgroundColor: selectedFilters.has('pouring')
+                ? isDark ? themeColors.surface : colors.grey[5]
+                : 'transparent',
+              borderColor: isDark ? themeColors.border : colors.grey[15],
+              opacity: selectedFilters.has('pouring') ? 1 : 0.5,
+            },
+          ]}
+          onPress={() => toggleFilter('pouring')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.legendBox, { backgroundColor: COLORS.pouring }]} />
+          <Text style={[
+            styles.legendLabel,
+            { color: selectedFilters.has('pouring') ? themeColors.text.primary : themeColors.text.hint }
+          ]}>
+            "Pouring"
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.legendButton,
+            {
+              backgroundColor: selectedFilters.has('washout')
+                ? isDark ? themeColors.surface : colors.grey[5]
+                : 'transparent',
+              borderColor: isDark ? themeColors.border : colors.grey[15],
+              opacity: selectedFilters.has('washout') ? 1 : 0.5,
+            },
+          ]}
+          onPress={() => toggleFilter('washout')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.legendBox, { backgroundColor: COLORS.washout }]} />
+          <Text style={[
+            styles.legendLabel,
+            { color: selectedFilters.has('washout') ? themeColors.text.primary : themeColors.text.hint }
+          ]}>
+            "Washout"
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -694,40 +530,29 @@ const styles = StyleSheet.create({
     marginVertical: ms(8),
   },
   header: {
-    marginBottom: ms(12),
+    marginBottom: ms(10),
   },
   title: {
-    fontSize: ms(14),
+    fontSize: ms(15),
     fontFamily: fontFamily.semiBold,
-    marginBottom: ms(2),
   },
   subtitle: {
     fontSize: ms(11),
     fontFamily: fontFamily.regular,
+    marginTop: ms(2),
   },
-  chartContainer: {
+  chartRow: {
     flexDirection: 'row',
-  },
-  yAxis: {
-    alignItems: 'flex-end',
-    paddingRight: ms(4),
-  },
-  yAxisLabel: {
-    fontSize: ms(9),
-    fontFamily: fontFamily.medium,
-    marginBottom: ms(4),
-  },
-  chartArea: {
-    flex: 1,
   },
   legend: {
     flexDirection: 'row',
     justifyContent: 'center',
-    flexWrap: 'wrap',
-    marginTop: ms(12),
+    alignItems: 'center',
+    marginTop: ms(14),
     gap: ms(8),
+    flexWrap: 'nowrap',
   },
-  legendPill: {
+  legendButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: ms(10),
@@ -735,26 +560,28 @@ const styles = StyleSheet.create({
     borderRadius: ms(16),
     borderWidth: 1,
   },
-  legendMarker: {
-    width: ms(10),
-    height: ms(10),
+  legendBox: {
+    width: ms(12),
+    height: ms(12),
     marginRight: ms(6),
+    borderRadius: ms(2),
   },
-  legendText: {
+  legendLabel: {
     fontSize: ms(11),
     fontFamily: fontFamily.medium,
   },
   tooltip: {
     position: 'absolute',
+    backgroundColor: 'rgba(30, 30, 30, 0.95)',
     paddingHorizontal: ms(10),
     paddingVertical: ms(8),
-    borderRadius: ms(8),
-    minWidth: ms(130),
+    borderRadius: ms(6),
+    minWidth: ms(90),
   },
-  tooltipTime: {
+  tooltipTitle: {
     fontSize: ms(11),
     fontFamily: fontFamily.semiBold,
-    color: colors.chart.tooltip.text,
+    color: '#fff',
     marginBottom: ms(4),
   },
   tooltipRow: {
@@ -763,33 +590,14 @@ const styles = StyleSheet.create({
     marginTop: ms(2),
   },
   tooltipDot: {
-    width: ms(6),
-    height: ms(6),
-    borderRadius: ms(3),
+    width: ms(8),
+    height: ms(8),
     marginRight: ms(6),
   },
-  tooltipLabel: {
+  tooltipText: {
     fontSize: ms(10),
     fontFamily: fontFamily.regular,
-    color: colors.chart.tooltip.text,
-    marginRight: ms(8),
-  },
-  tooltipValue: {
-    fontSize: ms(10),
-    fontFamily: fontFamily.semiBold,
-    color: colors.chart.tooltip.text,
-  },
-  tooltipDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    marginVertical: ms(6),
-  },
-  tooltipSectionTitle: {
-    fontSize: ms(9),
-    fontFamily: fontFamily.medium,
-    color: colors.chart.tooltip.text,
-    opacity: 0.8,
-    marginBottom: ms(2),
+    color: '#fff',
   },
 });
 
