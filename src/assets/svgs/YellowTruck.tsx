@@ -10,22 +10,22 @@ const YellowTruck: React.FC<YellowTruckProps> = ({ width = 157, height = 86 }) =
   return (
     <Svg width={width} height={height} viewBox="0 0 157 86" fill="none">
       <G>
-        <Rect x="10" y="25" width="85" height="40" rx="4" fill="#FCAF19" />
-        <Rect x="12" y="27" width="81" height="36" rx="3" fill="#FFD54F" />
-        <Rect x="18" y="32" width="20" height="26" rx="2" fill="#FCAF19" />
-        <Rect x="42" y="32" width="20" height="26" rx="2" fill="#FCAF19" />
-        <Rect x="66" y="32" width="20" height="26" rx="2" fill="#FCAF19" />
+        <Rect x="10" y="25" width="85" height="40" rx="4" fill="#f7bb00" />
+        <Rect x="12" y="27" width="81" height="36" rx="3" fill="#ffd040" />
+        <Rect x="18" y="32" width="20" height="26" rx="2" fill="#f7bb00" />
+        <Rect x="42" y="32" width="20" height="26" rx="2" fill="#f7bb00" />
+        <Rect x="66" y="32" width="20" height="26" rx="2" fill="#f7bb00" />
         <Path
           d="M95 30 L95 65 L140 65 L140 45 L125 30 Z"
-          fill="#FCAF19"
+          fill="#f7bb00"
         />
         <Path
           d="M97 32 L97 63 L138 63 L138 46 L124 32 Z"
-          fill="#FFD54F"
+          fill="#ffd040"
         />
         <Path
           d="M100 35 L100 50 L125 50 L125 40 L115 35 Z"
-          fill="#04BCEF"
+          fill="#2f7ed8"
           opacity="0.8"
         />
         <Path

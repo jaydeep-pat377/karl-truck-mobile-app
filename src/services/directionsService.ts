@@ -1,24 +1,16 @@
-/**
- * Mapbox Directions Service
- * Fetches the shortest route between two coordinates using Mapbox Directions API
- */
 
-// Mapbox access token (same as used in MapTrackingScreen)
+
 const MAPBOX_ACCESS_TOKEN = 'MAPBOX_TOKEN_REMOVED';
 
-// API Base URL
 const MAPBOX_DIRECTIONS_API = 'https://api.mapbox.com/directions/v5/mapbox';
 
-// Route profile types
 export type RouteProfile = 'driving-traffic' | 'driving' | 'walking' | 'cycling';
 
-// Coordinate type
 export interface Coordinate {
   latitude: number;
   longitude: number;
 }
 
-// Route step from API
 export interface RouteStep {
   distance: number;
   duration: number;
@@ -31,7 +23,6 @@ export interface RouteStep {
   };
 }
 
-// Route leg from API
 export interface RouteLeg {
   distance: number;
   duration: number;
@@ -39,20 +30,18 @@ export interface RouteLeg {
   summary: string;
 }
 
-// Route from API
 export interface Route {
-  distance: number; // Total distance in meters
-  duration: number; // Total duration in seconds
+  distance: number;
+  duration: number;
   geometry: {
     type: 'LineString';
-    coordinates: [number, number][]; // Array of [longitude, latitude]
+    coordinates: [number, number][];
   };
   legs: RouteLeg[];
   weight: number;
   weight_name: string;
 }
 
-// API Response
 export interface DirectionsResponse {
   code: string;
   routes: Route[];
@@ -64,7 +53,6 @@ export interface DirectionsResponse {
   uuid: string;
 }
 
-// Error types
 export type DirectionsErrorCode =
   | 'INVALID_COORDINATES'
   | 'NO_ROUTE_FOUND'
@@ -82,30 +70,25 @@ export class DirectionsError extends Error {
   }
 }
 
-// Request options
 export interface DirectionsOptions {
   profile?: RouteProfile;
-  alternatives?: boolean; // Return alternative routes
+  alternatives?: boolean;
   geometries?: 'geojson' | 'polyline' | 'polyline6';
   overview?: 'full' | 'simplified' | 'false';
-  steps?: boolean; // Include turn-by-turn instructions
+  steps?: boolean;
   annotations?: ('distance' | 'duration' | 'speed')[];
 }
 
-// Formatted route result
 export interface DirectionsResult {
   route: Route;
-  coordinates: [number, number][]; // Decoded route coordinates for polyline
-  totalDistance: number; // in meters
-  totalDuration: number; // in seconds
-  distanceFormatted: string; // e.g., "5.2 mi"
-  durationFormatted: string; // e.g., "12 min"
-  summary: string; // Route summary (main roads)
+  coordinates: [number, number][];
+  totalDistance: number;
+  totalDuration: number;
+  distanceFormatted: string;
+  durationFormatted: string;
+  summary: string;
 }
 
-/**
- * Validates coordinates
- */
 const validateCoordinate = (coord: Coordinate, name: string): void => {
   if (!coord) {
     throw new DirectionsError('INVALID_COORDINATES', `${name} coordinate is missing`);
@@ -124,9 +107,6 @@ const validateCoordinate = (coord: Coordinate, name: string): void => {
   }
 };
 
-/**
- * Formats distance in meters to human-readable format
- */
 const formatDistance = (meters: number): string => {
   const miles = meters / 1609.344;
   if (miles < 0.1) {
@@ -139,9 +119,6 @@ const formatDistance = (meters: number): string => {
   return `${Math.round(miles)} mi`;
 };
 
-/**
- * Formats duration in seconds to human-readable format
- */
 const formatDuration = (seconds: number): string => {
   if (seconds < 60) {
     return `${Math.round(seconds)} sec`;
@@ -158,19 +135,16 @@ const formatDuration = (seconds: number): string => {
   return `${hours} hr ${remainingMinutes} min`;
 };
 
-/**
- * Fetches directions between two coordinates
- */
 export const getDirections = async (
   origin: Coordinate,
   destination: Coordinate,
   options: DirectionsOptions = {}
 ): Promise<DirectionsResult> => {
-  // Validate coordinates
+
   validateCoordinate(origin, 'Origin');
   validateCoordinate(destination, 'Destination');
 
-  // Check if origin and destination are the same
+
   if (
     Math.abs(origin.latitude - destination.latitude) < 0.0001 &&
     Math.abs(origin.longitude - destination.longitude) < 0.0001
@@ -178,7 +152,7 @@ export const getDirections = async (
     throw new DirectionsError('INVALID_COORDINATES', 'Origin and destination are too close together');
   }
 
-  // Build request URL
+
   const {
     profile = 'driving-traffic',
     alternatives = false,
@@ -188,10 +162,10 @@ export const getDirections = async (
     annotations = [],
   } = options;
 
-  // Format coordinates: longitude,latitude;longitude,latitude
+
   const coordinates = `${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}`;
 
-  // Build query parameters
+
   const params = new URLSearchParams({
     access_token: MAPBOX_ACCESS_TOKEN,
     geometries,
@@ -209,12 +183,12 @@ export const getDirections = async (
   try {
     const response = await fetch(url);
 
-    // Handle rate limiting
+
     if (response.status === 429) {
       throw new DirectionsError('RATE_LIMITED', 'Too many requests. Please try again later.');
     }
 
-    // Handle other HTTP errors
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[Directions API] HTTP Error:', response.status, errorText);
@@ -223,7 +197,7 @@ export const getDirections = async (
 
     const data: DirectionsResponse = await response.json();
 
-    // Check API response code
+
     if (data.code !== 'Ok') {
       if (data.code === 'NoRoute') {
         throw new DirectionsError('NO_ROUTE_FOUND', 'No route found between the specified locations');
@@ -234,18 +208,18 @@ export const getDirections = async (
       throw new DirectionsError('API_ERROR', `API error: ${data.code}`);
     }
 
-    // Check if routes exist
+
     if (!data.routes || data.routes.length === 0) {
       throw new DirectionsError('NO_ROUTE_FOUND', 'No routes returned from API');
     }
 
-    // Get the first (shortest) route
+
     const route = data.routes[0];
 
-    // Extract coordinates from geometry
+
     const routeCoordinates = route.geometry.coordinates;
 
-    // Build summary from legs
+
     const summary = route.legs.map(leg => leg.summary).filter(Boolean).join(' → ') || 'Route';
 
     return {
@@ -258,25 +232,22 @@ export const getDirections = async (
       summary,
     };
   } catch (error) {
-    // Re-throw DirectionsError as-is
+
     if (error instanceof DirectionsError) {
       throw error;
     }
 
-    // Handle network errors
+
     if (error instanceof TypeError && error.message.includes('Network')) {
       throw new DirectionsError('NETWORK_ERROR', 'Network error. Please check your internet connection.');
     }
 
-    // Handle other errors
+
     console.error('[Directions API] Unexpected error:', error);
     throw new DirectionsError('API_ERROR', 'Failed to fetch directions');
   }
 };
 
-/**
- * Fetches directions with retry logic
- */
 export const getDirectionsWithRetry = async (
   origin: Coordinate,
   destination: Coordinate,
@@ -291,7 +262,7 @@ export const getDirectionsWithRetry = async (
     } catch (error) {
       lastError = error as Error;
 
-      // Don't retry for certain error types
+
       if (error instanceof DirectionsError) {
         if (
           error.code === 'INVALID_COORDINATES' ||
@@ -301,7 +272,7 @@ export const getDirectionsWithRetry = async (
         }
       }
 
-      // Wait before retry (exponential backoff)
+
       if (attempt < maxRetries) {
         await new Promise<void>(resolve => setTimeout(() => resolve(), Math.pow(2, attempt) * 1000));
       }

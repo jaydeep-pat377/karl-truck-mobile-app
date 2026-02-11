@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
-import { dashboardService } from '../api/services/dashboardService';
-import { DashboardApiResponse, DashboardData } from '../types/dashboard';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { useMemo, useCallback } from 'react';
+import { dashboardService, DashboardDateFilter } from '../api/services/dashboardService';
+import { DashboardApiResponse, DashboardData, ActiveDeliveryOrder } from '../types/dashboard';
 import { AxiosError } from 'axios';
 
 interface ApiErrorResponse {
@@ -8,44 +9,87 @@ interface ApiErrorResponse {
   message?: string;
 }
 
-export const useDashboard = () => {
-  const query = useQuery<DashboardApiResponse, AxiosError<ApiErrorResponse>>({
-    queryKey: ['dashboard'],
-    queryFn: () => dashboardService.getDashboard(),
-    staleTime: 2 * 60 * 1000, // 2 minutes - data considered fresh
-    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache
-    retry: 1, // Reduce retries for faster failure
+interface UseDashboardParams {
+  dateFilter?: DashboardDateFilter;
+  deliveriesLimit?: number;
+}
+
+export const useDashboard = (params?: UseDashboardParams) => {
+  const limit = params?.deliveriesLimit ?? 5;
+
+  const query = useInfiniteQuery<DashboardApiResponse, AxiosError<ApiErrorResponse>>({
+    queryKey: ['dashboard', params?.dateFilter, limit],
+    queryFn: ({ pageParam = 1 }) =>
+      dashboardService.getDashboard({
+        date_filter: params?.dateFilter,
+        page: pageParam as number,
+        limit,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const pagination = lastPage.data?.active_deliveries?.pagination;
+      if (pagination?.has_next) {
+        return pagination.page + 1;
+      }
+      return undefined;
+    },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 1,
     refetchOnMount: 'always',
-    refetchOnWindowFocus: false, // Don't refetch on app focus
-    placeholderData: (previousData) => previousData, // Show cached data while loading
+    refetchOnWindowFocus: false,
   });
 
-  // Extract dashboard data from API response
-  const dashboardData: DashboardData | null =
-    query.data?.success ? query.data.data : null;
+  const firstPageData: DashboardData | null =
+    query.data?.pages[0]?.success ? query.data.pages[0].data : null;
+
+  const allDeliveryOrders: ActiveDeliveryOrder[] = useMemo(() => {
+    if (!query.data?.pages) return [];
+    return query.data.pages.flatMap(
+      (page) => page.data?.active_deliveries?.orders ?? []
+    );
+  }, [query.data?.pages]);
+
+  const activeDeliveriesWithAllOrders = useMemo(() => {
+    if (!firstPageData?.active_deliveries) return null;
+    const lastPage = query.data?.pages[query.data.pages.length - 1];
+    return {
+      count: firstPageData.active_deliveries.count,
+      orders: allDeliveryOrders,
+      pagination: lastPage?.data?.active_deliveries?.pagination ?? firstPageData.active_deliveries.pagination,
+    };
+  }, [firstPageData, allDeliveryOrders, query.data?.pages]);
 
   const errorMessage =
     query.error?.response?.data?.message ||
     (query.error ? 'Failed to load dashboard' : null);
 
-  // Only show full loading state when there's no cached data
-  const isInitialLoading = query.isLoading && !dashboardData;
+  const isInitialLoading = query.isLoading && !firstPageData;
+
+  const handleFetchNextPage = useCallback(() => {
+    if (query.hasNextPage && !query.isFetchingNextPage) {
+      query.fetchNextPage();
+    }
+  }, [query]);
 
   return {
-    data: dashboardData,
-    user: dashboardData?.user ?? null,
-    notifications: dashboardData?.notifications ?? null,
-    weather: dashboardData?.weather ?? null,
-    todayOverview: dashboardData?.today_overview ?? null,
-    todayProgress: dashboardData?.today_progress ?? null,
-    activeDeliveries: dashboardData?.active_deliveries ?? null,
-    recentAlerts: dashboardData?.recent_alerts ?? [],
-    isLoading: isInitialLoading, // Only true when no cached data
+    data: firstPageData,
+    user: firstPageData?.user ?? null,
+    notifications: firstPageData?.notifications ?? null,
+    weather: firstPageData?.weather ?? null,
+    todayOverview: firstPageData?.today_overview ?? null,
+    todayProgress: firstPageData?.today_progress ?? null,
+    activeDeliveries: activeDeliveriesWithAllOrders,
+    recentAlerts: firstPageData?.recent_alerts ?? [],
+    isLoading: isInitialLoading,
     isError: query.isError,
     error: errorMessage,
     refetch: query.refetch,
     isRefetching: query.isRefetching,
     isFetching: query.isFetching,
+    hasNextPage: query.hasNextPage ?? false,
+    isFetchingNextPage: query.isFetchingNextPage,
+    fetchNextPage: handleFetchNextPage,
   };
 };
 

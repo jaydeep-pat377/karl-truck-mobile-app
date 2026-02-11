@@ -19,7 +19,7 @@ export const useTicketDetails = (params: TicketDetailsQueryParams) => {
     queryKey: ['ticketDetails', order_code, order_date, ticket_code],
     queryFn: () => ticketService.getTicketDetails(params),
     enabled: !!order_code && !!order_date && !!ticket_code,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
     retry: 2,
     refetchOnMount: 'always',
   });
@@ -33,51 +33,51 @@ export const useTicketDetails = (params: TicketDetailsQueryParams) => {
     (query.error ? 'Failed to load ticket details' : null);
 
   return {
-    // Raw data
+
     ticket,
-    // Ticket info
+
     ticketId: ticket?.ticket_id,
     ticketCode: ticket?.ticket_code,
     loadNumber: ticket?.load_number,
     orderId: ticket?.order_id,
     orderCode: ticket?.order_code,
     orderDate: ticket?.order_date,
-    // Customer info
+
     customerName: ticket?.customer_name,
     deliveryAddress: ticket?.delivery_address,
     projectName: ticket?.project_name,
     lotBlockNumber: ticket?.lot_block_number,
-    // Plant info
+
     plantCode: ticket?.plant_code,
     plantName: ticket?.plant_name,
     plantAddress: ticket?.plant_address,
-    // Quantity info
+
     runningQty: ticket?.running_qty ?? 0,
     orderedQty: ticket?.ordered_qty ?? 0,
-    // Driver info
+
     driverName: ticket?.driver_name,
     driverPhone: ticket?.driver_phone,
-    // Truck info
+
     truck: ticket?.truck,
     truckCode: ticket?.truck?.truck_code,
     truckDescription: ticket?.truck?.truck_description,
     truckLatitude: ticket?.truck?.latitude,
     truckLongitude: ticket?.truck?.longitude,
-    // Location info
+
     plantLocation: ticket?.plant_location,
     plantLocationLatitude: ticket?.plant_location?.latitude,
     plantLocationLongitude: ticket?.plant_location?.longitude,
     orderLocation: ticket?.order_location,
     orderLocationLatitude: ticket?.order_location?.latitude,
     orderLocationLongitude: ticket?.order_location?.longitude,
-    // Status info
+
     status: ticket?.status,
     statusCode: ticket?.status?.status,
     statusDisplay: ticket?.status?.status_display,
     statusTimestamp: ticket?.status?.timestamp,
     statusTimestampDisplay: ticket?.status?.timestamp_display,
     etaAtJob: ticket?.status?.eta_at_job,
-    // Timeline timestamps
+
     timestamps: {
       ticketed: ticket?.status?.ticketed,
       loading: ticket?.status?.loading,
@@ -89,9 +89,9 @@ export const useTicketDetails = (params: TicketDetailsQueryParams) => {
       toPlant: ticket?.status?.to_plant,
       atPlant: ticket?.status?.at_plant,
     },
-    // Products
+
     products: ticket?.products || [],
-    // Query state
+
     isLoading: query.isLoading,
     isError: query.isError,
     error: errorMessage,

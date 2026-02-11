@@ -42,7 +42,7 @@ export const fontSize = {
   '4xl': 32,
   '5xl': 40,
   '6xl': 48,
-  '7xl': 64, 
+  '7xl': 64,
 };
 
 export const lineHeight = {

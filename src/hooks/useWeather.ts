@@ -16,7 +16,7 @@ export const useWeather = (params: WeatherQueryParams) => {
   const query = useQuery<WeatherApiResponse, AxiosError<ApiErrorResponse>>({
     queryKey: ['weather', params.order_code, params.order_date],
     queryFn: () => weatherService.getWeather(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     retry: 2,
     enabled: !!params.order_code && !!params.order_date,
   });

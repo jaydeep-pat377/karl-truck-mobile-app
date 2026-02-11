@@ -110,10 +110,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
   const progress = order.progress || 0;
 
-  // Status color for label and shadow (In Process/Completed = always green)
+
   const statusColor = getStatusColor(order.status, progress);
 
-  // Progress bar color (In Process/Completed = performance-based)
+
   const progressBarColor = getProgressBarColor(order.status, progress);
 
   const formatDate = (dateStr: string) => {
@@ -144,13 +144,13 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       style={[
         styles.card,
         {
-          // iOS colored shadow at bottom
+
           shadowColor: statusColor,
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.45,
           shadowRadius: 6,
 
-          // Android: Use border to simulate colored shadow since elevation is always gray
+
           ...(Platform.OS === 'android' && {
             elevation: 3,
             borderBottomWidth: 3,
@@ -359,9 +359,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     borderRadius: ms(10),
-    // Allow shadow to be visible on iOS, but clip content on Android for proper border radius
+
     overflow: Platform.OS === 'ios' ? 'visible' : 'hidden',
-    // Ensure bottom margin for shadow visibility
+
     marginBottom: Platform.OS === 'ios' ? 4 : 2,
   },
   cardInnerContainer: {

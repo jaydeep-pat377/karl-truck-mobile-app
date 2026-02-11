@@ -433,7 +433,7 @@ export const WeatherScreen: React.FC = () => {
   const themeColors = isDark ? colors.dark : colors.light;
   const { alertState, hideAlert, showInfo } = useAlert();
 
-  const { orderCode, orderDate, orderStatus = 'Pending', startTime = '--:--' } = route.params;
+  const { orderCode = '', orderDate = '', orderStatus = 'Pending', startTime = '--:--' } = route.params ?? {};
 
   const [menuVisible, setMenuVisible] = useState(false);
 

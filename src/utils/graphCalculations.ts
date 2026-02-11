@@ -1,48 +1,30 @@
-/**
- * Graph Calculations Utility
- *
- * Implements the logic for calculating Pour Speed and Trucks on Job chart data
- * from raw ticket and schedule data, matching the web app's performance-charts logic.
- */
 
-// ============================================================================
-// INTERFACES
-// ============================================================================
 
-/**
- * Schedule data for an order product
- */
 export interface OrderProductSchedule {
   id: number;
-  start_time: string;              // Schedule start time (ISO timestamp)
-  schedule_qty: number;            // Total ordered quantity in CY
-  truck_space: number | null;      // Minutes between scheduled trucks
-  unload_time: number;             // Minutes per truck unload
-  delivery_rate_per_hour: number;  // Scheduled CY/HR rate
-  number_of_loads: number;         // Number of scheduled trucks
-  load_qty: number;                // CY per truck load
+  start_time: string;
+  schedule_qty: number;
+  truck_space: number | null;
+  unload_time: number;
+  delivery_rate_per_hour: number;
+  number_of_loads: number;
+  load_qty: number;
   loads?: OrderProductScheduleLoad[];
 }
 
-/**
- * Scheduled load data
- */
 export interface OrderProductScheduleLoad {
   id: number;
   order_product_schedule_id: number;
   load_qty: number;
   truck_code: string | null;
-  on_job_time: string | null;      // Actual arrival time
-  fin_pour_time: string | null;    // Actual finish pour time
+  on_job_time: string | null;
+  fin_pour_time: string | null;
   at_plant_time: string | null;
   unload_time: number | null;
   sequence?: number | null;
   ticket_id: number | null;
 }
 
-/**
- * Ticket data from API
- */
 export interface TicketData {
   ticket_id: number;
   ticket_code: string;
@@ -50,11 +32,11 @@ export interface TicketData {
   printed_time: string | null;
   load_time: string | null;
   loaded_time: string | null;
-  on_job_time: string | null;      // "At Job" - truck arrival at job site
-  unload_time: string | null;      // "Pouring" - pour start time
-  wash_time: string | null;        // "Washing" - pour finish / wash start
-  to_plant_time: string | null;    // "To Plant" - truck leaves job site
-  at_plant_time: string | null;    // "At Plant" - truck arrives at plant
+  on_job_time: string | null;
+  unload_time: string | null;
+  wash_time: string | null;
+  to_plant_time: string | null;
+  at_plant_time: string | null;
   remove_reason_code: string | null;
   ticket_products?: TicketProduct[];
 }
@@ -65,9 +47,6 @@ export interface TicketProduct {
   load_qty: number | null;
 }
 
-/**
- * Internal truck state for calculations
- */
 export interface TruckState {
   ticketId: number;
   truckCode: string;
@@ -79,10 +58,6 @@ export interface TruckState {
   toPlantTime: string | null;
   loadQty: number;
 }
-
-// ============================================================================
-// POUR SPEED DATA TYPES
-// ============================================================================
 
 export interface PourSpeedDataPoint {
   time: string;
@@ -102,10 +77,6 @@ export interface PourSpeedGraphData {
   delivered: PourSpeedDataPoint[];
   poured: PourSpeedDataPoint[];
 }
-
-// ============================================================================
-// TRUCKS ON JOB DATA TYPES
-// ============================================================================
 
 export interface TrucksOnJobTimePoint {
   time: string;
@@ -130,10 +101,6 @@ export interface TrucksOnJobGraphData {
   averages: TrucksOnJobAverages;
 }
 
-// ============================================================================
-// UNIFIED DATA POINT (for merged data)
-// ============================================================================
-
 export interface PerformanceDataPoint {
   time: string;
   timestamp: number;
@@ -150,31 +117,18 @@ export interface PerformanceDataPoint {
   avgWashingTime: number | null;
 }
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Filter valid tickets (not cancelled, has required data)
- */
 export function filterValidTickets(tickets: TicketData[]): TicketData[] {
   return tickets.filter(ticket =>
     !ticket.remove_reason_code || ticket.remove_reason_code === ''
   );
 }
 
-/**
- * Get load quantity from ticket products (mix product)
- */
 export function getTicketLoadQty(ticket: TicketData): number {
   if (!ticket.ticket_products) return 0;
   const mixProduct = ticket.ticket_products.find(p => p.is_mix === true);
   return mixProduct?.load_qty || 0;
 }
 
-/**
- * Format time to HH:MM display
- */
 export function formatTimeDisplay(dateStr: string): string {
   const date = new Date(dateStr);
   const hours = date.getUTCHours().toString().padStart(2, '0');
@@ -182,9 +136,6 @@ export function formatTimeDisplay(dateStr: string): string {
   return `${hours}:${minutes}`;
 }
 
-/**
- * Round Y-axis max to "nice" value
- */
 export function roundToNiceValue(value: number): number {
   if (value <= 25) return 25;
   if (value <= 50) return 50;
@@ -195,9 +146,6 @@ export function roundToNiceValue(value: number): number {
   return Math.ceil(value / 50) * 50;
 }
 
-/**
- * Get Y-axis tick values based on max
- */
 export function getYAxisTicks(max: number): number[] {
   if (max <= 50) return [0, 25, 50];
   if (max <= 100) return [0, 50, 100];
@@ -206,14 +154,6 @@ export function getYAxisTicks(max: number): number[] {
   return [0, Math.round(max / 2), max];
 }
 
-// ============================================================================
-// POUR SPEED CHART CALCULATIONS
-// ============================================================================
-
-/**
- * Generate Ordered line data points
- * Shows PLANNED/SCHEDULED delivery timeline (constant Y-value)
- */
 export function calculateOrderedData(schedule: OrderProductSchedule): PourSpeedDataPoint[] {
   if (!schedule.start_time || !schedule.number_of_loads || !schedule.truck_space) {
     return [];
@@ -221,7 +161,7 @@ export function calculateOrderedData(schedule: OrderProductSchedule): PourSpeedD
 
   const points: PourSpeedDataPoint[] = [];
   const startTime = new Date(schedule.start_time).getTime();
-  const truckSpaceMs = (schedule.truck_space || 0) * 60 * 1000; // Convert minutes to ms
+  const truckSpaceMs = (schedule.truck_space || 0) * 60 * 1000;
   const rate = Number(schedule.delivery_rate_per_hour) || 0;
 
   for (let i = 0; i < schedule.number_of_loads; i++) {
@@ -237,16 +177,11 @@ export function calculateOrderedData(schedule: OrderProductSchedule): PourSpeedD
   return points;
 }
 
-/**
- * Generate Delivered line data points
- * Shows cumulative delivery rate based on actual truck arrivals (on_job_time)
- * Formula: rate = MIN(cumulative_qty / hours_since_1st_delivery, schedule_rate * 1.5)
- */
 export function calculateDeliveredData(
   tickets: TicketData[],
   scheduleRate: number
 ): PourSpeedDataPoint[] {
-  // Filter tickets with on_job_time
+
   const validTickets = filterValidTickets(tickets)
     .filter(t => t.on_job_time)
     .sort((a, b) => new Date(a.on_job_time!).getTime() - new Date(b.on_job_time!).getTime());
@@ -268,29 +203,29 @@ export function calculateDeliveredData(
     let rate: number;
 
     if (i === 0) {
-      // First truck: use schedule rate (can't calculate with 0 elapsed time)
+
       rate = scheduleRate;
     } else {
       const elapsedHours = (onJobTime - firstDeliveryTime) / 3600000;
       if (elapsedHours > 0) {
         const actualRate = cumulativeQty / elapsedHours;
-        rate = Math.min(actualRate, maxRateCap); // Cap at 1.5x schedule rate
+        rate = Math.min(actualRate, maxRateCap);
       } else {
         rate = scheduleRate;
       }
     }
 
-    // Calculate actual spacing from previous truck
+
     let actualSpacingMin: number | undefined;
     if (previousTime !== null) {
-      actualSpacingMin = (onJobTime - previousTime) / 60000; // minutes
+      actualSpacingMin = (onJobTime - previousTime) / 60000;
     }
     previousTime = onJobTime;
 
     points.push({
       time: ticket.on_job_time!,
       time_display: formatTimeDisplay(ticket.on_job_time!),
-      rate: Math.round(rate * 100) / 100, // Round to 2 decimal places
+      rate: Math.round(rate * 100) / 100,
       cumulative_qty: cumulativeQty,
       load_qty: loadQty,
       actual_spacing_min: actualSpacingMin,
@@ -300,18 +235,12 @@ export function calculateDeliveredData(
   return points;
 }
 
-/**
- * Generate Poured line data points
- * Shows cumulative pour rate based on actual pour completion times
- * Uses wash_time (priority) or unload_time (fallback) for X-axis
- * Formula: rate = MIN(cumulative_qty / hours_since_1st_delivery, schedule_rate * 1.5)
- */
 export function calculatePouredData(
   tickets: TicketData[],
   scheduleRate: number,
   firstDeliveryTime?: number
 ): PourSpeedDataPoint[] {
-  // Filter tickets with pour time (wash_time or unload_time)
+
   const validTickets = filterValidTickets(tickets)
     .filter(t => t.wash_time || t.unload_time)
     .map(t => ({
@@ -322,7 +251,7 @@ export function calculatePouredData(
 
   if (validTickets.length === 0) return [];
 
-  // If firstDeliveryTime not provided, calculate from all tickets with on_job_time
+
   if (!firstDeliveryTime) {
     const ticketsWithOnJob = filterValidTickets(tickets)
       .filter(t => t.on_job_time)
@@ -351,7 +280,7 @@ export function calculatePouredData(
       const actualRate = cumulativeQty / elapsedHours;
       rate = Math.min(actualRate, maxRateCap);
     } else {
-      rate = scheduleRate; // Edge case: pour before 1st delivery
+      rate = scheduleRate;
     }
 
     points.push({
@@ -366,9 +295,6 @@ export function calculatePouredData(
   return points;
 }
 
-/**
- * Calculate Y-axis max for Pour Speed chart
- */
 export function calculatePourSpeedYMax(
   orderedData: PourSpeedDataPoint[],
   deliveredData: PourSpeedDataPoint[],
@@ -387,7 +313,7 @@ export function calculatePourSpeedYMax(
 
   const maxDataValue = Math.max(...allRates);
 
-  // Outlier detection: if max > 10x schedule rate, cap at 5x
+
   let yMax: number;
   if (maxDataValue > scheduleRate * 10) {
     yMax = roundToNiceValue(scheduleRate * 5);
@@ -395,7 +321,7 @@ export function calculatePourSpeedYMax(
     yMax = roundToNiceValue(maxDataValue);
   }
 
-  // Ensure yMax >= schedule rate
+
   if (yMax < roundToNiceValue(scheduleRate)) {
     yMax = roundToNiceValue(scheduleRate);
   }
@@ -403,9 +329,6 @@ export function calculatePourSpeedYMax(
   return yMax;
 }
 
-/**
- * Generate complete Pour Speed graph data
- */
 export function calculatePourSpeedGraph(
   schedule: OrderProductSchedule,
   tickets: TicketData[]
@@ -429,26 +352,19 @@ export function calculatePourSpeedGraph(
   };
 }
 
-// ============================================================================
-// TRUCKS ON JOB CHART CALCULATIONS
-// ============================================================================
-
-/**
- * Process tickets into TruckState objects for tracking
- */
 export function processTruckStates(tickets: TicketData[]): TruckState[] {
   const now = new Date().toISOString();
 
   return filterValidTickets(tickets)
-    .filter(t => t.truck_code) // Exclude tickets without truck_code
+    .filter(t => t.truck_code)
     .map(ticket => {
-      // onJobTime fallback chain: on_job_time -> loaded_time -> printed_time -> now
+
       const onJobTime = ticket.on_job_time || ticket.loaded_time || ticket.printed_time || now;
 
-      // toPlantTime fallback to current time if not set
+
       let toPlantTime = ticket.to_plant_time || now;
 
-      // Safety: ensure toPlantTime >= onJobTime
+
       if (new Date(toPlantTime).getTime() < new Date(onJobTime).getTime()) {
         toPlantTime = onJobTime;
       }
@@ -467,10 +383,6 @@ export function processTruckStates(tickets: TicketData[]): TruckState[] {
     });
 }
 
-/**
- * Determine truck state at a specific time
- * Returns: 'waiting' | 'pouring' | 'washout' | null (not on job)
- */
 export function getTruckStateAtTime(
   truck: TruckState,
   time: number
@@ -478,42 +390,39 @@ export function getTruckStateAtTime(
   const onJobTime = new Date(truck.onJobTime).getTime();
   const toPlantTime = truck.toPlantTime ? new Date(truck.toPlantTime).getTime() : null;
 
-  // Skip if truck not on job at this time
+
   if (time < onJobTime || (toPlantTime && time > toPlantTime)) {
     return null;
   }
 
-  // Has unload time?
+
   if (truck.unloadTime) {
     const unloadTime = new Date(truck.unloadTime).getTime();
 
     if (time < unloadTime) {
-      return 'waiting'; // Before pour starts
+      return 'waiting';
     }
 
-    // Has wash time?
+
     if (truck.washTime) {
       const washTime = new Date(truck.washTime).getTime();
 
       if (time < washTime) {
-        return 'pouring'; // Between pour start and wash
+        return 'pouring';
       } else {
-        // After wash time but still on job
+
         return 'washout';
       }
     } else {
-      // No wash time recorded -> still pouring until leaves
+
       return 'pouring';
     }
   } else {
-    // No unload time -> still waiting
+
     return 'waiting';
   }
 }
 
-/**
- * Calculate truck counts at a specific time point
- */
 export function calculateTrucksOnJob(
   time: number,
   truckStates: TruckState[]
@@ -540,9 +449,6 @@ export function calculateTrucksOnJob(
   return { waiting, pouring, washout };
 }
 
-/**
- * Calculate average time durations at a specific time point
- */
 export function calculateAverageTimeDurations(
   time: number,
   truckStates: TruckState[]
@@ -556,19 +462,19 @@ export function calculateAverageTimeDurations(
     if (!state) continue;
 
     if (state === 'waiting' && truck.unloadTime) {
-      // Waiting duration = unload_time - on_job_time
+
       const duration = (new Date(truck.unloadTime).getTime() - new Date(truck.onJobTime).getTime()) / 60000;
       if (duration > 0) waitingTimes.push(duration);
     }
 
     if (state === 'pouring' && truck.unloadTime && truck.washTime) {
-      // Pouring duration = wash_time - unload_time
+
       const duration = (new Date(truck.washTime).getTime() - new Date(truck.unloadTime).getTime()) / 60000;
       if (duration > 0) pouringTimes.push(duration);
     }
 
     if (state === 'washout' && truck.washTime && truck.toPlantTime) {
-      // Washing duration = to_plant_time - wash_time
+
       const duration = (new Date(truck.toPlantTime).getTime() - new Date(truck.washTime).getTime()) / 60000;
       if (duration > 0) washingTimes.push(duration);
     }
@@ -583,28 +489,25 @@ export function calculateAverageTimeDurations(
   };
 }
 
-/**
- * Calculate overall averages across all completed trucks
- */
 export function calculateOverallAverages(truckStates: TruckState[]): TrucksOnJobAverages {
   const waitingTimes: number[] = [];
   const pouringTimes: number[] = [];
   const washingTimes: number[] = [];
 
   for (const truck of truckStates) {
-    // Waiting time (if truck has moved past waiting)
+
     if (truck.unloadTime) {
       const waiting = (new Date(truck.unloadTime).getTime() - new Date(truck.onJobTime).getTime()) / 60000;
       if (waiting > 0) waitingTimes.push(waiting);
     }
 
-    // Pouring time (if truck has completed pouring)
+
     if (truck.unloadTime && truck.washTime) {
       const pouring = (new Date(truck.washTime).getTime() - new Date(truck.unloadTime).getTime()) / 60000;
       if (pouring > 0) pouringTimes.push(pouring);
     }
 
-    // Washout time (if truck has left job)
+
     if (truck.washTime && truck.toPlantTime && truck.toPlantTime !== truck.washTime) {
       const washout = (new Date(truck.toPlantTime).getTime() - new Date(truck.washTime).getTime()) / 60000;
       if (washout > 0) washingTimes.push(washout);
@@ -620,9 +523,6 @@ export function calculateOverallAverages(truckStates: TruckState[]): TrucksOnJob
   };
 }
 
-/**
- * Calculate time range for charts
- */
 export function calculateTimeRange(
   schedule: OrderProductSchedule | null,
   tickets: TicketData[]
@@ -630,12 +530,12 @@ export function calculateTimeRange(
   const now = Date.now();
   const validTickets = filterValidTickets(tickets);
 
-  // Start time: earliest of schedule start or first delivery
+
   let chartStartTime = schedule?.start_time
     ? new Date(schedule.start_time).getTime()
     : now;
 
-  // Check for early deliveries
+
   const ticketsWithOnJob = validTickets.filter(t => t.on_job_time);
   if (ticketsWithOnJob.length > 0) {
     const earliestDelivery = Math.min(
@@ -646,10 +546,10 @@ export function calculateTimeRange(
     }
   }
 
-  // End time calculation
+
   let endTime = now;
 
-  // Check last at_plant_time
+
   const ticketsWithAtPlant = validTickets.filter(t => t.at_plant_time);
   if (ticketsWithAtPlant.length > 0) {
     const lastAtPlantTime = Math.max(
@@ -662,17 +562,14 @@ export function calculateTimeRange(
     }
   }
 
-  // Safety: ensure end > start
+
   if (endTime <= chartStartTime) {
-    endTime = chartStartTime + 3600000; // Add 1 hour
+    endTime = chartStartTime + 3600000;
   }
 
   return { minTime: chartStartTime, maxTime: endTime };
 }
 
-/**
- * Generate time points at regular intervals
- */
 export function generateTimeIntervals(
   minTime: number,
   maxTime: number,
@@ -681,7 +578,7 @@ export function generateTimeIntervals(
   const times: number[] = [];
   const intervalMs = intervalMinutes * 60 * 1000;
 
-  // Round start to interval boundary
+
   const start = Math.floor(minTime / intervalMs) * intervalMs;
 
   for (let time = start; time <= maxTime; time += intervalMs) {
@@ -691,9 +588,6 @@ export function generateTimeIntervals(
   return times;
 }
 
-/**
- * Generate complete Trucks on Job graph data
- */
 export function calculateTrucksOnJobGraph(
   schedule: OrderProductSchedule | null,
   tickets: TicketData[]
@@ -712,7 +606,7 @@ export function calculateTrucksOnJobGraph(
   }
 
   const { minTime, maxTime } = calculateTimeRange(schedule, tickets);
-  const timeIntervals = generateTimeIntervals(minTime, maxTime, 5); // 5-minute intervals
+  const timeIntervals = generateTimeIntervals(minTime, maxTime, 5);
 
   const timePoints: TrucksOnJobTimePoint[] = timeIntervals.map(time => {
     const counts = calculateTrucksOnJob(time, truckStates);
@@ -739,59 +633,52 @@ export function calculateTrucksOnJobGraph(
   };
 }
 
-// ============================================================================
-// UNIFIED DATA PIPELINE
-// ============================================================================
-
-/**
- * Generate unified chart data combining Pour Speed and Trucks on Job
- */
 export function generateUnifiedChartData(
   schedule: OrderProductSchedule | null,
   tickets: TicketData[]
 ): PerformanceDataPoint[] {
   const scheduleRate = schedule ? Number(schedule.delivery_rate_per_hour) || 0 : 0;
 
-  // Calculate all data sets
+
   const orderedData = schedule ? calculateOrderedData(schedule) : [];
   const deliveredData = calculateDeliveredData(tickets, scheduleRate);
   const pouredData = calculatePouredData(tickets, scheduleRate);
   const truckStates = processTruckStates(tickets);
 
-  // Collect all event times
+
   const eventTimes = new Set<number>();
 
-  // Add scheduled order points
+
   orderedData.forEach(d => eventTimes.add(new Date(d.time).getTime()));
 
-  // Add delivered points
+
   deliveredData.forEach(d => eventTimes.add(new Date(d.time).getTime()));
 
-  // Add poured points
+
   pouredData.forEach(d => eventTimes.add(new Date(d.time).getTime()));
 
-  // Calculate time range and add regular intervals
+
   const { minTime, maxTime } = calculateTimeRange(schedule, tickets);
   eventTimes.add(minTime);
   eventTimes.add(maxTime);
 
-  // Add 5-minute intervals for smooth visualization
+
   const intervals = generateTimeIntervals(minTime, maxTime, 5);
   intervals.forEach(t => eventTimes.add(t));
 
-  // Sort times
+
   const sortedTimes = Array.from(eventTimes).sort((a, b) => a - b);
 
-  // Generate unified data points
+
   const chartData: PerformanceDataPoint[] = sortedTimes.map(time => {
     const timeStr = new Date(time).toISOString();
 
-    // Look up Pour Speed values (null if no event at this exact time)
+
     const orderedPoint = orderedData.find(d => new Date(d.time).getTime() === time);
     const deliveredPoint = deliveredData.find(d => new Date(d.time).getTime() === time);
     const pouredPoint = pouredData.find(d => new Date(d.time).getTime() === time);
 
-    // Calculate truck states (continuous values)
+
     const truckCounts = calculateTrucksOnJob(time, truckStates);
     const avgDurations = calculateAverageTimeDurations(time, truckStates);
 
@@ -815,26 +702,22 @@ export function generateUnifiedChartData(
   return chartData;
 }
 
-// ============================================================================
-// EXPORT ALL FUNCTIONS
-// ============================================================================
-
 export default {
-  // Helpers
+
   filterValidTickets,
   getTicketLoadQty,
   formatTimeDisplay,
   roundToNiceValue,
   getYAxisTicks,
 
-  // Pour Speed
+
   calculateOrderedData,
   calculateDeliveredData,
   calculatePouredData,
   calculatePourSpeedYMax,
   calculatePourSpeedGraph,
 
-  // Trucks on Job
+
   processTruckStates,
   getTruckStateAtTime,
   calculateTrucksOnJob,
@@ -844,6 +727,6 @@ export default {
   generateTimeIntervals,
   calculateTrucksOnJobGraph,
 
-  // Unified
+
   generateUnifiedChartData,
 };

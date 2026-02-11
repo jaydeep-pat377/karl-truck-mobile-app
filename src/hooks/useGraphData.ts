@@ -1,9 +1,4 @@
-/**
- * useGraphData Hook
- *
- * Calculates graph data for Pour Speed and Trucks on Job charts.
- * Can use either API-provided graph data or calculate from raw ticket data.
- */
+
 
 import { useMemo } from 'react';
 import {
@@ -24,7 +19,6 @@ import {
   calculateTrucksOnJob,
 } from '../utils/graphCalculations';
 
-// Type for API-provided graph data
 export interface ApiGraphData {
   pour_speed?: {
     schedule_rate: number;
@@ -50,9 +44,8 @@ export interface ApiGraphData {
   };
 }
 
-// Hook return type
 export interface UseGraphDataResult {
-  // Pour Speed data
+
   pourSpeedData: {
     ordered: Array<{ time: string; time_display: string; rate: number }>;
     delivered: Array<{ time: string; time_display: string; rate: number }>;
@@ -63,7 +56,7 @@ export interface UseGraphDataResult {
     truckSpace: number;
     hasData: boolean;
   };
-  // Trucks on Job data
+
   trucksOnJobData: {
     timePoints: Array<{
       time: string;
@@ -80,7 +73,7 @@ export interface UseGraphDataResult {
     };
     hasData: boolean;
   };
-  // Raw calculation results (for advanced use)
+
   rawData: {
     pourSpeed: PourSpeedGraphData | null;
     trucksOnJob: TrucksOnJobGraphData | null;
@@ -88,22 +81,18 @@ export interface UseGraphDataResult {
 }
 
 interface UseGraphDataProps {
-  // Option 1: Use API-provided graph data
+
   apiGraphData?: ApiGraphData;
 
-  // Option 2: Calculate from raw data
+
   schedule?: OrderProductSchedule | null;
   tickets?: TicketData[];
 
-  // Schedule info for display
+
   scheduledQty?: number;
   truckSpace?: number;
 }
 
-/**
- * Hook to get graph data for charts
- * Prioritizes API-provided data, falls back to local calculation
- */
 export function useGraphData({
   apiGraphData,
   schedule,
@@ -111,9 +100,9 @@ export function useGraphData({
   scheduledQty = 0,
   truckSpace = 0,
 }: UseGraphDataProps): UseGraphDataResult {
-  // Calculate Pour Speed data
+
   const pourSpeedData = useMemo(() => {
-    // If API provides graph data, use it
+
     if (apiGraphData?.pour_speed) {
       const api = apiGraphData.pour_speed;
       return {
@@ -128,7 +117,7 @@ export function useGraphData({
       };
     }
 
-    // Otherwise, calculate from raw data
+
     if (!schedule && tickets.length === 0) {
       return {
         ordered: [],
@@ -160,9 +149,9 @@ export function useGraphData({
     };
   }, [apiGraphData?.pour_speed, schedule, tickets, scheduledQty, truckSpace]);
 
-  // Calculate Trucks on Job data
+
   const trucksOnJobData = useMemo(() => {
-    // If API provides graph data, use it
+
     if (apiGraphData?.trucks_on_job) {
       const api = apiGraphData.trucks_on_job;
       return {
@@ -176,7 +165,7 @@ export function useGraphData({
       };
     }
 
-    // Otherwise, calculate from raw data
+
     if (tickets.length === 0) {
       return {
         timePoints: [],
@@ -231,7 +220,7 @@ export function useGraphData({
     };
   }, [apiGraphData?.trucks_on_job, schedule, tickets]);
 
-  // Calculate raw data for advanced use
+
   const rawData = useMemo(() => {
     if (!schedule && tickets.length === 0) {
       return {
@@ -253,9 +242,6 @@ export function useGraphData({
   };
 }
 
-/**
- * Helper hook to convert order details tickets to TicketData format
- */
 export function useConvertTicketsToGraphFormat(
   orderTickets: Array<{
     ticket_id?: string;

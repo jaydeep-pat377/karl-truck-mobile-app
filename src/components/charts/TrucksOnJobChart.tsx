@@ -1,7 +1,4 @@
-/**
- * Trucks on Job Chart Component
- * Stacked AREA chart showing truck states (Waiting & Pouring) over time
- */
+
 
 import React, { useState, useMemo } from 'react';
 import {
@@ -26,17 +23,12 @@ import { fontFamily } from '../../theme/typography';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-// Chart colors - matching the image
 const COLORS = {
-  waiting: '#4A4A4A',  // Dark gray
-  pouring: '#4CAF50',  // Green
-  washout: '#64B5F6',  // Light blue
+  waiting: '#4A4A4A',
+  pouring: colors.dashboard.statGreen,
+  washout: colors.dashboard.statBlue,
   grid: '#E0E0E0',
 };
-
-// ============================================================================
-// TYPES
-// ============================================================================
 
 export interface TrucksTimePoint {
   time: string;
@@ -66,10 +58,6 @@ export interface TrucksOnJobChartProps {
   minPointSpacing?: number;
 }
 
-// ============================================================================
-// COMPONENT
-// ============================================================================
-
 export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   timePoints,
   averages: _averages,
@@ -77,7 +65,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   height = ms(220),
   horizontalPadding = 16,
   scrollable = true,
-  minPointSpacing = 80, // Increased for better scrolling
+  minPointSpacing = 80,
 }) => {
   const [tooltip, setTooltip] = useState<{
     x: number;
@@ -89,12 +77,12 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     total: number;
   } | null>(null);
 
-  // Filter state - all enabled by default
+
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(
     new Set(['waiting', 'pouring', 'washout'])
   );
 
-  // Toggle filter
+
   const toggleFilter = (key: string) => {
     setSelectedFilters(prev => {
       const newSet = new Set(prev);
@@ -116,34 +104,34 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
 
   const hasData = timePoints && timePoints.length > 0;
 
-  // Calculate max Y value (including washout)
+
   const maxY = useMemo(() => {
     if (!hasData) return 4;
     const maxTotal = Math.max(...timePoints.map(d => d.waiting + d.pouring + (d.washout || 0)), 1);
     return Math.max(maxTotal + 1, 4);
   }, [timePoints, hasData]);
 
-  // Y-axis values
+
   const yAxisValues = useMemo(() => {
     return Array.from({ length: maxY + 1 }, (_, i) => maxY - i);
   }, [maxY]);
 
-  // Chart width calculation - always make it wider than container for scrolling
+
   const chartWidth = useMemo(() => {
     if (!hasData) return baseChartWidth;
-    // Calculate width based on number of points with proper spacing
+
     const calculatedWidth = (timePoints.length * minPointSpacing) + chartPadding.left + chartPadding.right;
-    // If scrollable, use calculated width; otherwise fit to container
+
     if (scrollable) {
       return Math.max(calculatedWidth, baseChartWidth);
     }
     return baseChartWidth;
   }, [hasData, timePoints.length, minPointSpacing, scrollable, baseChartWidth]);
 
-  // Check if scrolling is needed
+
   const needsScroll = chartWidth > baseChartWidth;
 
-  // Get X position for a data point
+
   const getX = (index: number): number => {
     if (timePoints.length === 1) {
       return chartPadding.left + (chartWidth - chartPadding.left - chartPadding.right) / 2;
@@ -152,12 +140,12 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     return chartPadding.left + (index / (timePoints.length - 1)) * availableWidth;
   };
 
-  // Get Y position for a value
+
   const getY = (value: number): number => {
     return chartPadding.top + chartAreaHeight - (value / maxY) * chartAreaHeight;
   };
 
-  // Create filled area path for Waiting (bottom layer)
+
   const createWaitingAreaPath = (): string => {
     if (!hasData || timePoints.length === 0) return '';
     if (!selectedFilters.has('waiting')) return '';
@@ -165,36 +153,36 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     const baseY = getY(0);
     let path = `M ${getX(0)} ${baseY}`;
 
-    // Go up to first waiting value
+
     path += ` L ${getX(0)} ${getY(timePoints[0].waiting)}`;
 
-    // Draw top edge through all points
+
     for (let i = 1; i < timePoints.length; i++) {
       path += ` L ${getX(i)} ${getY(timePoints[i].waiting)}`;
     }
 
-    // Go down to baseline at last point
+
     path += ` L ${getX(timePoints.length - 1)} ${baseY}`;
 
-    // Close path
+
     path += ' Z';
 
     return path;
   };
 
-  // Create filled area path for Pouring (middle layer, stacked on waiting)
+
   const createPouringAreaPath = (): string => {
     if (!hasData || timePoints.length === 0) return '';
     if (!selectedFilters.has('pouring')) return '';
 
     const waitingActive = selectedFilters.has('waiting');
 
-    // Start at first point's base level (waiting if active, else 0)
+
     const getBaseValue = (point: TrucksTimePoint) => waitingActive ? point.waiting : 0;
 
     let path = `M ${getX(0)} ${getY(getBaseValue(timePoints[0]))}`;
 
-    // Draw top edge (base + pouring) through all points
+
     for (let i = 0; i < timePoints.length; i++) {
       const topY = getY(getBaseValue(timePoints[i]) + timePoints[i].pouring);
       if (i === 0) {
@@ -204,30 +192,30 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
       }
     }
 
-    // Draw bottom edge (base level) in reverse
+
     for (let i = timePoints.length - 1; i >= 0; i--) {
       path += ` L ${getX(i)} ${getY(getBaseValue(timePoints[i]))}`;
     }
 
-    // Close path
+
     path += ' Z';
 
     return path;
   };
 
-  // Create filled area path for Washout (top layer, stacked on waiting + pouring)
+
   const createWashoutAreaPath = (): string => {
     if (!hasData || timePoints.length === 0) return '';
     if (!selectedFilters.has('washout')) return '';
 
-    // Check if there's any washout data
+
     const hasWashout = timePoints.some(d => (d.washout || 0) > 0);
     if (!hasWashout) return '';
 
     const waitingActive = selectedFilters.has('waiting');
     const pouringActive = selectedFilters.has('pouring');
 
-    // Calculate base value based on active filters
+
     const getBaseValue = (point: TrucksTimePoint) => {
       let base = 0;
       if (waitingActive) base += point.waiting;
@@ -235,10 +223,10 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
       return base;
     };
 
-    // Start at first point's base level
+
     let path = `M ${getX(0)} ${getY(getBaseValue(timePoints[0]))}`;
 
-    // Draw top edge (base + washout) through all points
+
     for (let i = 0; i < timePoints.length; i++) {
       const topY = getY(getBaseValue(timePoints[i]) + (timePoints[i].washout || 0));
       if (i === 0) {
@@ -248,18 +236,18 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
       }
     }
 
-    // Draw bottom edge (base level) in reverse
+
     for (let i = timePoints.length - 1; i >= 0; i--) {
       path += ` L ${getX(i)} ${getY(getBaseValue(timePoints[i]))}`;
     }
 
-    // Close path
+
     path += ' Z';
 
     return path;
   };
 
-  // X-axis labels
+
   const xAxisLabels = useMemo(() => {
     if (!hasData) return [];
 
@@ -276,7 +264,6 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.card }]}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: themeColors.text.primary }]}>
           Trucks on the Job
@@ -286,10 +273,8 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
         </Text>
       </View>
 
-      {/* Chart */}
       <Pressable onPress={hideTooltip}>
         <View style={styles.chartRow}>
-          {/* Y-Axis */}
           <View style={{ width: yAxisWidth }}>
             <Svg width={yAxisWidth} height={height}>
               {yAxisValues.map((value) => {
@@ -311,7 +296,6 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
             </Svg>
           </View>
 
-          {/* Chart Area */}
           <View style={{ flex: 1, maxWidth: baseChartWidth, overflow: 'hidden' }}>
             <ScrollView
               horizontal={true}
@@ -323,7 +307,6 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
             >
               <View style={{ width: chartWidth, position: 'relative' }}>
                 <Svg width={chartWidth} height={height}>
-                  {/* Grid lines */}
                   {yAxisValues.map((value) => {
                     const y = getY(value);
                     return (
@@ -339,7 +322,6 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                     );
                   })}
 
-                  {/* Waiting Area (bottom - dark gray) */}
                   {hasData && (
                     <Path
                       d={createWaitingAreaPath()}
@@ -347,7 +329,6 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                     />
                   )}
 
-                  {/* Pouring Area (middle - green, stacked on waiting) */}
                   {hasData && (
                     <Path
                       d={createPouringAreaPath()}
@@ -355,7 +336,6 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                     />
                   )}
 
-                  {/* Washout Area (top - blue, stacked on waiting + pouring) */}
                   {hasData && (
                     <Path
                       d={createWashoutAreaPath()}
@@ -363,7 +343,6 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                     />
                   )}
 
-                  {/* Touch points for tooltip */}
                   {hasData && timePoints.map((point, index) => {
                     const x = getX(index);
                     const washout = point.washout || 0;
@@ -393,7 +372,6 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                     );
                   })}
 
-                  {/* X-axis labels */}
                   {xAxisLabels.filter(l => l.show).map((label) => {
                     const x = getX(label.index);
                     return (
@@ -412,7 +390,6 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                   })}
                 </Svg>
 
-                {/* Tooltip */}
                 {tooltip && (
                   <View
                     style={[
@@ -444,7 +421,6 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
         </View>
       </Pressable>
 
-      {/* Legend - Toggleable buttons */}
       <View style={styles.legend}>
         <TouchableOpacity
           style={[
@@ -518,10 +494,6 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     </View>
   );
 };
-
-// ============================================================================
-// STYLES
-// ============================================================================
 
 const styles = StyleSheet.create({
   container: {

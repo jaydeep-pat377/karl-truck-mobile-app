@@ -1306,11 +1306,11 @@ const styles = StyleSheet.create({
   },
 
   headerContainer: {
-    // Container for header with gradient background
+
     paddingBottom: GRID.lg,
   },
   headerContainerLoading: {
-    // Simpler header for loading/error states
+
     paddingBottom: GRID.md,
   },
   headerBar: {
@@ -1320,7 +1320,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: GRID.md,
     paddingTop: GRID.sm,
     marginBottom: GRID.sm,
-    minHeight: ms(44), // iOS minimum touch target
+    minHeight: ms(44),
   },
   headerBtn: {
     width: ms(40),
@@ -1366,7 +1366,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: GRID.lg,
     paddingTop: GRID.sm,
     paddingBottom: GRID.md,
-    minHeight: ms(100), // Ensure minimum height for content
+    minHeight: ms(100),
   },
   heroLeft: {
     flex: 1,
@@ -1495,7 +1495,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: GRID.xs,
     borderRadius: RADIUS.md,
     marginHorizontal: Platform.OS === 'ios' ? GRID.xs / 2 : 0,
-    minHeight: ms(80), // iOS minimum touch target
+    minHeight: ms(80),
     ...Platform.select({
       ios: {
         shadowColor: colors.common.black,
@@ -1639,7 +1639,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingVertical: GRID.sm,
-    minHeight: ms(36), // Ensure minimum touch area
+    minHeight: ms(36),
   },
   detailRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -1690,7 +1690,7 @@ const styles = StyleSheet.create({
     paddingVertical: GRID.sm,
     paddingHorizontal: GRID.md,
     borderRadius: RADIUS.md,
-    minHeight: ms(44), // iOS minimum touch target
+    minHeight: ms(44),
   },
   callCustomerText: {
     fontFamily: fontFamily.medium,

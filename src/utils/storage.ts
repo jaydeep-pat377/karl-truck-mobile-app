@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Storage keys constants
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'accessToken',
   REFRESH_TOKEN: 'refreshToken',
@@ -10,9 +9,8 @@ export const STORAGE_KEYS = {
   REMEMBER_ME: 'rememberMe',
 } as const;
 
-// Helper functions for common operations
 export const storageUtils = {
-  // String operations
+
   setString: async (key: string, value: string) => {
     await AsyncStorage.setItem(key, value);
   },
@@ -20,7 +18,7 @@ export const storageUtils = {
     return AsyncStorage.getItem(key);
   },
 
-  // Object operations (JSON)
+
   setObject: async <T>(key: string, value: T) => {
     await AsyncStorage.setItem(key, JSON.stringify(value));
   },
@@ -36,7 +34,7 @@ export const storageUtils = {
     return null;
   },
 
-  // Delete operations
+
   remove: async (key: string) => {
     await AsyncStorage.removeItem(key);
   },
@@ -44,12 +42,12 @@ export const storageUtils = {
     await AsyncStorage.multiRemove(keys);
   },
 
-  // Clear all storage
+
   clearAll: async () => {
     await AsyncStorage.clear();
   },
 
-  // Get all keys
+
   getAllKeys: async () => {
     return AsyncStorage.getAllKeys();
   },

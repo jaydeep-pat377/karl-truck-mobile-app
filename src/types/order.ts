@@ -1,6 +1,4 @@
-/**
- * Order Types
- */
+
 
 export type OrderStatus =
   | 'NORMAL'
@@ -86,7 +84,6 @@ export interface OrderSummary {
   cancelled: number;
 }
 
-// Weather Types
 export type WeatherCondition = 'sunny' | 'partly_cloudy' | 'cloudy' | 'rain' | 'storm' | 'snow' | 'fog';
 
 export interface WeatherData {
@@ -116,7 +113,6 @@ export interface LocationWeather {
   weather?: WeatherData;
 }
 
-// API Response Types
 export interface ApiOrderWeatherData {
   source: string;
   humidity: number;

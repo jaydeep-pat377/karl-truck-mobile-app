@@ -17,7 +17,6 @@ interface ApiErrorResponse {
   error?: string;
 }
 
-// Generate a fallback device token when FCM is unavailable (e.g., iOS simulator)
 const generateFallbackToken = (): string => {
   const timestamp = Date.now().toString(36);
   const randomPart = Math.random().toString(36).substring(2, 15);

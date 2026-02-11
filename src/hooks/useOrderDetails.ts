@@ -16,12 +16,12 @@ export const useOrderDetails = (params: OrderDetailsQueryParams) => {
   const query = useQuery<OrderDetailsApiResponse, AxiosError<ApiErrorResponse>>({
     queryKey: ['orderDetails', params.order_code, params.order_date],
     queryFn: () => orderService.getOrderDetails(params),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
     retry: 2,
     enabled: !!params.order_code && !!params.order_date,
   });
 
-  // Console log the API response
+
   if (query.data) {
     console.log('📋 Order Details API Response:', JSON.stringify(query.data, null, 2));
   }

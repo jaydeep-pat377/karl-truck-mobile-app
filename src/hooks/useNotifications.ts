@@ -12,7 +12,7 @@ export const useNotifications = () => {
   const hasSyncedToken = useRef(false);
 
   const initialize = useCallback(async () => {
-    // Prevent multiple initializations
+
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
@@ -38,7 +38,7 @@ export const useNotifications = () => {
     }
   }, []);
 
-  // Sync token to server when user is authenticated (for auto-login scenarios)
+
   const syncTokenIfNeeded = useCallback(async () => {
     if (hasSyncedToken.current) return;
 
@@ -57,7 +57,7 @@ export const useNotifications = () => {
     };
   }, [initialize]);
 
-  // Effect to sync token when auth state changes (for auto-login)
+
   useEffect(() => {
     syncTokenIfNeeded();
   }, [syncTokenIfNeeded]);

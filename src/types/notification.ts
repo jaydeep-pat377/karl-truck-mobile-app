@@ -1,6 +1,4 @@
-/**
- * Notification Types
- */
+
 
 export type NotificationType =
   | 'order_update'

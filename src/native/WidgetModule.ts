@@ -1,7 +1,4 @@
-/**
- * iOS Widget Native Module
- * Allows React Native to update iOS widget data
- */
+
 
 import { NativeModules, Platform } from 'react-native';
 
@@ -22,14 +19,10 @@ interface WidgetModuleInterface {
   reloadWidget: () => void;
 }
 
-// Get native module (iOS only)
 const NativeWidgetModule = Platform.OS === 'ios'
   ? NativeModules.WidgetModule as WidgetModuleInterface | undefined
   : undefined;
 
-/**
- * Update the iOS widget with new data
- */
 export const updateWidgetData = (data: WidgetData): void => {
   if (Platform.OS === 'ios' && NativeWidgetModule) {
     try {
@@ -40,9 +33,6 @@ export const updateWidgetData = (data: WidgetData): void => {
   }
 };
 
-/**
- * Set the login state for the widget
- */
 export const setWidgetLoggedIn = (isLoggedIn: boolean): void => {
   if (Platform.OS === 'ios' && NativeWidgetModule) {
     try {
@@ -53,9 +43,6 @@ export const setWidgetLoggedIn = (isLoggedIn: boolean): void => {
   }
 };
 
-/**
- * Force reload the widget
- */
 export const reloadWidget = (): void => {
   if (Platform.OS === 'ios' && NativeWidgetModule) {
     try {
@@ -66,9 +53,6 @@ export const reloadWidget = (): void => {
   }
 };
 
-/**
- * Check if widget module is available
- */
 export const isWidgetModuleAvailable = (): boolean => {
   return Platform.OS === 'ios' && NativeWidgetModule !== undefined;
 };

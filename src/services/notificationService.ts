@@ -31,7 +31,7 @@ class NotificationService {
     data?: Record<string, string>,
   ): Promise<void> {
     try {
-      // Ensure channel exists before displaying (Android)
+
       await this.createNotificationChannel();
 
       const notificationId = await notifee.displayNotification({
@@ -74,7 +74,7 @@ class NotificationService {
 
       return enabled;
     } catch (error) {
-      // Permission request failed (likely iOS simulator)
+
       console.log('[Notifications] Permission request error:', error);
       return false;
     }
@@ -86,22 +86,22 @@ class NotificationService {
 
       if (Platform.OS === 'ios') {
         try {
-          // Register for remote messages first on iOS
+
           console.log('[Notifications] Registering for remote messages...');
           await messaging().registerDeviceForRemoteMessages();
           console.log('[Notifications] Registered for remote messages');
 
-          // Check if we have APNS token (won't work on simulator)
+
           const apnsToken = await messaging().getAPNSToken();
           console.log('[Notifications] APNS Token:', apnsToken);
 
           if (!apnsToken) {
-            // No APNS token - likely on simulator or permissions denied
+
             console.log('[Notifications] No APNS token - running on simulator or permissions denied');
             return null;
           }
         } catch (error) {
-          // iOS simulator or push not available - return null silently
+
           console.log('[Notifications] iOS registration error:', error);
           return null;
         }
@@ -112,22 +112,13 @@ class NotificationService {
       useNotificationStore.getState().setFcmToken(token);
       return token;
     } catch (error) {
-      // FCM not available - return null silently
+
       console.log('[Notifications] Error getting token:', error);
       return null;
     }
   }
 
-  /**
-   * Syncs the device token to the server.
-   * Should be called when:
-   * 1. User logs in (already handled in LoginScreen)
-   * 2. Token refreshes while user is logged in
-   * 3. App launches with an already logged-in user
-   *
-   * Note: This silently fails if the endpoint doesn't exist (404)
-   * since the backend may not have implemented this feature yet.
-   */
+
   async syncTokenToServer(token?: string): Promise<boolean> {
     try {
       const isAuthenticated = useAuthStore.getState().isAuthenticated;
@@ -155,12 +146,12 @@ class NotificationService {
       }
       return false;
     } catch (error: any) {
-      // Silently ignore 404 errors - endpoint may not be implemented on backend
+
       if (error?.response?.status === 404) {
-        // Backend doesn't have device token endpoint yet - this is OK
+
         return false;
       }
-      // Only log non-404 errors
+
       console.error('[Notifications] Error syncing device token:', error?.message || error);
       return false;
     }
@@ -198,18 +189,18 @@ class NotificationService {
       },
     );
 
-    // Token refresh - sync to local store and server
+
     this.unsubscribeOnTokenRefresh = messaging().onTokenRefresh(
       async (token: string) => {
         console.log('[Notifications] Token refreshed, syncing...');
         useNotificationStore.getState().setFcmToken(token);
 
-        // Sync the new token to the server if user is logged in
+
         await this.syncTokenToServer(token);
       },
     );
 
-    // Notification opened (app in background)
+
     this.unsubscribeOnNotificationOpened = messaging().onNotificationOpenedApp(
       (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
         const notification = this.parseRemoteMessage(remoteMessage);
@@ -272,7 +263,7 @@ class NotificationService {
     this.unsubscribeOnNotificationOpened = null;
   }
 
-  // Test function to verify local notifications work
+
   async testLocalNotification(): Promise<void> {
     await this.createNotificationChannel();
     await this.displayNotification(

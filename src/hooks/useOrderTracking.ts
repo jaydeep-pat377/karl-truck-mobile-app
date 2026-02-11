@@ -1,8 +1,4 @@
-/**
- * useOrderTracking Hook
- * Fetches order tracking data with live truck locations and ticket list
- * Supports infinite scroll pagination for tickets
- */
+
 
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
@@ -40,7 +36,7 @@ export const useOrderTracking = (
   const {
     limit = 10,
     enabled = true,
-    refetchInterval = 30000, // Refresh every 30 seconds for live tracking
+    refetchInterval = 30000,
   } = options;
 
   const {
@@ -57,8 +53,8 @@ export const useOrderTracking = (
     queryKey: ['orderTracking', orderId, limit],
     queryFn: ({ pageParam = 1 }) => orderService.getOrderTracking(orderId, { page: pageParam, limit }),
     enabled: enabled && !!orderId,
-    refetchInterval, // Auto-refresh for live tracking
-    staleTime: 10000, // Consider data stale after 10 seconds
+    refetchInterval,
+    staleTime: 10000,
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       const pagination = lastPage?.data?.pagination;
@@ -69,23 +65,23 @@ export const useOrderTracking = (
     },
   });
 
-  // Merge all tickets from all pages
+
   const tickets = useMemo(() => {
     if (!data?.pages) return [];
     return data.pages.flatMap(page => page?.data?.tickets || []);
   }, [data?.pages]);
 
-  // Get tracking data from the first page (order info doesn't change)
+
   const trackingData = useMemo(() => {
     if (!data?.pages?.[0]?.data) return null;
-    // Return tracking data with merged tickets
+
     return {
       ...data.pages[0].data,
-      tickets, // Use merged tickets
+      tickets,
     };
   }, [data?.pages, tickets]);
 
-  // Get pagination from the last page
+
   const pagination = useMemo(() => {
     if (!data?.pages?.length) return null;
     return data.pages[data.pages.length - 1]?.data?.pagination || null;

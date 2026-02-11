@@ -21,7 +21,7 @@ export interface DashboardWeather {
   avg_precipitation_percent?: number;
   condition?: string;
   orders_with_weather?: number;
-  // Legacy fields for compatibility
+
   temperature?: number;
   humidity?: number;
   windSpeed?: number;
@@ -70,9 +70,19 @@ export interface ActiveDeliveryOrder {
   status: string;
 }
 
+export interface ActiveDeliveriesPagination {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
 export interface ActiveDeliveries {
   count: number;
   orders: ActiveDeliveryOrder[];
+  pagination: ActiveDeliveriesPagination;
 }
 
 export interface RecentAlert {

@@ -1,6 +1,4 @@
-/**
- * Navigation Exports
- */
+
 
 export { RootNavigator } from './RootNavigator';
 export { AuthNavigator } from './AuthNavigator';

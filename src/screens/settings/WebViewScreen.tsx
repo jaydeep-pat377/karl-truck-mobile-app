@@ -28,31 +28,68 @@ export const WebViewScreen: React.FC = () => {
     navigation.goBack();
   };
 
-  // Inject CSS for dark mode - use filter to invert colors
-  const darkModeCSS = `
+
+  const baseCSS = `
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    body > *:first-child {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+    }
+    a[href*="back"],
+    a:contains("Back"),
+    .back-button,
+    .back-link,
+    [class*="back"],
+    a[onclick*="back"],
+    a[href="javascript:history.back()"] {
+      display: none !important;
+    }
+  `;
+
+  const darkModeExtraCSS = `
+    html {
+      filter: invert(1) hue-rotate(180deg) !important;
+      background-color: #ffffff !important;
+    }
+    body {
+      background-color: #ffffff !important;
+    }
+    img, video, picture, svg, [style*="background-image"] {
+      filter: invert(1) hue-rotate(180deg) !important;
+    }
+  `;
+
+  const injectedJS = `
     (function() {
       var style = document.createElement('style');
       style.type = 'text/css';
-      style.innerHTML = \`
-        html {
-          filter: invert(1) hue-rotate(180deg) !important;
-          background-color: #000000 !important;
-        }
-        img, video, picture, svg, [style*="background-image"] {
-          filter: invert(1) hue-rotate(180deg) !important;
-        }
-      \`;
+      style.innerHTML = \`${baseCSS}${isDark ? darkModeExtraCSS : ''}\`;
       document.documentElement.appendChild(style);
+
+      setTimeout(function() {
+        var links = document.querySelectorAll('a');
+        links.forEach(function(link) {
+          if (link.textContent.trim().toLowerCase().includes('back')) {
+            link.style.display = 'none';
+          }
+        });
+      }, 100);
     })();
     true;
   `;
 
-  const injectedCSS = isDark ? darkModeCSS : '';
-
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <SafeAreaView style={[styles.safeAreaTop, { backgroundColor }]} edges={['top']}>
-        <View style={[styles.header, { borderBottomColor: borderColor, backgroundColor }]}>
+      <SafeAreaView style={[styles.safeAreaTop,
+      { backgroundColor }]} edges={['top']}>
+        <View style={[styles.header,
+        {
+          borderBottomColor: borderColor,
+          backgroundColor
+        }]}>
           <TouchableOpacity
             style={[styles.backButton, { backgroundColor: cardColor }]}
             onPress={handleBack}
@@ -73,8 +110,8 @@ export const WebViewScreen: React.FC = () => {
           containerStyle={{ backgroundColor }}
           onLoadStart={() => setIsLoading(true)}
           onLoadEnd={() => setIsLoading(false)}
-          injectedJavaScriptBeforeContentLoaded={injectedCSS}
-          injectedJavaScript={injectedCSS}
+          injectedJavaScriptBeforeContentLoaded={injectedJS}
+          injectedJavaScript={injectedJS}
           javaScriptEnabled
           domStorageEnabled
           originWhitelist={['*']}
@@ -93,7 +130,8 @@ export const WebViewScreen: React.FC = () => {
         )}
       </View>
 
-      <SafeAreaView style={[styles.safeAreaBottom, { backgroundColor }]} edges={['bottom']} />
+      <SafeAreaView style={[styles.safeAreaBottom,
+      { backgroundColor, paddingBottom: ms(50) }]} edges={['bottom']} />
     </View>
   );
 };
@@ -112,8 +150,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingBottom: vs(12),
-    borderBottomWidth: 1,
+    paddingBottom: vs(2),
   },
   backButton: {
     width: ms(40),

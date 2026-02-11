@@ -3,7 +3,6 @@ import { ChatRoom, Message, SendMessagePayload } from '../../types/chat';
 import { useAuthStore } from '../../store/authStore';
 import { Platform } from 'react-native';
 
-// Image attachment interface
 export interface ImageAttachment {
   uri: string;
   type: string;
@@ -12,7 +11,6 @@ export interface ImageAttachment {
   height?: number;
 }
 
-// Uploaded attachment interface (after upload to Supabase)
 export interface UploadedAttachment {
   url: string;
   type: string;
@@ -29,14 +27,13 @@ const checkSupabase = async () => {
     throw new Error('Supabase is not configured');
   }
 
-  // Ensure initialized
+
   await ensureAuthenticated();
 
-  // Return admin client which bypasses RLS
+
   return supabaseAdmin;
 };
 
-// Type for the raw message from Supabase chat_messages table
 interface RawChatMessage {
   id: number;
   chat_id: number;
@@ -52,7 +49,6 @@ interface RawChatMessage {
   timeline_visible: boolean;
 }
 
-// Type for order_chats table
 interface OrderChat {
   id: number;
   order_id: number;
@@ -63,7 +59,7 @@ interface OrderChat {
 }
 
 export const chatService = {
-  // Get all chat rooms from order_chats table
+
   getRooms: async (): Promise<ChatRoom[]> => {
     if (!isSupabaseConfigured() || !supabaseAdmin) {
       return [];
@@ -98,18 +94,18 @@ export const chatService = {
     }
   },
 
-  // Get or create chat room using ensure_chat_exists RPC (bypasses RLS)
+
   getOrCreateRoom: async (orderId: number): Promise<ChatRoom> => {
     const sb = await checkSupabase();
 
-    // Use the ensure_chat_exists RPC function (same as web)
-    // This function has SECURITY DEFINER and bypasses RLS
+
+
     const { data: chatId, error: rpcError } = await sb.rpc('ensure_chat_exists', {
       p_order_id: orderId,
     });
 
     if (!rpcError && chatId) {
-      // Successfully created/found chat via RPC
+
       return {
         id: String(chatId),
         name: `Order #${orderId}`,
@@ -122,7 +118,7 @@ export const chatService = {
 
     console.log('RPC ensure_chat_exists failed or not available:', rpcError?.message);
 
-    // Fallback: Try to find existing chat
+
     const { data: existingChat, error: findError } = await sb
       .from('order_chats')
       .select('*')
@@ -142,7 +138,7 @@ export const chatService = {
       };
     }
 
-    // Fallback: Try direct insert (may fail due to RLS)
+
     const { data: newChat, error: createError } = await sb
       .from('order_chats')
       .insert({
@@ -168,7 +164,7 @@ export const chatService = {
     };
   },
 
-  // Get messages for an order from chat_messages table
+
   getMessages: async (
     orderId: number,
     limit = 50,
@@ -180,7 +176,7 @@ export const chatService = {
       .from('chat_messages')
       .select('*')
       .eq('order_id', orderId)
-      .or('is_deleted.eq.false,is_deleted.is.null') // Include both false and NULL
+      .or('is_deleted.eq.false,is_deleted.is.null')
       .order('created_at', { ascending: false })
       .limit(limit);
 
@@ -203,7 +199,7 @@ export const chatService = {
       throw error;
     }
 
-    // Convert to Message type and reverse for chronological order
+
     return ((data as RawChatMessage[]) || [])
       .reverse()
       .map((msg) => ({
@@ -212,7 +208,7 @@ export const chatService = {
         chat_id: msg.chat_id,
         order_id: msg.order_id,
         sender_id: msg.sender_id,
-        sender_name: msg.sender_name || 'User', // Fallback for empty sender_name
+        sender_name: msg.sender_name || 'User',
         sender_role: msg.sender_role || 'contractor',
         content: msg.message_text || '',
         message_type: 'text' as const,
@@ -223,13 +219,13 @@ export const chatService = {
       }));
   },
 
-  // Upload image to Supabase Storage using XHR (most reliable in React Native)
+
   uploadImage: async (image: ImageAttachment, orderId: number): Promise<UploadedAttachment> => {
     await checkSupabase();
     const user = useAuthStore.getState().user;
     if (!user) throw new Error('Not authenticated');
 
-    // Generate unique filename
+
     const timestamp = Date.now();
     const fileExt = image.name.split('.').pop() || 'jpg';
     const fileName = `${orderId}/${user.id}/${timestamp}_${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -245,8 +241,8 @@ export const chatService = {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
 
-      // Add timeout
-      xhr.timeout = 60000; // 60 seconds
+
+      xhr.timeout = 60000;
 
       xhr.onload = () => {
         console.log('[Chat] XHR onload - status:', xhr.status);
@@ -289,19 +285,19 @@ export const chatService = {
       xhr.setRequestHeader('Authorization', `Bearer ${supabaseServiceKey}`);
       xhr.setRequestHeader('x-upsert', 'true');
 
-      // Create FormData - React Native handles file URIs specially
+
       const formData = new FormData();
 
-      // Ensure proper URI format for React Native
+
       let fileUri = image.uri;
 
-      // On Android, keep the URI as-is (could be content:// or file://)
-      // On iOS, ensure file:// prefix is present
+
+
       if (Platform.OS === 'ios' && !fileUri.startsWith('file://')) {
         fileUri = `file://${fileUri}`;
       }
 
-      // The key thing is the file object format for React Native
+
       const fileData: any = {
         uri: fileUri,
         type: image.type || 'image/jpeg',
@@ -316,36 +312,36 @@ export const chatService = {
     });
   },
 
-  // Upload multiple images
+
   uploadImages: async (images: ImageAttachment[], orderId: number): Promise<UploadedAttachment[]> => {
     const uploadPromises = images.map(image => chatService.uploadImage(image, orderId));
     return Promise.all(uploadPromises);
   },
 
-  // Send a message to chat_messages table
+
   sendMessage: async (payload: SendMessagePayload): Promise<Message> => {
     const sb = await checkSupabase();
     const user = useAuthStore.getState().user;
     if (!user) throw new Error('Not authenticated');
 
-    // Use user ID from app auth (already a valid UUID from API)
+
     const senderId = user.id;
     if (!senderId) throw new Error('Could not get user ID');
 
-    // Get user name - use fullName, firstName+lastName, or email as fallback
+
     let userName = 'Unknown';
     if (user.fullName) {
       userName = user.fullName;
     } else if (user.firstName || user.lastName) {
       userName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
     } else if (user.email) {
-      // Use part before @ as name
+
       userName = user.email.split('@')[0];
     }
 
     console.log('Sending message with user name:', userName);
 
-    // Map user role to allowed values: 'concrete_producer', 'contractor', 'admin'
+
     let userRole = 'contractor';
     const role = (user.role || '').toLowerCase();
     if (role === 'admin' || role === 'administrator') {
@@ -354,7 +350,7 @@ export const chatService = {
       userRole = 'concrete_producer';
     }
 
-    // First ensure we have a chat_id using RPC
+
     let chatId = payload.chat_id;
     if (!chatId || chatId === payload.order_id) {
       const room = await chatService.getOrCreateRoom(payload.order_id);
@@ -417,7 +413,7 @@ export const chatService = {
     };
   },
 
-  // Test Supabase connection
+
   testConnection: async (): Promise<boolean> => {
     try {
       const response = await fetch('https://lwplbyltqsfmfvsgmrjq.supabase.co/storage/v1/bucket', {
@@ -434,7 +430,7 @@ export const chatService = {
     }
   },
 
-  // Send a message with images
+
   sendMessageWithImages: async (
     payload: SendMessagePayload,
     images: ImageAttachment[]
@@ -442,18 +438,18 @@ export const chatService = {
     console.log('[Chat] sendMessageWithImages called:', { payload, imagesCount: images.length });
 
     try {
-      // Test connection first
+
       const isConnected = await chatService.testConnection();
       if (!isConnected) {
         throw new Error('Cannot connect to storage server. Please check your internet connection.');
       }
 
-      // Upload images first
+
       console.log('[Chat] Starting image uploads...');
       const uploadedAttachments = await chatService.uploadImages(images, payload.order_id);
       console.log('[Chat] Images uploaded:', uploadedAttachments);
 
-      // Send message with attachments
+
       console.log('[Chat] Sending message with attachments...');
       const result = await chatService.sendMessage({
         ...payload,
@@ -468,7 +464,7 @@ export const chatService = {
     }
   },
 
-  // Mark messages as read for an order
+
   markAsRead: async (orderId: number): Promise<void> => {
     const sb = await checkSupabase();
     const user = useAuthStore.getState().user;
@@ -480,7 +476,7 @@ export const chatService = {
 
     const userId = user.id;
 
-    // Add 2 second buffer (same as web implementation)
+
     const readAt = new Date(Date.now() + 2000).toISOString();
 
     const { error } = await sb
@@ -495,11 +491,11 @@ export const chatService = {
 
     if (error) {
       console.error('Mark as read error:', error);
-      // Don't throw - this is not critical
+
     }
   },
 
-  // Get unread count for an order
+
   getUnreadCount: async (orderId: number): Promise<number> => {
     const sb = await checkSupabase();
     const user = useAuthStore.getState().user;
@@ -510,7 +506,7 @@ export const chatService = {
 
     const userId = user.id;
 
-    // Get last read timestamp
+
     const { data: readStatus } = await sb
       .from('chat_read_status')
       .select('last_read_at')
@@ -520,7 +516,7 @@ export const chatService = {
 
     const lastReadAt = readStatus?.last_read_at;
 
-    // Count messages after last read from other users
+
     let query = sb
       .from('chat_messages')
       .select('id', { count: 'exact' })
@@ -542,7 +538,7 @@ export const chatService = {
     return count || 0;
   },
 
-  // Delete message (soft delete)
+
   deleteMessage: async (messageId: string): Promise<void> => {
     const sb = await checkSupabase();
     const { error } = await sb
@@ -556,14 +552,14 @@ export const chatService = {
     }
   },
 
-  // Subscribe to new messages for an order (realtime)
+
   subscribeToMessages: (
     orderId: number,
     onMessage: (message: Message) => void
   ) => {
     if (!isSupabaseConfigured() || !supabase) return null;
 
-    // Channel name matches web: order-chat:${orderId}
+
     const channel = supabase
       .channel(`order-chat:${orderId}`)
       .on(
@@ -630,7 +626,7 @@ export const chatService = {
     return channel;
   },
 
-  // Unsubscribe from messages
+
   unsubscribeFromMessages: async (
     channel: ReturnType<typeof supabase.channel>
   ) => {

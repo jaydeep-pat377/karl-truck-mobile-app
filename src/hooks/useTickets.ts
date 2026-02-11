@@ -28,12 +28,12 @@ export const useTickets = (params?: Omit<TicketsQueryParams, 'page'>) => {
       }
       return undefined;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
     retry: 2,
     refetchOnMount: 'always',
   });
 
-  // Flatten all pages of tickets into a single array
+
   const tickets: ApiTicket[] = useMemo(() => {
     if (!query.data?.pages) return [];
     return query.data.pages.flatMap((page) =>
@@ -41,21 +41,21 @@ export const useTickets = (params?: Omit<TicketsQueryParams, 'page'>) => {
     );
   }, [query.data?.pages]);
 
-  // Get pagination from the last page
+
   const pagination: TicketsPagination | null = useMemo(() => {
     if (!query.data?.pages?.length) return null;
     const lastPage = query.data.pages[query.data.pages.length - 1];
     return lastPage.success ? lastPage.data.pagination : null;
   }, [query.data?.pages]);
 
-  // Get status counts from the first page (should be consistent across pages)
+
   const statusCounts: TicketsStatusCounts | null = useMemo(() => {
     if (!query.data?.pages?.length) return null;
     const firstPage = query.data.pages[0];
     return firstPage.success ? firstPage.data.status_counts : null;
   }, [query.data?.pages]);
 
-  // Get order summary from the first page
+
   const orderSummary: ApiOrderSummary[] = useMemo(() => {
     if (!query.data?.pages?.length) return [];
     const firstPage = query.data.pages[0];
@@ -77,7 +77,7 @@ export const useTickets = (params?: Omit<TicketsQueryParams, 'page'>) => {
     refetch: query.refetch,
     isRefetching: query.isRefetching,
     isFetching: query.isFetching,
-    // Pagination specific
+
     fetchNextPage: query.fetchNextPage,
     hasNextPage: query.hasNextPage,
     isFetchingNextPage: query.isFetchingNextPage,

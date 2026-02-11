@@ -1,6 +1,4 @@
-/**
- * Weather Types
- */
+
 
 export type WeatherCondition =
   | 'sunny'
@@ -48,7 +46,6 @@ export interface ProductRecommendation {
   priority: 'low' | 'medium' | 'high';
 }
 
-// API Response Types
 export interface WeatherApiData {
   source: string;
   humidity: number;

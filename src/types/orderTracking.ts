@@ -1,9 +1,5 @@
-/**
- * Order Tracking Types
- * Types for the /api/orders/tracking/:orderId endpoint
- */
 
-// Plant information
+
 export interface TrackingPlant {
   code: string;
   description: string;
@@ -15,7 +11,6 @@ export interface TrackingPlant {
   longitude: number;
 }
 
-// Ticket plant (simplified)
 export interface TicketPlant {
   code: string;
   name: string;
@@ -23,7 +18,6 @@ export interface TicketPlant {
   longitude: number;
 }
 
-// Truck information
 export interface TrackingTruck {
   code: string;
   description: string;
@@ -32,20 +26,17 @@ export interface TrackingTruck {
   longitude: number;
 }
 
-// Driver information
 export interface TrackingDriver {
   code: string;
   name: string;
   phone: string | null;
 }
 
-// Product information
 export interface TrackingProduct {
   item_code: string;
   description: string;
 }
 
-// Ticket timestamps
 export interface TicketTimestamps {
   eta_at_job: string | null;
   ticketed: string | null;
@@ -59,7 +50,6 @@ export interface TicketTimestamps {
   at_plant: string | null;
 }
 
-// Ticket status type
 export type TrackingTicketStatus =
   | 'ticketed'
   | 'loading'
@@ -72,7 +62,6 @@ export type TrackingTicketStatus =
   | 'at_plant'
   | 'cancelled';
 
-// Individual ticket in tracking
 export interface TrackingTicket {
   load: number;
   ticket_id: string;
@@ -90,7 +79,6 @@ export interface TrackingTicket {
   timestamps: TicketTimestamps;
 }
 
-// Weather data
 export interface TrackingWeatherData {
   source: string;
   humidity: number;
@@ -119,13 +107,11 @@ export interface TrackingWeatherData {
   concrete_temperature_fahrenheit: number | null;
 }
 
-// Order location
 export interface OrderLocation {
   latitude: number;
   longitude: number;
 }
 
-// Pagination
 export interface TrackingPagination {
   page: number;
   limit: number;
@@ -135,7 +121,6 @@ export interface TrackingPagination {
   has_prev: boolean;
 }
 
-// Summary stats
 export interface TrackingSummary {
   total_tickets: number;
   active_tickets: number;
@@ -147,7 +132,6 @@ export interface TrackingSummary {
   progress_display: string;
 }
 
-// Main tracking data
 export interface OrderTrackingData {
   order_id: string;
   order_code: string;
@@ -176,14 +160,12 @@ export interface OrderTrackingData {
   summary: TrackingSummary;
 }
 
-// API Response
 export interface OrderTrackingResponse {
   success: boolean;
   message: string;
   data: OrderTrackingData;
 }
 
-// Query params
 export interface OrderTrackingQueryParams {
   page?: number;
   limit?: number;

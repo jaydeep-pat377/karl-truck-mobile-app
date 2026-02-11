@@ -23,7 +23,7 @@ export const useLogout = () => {
     },
     onSettled: async () => {
       await clearAuth();
-      // Clear Android widget data on logout
+
       await clearWidgetData();
     },
   });

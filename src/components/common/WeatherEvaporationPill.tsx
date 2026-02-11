@@ -21,12 +21,10 @@ interface WeatherEvaporationPillProps {
   size?: 'small' | 'medium';
 }
 
-// Evaporation risk thresholds (kg/m²/hr)
-// Based on ACI 305R-10 guidelines for hot weather concreting
 const EVAPORATION_THRESHOLDS = {
-  LOW: 0.1,      // < 0.1: Low risk (safe)
-  MEDIUM: 0.25,  // 0.1 - 0.25: Medium risk (caution)
-  // > 0.25: High risk (critical)
+  LOW: 0.1,
+  MEDIUM: 0.25,
+
 };
 
 type EvaporationRiskLevel = 'low' | 'medium' | 'high' | 'unknown';
@@ -38,25 +36,24 @@ const getEvaporationRiskLevel = (rate: number | null | undefined): EvaporationRi
   return 'high';
 };
 
-// Risk level colors with proper contrast
 const riskLevelColors: Record<EvaporationRiskLevel, { background: string; text: string; icon: string }> = {
   low: {
-    background: '#22C55E',      // Green - safe
+    background: colors.dashboard.statGreen,
     text: '#FFFFFF',
     icon: '#FFFFFF',
   },
   medium: {
-    background: '#F59E0B',      // Amber/Yellow - caution
+    background: colors.dashboard.statYellow,
     text: '#000000',
     icon: '#000000',
   },
   high: {
-    background: '#EF4444',      // Red - critical
+    background: colors.dashboard.statRed,
     text: '#FFFFFF',
     icon: '#FFFFFF',
   },
   unknown: {
-    background: '#9CA3AF',      // Gray - no data
+    background: '#9CA3AF',
     text: '#FFFFFF',
     icon: '#FFFFFF',
   },

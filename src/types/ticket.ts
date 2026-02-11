@@ -1,8 +1,5 @@
-/**
- * Ticket API Types
- */
 
-// API Status values from status_counts
+
 export type ApiTicketStatus =
   | 'cancelled'
   | 'at_plant'
@@ -16,7 +13,6 @@ export type ApiTicketStatus =
   | 'ticketed'
   | 'pending';
 
-// API Ticket from response
 export interface ApiTicket {
   ticket_id: string;
   ticket_number: string;
@@ -33,29 +29,28 @@ export interface ApiTicket {
   status: ApiTicketStatus;
   scheduled_time: string;
   actual_time?: string;
-  // Product/Mix Information
+
   product_code?: string;
   product_name?: string;
   mix_design?: string;
   slump?: string;
-  // Delivery Location
+
   delivery_address?: string;
   delivery_city?: string;
-  // Customer Information
+
   customer_name?: string;
   customer_phone?: string;
   customer_company?: string;
-  // Additional Details
+
   special_instructions?: string;
   plant_name?: string;
   estimated_arrival?: string;
   distance?: string;
-  // Timestamps
+
   created_at?: string;
   updated_at?: string;
 }
 
-// Order Summary from response
 export interface ApiOrderSummary {
   order_id: string;
   order_code: string;
@@ -68,7 +63,6 @@ export interface ApiOrderSummary {
   unit: string;
 }
 
-// Pagination from response
 export interface TicketsPagination {
   page: number;
   limit: number;
@@ -78,7 +72,6 @@ export interface TicketsPagination {
   has_prev: boolean;
 }
 
-// Filters from response
 export interface TicketsFilters {
   date_filter: string;
   date_range: {
@@ -91,7 +84,6 @@ export interface TicketsFilters {
   truck_code: string | null;
 }
 
-// Status counts from response
 export interface TicketsStatusCounts {
   cancelled: number;
   at_plant: number;
@@ -106,7 +98,6 @@ export interface TicketsStatusCounts {
   pending: number;
 }
 
-// API Response Data
 export interface TicketsApiData {
   tickets: ApiTicket[];
   pagination: TicketsPagination;
@@ -115,14 +106,12 @@ export interface TicketsApiData {
   order_summary: ApiOrderSummary[];
 }
 
-// Full API Response
 export interface TicketsApiResponse {
   success: boolean;
   message: string;
   data: TicketsApiData;
 }
 
-// Query params for API request
 export interface TicketsQueryParams {
   date_filter?: 'today' | 'yesterday' | 'last_week' | 'custom';
   start_date?: string;
@@ -137,7 +126,6 @@ export interface TicketsQueryParams {
   sort_order?: 'asc' | 'desc';
 }
 
-// Tickets by Order API Types
 export interface TicketsByOrderQueryParams {
   sort_order?: 'asc' | 'desc';
   status?: string;
@@ -219,7 +207,6 @@ export interface TicketsByOrderApiResponse {
   data: TicketsByOrderData;
 }
 
-// Order Details API Types
 export interface OrderDetailsProduct {
   order_product_id: string;
   product_id: string;
@@ -320,7 +307,6 @@ export interface PlantDetails {
   longitude?: number;
 }
 
-// Graph data types
 export interface PourSpeedDataPoint {
   time: string;
   time_display: string;
@@ -413,7 +399,6 @@ export interface OrderDetailsQueryParams {
   order_date: string;
 }
 
-// Ticket Details API Types
 export interface TicketDetailsTruck {
   truck_code: string;
   truck_description: string;
@@ -494,7 +479,6 @@ export interface TicketDetailsQueryParams {
   ticket_code: string;
 }
 
-// UI Ticket type (mapped from API)
 export interface Ticket {
   id: string;
   ticketNumber: string;
@@ -511,24 +495,24 @@ export interface Ticket {
   status: ApiTicketStatus;
   scheduledTime: string;
   actualTime?: string;
-  // Product/Mix Information
+
   productCode?: string;
   productName?: string;
   mixDesign?: string;
   slump?: string;
-  // Delivery Location
+
   deliveryAddress?: string;
   deliveryCity?: string;
-  // Customer Information
+
   customerName?: string;
   customerPhone?: string;
   customerCompany?: string;
-  // Additional Details
+
   specialInstructions?: string;
   plantName?: string;
   estimatedArrival?: string;
   distance?: string;
-  // Timestamps
+
   createdAt?: string;
   updatedAt?: string;
 }

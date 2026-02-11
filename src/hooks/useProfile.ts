@@ -12,9 +12,9 @@ export const useProfile = () => {
   const query = useQuery<ProfileResponse, AxiosError<ApiErrorResponse>>({
     queryKey: ['userProfile'],
     queryFn: () => userService.getProfile(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     retry: 2,
-    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnMount: 'always',
   });
 
   const profile: UserProfile | null = query.data?.success ? query.data.data : null;

@@ -43,12 +43,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
 
-      // Set widget auth credentials for API fetching (Android)
+
       setAuthCredentials(accessToken, WIDGET_API_URL).catch((err) =>
         console.log('Widget auth setup error:', err)
       );
 
-      // Update iOS widget login state
+
       setWidgetLoggedIn(true);
       reloadWidget();
 
@@ -73,12 +73,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         STORAGE_KEYS.USER,
       ]);
 
-      // Clear widget data on logout (Android)
+
       clearWidgetData().catch((err) =>
         console.log('Widget clear error:', err)
       );
 
-      // Update iOS widget login state
+
       setWidgetLoggedIn(false);
       reloadWidget();
 
@@ -107,11 +107,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
       if (accessToken && refreshToken) {
-        // Token exists, verify with API
+
         const isValid = await get().verifyAuth();
 
         if (!isValid) {
-          // Token invalid, clear storage
+
           await get().logout();
         }
       }
@@ -138,17 +138,17 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           isAuthenticated: true,
         });
 
-        // Update stored user data
+
         await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data.user));
 
-        // Update widget credentials on app init (Android)
+
         if (accessToken) {
           setAuthCredentials(accessToken, WIDGET_API_URL).catch((err) =>
             console.log('Widget auth setup error:', err)
           );
         }
 
-        // Update iOS widget login state on app init
+
         setWidgetLoggedIn(true);
         reloadWidget();
 

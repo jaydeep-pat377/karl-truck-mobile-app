@@ -12,7 +12,6 @@ interface UseChatMessagesProps {
   orderId: number;
 }
 
-// Raw message type matching the chat_messages table
 interface RawChatMessage {
   id: number;
   chat_id: number;
@@ -48,14 +47,14 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastMessageTimeRef = useRef<string | null>(null);
 
-  // Get user ID on mount (use app user ID which is already a UUID)
+
   useEffect(() => {
     if (user?.id) {
       setSupabaseUserId(user.id);
     }
   }, [user?.id]);
 
-  // Set current room on mount
+
   useEffect(() => {
     if (!isConfigured) return;
 
@@ -68,21 +67,21 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     };
   }, [roomId, setCurrentRoom, markRoomAsRead, isConfigured]);
 
-  // Fetch messages
+
   const query = useQuery({
     queryKey: ['chatMessages', orderId],
     queryFn: () => chatService.getMessages(orderId),
     enabled: !!orderId && isConfigured,
-    staleTime: 30 * 1000, // 30 seconds - allow refetch after this time
-    refetchOnMount: 'always', // Always refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when app comes to foreground
+    staleTime: 30 * 1000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
-  // Update store when data changes
+
   useEffect(() => {
     if (query.data) {
       setMessages(roomId, query.data);
-      // Track last message time for polling
+
       if (query.data.length > 0) {
         const latestMsg = query.data[query.data.length - 1];
         lastMessageTimeRef.current = latestMsg.created_at;
@@ -90,7 +89,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     }
   }, [query.data, roomId, setMessages]);
 
-  // Merge initial messages with realtime messages
+
   const mergedMessages = useCallback(() => {
     const messageMap = new Map<string, Message>();
 
@@ -102,7 +101,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     );
   }, [query.data, realtimeMessages]);
 
-  // Polling function - primary method for getting new messages
+
   const pollForNewMessages = useCallback(async () => {
     if (!orderId || !isConfigured) return;
 
@@ -111,11 +110,11 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       if (messages.length > 0) {
         const latestMessage = messages[messages.length - 1];
 
-        // Check if we have new messages since last poll
+
         if (lastMessageTimeRef.current && latestMessage.created_at > lastMessageTimeRef.current) {
           console.log('[Chat Poll] New messages detected');
 
-          // Find new messages from other users
+
           const newMessages = messages.filter(
             (msg) =>
               msg.created_at > (lastMessageTimeRef.current || '') &&
@@ -145,7 +144,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     }
   }, [orderId, roomId, supabaseUserId, addMessage, isConfigured]);
 
-  // Real-time subscription for new messages
+
   useEffect(() => {
     if (!orderId || !isConfigured || !supabase) return;
 
@@ -161,7 +160,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
           .on(
             'postgres_changes',
             {
-              event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+              event: '*',
               schema: 'public',
               table: 'chat_messages',
               filter: `order_id=eq.${orderId}`,
@@ -177,7 +176,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
                 const msg = payload.new as RawChatMessage;
 
-                // Don't add if it's our own message (already added optimistically)
+
                 if (supabaseUserId && msg.sender_id === supabaseUserId) {
                   return;
                 }
@@ -215,7 +214,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
                   incrementUnreadCount(roomId);
                 }
 
-                // Update last message time for polling
+
                 lastMessageTimeRef.current = msg.created_at;
               } catch (payloadError) {
                 console.warn('[Chat] Error processing realtime payload:', payloadError);
@@ -227,10 +226,10 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
               console.log(`[Chat] Realtime connected for order ${orderId}`);
               setIsRealtimeConnected(true);
             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || err) {
-              // Silently handle - polling is the fallback
+
               console.warn('[Chat] Realtime not available, using polling fallback');
               setIsRealtimeConnected(false);
-              // Clean up failed channel
+
               if (channel) {
                 supabase.removeChannel(channel);
                 channel = null;
@@ -240,7 +239,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
             }
           });
       } catch (error) {
-        // Silently fail - polling is the primary method anyway
+
         console.warn('[Chat] Failed to setup realtime, using polling:', error);
         setIsRealtimeConnected(false);
       }
@@ -248,14 +247,14 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
     setupSubscription();
 
-    // Handle app state changes - reconnect when app becomes active
+
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
         console.log('App became active, refreshing chat...');
-        // Refresh messages when app becomes active
+
         queryClient.invalidateQueries({ queryKey: ['chatMessages', orderId] });
 
-        // Reconnect channel if needed
+
         if (channel) {
           channel.subscribe();
         }
@@ -264,7 +263,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
 
-    // Start polling every 2 seconds (primary method since realtime may be blocked by RLS)
+
     console.log('[Chat] Starting polling for new messages');
     pollingIntervalRef.current = setInterval(pollForNewMessages, 2000);
 
@@ -278,10 +277,10 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       }
       subscription.remove();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [orderId, roomId, supabaseUserId, addMessage, incrementUnreadCount, currentRoomId, isConfigured]);
 
-  // Send message mutation
+
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, images }: { content: string; images?: ImageAttachment[] }) => {
       console.log('[useChatMessages] mutationFn called:', { content, imagesCount: images?.length, images });
@@ -311,18 +310,18 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       }
     },
     onMutate: async ({ content, images }) => {
-      // Get user name - use fullName, firstName+lastName, or email as fallback
+
       let senderName = 'Unknown';
       if (user?.fullName) {
         senderName = user.fullName;
       } else if (user?.firstName || user?.lastName) {
         senderName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
       } else if (user?.email) {
-        // Use part before @ as name
+
         senderName = user.email.split('@')[0];
       }
 
-      // Map user role to allowed values
+
       let senderRole = 'contractor';
       const role = (user?.role || '').toLowerCase();
       if (role === 'admin' || role === 'administrator') {
@@ -331,7 +330,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
         senderRole = 'concrete_producer';
       }
 
-      // Create optimistic attachments for images (show local URIs)
+
       const optimisticAttachments = images
         ? images.map(img => ({ url: img.uri, type: img.type, name: img.name }))
         : [];
@@ -368,7 +367,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       setRealtimeMessages((prev) => prev.filter((m) => !m.id.startsWith('temp-')));
       queryClient.invalidateQueries({ queryKey: ['chatMessages', orderId] });
 
-      // Show error alert to user
+
       Alert.alert(
         'Failed to Send',
         error?.message || 'Could not send message. Please try again.',
@@ -384,7 +383,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     [sendMessageMutation]
   );
 
-  // Delete message mutation
+
   const deleteMessageMutation = useMutation({
     mutationFn: (messageId: string) => chatService.deleteMessage(messageId),
     onSuccess: () => {
@@ -392,7 +391,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     },
   });
 
-  // Load more messages
+
   const loadMore = useCallback(async () => {
     const messages = mergedMessages();
     if (messages.length === 0) return;

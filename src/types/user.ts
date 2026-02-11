@@ -1,6 +1,4 @@
-/**
- * User Types
- */
+
 
 export type UserRole = 'dispatcher' | 'customer' | 'driver' | 'admin' | 'authenticated';
 
@@ -24,7 +22,6 @@ export interface User {
   updatedAt?: string;
 }
 
-// Profile API response structure
 export interface UserProfile {
   id: string;
   email: string;

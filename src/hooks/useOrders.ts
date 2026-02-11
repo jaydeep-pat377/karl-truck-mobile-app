@@ -27,25 +27,25 @@ export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
       }
       return undefined;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes - faster refresh for orders
-    gcTime: 10 * 60 * 1000, // 10 minutes cache
-    retry: 1, // Reduce retries for faster failure
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 1,
     refetchOnMount: 'always',
-    refetchOnWindowFocus: false, // Don't refetch on app focus
+    refetchOnWindowFocus: false,
   });
 
-  // Flatten all pages of orders into a single array and remove duplicates
+
   const orders: ApiOrder[] = useMemo(() => {
     if (!query.data?.pages) return [];
 
-    // Console log the API response
+
     console.log('📦 Orders API Response:', JSON.stringify(query.data.pages, null, 2));
 
     const allOrders = query.data.pages.flatMap((page) =>
       page.success ? page.data.orders : []
     );
 
-    // Remove duplicates by order_id to prevent key conflicts
+
     const uniqueOrders = allOrders.filter(
       (order, index, self) =>
         index === self.findIndex((o) => o.order_id === order.order_id)
@@ -54,14 +54,14 @@ export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
     return uniqueOrders;
   }, [query.data?.pages]);
 
-  // Get pagination from the last page
+
   const pagination: OrdersPagination | null = useMemo(() => {
     if (!query.data?.pages?.length) return null;
     const lastPage = query.data.pages[query.data.pages.length - 1];
     return lastPage.success ? lastPage.data.pagination : null;
   }, [query.data?.pages]);
 
-  // Get status counts from the first page (should be consistent across pages)
+
   const statusCounts: OrdersStatusCounts | null = useMemo(() => {
     if (!query.data?.pages?.length) return null;
     const firstPage = query.data.pages[0];
@@ -72,23 +72,23 @@ export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
     query.error?.response?.data?.message ||
     (query.error ? 'Failed to load orders' : null);
 
-  // Show full loading state when loading initial data or when query key changes
+
   const isInitialLoading = query.isLoading;
-  // Show subtle loading when refetching but have data to display
+
   const isFilterLoading = query.isFetching && !query.isLoading && orders.length > 0;
 
   return {
     orders,
     pagination,
     statusCounts,
-    isLoading: isInitialLoading, // Only true when no data to show
-    isFilterLoading, // True when fetching but have data to display
+    isLoading: isInitialLoading,
+    isFilterLoading,
     isError: query.isError,
     error: errorMessage,
     refetch: query.refetch,
     isRefetching: query.isRefetching,
     isFetching: query.isFetching,
-    // Pagination specific
+
     fetchNextPage: query.fetchNextPage,
     hasNextPage: query.hasNextPage,
     isFetchingNextPage: query.isFetchingNextPage,

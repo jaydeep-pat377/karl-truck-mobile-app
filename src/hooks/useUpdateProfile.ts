@@ -15,7 +15,7 @@ export const useUpdateProfile = () => {
     mutationFn: (data: UpdateProfileRequest) => userService.updateProfile(data),
     onSuccess: (response) => {
       if (response.success) {
-        // Invalidate and refetch the profile and dashboard queries to update cached data
+
         queryClient.invalidateQueries({ queryKey: ['userProfile'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       }
@@ -26,7 +26,7 @@ export const useUpdateProfile = () => {
     mutationFn: (imageUri: string) => userService.uploadAvatar(imageUri),
     onSuccess: (response) => {
       if (response.success) {
-        // Invalidate both queries so avatar updates everywhere
+
         queryClient.invalidateQueries({ queryKey: ['userProfile'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       }

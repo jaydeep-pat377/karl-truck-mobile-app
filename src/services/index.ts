@@ -1,7 +1,4 @@
-/**
- * Services Index
- * Export all services for easy imports
- */
+
 
 export * from './alertService';
 export { default as alertService } from './alertService';

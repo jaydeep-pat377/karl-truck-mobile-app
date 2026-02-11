@@ -1,108 +1,105 @@
 export const colors = {
-  // Primary Colors from brand palette
   primary: {
-    main: '#6BB130',       // Green (Primary)
-    light: '#86C543',      // Green Light
-    dark: '#5A9628',       // Green Dark (derived)
+    main: '#458b00',
+    light: '#5aa510',
+    dark: '#367000',
     contrast: '#FFFFFF',
   },
   secondary: {
-    main: '#04BCEF',       // Blue (Accent)
-    light: '#36CAFF',      // Blue Light (derived)
-    dark: '#039CC7',       // Blue Dark (derived)
+    main: '#2f7ed8',
+    light: '#5a9be8',
+    dark: '#2565b0',
     contrast: '#FFFFFF',
   },
-  // Greyscale Colors
   grey: {
-    100: '#000000',        // Black 100%
-    85: '#262626',         // Black 85%
-    80: '#323232',         // Black 80%
-    60: '#585957',         // Dark Gray
-    50: '#808080',         // Mid Gray
-    40: '#999999',         // Gray 40%
-    25: '#BFBFBF',         // Black 25%
-    15: '#D9D9D9',         // Light Gray 15%
-    10: '#E5E5E5',         // Very Light Gray 10%
-    8: '#EBEBEB',          // Extra Light Gray 8%
-    5: '#F2F2F2',          // Black 5%
-    3: '#F7F7F7',          // Almost White
-    light: '#F4F4F4',      // Light Gray
+    100: '#000000',
+    85: '#262626',
+    80: '#323232',
+    60: '#585957',
+    50: '#808080',
+    40: '#999999',
+    25: '#BFBFBF',
+    15: '#D9D9D9',
+    10: '#E5E5E5',
+    8: '#EBEBEB',
+    5: '#F2F2F2',
+    3: '#F7F7F7',
+    light: '#F4F4F4',
   },
-  // Progress Bar Colors
   progress: {
-    trackLight: '#E8E8E8', // Soft gray for light mode
-    trackDark: '#3A3A3A',  // Subtle dark gray for dark mode
+    trackLight: '#E8E8E8',
+    trackDark: '#3A3A3A',
   },
   status: {
-    prePour: '#F59E0B',
-    inProcess: '#04BCEF',  // Using brand blue
-    completed: '#6BB130',  // Using brand green
-    cancelled: '#EF4444',
-    delayed: '#EF4444',    // Red for delayed
-    onHold: '#585957',     // Using brand dark gray
+    prePour: '#f7bb00',
+    inProcess: '#2f7ed8',
+    completed: '#458b00',
+    cancelled: '#c43926',
+    delayed: '#c43926',
+    onHold: '#585957',
     enRoute: '#8B5CF6',
-    onSite: '#04BCEF',     // Using brand blue
+    onSite: '#2f7ed8',
   },
   weather: {
-    gradientStart: '#6BB130',
-    gradientEnd: '#86C543',
+    gradientStart: '#458b00',
+    gradientEnd: '#5aa510',
     cloudyBg: '#585957',
   },
   success: {
-    main: '#6BB130',       // Using brand green
-    light: '#86C543',      // Using brand green light
-    dark: '#5A9628',
-    background: '#E8F5E0',
+    main: '#458b00',
+    light: '#5aa510',
+    dark: '#367000',
+    background: '#e8f5e0',
   },
   warning: {
-    main: '#F59E0B',
-    light: '#FBBF24',
-    dark: '#D97706',
-    background: '#FEF3C7',
+    main: '#f7bb00',
+    light: '#ffd040',
+    dark: '#d9a300',
+    background: '#fef9e6',
   },
   error: {
-    main: '#EF4444',
-    light: '#F87171',
-    dark: '#DC2626',
-    background: '#FEE2E2',
+    main: '#c43926',
+    light: '#e05545',
+    dark: '#a02d1d',
+    background: '#fdecea',
   },
   info: {
-    main: '#04BCEF',       // Using brand blue
-    light: '#36CAFF',
-    dark: '#039CC7',
-    background: '#E0F7FC',
+    main: '#2f7ed8',
+    light: '#5a9be8',
+    dark: '#2565b0',
+    background: '#e8f2fc',
   },
   dark: {
-    background: '#000000', // Black 100%
-    surface: '#262626',    // Black 85%
-    card: '#323232',       // Black 80%
+    background: '#000000',
+    surface: '#262626',
+    card: '#323232',
     cardElevated: '#3D3D3D',
-    border: '#585957',     // Dark Gray
+    border: '#585957',
     text: {
       primary: '#FFFFFF',
-      secondary: '#BFBFBF', // Black 25%
-      disabled: '#808080',  // Mid Gray - improved contrast
-      hint: '#999999',      // Gray 40% - improved contrast for visibility
+      secondary: '#BFBFBF',
+      disabled: '#808080',
+      hint: '#999999',
     },
   },
   light: {
-    background: '#F2F2F2', // Black 5%
+    background: '#F2F2F2',
     surface: '#FFFFFF',
     card: '#FFFFFF',
-    cardElevated: '#F4F4F4', // Light Gray
-    border: '#BFBFBF',     // Black 25%
+    cardElevated: '#F4F4F4',
+    border: '#BFBFBF',
     text: {
-      primary: '#000000',  // Black 100%
-      secondary: '#585957', // Dark Gray
-      disabled: '#BFBFBF', // Black 25%
-      hint: '#808080',     // Mid Gray - improved contrast for visibility
+      primary: '#000000',
+      secondary: '#585957',
+      disabled: '#BFBFBF',
+      hint: '#808080',
     },
   },
   common: {
     white: '#FFFFFF',
     black: '#000000',
     transparent: 'transparent',
-    shadow: '#000000', // Standard shadow color
+    shadow: '#000000',
   },
   overlay: {
     light: 'rgba(255, 255, 255, 0.1)',
@@ -110,7 +107,6 @@ export const colors = {
     dark: 'rgba(0, 0, 0, 0.7)',
     modal: 'rgba(0, 0, 0, 0.6)',
   },
-  // Modal button colors for better dark mode visibility
   modal: {
     light: {
       cancelBg: '#F2F2F2',
@@ -123,7 +119,6 @@ export const colors = {
       cancelBorder: '#5A5A5A',
     },
   },
-  // Weather Screen Theme (Dark Navy Blue)
   weatherTheme: {
     background: '#0A1628',
     cardBackground: '#111D2E',
@@ -137,36 +132,31 @@ export const colors = {
       secondary: '#94A3B8',
       hint: '#64748B',
     },
-    // Menu colors - subtle and integrated with theme
     menu: {
-      background: '#111D2E',              // Same as cardBackground for consistency
-      border: '#1E3A5F',                  // Same as cardBorder
-      overlay: 'rgba(0, 0, 0, 0.6)',      // Standard overlay
-      shadow: '#000000',                  // Standard shadow
-      iconBackground: 'rgba(255, 255, 255, 0.06)', // Very subtle light tint
-      divider: 'rgba(255, 255, 255, 0.08)',  // Subtle white divider
+      background: '#111D2E',
+      border: '#1E3A5F',
+      overlay: 'rgba(0, 0, 0, 0.6)',
+      shadow: '#000000',
+      iconBackground: 'rgba(255, 255, 255, 0.06)',
+      divider: 'rgba(255, 255, 255, 0.08)',
     },
   },
-  // Weather Icon Colors
   weatherIcon: {
     sunGold: '#FFD700',
     sunOrange: '#FFA500',
     cloudLight: '#E0E7FF',
     cloudBlue: '#A5B4FC',
     rain: '#60A5FA',
-    indicatorDot: '#FF6B6B',    // Coral red for gauge indicators
+    indicatorDot: '#FF6B6B',
   },
-  // Product Recommendation Colors
   productChip: {
     thermalCracking: '#FF4343',
     plasticCracking: '#EAAD29',
     cream: '#F5F5DC',
   },
-  // Loader/Animation Colors
   loader: {
     wheelSpoke: '#3A3B4A',
   },
-  // Splash Screen Colors
   splash: {
     decorativeCircle1: 'rgba(255,255,255,0.08)',
     decorativeCircle2: 'rgba(255,255,255,0.05)',
@@ -175,12 +165,10 @@ export const colors = {
     loaderDots: 'rgba(255,255,255,0.9)',
     footer: 'rgba(255,255,255,0.6)',
   },
-  // External App/Brand Colors
   brands: {
     googleMaps: '#4285F4',
     appleMaps: '#000000',
   },
-  // Action Colors (for buttons, links)
   action: {
     call: {
       main: '#FF5722',
@@ -191,59 +179,57 @@ export const colors = {
       borderLight: 'rgba(255, 87, 34, 0.2)',
     },
   },
-  // Dashboard/Stats Colors
   dashboard: {
-    willCall: '#8B5CF6',      // Purple
-    inProgress: '#F97316',    // Orange
+    willCall: '#8B5CF6',
+    inProgress: '#f7bb00',
+    statGreen: '#458b00',
+    statRed: '#c43926',
+    statYellow: '#f7bb00',
+    statBlue: '#2f7ed8',
   },
-  // Map Marker Colors
   mapMarker: {
-    jobSite: '#EF4444',       // Red for job site
-    truck: '#04BCEF',         // Blue for truck (uses secondary.main)
-    plant: '#3B82F6',         // Blue for plant location
+    jobSite: '#c43926',
+    truck: '#2f7ed8',
+    plant: '#2f7ed8',
   },
-  // Tracking Status Colors (for Order/Map tracking screens)
   trackingStatus: {
-    ticketed: '#9E9E9E',      // Gray
-    loading: '#8BC34A',       // Light Green
-    loaded: '#2E7D32',        // Dark Green
-    toJob: '#2E7D32',         // Dark Green
-    atJob: '#64B5F6',         // Light Blue
-    pouring: '#1565C0',       // Dark Blue
-    washing: '#C62828',       // Dark Red
-    toPlant: '#EC407A',       // Pink
-    atPlant: '#EC407A',       // Pink
-    cancelled: '#EF4444',     // Red
-    live: '#10B981',          // Teal Green
+    ticketed: '#9E9E9E',
+    loading: '#5aa510',
+    loaded: '#458b00',
+    toJob: '#458b00',
+    atJob: '#5a9be8',
+    pouring: '#2f7ed8',
+    washing: '#c43926',
+    toPlant: '#EC407A',
+    atPlant: '#EC407A',
+    cancelled: '#c43926',
+    live: '#458b00',
   },
-  // Chat Colors
   chat: {
     light: {
-      sentBubble: '#DCF8C6',      // Light green for sent messages
-      receivedBubble: '#FFFFFF',   // White for received messages
-      textPrimary: '#111B21',      // Dark text
+      sentBubble: '#DCF8C6',
+      receivedBubble: '#FFFFFF',
+      textPrimary: '#111B21',
       timeText: 'rgba(0,0,0,0.45)',
       inputBg: 'rgba(0,0,0,0.06)',
-      messageArea: '#F0F2F5',      // Light gray message area background
+      messageArea: '#F0F2F5',
     },
     dark: {
-      sentBubble: '#005C4B',       // Dark teal for sent messages
-      receivedBubble: '#1F2C34',   // Dark gray for received messages
-      textPrimary: '#E9EDEF',      // Light text
+      sentBubble: '#005C4B',
+      receivedBubble: '#1F2C34',
+      textPrimary: '#E9EDEF',
       timeText: 'rgba(255,255,255,0.6)',
       inputBg: 'rgba(255,255,255,0.1)',
-      background: '#0D1117',       // Very dark background
-      messageArea: '#0D1117',      // Messages wrapper background
+      background: '#0D1117',
+      messageArea: '#0D1117',
     },
-    whatsappGreen: '#00A884',      // WhatsApp-style green
-    readTick: '#53BDEB',            // Blue tick for read status
+    whatsappGreen: '#00A884',
+    readTick: '#53BDEB',
   },
-  // Evaporation Progress Colors (gradient from safe to danger)
   evaporation: {
-    gradient: ['#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800', '#F44336'],
+    gradient: ['#458b00', '#5aa510', '#8db800', '#f7bb00', '#e8a000', '#d98500', '#c43926'],
     indicatorDot: '#FFFFFF',
   },
-  // Info Section Icon Colors
   infoIcons: {
     cyan: {
       light: '#00BCD4',
@@ -258,24 +244,21 @@ export const colors = {
       dark: '#B39DDB',
     },
     blue: {
-      light: '#1976D2',
-      dark: '#64B5F6',
+      light: '#2f7ed8',
+      dark: '#5a9be8',
     },
   },
-  // Accent Colors for various UI elements
   accent: {
     blue: '#3949ab',
-    indigo: '#6366F1', // Indigo for selected states
-    indigoBg: 'rgba(99, 102, 241, 0.1)', // Indigo background with opacity
+    indigo: '#6366F1',
+    indigoBg: 'rgba(99, 102, 241, 0.1)',
   },
-  // Card Background Colors
   cardBg: {
     light: '#FAFAFA',
     dark: '#1a2a3a',
     border: '#E0E0E0',
     infoBg: '#E8F4FC',
   },
-  // Tab Bar Theme Colors
   tabBar: {
     light: {
       background: '#FFFFFF',
@@ -291,27 +274,26 @@ export const colors = {
       labelActive: '#FFFFFF',
     },
   },
-  // Status Badge Colors (for StatusBadge component)
   statusBadge: {
     red: {
-      text: '#DC2626',
-      textDark: '#F87171',
+      text: '#c43926',
+      textDark: '#e05545',
     },
     amber: {
-      text: '#D97706',
-      textDark: '#FBBF24',
+      text: '#d9a300',
+      textDark: '#f7bb00',
     },
     yellow: {
-      text: '#d0c41d',
-      textDark: '#FACC15',
+      text: '#d9a300',
+      textDark: '#f7bb00',
     },
     green: {
-      text: '#059669',
-      textDark: '#34D399',
+      text: '#458b00',
+      textDark: '#5aa510',
     },
     blue: {
-      text: '#0284C7',
-      textDark: '#38BDF8',
+      text: '#2f7ed8',
+      textDark: '#5a9be8',
     },
     purple: {
       text: '#7C3AED',
@@ -322,17 +304,15 @@ export const colors = {
       textDark: '#9CA3AF',
     },
   },
-  // Weather Badge Colors
   weatherBadge: {
-    sunny: '#F59E0B',
+    sunny: '#f7bb00',
     partlyCloudy: '#6B7280',
     cloudy: '#9CA3AF',
-    rain: '#3B82F6',
+    rain: '#2f7ed8',
     storm: '#6366F1',
-    snow: '#60A5FA',
+    snow: '#5a9be8',
     fog: '#9CA3AF',
   },
-  // Ticket Detail Badge Status Colors (for floating status badge)
   ticketBadge: {
     pending: {
       bg: 'rgba(255, 255, 255, 0.95)',
@@ -366,8 +346,8 @@ export const colors = {
     },
     pouring: {
       bg: 'rgba(255, 255, 255, 0.95)',
-      text: '#2E7D32',
-      icon: '#2E7D32',
+      text: '#458b00',
+      icon: '#458b00',
     },
     washing: {
       bg: 'rgba(3, 169, 244, 0.95)',
@@ -385,12 +365,11 @@ export const colors = {
       icon: '#546E7A',
     },
     cancelled: {
-      bg: 'rgba(244, 67, 54, 0.95)',
+      bg: 'rgba(196, 57, 38, 0.95)',
       text: '#FFFFFF',
       icon: '#FFFFFF',
     },
   },
-  // Header Overlay Colors (white with opacity for dark headers)
   headerOverlay: {
     bg: 'rgba(255,255,255,0.15)',
     bgHover: 'rgba(255,255,255,0.2)',
@@ -399,7 +378,6 @@ export const colors = {
     textBrightest: 'rgba(255,255,255,0.9)',
     border: 'rgba(255,255,255,0.2)',
   },
-  // Semi-transparent white/dark overlays
   semiTransparent: {
     white03: 'rgba(255,255,255,0.03)',
     white05: 'rgba(255,255,255,0.05)',
@@ -427,20 +405,17 @@ export const colors = {
     gray30: 'rgba(128,128,128,0.3)',
     darkGray90: 'rgba(30,30,30,0.9)',
     teal20: 'rgba(16,185,129,0.2)',
-    green08: 'rgba(107,177,48,0.08)',
-    green10: 'rgba(107,177,48,0.1)',
-    green15: 'rgba(107,177,48,0.15)',
+    green08: 'rgba(69,139,0,0.08)',
+    green10: 'rgba(69,139,0,0.1)',
+    green15: 'rgba(69,139,0,0.15)',
   },
-  // Product status colors (for weather/product screens)
   productStatus: {
-    danger: '#EF5350',
-    safe: '#66BB6A',
-    info: '#42A5F5',
-    truckIcon: '#90CAF9',
+    danger: '#c43926',
+    safe: '#458b00',
+    info: '#2f7ed8',
+    truckIcon: '#5a9be8',
   },
-  // Ticket Screen Colors
   ticket: {
-    // Light mode status colors
     status: {
       atPlant: {
         bg: '#ECEFF1',
@@ -448,9 +423,9 @@ export const colors = {
         iconBg: '#CFD8DC',
       },
       inTransit: {
-        bg: '#E3F2FD',
-        text: '#1565C0',
-        iconBg: '#BBDEFB',
+        bg: '#e8f2fc',
+        text: '#2f7ed8',
+        iconBg: '#b8d4f0',
       },
       atSite: {
         bg: '#FFF3E0',
@@ -458,14 +433,14 @@ export const colors = {
         iconBg: '#FFE0B2',
       },
       pouring: {
-        bg: '#E8F5E9',
-        text: '#2E7D32',
-        iconBg: '#C8E6C9',
+        bg: '#e8f5e0',
+        text: '#458b00',
+        iconBg: '#c8e6c0',
       },
       completed: {
-        bg: '#E8F5E9',
-        text: '#2E7D32',
-        iconBg: '#A5D6A7',
+        bg: '#e8f5e0',
+        text: '#458b00',
+        iconBg: '#a5d6a0',
       },
       returning: {
         bg: '#F3E5F5',
@@ -473,7 +448,6 @@ export const colors = {
         iconBg: '#E1BEE7',
       },
     },
-    // Dark mode status colors
     statusDark: {
       atPlant: {
         bg: 'rgba(150, 150, 150, 0.15)',
@@ -481,9 +455,9 @@ export const colors = {
         iconBg: 'rgba(150, 150, 150, 0.3)',
       },
       inTransit: {
-        bg: 'rgba(33, 150, 243, 0.15)',
-        text: '#64B5F6',
-        iconBg: 'rgba(33, 150, 243, 0.3)',
+        bg: 'rgba(47, 126, 216, 0.15)',
+        text: '#5a9be8',
+        iconBg: 'rgba(47, 126, 216, 0.3)',
       },
       atSite: {
         bg: 'rgba(255, 152, 0, 0.15)',
@@ -491,14 +465,14 @@ export const colors = {
         iconBg: 'rgba(255, 152, 0, 0.3)',
       },
       pouring: {
-        bg: 'rgba(76, 175, 80, 0.15)',
-        text: '#81C784',
-        iconBg: 'rgba(76, 175, 80, 0.3)',
+        bg: 'rgba(69, 139, 0, 0.15)',
+        text: '#5aa510',
+        iconBg: 'rgba(69, 139, 0, 0.3)',
       },
       completed: {
-        bg: 'rgba(76, 175, 80, 0.15)',
-        text: '#81C784',
-        iconBg: 'rgba(76, 175, 80, 0.4)',
+        bg: 'rgba(69, 139, 0, 0.15)',
+        text: '#5aa510',
+        iconBg: 'rgba(69, 139, 0, 0.4)',
       },
       returning: {
         bg: 'rgba(156, 39, 176, 0.15)',
@@ -506,7 +480,6 @@ export const colors = {
         iconBg: 'rgba(156, 39, 176, 0.3)',
       },
     },
-    // UI element colors
     ui: {
       light: {
         timeText: '#666666',
@@ -514,8 +487,8 @@ export const colors = {
         filterBg: '#F5F5F5',
         filterBorder: '#E0E0E0',
         filterText: '#555555',
-        progressBg: '#E8F5E0',
-        emptyIcon: '#6BB130',
+        progressBg: '#e8f5e0',
+        emptyIcon: '#458b00',
       },
       dark: {
         timeText: 'rgba(255,255,255,0.5)',
@@ -523,22 +496,20 @@ export const colors = {
         filterBg: 'rgba(255,255,255,0.08)',
         filterBorder: 'rgba(255,255,255,0.12)',
         filterText: 'rgba(255,255,255,0.75)',
-        progressBg: 'rgba(66, 165, 245, 0.15)',
-        accentBlue: '#42A5F5',
-        accentBlueLight: '#64B5F6',
-        badgeBg: 'rgba(33, 150, 243, 0.2)',
+        progressBg: 'rgba(47, 126, 216, 0.15)',
+        accentBlue: '#2f7ed8',
+        accentBlueLight: '#5a9be8',
+        badgeBg: 'rgba(47, 126, 216, 0.2)',
       },
     },
-    // Empty state gradient colors
     emptyGradient: {
-      light: ['#E8F5E9', '#C8E6C9'],
-      dark: ['#1B5E20', '#2E7D32'],
+      light: ['#e8f5e0', '#c8e6c0'],
+      dark: ['#2d5a00', '#458b00'],
     },
   },
-  // Chart colors (for OrderDetailsScreen and other charts)
   chart: {
-    ordered: '#04BCEF',      // Same as secondary.main
-    poured: '#8BC34A',       // Light green
+    ordered: '#2f7ed8',
+    poured: '#5aa510',
     delivered: {
       dark: '#FFFFFF',
       light: '#1a1a2e',
@@ -551,58 +522,49 @@ export const colors = {
       text: '#FFFFFF',
       background: 'rgba(0,0,0,0.8)',
     },
-    // Quality metrics
     waiting: '#9CA3AF',
-    pouring: '#6BB130',
-    washout: '#04BCEF',
+    pouring: '#458b00',
+    washout: '#2f7ed8',
   },
-  // Weather parameter icon colors (for ProductDetailsScreen)
   weatherParams: {
-    temperature: '#4FC3F7',    // Cyan - Concrete Temperature
-    wind: '#81C784',           // Green - Wind Conditions
-    pressure: '#FFB74D',       // Orange - Atmospheric Pressure
-    dewPoint: '#4DD0E1',       // Cyan - Dew Point
-    humidity: '#7986CB',       // Indigo - Relative Humidity
-    evaporation: '#FF8A65',    // Orange - Evaporation Rate
+    temperature: '#4FC3F7',
+    wind: '#81C784',
+    pressure: '#FFB74D',
+    dewPoint: '#4DD0E1',
+    humidity: '#7986CB',
+    evaporation: '#FF8A65',
   },
-  // Text colors
   text: {
     dark: '#333333',
     darkSecondary: '#666666',
     lightMuted: 'rgba(255,255,255,0.7)',
     lightSubtle: 'rgba(255,255,255,0.6)',
   },
-  // Theme-based gradients for headers and hero sections
   gradients: {
-    // Light theme: Soft, subtle gradients
     light: {
-      primary: ['#6BB130', '#86C543'],           // Green primary gradient
-      primarySubtle: ['#E8F5E0', '#F5FBF0'],     // Very soft green
-      secondary: ['#04BCEF', '#36CAFF'],         // Blue accent gradient
-      secondarySubtle: ['#E0F7FC', '#F0FBFE'],   // Very soft blue
-      surface: ['#FFFFFF', '#F7F7F7'],           // White to light gray
-      header: ['#6BB130', '#7FC23D', '#FFFFFF'], // Primary fading to white
-      // Top background gradient - smooth transition to white
-      topBackground: ['#5A9628', '#6BB130', '#86C543', '#E8F5E0', '#F2F2F2'],
+      primary: ['#458b00', '#5aa510'],
+      primarySubtle: ['#e8f5e0', '#f5fbf0'],
+      secondary: ['#2f7ed8', '#5a9be8'],
+      secondarySubtle: ['#e8f2fc', '#f0f8fe'],
+      surface: ['#FFFFFF', '#F7F7F7'],
+      header: ['#458b00', '#5aa510', '#FFFFFF'],
+      topBackground: ['#367000', '#458b00', '#5aa510', '#e8f5e0', '#F2F2F2'],
       topBackgroundLocations: [0, 0.2, 0.4, 0.7, 1],
     },
-    // Dark theme: Deep, rich gradients
     dark: {
-      primary: ['#5A9628', '#6BB130'],           // Darker to primary green
-      primarySubtle: ['#323232', '#262626'],     // Card to surface
-      secondary: ['#039CC7', '#04BCEF'],         // Darker to primary blue
-      secondarySubtle: ['#262626', '#1A1A1A'],   // Surface tones
-      surface: ['#323232', '#262626'],           // Card to surface
-      header: ['#5A9628', '#4A7A20', '#262626'], // Primary fading to surface
-      // Top background gradient - smooth transition to dark surface
-      topBackground: ['#5A9628', '#6BB130', '#323232', '#262626', '#000000'],
+      primary: ['#367000', '#458b00'],
+      primarySubtle: ['#323232', '#262626'],
+      secondary: ['#2565b0', '#2f7ed8'],
+      secondarySubtle: ['#262626', '#1A1A1A'],
+      surface: ['#323232', '#262626'],
+      header: ['#367000', '#2d5a00', '#262626'],
+      topBackground: ['#367000', '#458b00', '#323232', '#262626', '#000000'],
       topBackgroundLocations: [0, 0.25, 0.5, 0.75, 1],
     },
   },
 };
 
 export const statusColorMap: Record<string, string> = {
-  // Pre-Pour / Normal → Green
   PRE_POUR: colors.success.main,
   'Pre-Pour': colors.success.main,
   'pre_pour': colors.success.main,
@@ -611,32 +573,22 @@ export const statusColorMap: Record<string, string> = {
   NORMAL: colors.success.main,
   'Normal': colors.success.main,
   'normal': colors.success.main,
-
-  // In Progress → Green (default, dynamic in OrderCard based on cy/hr)
   IN_PROCESS: colors.success.main,
   'In Progress': colors.success.main,
   'in progress': colors.success.main,
   'in_process': colors.success.main,
-
-  // Completed → Green (default, dynamic in OrderCard based on cy/hr)
   COMPLETED: colors.success.main,
   'Completed': colors.success.main,
   'completed': colors.success.main,
-
-  // Cancelled → Red
   CANCELLED: colors.error.main,
   CANCELED: colors.error.main,
   'Cancelled': colors.error.main,
   'Canceled': colors.error.main,
   'cancelled': colors.error.main,
   'canceled': colors.error.main,
-
-  // Delayed → Red
   DELAYED: colors.error.main,
   'Delayed': colors.error.main,
   'delayed': colors.error.main,
-
-  // Hold → Red
   HOLD: colors.error.main,
   'Hold': colors.error.main,
   'hold': colors.error.main,
@@ -646,24 +598,16 @@ export const statusColorMap: Record<string, string> = {
   'Hold Delivery': colors.error.main,
   'hold delivery': colors.error.main,
   'hold_delivery': colors.error.main,
-
-  // En Route / On Site
   ENRT: colors.status.enRoute,
   ONSIT: colors.status.onSite,
-
-  // Will Call → Yellow
   WILL_CALL: colors.warning.main,
   'Will Call': colors.warning.main,
   'will call': colors.warning.main,
   'will_call': colors.warning.main,
-
-  // Weather Permitting → Yellow
   WEATHER_PERMITTING: colors.warning.main,
   'Weather Permitting': colors.warning.main,
   'weather permitting': colors.warning.main,
   'weather_permitting': colors.warning.main,
-
-  // Wait List → Yellow
   WAIT_LIST: colors.warning.main,
   'Wait List': colors.warning.main,
   'wait list': colors.warning.main,
@@ -672,15 +616,13 @@ export const statusColorMap: Record<string, string> = {
   'waitlist': colors.warning.main,
 };
 
-// Performance-based color helper for In Process and Completed orders
-// ≥90% → Green, 60%-<90% → Yellow, <60% → Red
 export const getPerformanceColor = (performancePercent: number): string => {
   if (performancePercent >= 90) {
-    return colors.success.main;  // Green
+    return colors.success.main;
   } else if (performancePercent >= 60) {
-    return colors.warning.main;  // Yellow
+    return colors.warning.main;
   } else {
-    return colors.error.main;    // Red
+    return colors.error.main;
   }
 };
 

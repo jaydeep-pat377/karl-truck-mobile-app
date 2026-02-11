@@ -27,7 +27,7 @@ export const useTicketsByOrder = (params: UseTicketsByOrderParams) => {
     queryKey: ['ticketsByOrder', orderId, queryParams],
     queryFn: () => ticketService.getTicketsByOrder(orderId, queryParams),
     enabled: !!orderId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
     retry: 2,
     refetchOnMount: 'always',
   });
@@ -46,29 +46,29 @@ export const useTicketsByOrder = (params: UseTicketsByOrderParams) => {
     (query.error ? 'Failed to load tickets' : null);
 
   return {
-    // Raw data
+
     data,
     order,
     tickets,
     filters,
     summary,
-    // Order info
+
     orderId: order?.order_id,
     orderCode: order?.order_code,
     orderDate: order?.order_date,
     customerName: order?.customer_name,
     deliveryAddress: order?.delivery_address,
-    // Summary info
+
     totalTickets: summary?.total_tickets ?? 0,
     totalDeliveredQty: summary?.total_delivered_qty ?? 0,
     orderedQty: summary?.ordered_qty ?? 0,
     remainingQty: summary?.remaining_qty ?? 0,
     progressDisplay: summary?.progress_display ?? '',
-    // Filter options
+
     availableStatuses: filters?.available?.status || [],
     availableLoads: filters?.available?.load || [],
     totalLoads: filters?.in_order?.total_loads ?? 0,
-    // Query state
+
     isLoading: query.isLoading,
     isError: query.isError,
     error: errorMessage,

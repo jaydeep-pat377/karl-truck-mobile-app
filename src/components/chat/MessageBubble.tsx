@@ -188,7 +188,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           },
         ]}
       >
-        {/* Sender name row - aligned with avatar */}
         {isFirstInGroup && showSenderName && (
           <View style={[
             styles.senderNameRow,
@@ -204,7 +203,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </View>
         )}
 
-        {/* Message row with avatar and bubble */}
         <View style={[
           styles.messageRow,
           isOwnMessage ? styles.messageRowOwn : styles.messageRowOther,
@@ -319,11 +317,11 @@ const styles = StyleSheet.create({
   },
   senderNameRowOwn: {
     justifyContent: 'flex-end',
-    paddingRight: ms(38) + spacing.sm, // avatar width + margin + padding
+    paddingRight: ms(38) + spacing.sm,
   },
   senderNameRowOther: {
     justifyContent: 'flex-start',
-    paddingLeft: ms(38) + spacing.sm, // avatar width + margin + padding
+    paddingLeft: ms(38) + spacing.sm,
   },
   messageRow: {
     flexDirection: 'row',

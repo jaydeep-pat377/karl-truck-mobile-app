@@ -1,13 +1,4 @@
-/**
- * Pour Speed Chart Component
- *
- * Displays a line chart showing:
- * - Ordered line: Planned/scheduled delivery rate (constant Y-value)
- * - Delivered line: Actual delivery rate based on truck arrivals
- * - Poured line: Actual pour rate based on completion times
- *
- * Based on web app performance-charts.tsx logic.
- */
+
 
 import React, { useState, useMemo } from 'react';
 import {
@@ -33,7 +24,6 @@ import { moderateScale as ms } from 'react-native-size-matters';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 
-// Shadow styles for tooltips
 const SHADOWS = {
   lg: {
     shadowColor: colors.common.black,
@@ -46,10 +36,6 @@ const SHADOWS = {
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
 export interface TimeSeriesData {
   time: string;
   time_display: string;
@@ -60,39 +46,35 @@ export interface TimeSeriesData {
 }
 
 export interface PourSpeedChartProps {
-  /** Ordered/scheduled data points */
+
   orderedData: TimeSeriesData[];
-  /** Delivered data points (based on on_job_time) */
+
   deliveredData: TimeSeriesData[];
-  /** Poured data points (based on wash_time/unload_time) */
+
   pouredData: TimeSeriesData[];
-  /** Schedule delivery rate (CY/HR) */
+
   scheduleRate: number;
-  /** Y-axis maximum value */
+
   yMax: number;
-  /** Total scheduled quantity (CY) */
+
   scheduledQty: number;
-  /** Truck spacing in minutes */
+
   truckSpace?: number;
-  /** Dark mode flag */
+
   isDark: boolean;
-  /** Chart height */
+
   height?: number;
-  /** Horizontal padding */
+
   horizontalPadding?: number;
-  /** Show reference lines for truck start times */
+
   showTruckReferences?: boolean;
-  /** Reference line times (ISO strings) */
+
   truckReferenceTimes?: string[];
-  /** Enable horizontal scrolling */
+
   scrollable?: boolean;
-  /** Minimum width per data point when scrollable (default: 60) */
+
   minPointSpacing?: number;
 }
-
-// ============================================================================
-// COMPONENT
-// ============================================================================
 
 export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   orderedData,
@@ -110,7 +92,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   scrollable = true,
   minPointSpacing = 120,
 }) => {
-  // Multi-select filter - all selected by default
+
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(
     new Set(['ordered', 'delivered', 'poured'])
   );
@@ -132,13 +114,13 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   const chartHeight = height - padding.top - padding.bottom;
   const baseChartWidth = containerWidth - yAxisWidth;
 
-  // Parse time_display (HH:MM format) to minutes from midnight
+
   const parseTimeToMinutes = (timeDisplay: string): number => {
     const [hours, minutes] = timeDisplay.split(':').map(Number);
     return hours * 60 + (minutes || 0);
   };
 
-  // Calculate time range
+
   const timeRange = useMemo(() => {
     const allTimes = [
       ...orderedData.map(d => parseTimeToMinutes(d.time_display)),
@@ -149,7 +131,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     const dataMinTime = allTimes.length > 0 ? Math.min(...allTimes) : 480;
     const dataMaxTime = allTimes.length > 0 ? Math.max(...allTimes) : 540;
 
-    // Add 15 min padding on each side
+
     const minTime = Math.floor(dataMinTime / 15) * 15 - 15;
     const maxTime = Math.ceil(dataMaxTime / 15) * 15 + 15;
     const range = maxTime - minTime || 1;
@@ -157,24 +139,24 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     return { minTime, maxTime, range };
   }, [orderedData, deliveredData, pouredData]);
 
-  // Calculate chart width - expand based on time duration if scrollable
-  // Each 15 minutes of time range gets minPointSpacing pixels
-  const timeSlots = Math.ceil(timeRange.range / 15); // Number of 15-min slots
+
+
+  const timeSlots = Math.ceil(timeRange.range / 15);
   const scrollableWidth = Math.max(timeSlots * minPointSpacing, baseChartWidth);
   const chartWidth = scrollable ? scrollableWidth : baseChartWidth;
 
-  // Y-axis configuration
-  const maxValue = Math.max(yMax, 100);
-  const yAxisValues = [100, 50, 0]; // Fixed values for consistency
 
-  // Series configuration - order: Delivered, Poured, Ordered (as per design)
+  const maxValue = Math.max(yMax, 100);
+  const yAxisValues = [100, 50, 0];
+
+
   const allSeriesConfig = useMemo(() => [
     {
       key: 'delivered',
       color: isDark ? colors.chart.delivered.dark : colors.chart.delivered.light,
       label: 'Delivered',
       data: deliveredData,
-      marker: 'filledCircle', // Rounded/filled circle
+      marker: 'filledCircle',
       lineType: 'smooth',
     },
     {
@@ -182,7 +164,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
       color: colors.chart.poured,
       label: 'Poured',
       data: pouredData,
-      marker: 'diamond', // Diamond/cross square
+      marker: 'diamond',
       lineType: 'smooth',
     },
     {
@@ -190,14 +172,14 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
       color: colors.chart.ordered,
       label: 'Ordered',
       data: orderedData,
-      marker: 'filledSquare', // Filled square
+      marker: 'filledSquare',
       lineType: 'linear',
     },
   ], [orderedData, deliveredData, pouredData, isDark]);
 
   const seriesWithData = allSeriesConfig.filter(s => s.data.length > 0);
 
-  // Coordinate transformations
+
   const getX = (time: number) => {
     const normalized = (time - timeRange.minTime) / timeRange.range;
     return padding.left + normalized * (chartWidth - padding.left - padding.right);
@@ -207,7 +189,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     return padding.top + chartHeight - (value / maxValue) * chartHeight;
   };
 
-  // Create line path (straight segments)
+
   const createLinePath = (seriesData: TimeSeriesData[]) => {
     if (seriesData.length < 1) return '';
 
@@ -223,7 +205,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     return path;
   };
 
-  // Create smooth curve path (Catmull-Rom approximation)
+
   const createSmoothPath = (seriesData: TimeSeriesData[]) => {
     if (seriesData.length < 2) return createLinePath(seriesData);
 
@@ -240,7 +222,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
       const p2 = points[i + 1];
       const p3 = points[Math.min(i + 2, points.length - 1)];
 
-      // Control points for smooth curve
+
       const cp1x = p1.x + (p2.x - p0.x) / 6;
       const cp1y = p1.y + (p2.y - p0.y) / 6;
       const cp2x = p2.x - (p3.x - p1.x) / 6;
@@ -252,7 +234,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     return path;
   };
 
-  // Filter handling - toggle individual filters
+
   const toggleFilter = (key: string) => {
     setSelectedFilters(prev => {
       const newSet = new Set(prev);
@@ -269,18 +251,18 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     s => selectedFilters.has(s.key) && s.data.length > 0
   );
 
-  // Format minutes to time string (e.g., 480 -> "8:00")
+
   const formatMinutesToTime = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}:${mins.toString().padStart(2, '0')}`;
   };
 
-  // X-axis labels at 15-minute intervals
+
   const xAxisLabels = useMemo(() => {
     const labels: { time: number; display: string }[] = [];
 
-    // Generate labels at every 15-minute interval
+
     for (let time = timeRange.minTime; time <= timeRange.maxTime; time += 15) {
       labels.push({
         time,
@@ -291,7 +273,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     return labels;
   }, [timeRange]);
 
-  // Render marker based on type
+
   const renderMarker = (
     type: string,
     x: number,
@@ -367,7 +349,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.card }]}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: themeColors.text.primary }]}>
           Pour Speed (CY/HR)
@@ -377,10 +358,8 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
         </Text>
       </View>
 
-      {/* Chart - wrapped in Pressable to hide tooltip on tap */}
       <Pressable onPress={hideTooltip} style={{ position: 'relative' }}>
         <View style={styles.chartContainer}>
-          {/* Y-axis */}
           <View style={[styles.yAxis, { width: yAxisWidth }]}>
             <Text style={[styles.yAxisLabel, { color: themeColors.text.hint }]}>
               CY/HR
@@ -405,7 +384,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
             </Svg>
           </View>
 
-          {/* Chart Area with horizontal scroll */}
           <View style={{
             flex: 1,
             maxWidth: baseChartWidth,
@@ -432,7 +410,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
               <View style={[styles.chartArea, { width: chartWidth, backgroundColor: themeColors.card, overflow: 'visible' }]}>
                 <View style={{ position: 'relative', overflow: 'visible' }}>
                   <Svg width={chartWidth} height={height}>
-                {/* Grid lines */}
                 {yAxisValues.map((value, i) => {
                   const y = getY(value);
                   return (
@@ -445,7 +422,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                   );
                 })}
 
-                {/* Truck reference lines */}
                 {showTruckReferences && truckReferenceTimes.map((timeStr, i) => {
                   const date = new Date(timeStr);
                   const minutes = date.getUTCHours() * 60 + date.getUTCMinutes();
@@ -478,7 +454,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                   );
                 })}
 
-                {/* X-axis labels */}
                 {xAxisLabels.map((label, i) => {
                   const x = getX(label.time);
                   if (x < padding.left - 10 || x > chartWidth - padding.right + 10) return null;
@@ -497,7 +472,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                   );
                 })}
 
-                {/* Lines */}
                 {visibleSeries.map(s => (
                   <Path
                     key={`line-${s.key}`}
@@ -510,7 +484,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                   />
                 ))}
 
-                {/* Data point markers */}
                 {visibleSeries.map(s =>
                   s.data.map((d, i) => {
                     const x = getX(parseTimeToMinutes(d.time_display));
@@ -539,7 +512,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                 )}
               </Svg>
 
-                  {/* Tooltip - positioned on the chart */}
                   {tooltip && (
                     <View
                       style={[
@@ -580,7 +552,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
 
       </Pressable>
 
-      {/* Legend */}
       <View style={styles.legend}>
         {allSeriesConfig.map(s => {
           const isActive = selectedFilters.has(s.key);
@@ -602,10 +573,8 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
               onPress={() => toggleFilter(s.key)}
               activeOpacity={0.7}
             >
-              {/* Legend line with marker */}
               <View style={styles.legendLineContainer}>
                 <Svg width={ms(32)} height={ms(12)}>
-                  {/* Solid line */}
                   <Line
                     x1={0}
                     y1={ms(6)}
@@ -614,7 +583,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                     stroke={s.color}
                     strokeWidth={2}
                   />
-                  {/* Filled circle marker (Delivered) */}
                   {s.marker === 'filledCircle' && (
                     <Circle
                       cx={ms(16)}
@@ -623,14 +591,12 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                       fill={s.color}
                     />
                   )}
-                  {/* Diamond marker (Poured) */}
                   {s.marker === 'diamond' && (
                     <Path
                       d={`M ${ms(16)} ${ms(1)} L ${ms(21)} ${ms(6)} L ${ms(16)} ${ms(11)} L ${ms(11)} ${ms(6)} Z`}
                       fill={s.color}
                     />
                   )}
-                  {/* Filled square marker (Ordered) */}
                   {s.marker === 'filledSquare' && (
                     <Path
                       d={`M ${ms(12)} ${ms(2)} L ${ms(20)} ${ms(2)} L ${ms(20)} ${ms(10)} L ${ms(12)} ${ms(10)} Z`}
@@ -654,10 +620,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     </View>
   );
 };
-
-// ============================================================================
-// STYLES
-// ============================================================================
 
 const styles = StyleSheet.create({
   container: {

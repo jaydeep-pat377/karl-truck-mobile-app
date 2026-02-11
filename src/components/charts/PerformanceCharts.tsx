@@ -1,21 +1,4 @@
-/**
- * Performance Charts Container
- *
- * A combined component that renders both Pour Speed and Trucks on Job charts.
- * This is designed to be used in the OrderDetailsScreen.
- *
- * Usage:
- * ```tsx
- * import { PerformanceCharts } from '@/components/charts/PerformanceCharts';
- *
- * <PerformanceCharts
- *   graphData={orderDetails.graphs}
- *   scheduledQty={orderDetails.ordered_qty}
- *   truckSpace={schedule?.truck_space}
- *   isDark={isDark}
- * />
- * ```
- */
+
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
@@ -24,10 +7,6 @@ import { PourSpeedChart } from './PourSpeedChart';
 import { TrucksOnJobChart } from './TrucksOnJobChart';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
-
-// ============================================================================
-// TYPES
-// ============================================================================
 
 export interface PourSpeedGraphApi {
   schedule_rate: number;
@@ -62,31 +41,27 @@ export interface OrderGraphsApi {
 }
 
 export interface PerformanceChartsProps {
-  /** Graph data from API */
+
   graphData?: OrderGraphsApi | null;
-  /** Scheduled quantity for display */
+
   scheduledQty?: number;
-  /** Truck spacing in minutes */
+
   truckSpace?: number;
-  /** Dark mode flag */
+
   isDark: boolean;
-  /** Chart height */
+
   chartHeight?: number;
-  /** Show Pour Speed chart */
+
   showPourSpeed?: boolean;
-  /** Show Trucks on Job chart */
+
   showTrucksOnJob?: boolean;
-  /** Display mode for Trucks on Job chart */
+
   trucksDisplayMode?: 'line' | 'area';
-  /** Enable horizontal scrolling for charts */
+
   scrollable?: boolean;
-  /** Spacing between data points in pixels (default: 80) - higher = more gap */
+
   pointSpacing?: number;
 }
-
-// ============================================================================
-// COMPONENT
-// ============================================================================
 
 export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
   graphData,
@@ -102,7 +77,7 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
 }) => {
   const themeColors = isDark ? colors.dark : colors.light;
 
-  // Check if we have data for each chart
+
   const hasPourSpeedData = !!(
     graphData?.pour_speed?.ordered?.length ||
     graphData?.pour_speed?.delivered?.length ||
@@ -111,7 +86,7 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
 
   const hasTrucksOnJobData = !!(graphData?.trucks_on_job?.time_points?.length);
 
-  // No data at all
+
   if (!hasPourSpeedData && !hasTrucksOnJobData) {
     return (
       <View style={[styles.emptyContainer, { backgroundColor: themeColors.card }]}>
@@ -124,7 +99,6 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Pour Speed Chart */}
       {showPourSpeed && hasPourSpeedData && graphData?.pour_speed && (
         <PourSpeedChart
           orderedData={graphData.pour_speed.ordered || []}
@@ -141,7 +115,6 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
         />
       )}
 
-      {/* Trucks on Job Chart */}
       {showTrucksOnJob && hasTrucksOnJobData && graphData?.trucks_on_job && (
         <TrucksOnJobChart
           timePoints={graphData.trucks_on_job.time_points || []}
@@ -157,7 +130,6 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
         />
       )}
 
-      {/* Show message if only one chart has no data */}
       {showPourSpeed && !hasPourSpeedData && hasTrucksOnJobData && (
         <View style={[styles.noDataCard, { backgroundColor: themeColors.card }]}>
           <Text style={[styles.noDataText, { color: themeColors.text.hint }]}>
@@ -176,10 +148,6 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
     </View>
   );
 };
-
-// ============================================================================
-// STYLES
-// ============================================================================
 
 const styles = StyleSheet.create({
   container: {

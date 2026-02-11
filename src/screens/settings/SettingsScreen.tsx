@@ -171,14 +171,14 @@ export const SettingsScreen: React.FC = () => {
 
   const handleNavigateToPrivacyPolicy = () => {
     navigation.navigate('WebView', {
-      url: 'https://dolese.truckast.ai/privacy',
+      url: 'https://dolese.truckast.ai/privacy-policy',
       title: t('settings.privacyPolicy'),
     });
   };
 
   const handleNavigateToTermsOfService = () => {
     navigation.navigate('WebView', {
-      url: 'https://dolese.truckast.ai/privacy',
+      url: 'https://dolese.truckast.ai/terms-of-service',
       title: t('settings.termsOfService'),
     });
   };

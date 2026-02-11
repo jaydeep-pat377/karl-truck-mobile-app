@@ -34,7 +34,7 @@ export const userService = {
   uploadAvatar: async (imageUri: string): Promise<AvatarUploadResponse> => {
     const formData = new FormData();
 
-    // Get the file name and type from the URI
+
     const fileName = imageUri.split('/').pop() || 'avatar.jpg';
     const fileType = fileName.endsWith('.png') ? 'image/png' : 'image/jpeg';
 

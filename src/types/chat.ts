@@ -1,4 +1,4 @@
-// Types matching existing Supabase tables
+
 
 export interface OrderChat {
   id: number;
@@ -32,7 +32,6 @@ export interface ChatReadStatus {
   updated_at?: string;
 }
 
-// UI-friendly types
 export interface ChatRoom {
   id: string;
   name: string;

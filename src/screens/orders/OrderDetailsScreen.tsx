@@ -446,7 +446,7 @@ interface ProductScheduleCardProps {
   statusColor: string;
   isDark: boolean;
   onCallPress: () => void;
-  // Schedule enhancement props
+
   scheduleRate?: number;
   deliveredQty?: number;
   pouredQty?: number;
@@ -481,18 +481,18 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
     return `${date.getDate()} ${date.toLocaleString('en-US', { month: 'short' })} ${date.getFullYear()}`;
   };
 
-  // Use displayDate from API if available, otherwise format scheduleDate
+
   const formattedDate = displayDate || formatDateOnly(scheduleDate);
 
-  // Format schedule time with estimated finish
+
   const scheduleDisplay = estimatedFinish
     ? `${scheduleTime || 'N/A'} - ${estimatedFinish}`
     : scheduleTime || 'N/A';
 
-  // Check if we have truck averages data
+
   const hasAverages = (avgWaitingMinutes ?? 0) > 0 || (avgPouringMinutes ?? 0) > 0 || (avgWashoutMinutes ?? 0) > 0;
 
-  // Check if we have pour data
+
   const hasPourData = (deliveredQty ?? 0) > 0 || (pouredQty ?? 0) > 0;
 
   return (
@@ -540,7 +540,6 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
         </View>
       </View>
 
-      {/* Pour Progress Row - Only show if data available */}
       {hasPourData && (
         <View style={[styles.psInfoGrid, { marginTop: GRID.xs }]}>
           <View style={[styles.psInfoItem, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
@@ -570,7 +569,6 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
         </View>
       )}
 
-      {/* Truck Averages Row - Only show if data available */}
       {hasAverages && (
         <View style={[styles.psAveragesRow, { backgroundColor: isDark ? themeColors.surface : colors.grey[3], marginTop: GRID.xs, marginHorizontal: GRID.md, marginBottom: GRID.sm }]}>
           <View style={styles.psAverageItem}>
@@ -796,19 +794,16 @@ const OrderCodeDetailsCard: React.FC<OrderCodeDetailsCardProps> = ({
                 </Text>
               </View>
 
-              {/* Product Description */}
               {product.description ? (
                 <Text style={[styles.ocProductSlump, { color: themeColors.text.primary, marginBottom: 4 }]} numberOfLines={1}>
                   {product.description}
                 </Text>
               ) : null}
 
-              {/* Ordered Quantity */}
               <Text style={[styles.ocProductQty, { color: themeColors.text.primary }]}>
                 {product.orderedQty.toFixed(2)} CY
               </Text>
 
-              {/* Delivered & Remaining Quantities */}
               <Text style={[styles.ocProductSlump, { color: colors.success.main }]}>
                 Delivered: {product.deliveredQty.toFixed(2)} CY
               </Text>
@@ -1190,12 +1185,12 @@ const SmartChart: React.FC<SmartChartProps> = ({
 
         <View style={styles.chartXLabels}>
           {(() => {
-            // Show max 5 labels evenly distributed
+
             const maxLabels = 5;
             const totalPoints = data.length;
 
             if (totalPoints <= maxLabels) {
-              // Show all labels if 5 or fewer
+
               return data.map((d, i) => (
                 <Text
                   key={i}
@@ -1212,7 +1207,7 @@ const SmartChart: React.FC<SmartChartProps> = ({
               ));
             }
 
-            // Calculate which indices to show (evenly spaced)
+
             const labelsToShow: { index: number; time: string }[] = [];
             const step = (totalPoints - 1) / (maxLabels - 1);
             for (let i = 0; i < maxLabels; i++) {
@@ -1240,9 +1235,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
     </View>
   );
 };
-
-// Note: TimeBasedChart and TrucksOnJobChart components have been moved to
-// src/components/charts/ and are now used via the PerformanceCharts component
 
 interface BottomTabProps {
   tabs: Array<{ icon: string; label: string }>;
@@ -1404,8 +1396,8 @@ export const OrderDetailsScreen: React.FC = () => {
           { label: 'Pouring', value: pouringCount, unit: `/${total}`, active: activeStatus === 'pouring', icon: 'water' },
         ];
       })(),
-      // Pour Speed raw data from API for TimeBasedChart
-      // Only show chart if ANY of the data arrays have values
+
+
       pourSpeedRaw: {
         ordered: orderDetails.graphs?.pour_speed?.ordered || [],
         delivered: orderDetails.graphs?.pour_speed?.delivered || [],
@@ -1418,10 +1410,10 @@ export const OrderDetailsScreen: React.FC = () => {
           orderDetails.graphs?.pour_speed?.poured?.length
         ),
       },
-      // Legacy pourSpeedData for fallback (mock data)
+
       pourSpeedData: mockJobData.pourSpeedData,
 
-      // Trucks on Job raw data from API
+
       trucksOnJobRaw: {
         timePoints: orderDetails.graphs?.trucks_on_job?.time_points || [],
         averages: orderDetails.graphs?.trucks_on_job?.averages || {
@@ -1431,7 +1423,7 @@ export const OrderDetailsScreen: React.FC = () => {
         },
         hasData: !!(orderDetails.graphs?.trucks_on_job?.time_points?.length),
       },
-      // Legacy trucksOnJobData for fallback (mock data)
+
       trucksOnJobData: mockJobData.trucksOnJobData,
       avgSpacing: '45 min',
       products: orderDetails.products?.map(p => ({
@@ -1445,7 +1437,7 @@ export const OrderDetailsScreen: React.FC = () => {
         slump: p.slump || '',
         qr: p.qr || '',
       })) || [],
-      // Schedule enhancement data
+
       displayDate: orderDetails.display_date || '',
       estimatedFinishTime: orderDetails.estimated_finish_time || '',
       scheduleRate: orderDetails.graphs?.pour_speed?.schedule_rate || 0,
@@ -1460,7 +1452,7 @@ export const OrderDetailsScreen: React.FC = () => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
 
-  // Initialize isFavorite from API response
+
   useEffect(() => {
     if (orderDetails?.is_favourite !== undefined) {
       setIsFavorite(orderDetails.is_favourite);
@@ -1480,15 +1472,15 @@ export const OrderDetailsScreen: React.FC = () => {
     navigation.goBack();
   }, [navigation]);
 
-  // Get status color based on passed status or order status
-  // Uses same color mapping as OrderListScreen for consistency
-  // Use centralized utility for consistent color across all screens
+
+
+
   const statusColor = useMemo(() => {
     const status = passedStatus || order.status;
     const progress = order.progress || 0;
     const color = getStatusColor(status, progress);
 
-    // Debug logging to trace status color calculation
+
     console.log('🎨 OrderDetails Status Debug:', {
       passedStatus,
       orderStatus: order.status,
@@ -1507,18 +1499,18 @@ export const OrderDetailsScreen: React.FC = () => {
   const handleToggleFavorite = useCallback(() => {
     const previousValue = isFavorite;
 
-    // Optimistically update UI immediately
+
     setIsFavorite(prev => !prev);
 
-    // Call API in background
+
     orderService.toggleFavourite(order.id)
       .then(() => {
-        // Invalidate orders cache so OrderListScreen and TodayOrdersScreen will refetch
+
         queryClient.invalidateQueries({ queryKey: ['orders'] });
       })
       .catch((error) => {
         console.error('Failed to toggle favorite:', error);
-        // Revert optimistic update on error
+
         setIsFavorite(previousValue);
         showError('Error', 'Failed to update favorite status');
       });
@@ -1840,7 +1832,6 @@ export const OrderDetailsScreen: React.FC = () => {
 
           <StatusPipeline statuses={jobData.statusPills} isDark={isDark} />
 
-          {/* Quick Actions Menu */}
           <View style={[styles.quickActionsCard, { backgroundColor: themeColors.card }, SHADOWS.sm]}>
             {orderDetails?.can_ticketed && (
               <>
@@ -1918,7 +1909,6 @@ export const OrderDetailsScreen: React.FC = () => {
             onCallPress={() => handleCall(jobData.plantPhone)}
           />
 
-          {/* Performance Charts - Pour Speed and Trucks on Job */}
           <PerformanceCharts
             graphData={orderDetails?.graphs}
             scheduledQty={jobData.orderedVolume}
@@ -2885,7 +2875,7 @@ const styles = StyleSheet.create({
     fontSize: ms(11),
     fontFamily: fontFamily.semiBold,
   },
-  // Pour Speed Chart Styles
+
   pourSpeedCard: {
     borderRadius: RADIUS.lg,
     padding: GRID.md,

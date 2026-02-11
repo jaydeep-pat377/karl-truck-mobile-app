@@ -5,6 +5,7 @@ import { RootStackParamList } from './types';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import { OrderDetailsScreen } from '../screens/orders/OrderDetailsScreen';
+import { TodayOrdersScreen } from '../screens/orders/TodayOrdersScreen';
 import { TicketScreen } from '../screens/orders/TicketScreen';
 import { TicketDetailScreen } from '../screens/orders/TicketDetailScreen';
 import { WeatherScreen, ProductDetailsScreen, ProductCodeScreen, EvaporationListScreen } from '../screens/weather';
@@ -48,6 +49,13 @@ export const RootNavigator: React.FC = () => {
           <Stack.Screen
             name="OrderDetail"
             component={OrderDetailsScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="TodayOrders"
+            component={TodayOrdersScreen}
             options={{
               animation: 'slide_from_right',
             }}

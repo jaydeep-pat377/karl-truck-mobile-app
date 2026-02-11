@@ -26,28 +26,28 @@ export const useTrucks = (params?: Omit<TrucksQueryParams, 'page'>) => {
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
-      // Pagination fields are at root level
+
       if (lastPage.success && lastPage.hasNextPage) {
         return lastPage.page + 1;
       }
       return undefined;
     },
-    staleTime: 30 * 1000, // 30 seconds - trucks need more frequent updates
+    staleTime: 30 * 1000,
     retry: 2,
     refetchOnMount: 'always',
-    refetchInterval: 30 * 1000, // Auto-refresh every 30 seconds
+    refetchInterval: 30 * 1000,
   });
 
-  // Flatten all pages of trucks into a single array and map to UI type
+
   const trucks: Truck[] = useMemo(() => {
     if (!query.data?.pages) return [];
-    // data is directly an array of trucks
+
     return query.data.pages.flatMap((page) =>
       page.success ? page.data.map(mapApiTruckToTruck) : []
     );
   }, [query.data?.pages]);
 
-  // Get pagination from the last page (pagination fields at root level)
+
   const pagination: TrucksPagination | null = useMemo(() => {
     if (!query.data?.pages?.length) return null;
     const lastPage = query.data.pages[query.data.pages.length - 1];
@@ -75,7 +75,7 @@ export const useTrucks = (params?: Omit<TrucksQueryParams, 'page'>) => {
     refetch: query.refetch,
     isRefetching: query.isRefetching,
     isFetching: query.isFetching,
-    // Pagination specific
+
     fetchNextPage: query.fetchNextPage,
     hasNextPage: query.hasNextPage,
     isFetchingNextPage: query.isFetchingNextPage,

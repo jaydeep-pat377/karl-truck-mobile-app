@@ -1,26 +1,21 @@
-/**
- * TruckAst Spacing System
- * Consistent spacing throughout the app
- */
 
-// Base spacing unit (4dp)
+
 const BASE_UNIT = 4;
 
 export const spacing = {
-  // Micro spacing
-  xxs: BASE_UNIT, // 4
-  xs: BASE_UNIT * 2, // 8
-  sm: BASE_UNIT * 3, // 12
-  md: BASE_UNIT * 4, // 16
-  lg: BASE_UNIT * 5, // 20
-  xl: BASE_UNIT * 6, // 24
-  '2xl': BASE_UNIT * 8, // 32
-  '3xl': BASE_UNIT * 10, // 40
-  '4xl': BASE_UNIT * 12, // 48
-  '5xl': BASE_UNIT * 16, // 64
+
+  xxs: BASE_UNIT,
+  xs: BASE_UNIT * 2,
+  sm: BASE_UNIT * 3,
+  md: BASE_UNIT * 4,
+  lg: BASE_UNIT * 5,
+  xl: BASE_UNIT * 6,
+  '2xl': BASE_UNIT * 8,
+  '3xl': BASE_UNIT * 10,
+  '4xl': BASE_UNIT * 12,
+  '5xl': BASE_UNIT * 16,
 };
 
-// Border Radius
 export const borderRadius = {
   none: 0,
   xs: 4,
@@ -32,7 +27,6 @@ export const borderRadius = {
   full: 9999,
 };
 
-// Border Width
 export const borderWidth = {
   none: 0,
   thin: 0.5,
@@ -40,7 +34,6 @@ export const borderWidth = {
   thick: 2,
 };
 
-// Icon Sizes
 export const iconSize = {
   xs: 12,
   sm: 16,
@@ -52,7 +45,6 @@ export const iconSize = {
   '4xl': 64,
 };
 
-// Component Heights
 export const componentHeight = {
   buttonSmall: 32,
   button: 44,
@@ -64,7 +56,6 @@ export const componentHeight = {
   card: 'auto',
 };
 
-// Screen Padding
 export const screenPadding = {
   horizontal: spacing.md,
   vertical: spacing.md,
@@ -72,14 +63,12 @@ export const screenPadding = {
   bottom: spacing.xl,
 };
 
-// Card Dimensions
 export const cardPadding = {
   sm: spacing.sm,
   md: spacing.md,
   lg: spacing.lg,
 };
 
-// Shadow styles (iOS & Android)
 export const shadows = {
   none: {
     shadowColor: 'transparent',

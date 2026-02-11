@@ -1,6 +1,4 @@
-/**
- * Axios Instance - Production Ready
- */
+
 
 import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,12 +8,10 @@ import { alertService } from '../services/alertService';
 
 const FALLBACK_URL = 'http://api.truckast.ai/api';
 const BASE_URL = API_BASE_URL || FALLBACK_URL;
-const TIMEOUT = Number(API_TIMEOUT) || 15000; // Reduced to 15s for faster failure detection
+const TIMEOUT = Number(API_TIMEOUT) || 15000;
 
-// Enable/disable API logging (set to false for production)
 const ENABLE_API_LOGGING = __DEV__;
 
-// Public endpoints (no auth required)
 const PUBLIC_ENDPOINTS = [
   '/auth/login',
   '/auth/register',
@@ -31,7 +27,6 @@ const isPublicEndpoint = (url: string | undefined): boolean => {
   return PUBLIC_ENDPOINTS.some(endpoint => url.includes(endpoint));
 };
 
-// Create axios instance
 export const axiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: TIMEOUT,
@@ -40,7 +35,6 @@ export const axiosInstance = axios.create({
   },
 });
 
-// Request interceptor
 axiosInstance.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     let token: string | null = null;
@@ -56,7 +50,7 @@ axiosInstance.interceptors.request.use(
       }
     }
 
-    // Log request details
+
     if (ENABLE_API_LOGGING) {
       console.log('\n========== API REQUEST ==========');
       console.log(`[${config.method?.toUpperCase()}] ${config.baseURL}${config.url}`);
@@ -85,32 +79,30 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Endpoints that should silently fail (no global alert)
 const SILENT_ERROR_ENDPOINTS = [
-  '/auth/login', // Login errors handled locally for better UX
+  '/auth/login',
   '/auth/register',
   '/auth/verify-otp',
-  '/auth/me', // Auth verification during app init - handled locally
-  '/auth/device-token', // Device token sync - handled locally
-  '/auth/refresh', // Token refresh - handled by interceptor
+  '/auth/me',
+  '/auth/device-token',
+  '/auth/refresh',
 ];
 
 const shouldShowGlobalAlert = (url: string | undefined, status: number | undefined): boolean => {
-  // Don't show alert for silent endpoints
+
   if (url && SILENT_ERROR_ENDPOINTS.some(endpoint => url.includes(endpoint))) {
     return false;
   }
-  // Don't show alert for 401 (handled by token refresh or redirect to login)
+
   if (status === 401) {
     return false;
   }
   return true;
 };
 
-// Response interceptor
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
-    // Log successful response
+
     if (ENABLE_API_LOGGING) {
       console.log('\n========== API RESPONSE ==========');
       console.log(`[${response.status}] ${response.config.method?.toUpperCase()} ${response.config.url}`);
@@ -120,7 +112,7 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
-    // Log error response
+
     if (ENABLE_API_LOGGING) {
       console.error('\n========== API ERROR ==========');
       console.error(`[${error.response?.status || 'NETWORK'}] ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
@@ -133,7 +125,7 @@ axiosInstance.interceptors.response.use(
 
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _silentError?: boolean };
 
-    // Token refresh on 401
+
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
@@ -186,7 +178,7 @@ axiosInstance.interceptors.response.use(
           STORAGE_KEYS.USER,
         ]);
 
-        // Show session expired alert
+
         alertService.showError(
           'Session Expired',
           'Please log in again to continue.'
@@ -194,7 +186,7 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // Show global error alert (unless silenced)
+
     if (
       !originalRequest._silentError &&
       shouldShowGlobalAlert(originalRequest.url, error.response?.status)

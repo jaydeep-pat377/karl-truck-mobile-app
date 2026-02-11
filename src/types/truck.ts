@@ -1,8 +1,5 @@
-/**
- * Truck API Types
- */
 
-// Truck status type
+
 export type TruckStatus =
   | 'delivered'
   | 'pouring'
@@ -17,7 +14,6 @@ export type TruckStatus =
   | 'ticketed'
   | 'idle';
 
-// API Truck from response
 export interface ApiTruck {
   truck_id: number;
   code: string;
@@ -39,7 +35,6 @@ export interface ApiTruck {
   updated_at?: string;
 }
 
-// Full API Response (pagination fields at root level)
 export interface TrucksApiResponse {
   success: boolean;
   data: ApiTruck[];
@@ -51,7 +46,6 @@ export interface TrucksApiResponse {
   hasPreviousPage: boolean;
 }
 
-// Pagination type for convenience
 export interface TrucksPagination {
   page: number;
   pageSize: number;
@@ -61,18 +55,16 @@ export interface TrucksPagination {
   hasPreviousPage: boolean;
 }
 
-// Query params for API request
 export interface TrucksQueryParams {
   page?: number;
   pageSize?: number;
   sortBy?: 'created_at' | 'truck_code' | 'status';
   sortOrder?: 'asc' | 'desc';
-  dateFrom?: string; // Format: YYYY-MM-DD
-  dateTo?: string; // Format: YYYY-MM-DD
+  dateFrom?: string;
+  dateTo?: string;
   search?: string;
 }
 
-// UI Truck type (mapped from API)
 export interface Truck {
   id: string;
   truckCode: string;
@@ -90,7 +82,6 @@ export interface Truck {
   timestampDisplay?: string;
 }
 
-// Map ticket_status to TruckStatus
 const mapTicketStatusToTruckStatus = (ticketStatus?: string): TruckStatus => {
   if (!ticketStatus) return 'idle';
   const statusMap: Record<string, TruckStatus> = {
@@ -110,7 +101,6 @@ const mapTicketStatusToTruckStatus = (ticketStatus?: string): TruckStatus => {
   return statusMap[ticketStatus.toLowerCase()] || 'idle';
 };
 
-// Helper function to map API truck to UI truck
 export const mapApiTruckToTruck = (apiTruck: ApiTruck): Truck => {
   const lat = apiTruck.latitude;
   const lng = apiTruck.longitude;

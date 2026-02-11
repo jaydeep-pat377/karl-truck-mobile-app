@@ -1,7 +1,4 @@
-/**
- * TruckAst Theme System
- * Centralized theme exports and theme provider configuration
- */
+
 
 export * from './colors';
 export * from './typography';
@@ -11,7 +8,6 @@ import { colors, ColorTheme } from './colors';
 import { typography, fontSize, fontWeight } from './typography';
 import { spacing, borderRadius, shadows, iconSize, componentHeight, screenPadding } from './spacing';
 
-// Theme object for dark mode (primary theme based on design reference)
 export const darkTheme = {
   colors: {
     ...colors,
@@ -37,7 +33,6 @@ export const darkTheme = {
   isDark: true,
 };
 
-// Theme object for light mode
 export const lightTheme = {
   colors: {
     ...colors,
@@ -65,10 +60,8 @@ export const lightTheme = {
 
 export type Theme = typeof darkTheme;
 
-// Get theme based on mode
 export const getTheme = (mode: ColorTheme): Theme => {
   return mode === 'dark' ? darkTheme : lightTheme;
 };
 
-// Default theme is dark (based on design reference)
 export const defaultTheme = darkTheme;

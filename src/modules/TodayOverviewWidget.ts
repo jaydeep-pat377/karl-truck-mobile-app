@@ -18,9 +18,6 @@ interface TodayOverviewWidgetInterface {
 
 const { TodayOverviewWidget } = NativeModules;
 
-/**
- * Update the Android home screen widget with today's order overview data
- */
 export const updateWidgetData = async (
   totalOrders: number,
   normal: number,
@@ -52,12 +49,6 @@ export const updateWidgetData = async (
   }
 };
 
-/**
- * Set authentication credentials for widget API calls
- * This enables the widget to fetch fresh data directly from the API
- * @param accessToken - JWT access token
- * @param apiBaseUrl - API base URL (e.g., 'https://api.truckast.ai/api')
- */
 export const setAuthCredentials = async (
   accessToken: string,
   apiBaseUrl: string
@@ -77,9 +68,6 @@ export const setAuthCredentials = async (
   }
 };
 
-/**
- * Manually refresh the widget - fetches fresh data from API
- */
 export const refreshWidget = async (): Promise<boolean> => {
   if (Platform.OS !== 'android') {
     return false;
@@ -93,9 +81,6 @@ export const refreshWidget = async (): Promise<boolean> => {
   }
 };
 
-/**
- * Clear widget data on logout - shows "Please login" message
- */
 export const clearWidgetData = async (): Promise<boolean> => {
   if (Platform.OS !== 'android') {
     return false;
