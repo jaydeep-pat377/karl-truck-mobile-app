@@ -180,7 +180,7 @@ export type ChatRoomScreenParams = {
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
-  OrderDetail: { orderId: string; orderCode: string; orderDate: string; status?: string };
+  OrderDetail: { orderId: string; orderCode: string; orderDate: string; status?: string; progressColor?: string };
   TodayOrders: undefined;
   Tracking: { orderId: string };
   Weather: WeatherScreenParams;

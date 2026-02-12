@@ -1,12 +1,10 @@
 
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { moderateScale as ms } from 'react-native-size-matters';
 import { PourSpeedChart } from './PourSpeedChart';
 import { TrucksOnJobChart } from './TrucksOnJobChart';
-import { colors } from '../../theme/colors';
-import { fontFamily } from '../../theme/typography';
 
 export interface PourSpeedGraphApi {
   schedule_rate: number;
@@ -75,37 +73,15 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
   scrollable = true,
   pointSpacing = 80,
 }) => {
-  const themeColors = isDark ? colors.dark : colors.light;
-
-
-  const hasPourSpeedData = !!(
-    graphData?.pour_speed?.ordered?.length ||
-    graphData?.pour_speed?.delivered?.length ||
-    graphData?.pour_speed?.poured?.length
-  );
-
-  const hasTrucksOnJobData = !!(graphData?.trucks_on_job?.time_points?.length);
-
-
-  if (!hasPourSpeedData && !hasTrucksOnJobData) {
-    return (
-      <View style={[styles.emptyContainer, { backgroundColor: themeColors.card }]}>
-        <Text style={[styles.emptyText, { color: themeColors.text.hint }]}>
-          No performance data available for this order.
-        </Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      {showPourSpeed && hasPourSpeedData && graphData?.pour_speed && (
+      {showPourSpeed && (
         <PourSpeedChart
-          orderedData={graphData.pour_speed.ordered || []}
-          deliveredData={graphData.pour_speed.delivered || []}
-          pouredData={graphData.pour_speed.poured || []}
-          scheduleRate={graphData.pour_speed.schedule_rate || 0}
-          yMax={graphData.pour_speed.y_max || 50}
+          orderedData={graphData?.pour_speed?.ordered || []}
+          deliveredData={graphData?.pour_speed?.delivered || []}
+          pouredData={graphData?.pour_speed?.poured || []}
+          scheduleRate={graphData?.pour_speed?.schedule_rate || 0}
+          yMax={graphData?.pour_speed?.y_max || 50}
           scheduledQty={scheduledQty}
           truckSpace={truckSpace}
           isDark={isDark}
@@ -115,10 +91,10 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
         />
       )}
 
-      {showTrucksOnJob && hasTrucksOnJobData && graphData?.trucks_on_job && (
+      {showTrucksOnJob && (
         <TrucksOnJobChart
-          timePoints={graphData.trucks_on_job.time_points || []}
-          averages={graphData.trucks_on_job.averages || {
+          timePoints={graphData?.trucks_on_job?.time_points || []}
+          averages={graphData?.trucks_on_job?.averages || {
             avg_waiting_minutes: 0,
             avg_pouring_minutes: 0,
             avg_washout_minutes: 0,
@@ -129,22 +105,6 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
           minPointSpacing={pointSpacing}
         />
       )}
-
-      {showPourSpeed && !hasPourSpeedData && hasTrucksOnJobData && (
-        <View style={[styles.noDataCard, { backgroundColor: themeColors.card }]}>
-          <Text style={[styles.noDataText, { color: themeColors.text.hint }]}>
-            Pour speed data not available yet.
-          </Text>
-        </View>
-      )}
-
-      {showTrucksOnJob && !hasTrucksOnJobData && hasPourSpeedData && (
-        <View style={[styles.noDataCard, { backgroundColor: themeColors.card }]}>
-          <Text style={[styles.noDataText, { color: themeColors.text.hint }]}>
-            Trucks on job data not available yet.
-          </Text>
-        </View>
-      )}
     </View>
   );
 };
@@ -152,28 +112,6 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
 const styles = StyleSheet.create({
   container: {
     gap: ms(8),
-  },
-  emptyContainer: {
-    borderRadius: ms(12),
-    padding: ms(24),
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: ms(8),
-  },
-  emptyText: {
-    fontSize: ms(13),
-    fontFamily: fontFamily.regular,
-    textAlign: 'center',
-  },
-  noDataCard: {
-    borderRadius: ms(12),
-    padding: ms(16),
-    alignItems: 'center',
-    marginVertical: ms(4),
-  },
-  noDataText: {
-    fontSize: ms(12),
-    fontFamily: fontFamily.regular,
   },
 });
 

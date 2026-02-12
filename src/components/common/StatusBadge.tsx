@@ -15,6 +15,7 @@ interface StatusBadgeProps {
   status: OrderStatus | TruckStatus | string;
   label?: string;
   size?: BadgeSize;
+  customColor?: string;
 }
 
 const statusLabels: Record<string, string> = {
@@ -165,15 +166,17 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   status,
   label,
   size = 'medium',
+  customColor,
 }) => {
   const { isDark } = useTheme();
 
   const colorConfig = statusColors[status] || defaultColorConfig;
   const displayLabel = label || statusLabels[status] || status;
 
-  const textColor = isDark ? colorConfig.textDark : colorConfig.text;
+  // Use customColor if provided, otherwise use default status color
+  const textColor = customColor || (isDark ? colorConfig.textDark : colorConfig.text);
 
-  const baseColor = isDark ? colorConfig.textDark : colorConfig.text;
+  const baseColor = customColor || (isDark ? colorConfig.textDark : colorConfig.text);
   const backgroundColor = hexToRgba(baseColor, colorConfig.bgOpacity);
 
   const sizeConfig = {

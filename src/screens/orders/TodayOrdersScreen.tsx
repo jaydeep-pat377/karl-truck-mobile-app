@@ -26,6 +26,7 @@ import { orderService } from '../../api/services/orderService';
 import { ApiOrder, WeatherCondition } from '../../types/order';
 import { Order } from '../../types';
 import { RootStackParamList } from '../../navigation/types';
+import { getProgressBarColor } from '../../utils/statusUtils';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -235,11 +236,13 @@ export const TodayOrdersScreen: React.FC = () => {
   }, [navigation]);
 
   const handleOrderDetails = useCallback((order: Order) => {
+    const progressColor = getProgressBarColor(order.status, order.progress || 0);
     navigation.navigate('OrderDetail', {
       orderId: order.id,
       orderCode: order.orderCode,
       orderDate: order.scheduledDate,
       status: order.status,
+      progressColor: progressColor,
     });
   }, [navigation]);
 
@@ -337,31 +340,31 @@ export const TodayOrdersScreen: React.FC = () => {
         <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.cardElevated : themeColors.card }]}>
           <View style={styles.summaryStatsRow}>
             <View style={styles.summaryStatItem}>
-              <Text style={[styles.summaryStatValue, { color: themeColors.text.primary }]}>
+              <Text style={[styles.summaryStatValue, { color: colors.secondary.main }]}>
                 {fmtQty(summaryStats.totalOrdered)}
               </Text>
-              <Text style={[styles.summaryStatLabel, { color: themeColors.text.hint }]}>Ordered</Text>
+              <Text style={[styles.summaryStatLabel, { color: colors.secondary.main }]}>Ordered</Text>
             </View>
             <View style={[styles.summaryStatDivider, { backgroundColor: themeColors.border }]} />
             <View style={styles.summaryStatItem}>
               <Text style={[styles.summaryStatValue, { color: colors.success.main }]}>
                 {fmtQty(summaryStats.totalDelivered)}
               </Text>
-              <Text style={[styles.summaryStatLabel, { color: themeColors.text.hint }]}>Delivered</Text>
+              <Text style={[styles.summaryStatLabel, { color: colors.success.main }]}>Delivered</Text>
             </View>
             <View style={[styles.summaryStatDivider, { backgroundColor: themeColors.border }]} />
             <View style={styles.summaryStatItem}>
               <Text style={[styles.summaryStatValue, { color: colors.warning.main }]}>
                 {fmtQty(summaryStats.totalRemaining)}
               </Text>
-              <Text style={[styles.summaryStatLabel, { color: themeColors.text.hint }]}>Left</Text>
+              <Text style={[styles.summaryStatLabel, { color: colors.warning.main }]}>Left</Text>
             </View>
             <View style={[styles.summaryStatDivider, { backgroundColor: themeColors.border }]} />
             <View style={styles.summaryStatItem}>
               <Text style={[styles.summaryStatValue, { color: colors.primary.main }]}>
                 {summaryStats.avgProgress}%
               </Text>
-              <Text style={[styles.summaryStatLabel, { color: themeColors.text.hint }]}>Progress</Text>
+              <Text style={[styles.summaryStatLabel, { color: colors.primary.main }]}>Progress</Text>
             </View>
           </View>
 
@@ -594,11 +597,13 @@ const styles = StyleSheet.create({
     borderRadius: ms(10),
     padding: ms(10),
     marginBottom: spacing.sm,
-    shadowColor: colors.common.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowColor: colors.primary.main,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+    borderBottomWidth: 3,
+    borderBottomColor: colors.primary.main,
   },
   summaryStatsRow: {
     flexDirection: 'row',

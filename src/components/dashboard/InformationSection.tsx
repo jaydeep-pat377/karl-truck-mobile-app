@@ -81,66 +81,44 @@ export const InformationSection: React.FC<InformationSectionProps> = ({
   const themeColors = isDark ? colors.dark : colors.light;
 
   const visibleMessages = messages.slice(0, maxVisible);
-  const hasWeather = weather && (weather.temperature !== undefined || weather.condition);
   const hasStats = todayStats && todayStats.total > 0;
   const hasMessages = messages.length > 0;
-
-  if (!hasWeather && !hasStats && !hasMessages) {
-    return (
-      <Card variant="default" padding="md" style={styles.card}>
-        <View style={styles.emptyState}>
-          <Icon name="information-outline" size={ms(32)} color={themeColors.text.hint} />
-          <Text variant="body" color="secondary" style={styles.emptyText}>
-            No information available
-          </Text>
-        </View>
-      </Card>
-    );
-  }
 
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
-        {hasWeather && (
-          <TouchableOpacity
-            style={[styles.infoCard, { backgroundColor: isDark ? colors.dark.card : colors.common.white }]}
-            onPress={onWeatherPress}
-            activeOpacity={0.7}
-            disabled={!onWeatherPress}
-          >
-            <View style={[styles.infoCardIcon, { backgroundColor: `${colors.info.main}15` }]}>
-              <Icon name={getWeatherIcon(weather?.condition)} size={ms(24)} color={colors.info.main} />
-            </View>
-            <Text style={[styles.infoCardTitle, { color: themeColors.text.primary }]} numberOfLines={1}>
-              {weather?.location || 'Weather'}
+        <TouchableOpacity
+          style={[styles.infoCard, { backgroundColor: isDark ? colors.dark.card : colors.common.white }]}
+          onPress={onWeatherPress}
+          activeOpacity={0.7}
+          disabled={!onWeatherPress}
+        >
+          <View style={[styles.infoCardIcon, { backgroundColor: `${colors.info.main}15` }]}>
+            <Icon name={getWeatherIcon(weather?.condition)} size={ms(24)} color={colors.info.main} />
+          </View>
+          <Text style={[styles.infoCardTitle, { color: themeColors.text.primary }]} numberOfLines={1}>
+            {weather?.location || 'Weather'}
+          </Text>
+          <View style={styles.weatherStats}>
+            <Text style={[styles.weatherMainStat, { color: themeColors.text.primary }]}>
+              {weather?.temperature !== undefined ? `${Math.round(weather.temperature)}°F` : '--°F'}
             </Text>
-            <View style={styles.weatherStats}>
-              {weather?.temperature !== undefined && (
-                <Text style={[styles.weatherMainStat, { color: themeColors.text.primary }]}>
-                  {Math.round(weather.temperature)}°F
-                </Text>
-              )}
+          </View>
+          <View style={styles.weatherSubStats}>
+            <View style={styles.weatherSubStat}>
+              <Icon name="water-percent" size={ms(10)} color={themeColors.text.hint} />
+              <Text style={[styles.weatherSubStatText, { color: themeColors.text.secondary }]}>
+                {weather?.humidity !== undefined ? `${weather.humidity}%` : '--%'}
+              </Text>
             </View>
-            <View style={styles.weatherSubStats}>
-              {weather?.humidity !== undefined && (
-                <View style={styles.weatherSubStat}>
-                  <Icon name="water-percent" size={ms(10)} color={themeColors.text.hint} />
-                  <Text style={[styles.weatherSubStatText, { color: themeColors.text.secondary }]}>
-                    {weather.humidity}%
-                  </Text>
-                </View>
-              )}
-              {weather?.windSpeed !== undefined && (
-                <View style={styles.weatherSubStat}>
-                  <Icon name="weather-windy" size={ms(10)} color={themeColors.text.hint} />
-                  <Text style={[styles.weatherSubStatText, { color: themeColors.text.secondary }]}>
-                    {weather.windSpeed}mph
-                  </Text>
-                </View>
-              )}
+            <View style={styles.weatherSubStat}>
+              <Icon name="weather-windy" size={ms(10)} color={themeColors.text.hint} />
+              <Text style={[styles.weatherSubStatText, { color: themeColors.text.secondary }]}>
+                {weather?.windSpeed !== undefined ? `${weather.windSpeed}mph` : '--mph'}
+              </Text>
             </View>
-          </TouchableOpacity>
-        )}
+          </View>
+        </TouchableOpacity>
 
         {hasStats && (
           <TouchableOpacity
@@ -183,15 +161,6 @@ export const InformationSection: React.FC<InformationSectionProps> = ({
           </TouchableOpacity>
         )}
 
-        {/* If no weather, show stats full width or placeholder */}
-        {!hasWeather && !hasStats && (
-          <View style={[styles.infoCard, { backgroundColor: isDark ? colors.dark.card : colors.common.white, flex: 1 }]}>
-            <View style={styles.emptyState}>
-              <Icon name="cloud-off-outline" size={ms(24)} color={themeColors.text.hint} />
-              <Text variant="caption" color="hint">No data</Text>
-            </View>
-          </View>
-        )}
       </View>
 
       {/* Alerts Section */}

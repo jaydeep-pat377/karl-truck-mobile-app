@@ -1,59 +1,181 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Text, Icon } from '../common';
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
-import { ms, spacing } from '../../utils/responsive';
+import { ms, spacing, wp, isSmallDevice, isTablet } from '../../utils/responsive';
 import { fontFamily } from '../../theme/typography';
+import Svg, { Circle, Path } from 'react-native-svg';
+
+export interface RegionData {
+  id: string;
+  name: string;
+  deliveredQty: number;
+  totalQty: number;
+  totalOrders: number;
+  activeOrders: number;
+  cancelledOrders: number;
+}
 
 interface ProductionSummaryProps {
   title?: string;
-  subtitle?: string;
   totalOrders: number;
   activeOrders: number;
   cancelledOrders: number;
   deliveredQty: number;
   totalQty: number;
+  regions?: RegionData[];
+  onRegionPress?: (region: RegionData) => void;
   onPress?: () => void;
 }
 
+
+const RegionCircularProgress: React.FC<{ progress: number; size?: number; isDark?: boolean }> = ({ progress, size = 55, isDark = false }) => {
+  const regionColors = isDark ? colors.regionCard.dark : colors.regionCard.light;
+  const cx = size / 2;
+  const cy = size / 2;
+  const radius = (size / 2) - 2;
+
+  // Calculate pie slice path
+  const percentage = Math.min(Math.max(progress, 0), 100);
+  const angle = (percentage / 100) * 360;
+  const startAngle = -90; // Start from top
+  const endAngle = startAngle + angle;
+
+  const startRad = (startAngle * Math.PI) / 180;
+  const endRad = (endAngle * Math.PI) / 180;
+
+  const x1 = cx + radius * Math.cos(startRad);
+  const y1 = cy + radius * Math.sin(startRad);
+  const x2 = cx + radius * Math.cos(endRad);
+  const y2 = cy + radius * Math.sin(endRad);
+
+  const largeArcFlag = angle > 180 ? 1 : 0;
+
+  // Pie slice path: move to center, line to start, arc to end, close
+  const piePath = percentage > 0 && percentage < 100
+    ? `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`
+    : '';
+
+  return (
+    <View style={regionStyles.circleContainer}>
+      <Svg width={size} height={size}>
+        {/* Background circle */}
+        <Circle
+          cx={cx}
+          cy={cy}
+          r={radius}
+          fill={regionColors.progressBg}
+        />
+        {/* Pie slice for progress */}
+        {percentage >= 100 ? (
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={radius}
+            fill={regionColors.progressColor}
+          />
+        ) : percentage > 0 ? (
+          <Path
+            d={piePath}
+            fill={regionColors.progressColor}
+          />
+        ) : null}
+      </Svg>
+    </View>
+  );
+};
+
+const regionStyles = StyleSheet.create({
+  circleContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
+
 export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
   title = 'Ready Mix Producer',
-  subtitle,
   totalOrders,
   activeOrders,
   cancelledOrders,
   deliveredQty,
   totalQty,
+  regions = [],
+  onRegionPress,
 }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
 
+  // Responsive values
+  const isSmall = isSmallDevice();
+  const isTab = isTablet();
+  const regionCardWidth = isTab ? wp(35) : isSmall ? wp(78) : wp(72);
+  const circleSize = isTab ? ms(50) : isSmall ? ms(36) : ms(40);
+
   const progress = totalQty > 0 ? (deliveredQty / totalQty) * 100 : 0;
   const progressPercent = Math.round(progress);
 
-  const today = new Date();
-  const dateString = subtitle || `Daily orders and production tracking — ${today.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })}`;
-
   const formatQty = (qty: number) => {
-    return qty % 1 === 0 ? qty.toString() : qty.toFixed(1);
+    return qty % 1 === 0 ? qty.toString() : qty.toFixed(2);
+  };
+
+  const renderRegionItem = ({ item }: { item: RegionData }) => {
+    const regionProgress = item.totalQty > 0 ? (item.deliveredQty / item.totalQty) * 100 : 0;
+    const regionColors = isDark ? colors.regionCard.dark : colors.regionCard.light;
+
+    return (
+      <View style={[styles.regionCard, { backgroundColor: regionColors.background, minWidth: regionCardWidth }]}>
+        {/* Left side - Circle */}
+        <View style={styles.regionLeftSection}>
+          <RegionCircularProgress progress={regionProgress} size={circleSize} isDark={isDark} />
+        </View>
+
+        {/* Right side - Content */}
+        <View style={styles.regionRightSection}>
+          {/* Top row - Title + Badge */}
+          <View style={styles.regionTopRow}>
+            <Text style={[styles.regionName, { color: regionColors.titleColor, maxWidth: regionCardWidth * 0.5 }]} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <TouchableOpacity
+              style={[styles.regionBadge, { backgroundColor: regionColors.badgeColor }]}
+              onPress={() => onRegionPress?.(item)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.regionBadgeText}>REGION</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Middle row - Qty */}
+          <Text style={styles.regionQtyRow}>
+            <Text style={[styles.regionQtyValue, { color: regionColors.qtyColor }]}>{formatQty(item.deliveredQty)}</Text>
+            <Text style={[styles.regionQtyOf, { color: regionColors.ofTextColor }]}> OF </Text>
+            <Text style={[styles.regionQtyValue, { color: regionColors.qtyColor }]}>{formatQty(item.totalQty)} CY</Text>
+          </Text>
+
+          {/* Bottom row - Stats */}
+          <Text style={[styles.regionStatsRow, { color: regionColors.statsColor }]}>
+            Total: {item.totalOrders}, Active: {item.activeOrders}, Cancelled: {item.cancelledOrders}
+          </Text>
+        </View>
+      </View>
+    );
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.card }]}>
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <Icon name="clipboard-text-outline" size={ms(18)} color={themeColors.text.primary} />
-          <Text style={[styles.title, { color: themeColors.text.primary }]}>{title}</Text>
+    <View style={styles.regionsOnlyContainer}>
+      {/* Temporarily commented out - Header
+      <View style={[styles.container, { backgroundColor: themeColors.card }]}>
+        <View style={styles.header}>
+          <View style={styles.titleRow}>
+            <Icon name="clipboard-text-outline" size={ms(18)} color={themeColors.text.primary} />
+            <Text style={[styles.title, { color: themeColors.text.primary }]}>{title}</Text>
+          </View>
         </View>
-        <Text style={[styles.subtitle, { color: themeColors.text.secondary }]}>{dateString}</Text>
       </View>
+      */}
 
+      {/* Temporarily commented out - Stats Row
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
           <View style={[styles.statIcon, { backgroundColor: colors.dashboard.statBlue + '15' }]}>
@@ -85,7 +207,21 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
           </View>
         </View>
       </View>
+      */}
 
+      {regions.length > 0 && (
+        <FlatList
+          data={regions}
+          renderItem={renderRegionItem}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.regionsList}
+          style={styles.regionsListOnly}
+        />
+      )}
+
+      {/* Temporarily commented out - Production Section
       <View style={styles.productionSection}>
         <View style={styles.productionHeader}>
           <Text style={[styles.productionTitle, { color: themeColors.text.primary }]}>Production & Delivery</Text>
@@ -116,14 +252,21 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
           <Text style={[styles.percentText, { color: themeColors.text.primary }]}>{progressPercent}%</Text>
         </View>
       </View>
+      */}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  regionsOnlyContainer: {
+    marginHorizontal: spacing.lg,
+  },
+  regionsListOnly: {
+    marginHorizontal: 0,
+  },
   container: {
-    borderRadius: ms(12),
-    padding: ms(16),
+    borderRadius: ms(10),
+    padding: ms(8),
     marginHorizontal: spacing.lg,
     shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 2 },
@@ -132,78 +275,73 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   header: {
-    marginBottom: ms(16),
+    marginBottom: ms(4),
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: ms(8),
-    marginBottom: ms(4),
+    gap: ms(6),
   },
   title: {
-    fontSize: ms(16),
+    fontSize: ms(14),
     fontFamily: fontFamily.semiBold,
-  },
-  subtitle: {
-    fontSize: ms(12),
-    fontFamily: fontFamily.regular,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: ms(20),
+    alignItems: 'center',
+    marginBottom: ms(6),
   },
   statItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: ms(8),
   },
   statIcon: {
-    width: ms(36),
-    height: ms(36),
+    width: ms(34),
+    height: ms(34),
     borderRadius: ms(8),
     justifyContent: 'center',
     alignItems: 'center',
   },
   statContent: {
-    gap: ms(2),
+    justifyContent: 'center',
   },
   statLabel: {
-    fontSize: ms(11),
+    fontSize: ms(12),
     fontFamily: fontFamily.regular,
   },
   statValue: {
-    fontSize: ms(18),
+    fontSize: ms(17),
     fontFamily: fontFamily.bold,
   },
   productionSection: {
-    borderTopWidth: 1,
-    borderTopColor: colors.semiTransparent.black06,
-    paddingTop: ms(16),
+    paddingTop: ms(6),
   },
   productionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: ms(10),
+    marginBottom: ms(6),
   },
   productionTitle: {
-    fontSize: ms(13),
+    fontSize: ms(14),
     fontFamily: fontFamily.semiBold,
   },
   productionQty: {
-    fontSize: ms(12),
+    fontSize: ms(11),
     fontFamily: fontFamily.medium,
   },
   progressTrack: {
-    height: ms(5),
-    borderRadius: ms(5),
+    height: ms(4),
+    borderRadius: ms(4),
     overflow: 'hidden',
-    marginBottom: ms(8),
+    marginBottom: ms(6),
   },
   progressFill: {
     height: '100%',
-    borderRadius: ms(5),
+    borderRadius: ms(4),
   },
   progressFooter: {
     flexDirection: 'row',
@@ -213,20 +351,81 @@ const styles = StyleSheet.create({
   deliveredRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: ms(6),
+    gap: ms(4),
   },
   deliveredDot: {
-    width: ms(8),
-    height: ms(8),
-    borderRadius: ms(4),
+    width: ms(6),
+    height: ms(6),
+    borderRadius: ms(3),
   },
   deliveredText: {
     fontSize: ms(12),
     fontFamily: fontFamily.regular,
   },
   percentText: {
+    fontSize: ms(12),
+    fontFamily: fontFamily.bold,
+  },
+  regionsContainer: {
+    marginHorizontal: -ms(8),
+    marginBottom: ms(6),
+  },
+  regionsList: {
+    paddingHorizontal: ms(8),
+    gap: ms(10),
+  },
+  regionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: ms(12),
+    paddingVertical: ms(12),
+    borderRadius: ms(12),
+  },
+  regionLeftSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: ms(10),
+  },
+  regionRightSection: {
+    flex: 1,
+  },
+  regionTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: ms(4),
+  },
+  regionName: {
     fontSize: ms(14),
     fontFamily: fontFamily.bold,
+    flex: 1,
+    marginRight: ms(6),
+  },
+  regionBadge: {
+    paddingHorizontal: ms(6),
+    paddingVertical: ms(2),
+    borderRadius: ms(12),
+  },
+  regionBadgeText: {
+    color: colors.common.white,
+    fontSize: ms(8),
+    fontFamily: fontFamily.bold,
+    letterSpacing: 0.2,
+  },
+  regionQtyRow: {
+    marginBottom: ms(2),
+  },
+  regionQtyValue: {
+    fontSize: ms(12),
+    fontFamily: fontFamily.bold,
+  },
+  regionQtyOf: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.regular,
+  },
+  regionStatsRow: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.regular,
   },
 });
 

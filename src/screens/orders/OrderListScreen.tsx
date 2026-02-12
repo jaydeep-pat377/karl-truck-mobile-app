@@ -29,6 +29,7 @@ import { spacing, ms, iconSizes, wp, hp } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useOrders, useChatRooms, useGlobalAlert } from '../../hooks';
 import { orderService } from '../../api/services/orderService';
+import { getProgressBarColor } from '../../utils/statusUtils';
 
 const dateFilters = [
   { id: 'today', label: 'Today' },
@@ -1163,11 +1164,13 @@ export const OrderListScreen: React.FC = () => {
   );
 
   const handleOrderDetails = useCallback((order: Order) => {
+    const progressColor = getProgressBarColor(order.status, order.progress || 0);
     navigation.navigate('OrderDetail', {
       orderId: order.id,
       orderCode: order.orderCode,
       orderDate: order.scheduledDate,
       status: order.status,
+      progressColor: progressColor,
     });
   }, [navigation]);
 

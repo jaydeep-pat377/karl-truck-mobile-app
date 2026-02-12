@@ -8,3 +8,4 @@ export type { QuickLaunchAction } from './QuickLaunchCard';
 export { InformationSection } from './InformationSection';
 export type { InfoMessage, WeatherInfo, TodayStats } from './InformationSection';
 export { ProductionSummaryCard } from './ProductionSummaryCard';
+export type { RegionData } from './ProductionSummaryCard';

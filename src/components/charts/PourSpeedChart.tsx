@@ -8,8 +8,10 @@ import {
   Pressable,
   StyleSheet,
   Dimensions,
-  ScrollView,
+  Platform,
 } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Svg, {
   Path,
   Circle,
@@ -96,6 +98,25 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(
     new Set(['ordered', 'delivered', 'poured'])
   );
+
+  // Zoom state
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const MIN_ZOOM = 0.5;
+  const MAX_ZOOM = 3;
+  const ZOOM_STEP = 0.5;
+
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(1);
+  };
+
   const [tooltip, setTooltip] = useState<{
     x: number;
     y: number;
@@ -106,6 +127,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     loadQty?: number;
     actualSpacing?: number;
   } | null>(null);
+
 
   const themeColors = isDark ? colors.dark : colors.light;
   const containerWidth = SCREEN_WIDTH - horizontalPadding * 2;
@@ -139,11 +161,8 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     return { minTime, maxTime, range };
   }, [orderedData, deliveredData, pouredData]);
 
-
-
-  const timeSlots = Math.ceil(timeRange.range / 15);
-  const scrollableWidth = Math.max(timeSlots * minPointSpacing, baseChartWidth);
-  const chartWidth = scrollable ? scrollableWidth : baseChartWidth;
+  // Calculate zoomed chart width
+  const zoomedChartWidth = baseChartWidth * zoomLevel;
 
 
   const maxValue = Math.max(yMax, 100);
@@ -182,7 +201,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
 
   const getX = (time: number) => {
     const normalized = (time - timeRange.minTime) / timeRange.range;
-    return padding.left + normalized * (chartWidth - padding.left - padding.right);
+    return padding.left + normalized * (zoomedChartWidth - padding.left - padding.right);
   };
 
   const getY = (value: number) => {
@@ -350,12 +369,36 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   return (
     <View style={[styles.container, { backgroundColor: themeColors.card }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: themeColors.text.primary }]}>
-          Pour Speed (CY/HR)
-        </Text>
-        <Text style={[styles.subtitle, { color: themeColors.text.hint }]}>
-          Drag your finger over the plot to zoom in
-        </Text>
+        <View style={styles.headerTop}>
+          <Text style={[styles.title, { color: themeColors.text.primary }]}>
+            Pour Speed (CY/HR)
+          </Text>
+          <View style={styles.zoomControls}>
+            <TouchableOpacity
+              style={[styles.zoomButton, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}
+              onPress={handleZoomOut}
+              disabled={zoomLevel <= MIN_ZOOM}
+              activeOpacity={0.7}
+            >
+              <Icon name="minus" size={ms(18)} color={zoomLevel <= MIN_ZOOM ? themeColors.text.disabled : themeColors.text.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.zoomButton, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}
+              onPress={handleResetZoom}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.zoomText, { color: themeColors.text.primary }]}>{Math.round(zoomLevel * 100)}%</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.zoomButton, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}
+              onPress={handleZoomIn}
+              disabled={zoomLevel >= MAX_ZOOM}
+              activeOpacity={0.7}
+            >
+              <Icon name="plus" size={ms(18)} color={zoomLevel >= MAX_ZOOM ? themeColors.text.disabled : themeColors.text.primary} />
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       <Pressable onPress={hideTooltip} style={{ position: 'relative' }}>
@@ -393,29 +436,24 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
           }}>
             <ScrollView
               horizontal
-              showsHorizontalScrollIndicator={scrollable && chartWidth > baseChartWidth}
-              scrollEnabled={scrollable && chartWidth > baseChartWidth}
+              showsHorizontalScrollIndicator={zoomLevel > 1}
+              scrollEnabled={zoomLevel > 1}
               nestedScrollEnabled={true}
-              bounces={false}
+              bounces={Platform.OS === 'ios'}
+              decelerationRate="normal"
               scrollEventThrottle={16}
-              style={{
-                backgroundColor: themeColors.card,
-                flexGrow: 0,
-              }}
-              contentContainerStyle={{
-                minWidth: chartWidth,
-                backgroundColor: themeColors.card,
-              }}
+              directionalLockEnabled={true}
+              disableIntervalMomentum={false}
             >
-              <View style={[styles.chartArea, { width: chartWidth, backgroundColor: themeColors.card, overflow: 'visible' }]}>
+              <View style={[styles.chartArea, { width: zoomedChartWidth, backgroundColor: themeColors.card, overflow: 'visible' }]}>
                 <View style={{ position: 'relative', overflow: 'visible' }}>
-                  <Svg width={chartWidth} height={height}>
+                  <Svg width={zoomedChartWidth} height={height}>
                 {yAxisValues.map((value, i) => {
                   const y = getY(value);
                   return (
                     <Path
                       key={`grid-${i}`}
-                      d={`M ${padding.left} ${y} L ${chartWidth - padding.right} ${y}`}
+                      d={`M ${padding.left} ${y} L ${zoomedChartWidth - padding.right} ${y}`}
                       stroke={isDark ? colors.grey[60] + '30' : colors.grey[15]}
                       strokeWidth={1}
                     />
@@ -427,7 +465,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                   const minutes = date.getUTCHours() * 60 + date.getUTCMinutes();
                   const x = getX(minutes);
 
-                  if (x < padding.left || x > chartWidth - padding.right) return null;
+                  if (x < padding.left || x > zoomedChartWidth - padding.right) return null;
 
                   return (
                     <G key={`ref-${i}`}>
@@ -456,7 +494,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
 
                 {xAxisLabels.map((label, i) => {
                   const x = getX(label.time);
-                  if (x < padding.left - 10 || x > chartWidth - padding.right + 10) return null;
+                  if (x < padding.left - 10 || x > zoomedChartWidth - padding.right + 10) return null;
                   return (
                     <SvgText
                       key={`x-label-${i}`}
@@ -518,7 +556,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                         styles.tooltip,
                         {
                           backgroundColor: colors.chart.background.dark,
-                          left: Math.min(Math.max(tooltip.x - 60, 10), chartWidth - 140),
+                          left: Math.min(Math.max(tooltip.x - 60, 10), zoomedChartWidth - 140),
                           top: Math.max(tooltip.y - 90, 10),
                           ...SHADOWS.lg,
                         },
@@ -630,14 +668,30 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: ms(12),
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   title: {
     fontSize: ms(14),
     fontFamily: fontFamily.semiBold,
-    marginBottom: ms(2),
   },
-  subtitle: {
-    fontSize: ms(11),
-    fontFamily: fontFamily.regular,
+  zoomControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(6),
+  },
+  zoomButton: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  zoomText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.semiBold,
   },
   chartContainer: {
     flexDirection: 'row',

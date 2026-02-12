@@ -8,8 +8,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
-  ScrollView,
+  Platform,
 } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Svg, {
   Path,
   G,
@@ -82,6 +84,23 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     new Set(['waiting', 'pouring', 'washout'])
   );
 
+  // Zoom state
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const MIN_ZOOM = 0.5;
+  const MAX_ZOOM = 3;
+  const ZOOM_STEP = 0.5;
+
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(1);
+  };
 
   const toggleFilter = (key: string) => {
     setSelectedFilters(prev => {
@@ -101,6 +120,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   const chartPadding = { top: 15, right: 20, bottom: 30, left: 10 };
   const chartAreaHeight = height - chartPadding.top - chartPadding.bottom;
   const baseChartWidth = containerWidth - yAxisWidth;
+  const zoomedChartWidth = baseChartWidth * zoomLevel;
 
   const hasData = timePoints && timePoints.length > 0;
 
@@ -117,27 +137,15 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   }, [maxY]);
 
 
-  const chartWidth = useMemo(() => {
-    if (!hasData) return baseChartWidth;
 
-    const calculatedWidth = (timePoints.length * minPointSpacing) + chartPadding.left + chartPadding.right;
 
-    if (scrollable) {
-      return Math.max(calculatedWidth, baseChartWidth);
+  const getX = (index: number, totalPoints?: number): number => {
+    const points = totalPoints || timePoints.length || 5; // default 5 for empty state
+    if (points === 1) {
+      return chartPadding.left + (zoomedChartWidth - chartPadding.left - chartPadding.right) / 2;
     }
-    return baseChartWidth;
-  }, [hasData, timePoints.length, minPointSpacing, scrollable, baseChartWidth]);
-
-
-  const needsScroll = chartWidth > baseChartWidth;
-
-
-  const getX = (index: number): number => {
-    if (timePoints.length === 1) {
-      return chartPadding.left + (chartWidth - chartPadding.left - chartPadding.right) / 2;
-    }
-    const availableWidth = chartWidth - chartPadding.left - chartPadding.right;
-    return chartPadding.left + (index / (timePoints.length - 1)) * availableWidth;
+    const availableWidth = zoomedChartWidth - chartPadding.left - chartPadding.right;
+    return chartPadding.left + (index / (points - 1)) * availableWidth;
   };
 
 
@@ -249,7 +257,15 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
 
 
   const xAxisLabels = useMemo(() => {
-    if (!hasData) return [];
+    if (!hasData) {
+      // Show default time labels when no data (8:00 to 10:00 with 30 min intervals)
+      const defaultLabels = ['8:00', '8:30', '9:00', '9:30', '10:00'];
+      return defaultLabels.map((display, index) => ({
+        index,
+        display,
+        show: true,
+      }));
+    }
 
     const interval = timePoints.length > 12 ? 3 : timePoints.length > 8 ? 2 : 1;
 
@@ -265,12 +281,36 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   return (
     <View style={[styles.container, { backgroundColor: themeColors.card }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: themeColors.text.primary }]}>
-          Trucks on the Job
-        </Text>
-        <Text style={[styles.subtitle, { color: themeColors.text.hint }]}>
-          Drag your finger over the plot to zoom in
-        </Text>
+        <View style={styles.headerTop}>
+          <Text style={[styles.title, { color: themeColors.text.primary }]}>
+            Trucks on the Job
+          </Text>
+          <View style={styles.zoomControls}>
+            <TouchableOpacity
+              style={[styles.zoomButton, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}
+              onPress={handleZoomOut}
+              disabled={zoomLevel <= MIN_ZOOM}
+              activeOpacity={0.7}
+            >
+              <Icon name="minus" size={ms(18)} color={zoomLevel <= MIN_ZOOM ? themeColors.text.disabled : themeColors.text.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.zoomButton, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}
+              onPress={handleResetZoom}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.zoomText, { color: themeColors.text.primary }]}>{Math.round(zoomLevel * 100)}%</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.zoomButton, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}
+              onPress={handleZoomIn}
+              disabled={zoomLevel >= MAX_ZOOM}
+              activeOpacity={0.7}
+            >
+              <Icon name="plus" size={ms(18)} color={zoomLevel >= MAX_ZOOM ? themeColors.text.disabled : themeColors.text.primary} />
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       <Pressable onPress={hideTooltip}>
@@ -298,15 +338,18 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
 
           <View style={{ flex: 1, maxWidth: baseChartWidth, overflow: 'hidden' }}>
             <ScrollView
-              horizontal={true}
-              showsHorizontalScrollIndicator={needsScroll}
-              scrollEnabled={scrollable && needsScroll}
+              horizontal
+              showsHorizontalScrollIndicator={zoomLevel > 1}
+              scrollEnabled={zoomLevel > 1}
               nestedScrollEnabled={true}
-              bounces={false}
-              contentContainerStyle={{ width: chartWidth }}
+              bounces={Platform.OS === 'ios'}
+              decelerationRate="normal"
+              scrollEventThrottle={16}
+              directionalLockEnabled={true}
+              disableIntervalMomentum={false}
             >
-              <View style={{ width: chartWidth, position: 'relative' }}>
-                <Svg width={chartWidth} height={height}>
+              <View style={{ width: zoomedChartWidth, position: 'relative' }}>
+                <Svg width={zoomedChartWidth} height={height}>
                   {yAxisValues.map((value) => {
                     const y = getY(value);
                     return (
@@ -314,7 +357,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                         key={`grid-${value}`}
                         x1={chartPadding.left}
                         y1={y}
-                        x2={chartWidth - chartPadding.right}
+                        x2={zoomedChartWidth - chartPadding.right}
                         y2={y}
                         stroke={isDark ? '#333' : COLORS.grid}
                         strokeWidth={1}
@@ -373,7 +416,8 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                   })}
 
                   {xAxisLabels.filter(l => l.show).map((label) => {
-                    const x = getX(label.index);
+                    const totalLabels = xAxisLabels.filter(l => l.show).length;
+                    const x = getX(label.index, hasData ? undefined : totalLabels);
                     return (
                       <SvgText
                         key={`x-${label.index}`}
@@ -395,7 +439,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                     style={[
                       styles.tooltip,
                       {
-                        left: Math.min(Math.max(tooltip.x - 45, 5), chartWidth - 100),
+                        left: Math.min(Math.max(tooltip.x - 45, 5), zoomedChartWidth - 100),
                         top: Math.max(tooltip.y - 75, 5),
                       },
                     ]}
@@ -504,14 +548,30 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: ms(10),
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   title: {
     fontSize: ms(15),
     fontFamily: fontFamily.semiBold,
   },
-  subtitle: {
-    fontSize: ms(11),
-    fontFamily: fontFamily.regular,
-    marginTop: ms(2),
+  zoomControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(6),
+  },
+  zoomButton: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  zoomText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.semiBold,
   },
   chartRow: {
     flexDirection: 'row',

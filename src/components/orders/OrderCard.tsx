@@ -144,17 +144,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       style={[
         styles.card,
         {
-
-          shadowColor: statusColor,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.45,
-          shadowRadius: 6,
-
+          shadowColor: progressBarColor,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.4,
+          shadowRadius: 8,
+          borderBottomWidth: 3,
+          borderBottomColor: progressBarColor,
 
           ...(Platform.OS === 'android' && {
-            elevation: 3,
-            borderBottomWidth: 3,
-            borderBottomColor: statusColor,
+            elevation: 4,
           }),
         },
       ]}>
@@ -163,7 +161,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         <View style={styles.cardContent}>
           <View style={styles.headerRow}>
             <View style={styles.headerLeft}>
-              <StatusBadge status={order.status} size="small" />
+              <StatusBadge status={order.status} size="small" customColor={progressBarColor} />
               <Text
                 variant="captionSmall"
                 color="secondary"

@@ -1300,7 +1300,7 @@ export const OrderDetailsScreen: React.FC = () => {
   const themeColors = isDark ? colors.dark : colors.light;
   const { alertState, hideAlert, showError, showInfo } = useAlert();
 
-  const { orderId, orderCode, orderDate, status: passedStatus } = route.params;
+  const { orderId, orderCode, orderDate, status: passedStatus, progressColor } = route.params;
 
   const {
     orderDetails,
@@ -1476,6 +1476,12 @@ export const OrderDetailsScreen: React.FC = () => {
 
 
   const statusColor = useMemo(() => {
+    // Use progressColor if passed from navigation, otherwise calculate it
+    if (progressColor) {
+      console.log('🎨 OrderDetails Status Debug: Using passed progressColor:', progressColor);
+      return progressColor;
+    }
+
     const status = passedStatus || order.status;
     const progress = order.progress || 0;
     const color = getStatusColor(status, progress);
@@ -1490,7 +1496,7 @@ export const OrderDetailsScreen: React.FC = () => {
     });
 
     return color;
-  }, [passedStatus, order.status, order.progress]);
+  }, [progressColor, passedStatus, order.status, order.progress]);
 
   const handleMenuToggle = useCallback(() => {
     setMenuVisible(prev => !prev);

@@ -18,7 +18,7 @@ import {
   QuickLaunchCard,
   InformationSection,
 } from '../../components/dashboard';
-import type { DateFilter, QuickLaunchAction, InfoMessage } from '../../components/dashboard';
+import type { DateFilter, QuickLaunchAction, InfoMessage, RegionData } from '../../components/dashboard';
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
 import { ms, spacing, fontSizes, iconSizes } from '../../utils/responsive';
@@ -29,6 +29,7 @@ import { notificationService } from '../../services/notificationService';
 import { updateWidgetData } from '../../modules/TodayOverviewWidget';
 import { getProgressBarColor } from '../../utils/statusUtils';
 import { fontFamily } from '../../theme/typography';
+import { useAuthStore } from '../../store/authStore';
 
 interface ActiveDelivery {
   id: string;
@@ -47,15 +48,13 @@ interface ActiveDelivery {
 const defaultQuickLaunchActions: QuickLaunchAction[] = [
   {
     id: 'invite_customer',
-    title: 'CUSTOMER',
-    subtitle: 'EASY',
+    title: 'CUSTOMER INVITE',
     icon: 'account-group',
     permission: 'invite_customer',
   },
   {
     id: 'order_concrete',
     title: 'ORDER CONCRETE',
-    subtitle: 'Click Here',
     icon: 'clipboard-list',
     permission: 'order_concrete',
   },
@@ -67,12 +66,35 @@ const defaultQuickLaunchActions: QuickLaunchAction[] = [
   },
 ];
 
+// Sample regions data - replace with API data when available
+const sampleRegions: RegionData[] = [
+  {
+    id: '1',
+    name: 'OKC Metro Region',
+    deliveredQty: 1526.25,
+    totalQty: 2432.77,
+    totalOrders: 180,
+    activeOrders: 137,
+    cancelledOrders: 43,
+  },
+  {
+    id: '2',
+    name: 'Tulsa Region',
+    deliveredQty: 853.25,
+    totalQty: 1221.55,
+    totalOrders: 77,
+    activeOrders: 56,
+    cancelledOrders: 21,
+  },
+];
+
 const DashboardScreen: React.FC = () => {
   const { isDark } = useTheme();
   const navigation = useNavigation<any>();
   const { isTablet } = useResponsive();
   const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const user = useAuthStore((state) => state.user);
 
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
 
@@ -200,7 +222,19 @@ const DashboardScreen: React.FC = () => {
         onPress={onPress}
         disabled={!onPress}
       >
-        <View style={[styles.deliveryCard, { backgroundColor: themeColors.card }]}>
+        <View style={[
+          styles.deliveryCard,
+          {
+            backgroundColor: themeColors.card,
+            shadowColor: progressColor,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.35,
+            shadowRadius: 6,
+            elevation: 4,
+            borderBottomWidth: 3,
+            borderBottomColor: progressColor,
+          }
+        ]}>
           <View style={styles.deliveryHeader}>
             <View style={styles.deliveryHeaderLeft}>
               <Text style={[styles.deliveryOrderCode, { color: themeColors.text.primary }]} numberOfLines={1}>
@@ -216,9 +250,9 @@ const DashboardScreen: React.FC = () => {
                 <Text style={[styles.deliveryTime, { color: themeColors.text.hint }]}>{item.startTime}</Text>
               </View>
             </View>
-            <View style={[styles.deliveryStatusBadge, { backgroundColor: `${statusColor}15` }]}>
-              <View style={[styles.deliveryStatusDot, { backgroundColor: statusColor }]} />
-              <Text style={[styles.deliveryStatusText, { color: statusColor }]}>{item.status}</Text>
+            <View style={[styles.deliveryStatusBadge, { backgroundColor: `${progressColor}15` }]}>
+              <View style={[styles.deliveryStatusDot, { backgroundColor: progressColor }]} />
+              <Text style={[styles.deliveryStatusText, { color: progressColor }]}>{item.status}</Text>
             </View>
           </View>
 
@@ -430,11 +464,14 @@ const DashboardScreen: React.FC = () => {
       >
         <View style={styles.summarySection}>
           <ProductionSummaryCard
+            title={user?.company || 'Tenant Company Name'}
             totalOrders={todayOverview?.total_orders ?? 0}
             activeOrders={todayOverview?.in_progress ?? 0}
             cancelledOrders={todayOverview?.cancelled ?? 0}
             deliveredQty={activeDeliveries?.orders?.reduce((sum, order) => sum + (order.delivered_qty || 0), 0) ?? 0}
             totalQty={activeDeliveries?.orders?.reduce((sum, order) => sum + (order.ordered_qty || 0), 0) ?? 0}
+            regions={sampleRegions}
+            onRegionPress={(region) => console.log('Region pressed:', region.name)}
           />
         </View>
 
@@ -517,13 +554,16 @@ const DashboardScreen: React.FC = () => {
                 <View key={order.order_id} style={index === activeDeliveries.orders.length - 1 ? { marginRight: spacing.sm } : undefined}>
                   {renderDeliveryCard({
                     item: deliveryItem,
-                    onPress: () =>
+                    onPress: () => {
+                      const progressColor = getProgressBarColor(order.status, deliveryItem.progressPercent || 0);
                       navigation.navigate('OrderDetail', {
                         orderId: order.order_id,
                         orderCode: order.order_code,
                         orderDate: new Date().toISOString().split('T')[0],
                         status: order.status,
-                      }),
+                        progressColor: progressColor,
+                      });
+                    },
                   })}
                 </View>
               );
