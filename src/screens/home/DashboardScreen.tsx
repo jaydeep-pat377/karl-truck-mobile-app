@@ -18,7 +18,7 @@ import {
   QuickLaunchCard,
   InformationSection,
 } from '../../components/dashboard';
-import type { DateFilter, QuickLaunchAction, InfoMessage, RegionData } from '../../components/dashboard';
+import type { DateFilter, QuickLaunchAction, InfoMessage, RegionData, CompanyData, PlantData } from '../../components/dashboard';
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
 import { ms, spacing, fontSizes, iconSizes } from '../../utils/responsive';
@@ -66,28 +66,6 @@ const defaultQuickLaunchActions: QuickLaunchAction[] = [
   },
 ];
 
-// Sample regions data - replace with API data when available
-const sampleRegions: RegionData[] = [
-  {
-    id: '1',
-    name: 'OKC Metro Region',
-    deliveredQty: 1526.25,
-    totalQty: 2432.77,
-    totalOrders: 180,
-    activeOrders: 137,
-    cancelledOrders: 43,
-  },
-  {
-    id: '2',
-    name: 'Tulsa Region',
-    deliveredQty: 853.25,
-    totalQty: 1221.55,
-    totalOrders: 77,
-    activeOrders: 56,
-    cancelledOrders: 21,
-  },
-];
-
 const DashboardScreen: React.FC = () => {
   const { isDark } = useTheme();
   const navigation = useNavigation<any>();
@@ -97,22 +75,96 @@ const DashboardScreen: React.FC = () => {
   const user = useAuthStore((state) => state.user);
 
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
+  const [isFilterChanging, setIsFilterChanging] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Format date as YYYY-MM-DD for API
+  const formatDateForApi = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Get start_date and end_date for custom calendar selection
+  const customDateParams = dateFilter === 'calendar' ? {
+    startDate: formatDateForApi(selectedDate),
+    endDate: formatDateForApi(selectedDate),
+  } : {};
 
   const {
     notifications,
     weather,
     todayOverview,
+    marketSummary,
     activeDeliveries,
     recentAlerts,
     isLoading,
     isError,
     error,
-    isFetching,
+    isRefetching,
     refetch,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-  } = useDashboard({ dateFilter, deliveriesLimit: 10 });
+  } = useDashboard({
+    dateFilter,
+    ...customDateParams,
+    deliveriesLimit: 10,
+  });
+
+  // Map market summary companies to CompanyData format
+  const companies: CompanyData[] = useMemo(() => {
+    if (!marketSummary?.companies) return [];
+    return marketSummary.companies.map((company) => ({
+      id: company.id,
+      code: company.code,
+      name: company.name,
+      deliveredQty: company.usedCY,
+      totalQty: company.totalCY,
+      totalOrders: company.totalOrders,
+      activeOrders: company.activeOrders,
+      cancelledOrders: company.cancelledOrders,
+    }));
+  }, [marketSummary?.companies]);
+
+  // Map market summary regions to RegionData format
+  const regions: RegionData[] = useMemo(() => {
+    if (!marketSummary?.regions) return [];
+    return marketSummary.regions.map((region) => ({
+      id: region.id,
+      name: region.name,
+      deliveredQty: region.usedCY,
+      totalQty: region.totalCY,
+      totalOrders: region.totalOrders,
+      activeOrders: region.activeOrders,
+      cancelledOrders: region.cancelledOrders,
+    }));
+  }, [marketSummary?.regions]);
+
+  // Map market summary plants to PlantData format
+  const plants: PlantData[] = useMemo(() => {
+    if (!marketSummary?.plants) return [];
+    return marketSummary.plants.map((plant) => ({
+      id: plant.id,
+      code: plant.code,
+      name: plant.name,
+      regionName: plant.regionName,
+      deliveredQty: plant.usedCY,
+      totalQty: plant.totalCY,
+      totalOrders: plant.totalOrders,
+      activeOrders: plant.activeOrders,
+      cancelledOrders: plant.cancelledOrders,
+      weather: plant.weather ? {
+        temperature: plant.weather.temperature_fahrenheit,
+        humidity: plant.weather.humidity,
+        windSpeed: plant.weather.wind_speed_mph,
+        condition: plant.weather.condition,
+        icon: plant.weather.icon,
+      } : null,
+    }));
+  }, [marketSummary?.plants]);
 
   useEffect(() => {
     const initNotifications = async () => {
@@ -142,6 +194,13 @@ const DashboardScreen: React.FC = () => {
     }
   }, [todayOverview]);
 
+  // Reset filter changing state when data is loaded
+  useEffect(() => {
+    if (isFilterChanging && !isLoading && !isRefetching) {
+      setIsFilterChanging(false);
+    }
+  }, [isFilterChanging, isLoading, isRefetching]);
+
   const themeColors = isDark ? colors.dark : colors.light;
 
   const onRefresh = useCallback(() => {
@@ -149,7 +208,22 @@ const DashboardScreen: React.FC = () => {
   }, [refetch]);
 
   const handleDateFilterChange = useCallback((filter: DateFilter) => {
+    if (filter !== dateFilter) {
+      setIsFilterChanging(true);
+    }
     setDateFilter(filter);
+  }, [dateFilter]);
+
+  const handleCalendarPress = useCallback(() => {
+    setShowDatePicker(true);
+  }, []);
+
+  const handleDateSelect = useCallback((date: Date) => {
+    setSelectedDate(date);
+  }, []);
+
+  const handleCloseDatePicker = useCallback(() => {
+    setShowDatePicker(false);
   }, []);
 
 
@@ -401,7 +475,7 @@ const DashboardScreen: React.FC = () => {
     );
   };
 
-  if (isLoading) {
+  if (isLoading || isFilterChanging) {
     return <DashboardSkeleton />;
   }
 
@@ -446,7 +520,15 @@ const DashboardScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      <DateFilterChips selectedFilter={dateFilter} onFilterChange={handleDateFilterChange} />
+      <DateFilterChips
+        selectedFilter={dateFilter}
+        onFilterChange={handleDateFilterChange}
+        selectedDate={selectedDate}
+        onDateSelect={handleDateSelect}
+        showDatePicker={showDatePicker}
+        onCalendarPress={handleCalendarPress}
+        onCloseDatePicker={handleCloseDatePicker}
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -454,7 +536,7 @@ const DashboardScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isFetching}
+            refreshing={isRefetching && !isFetchingNextPage}
             onRefresh={onRefresh}
             tintColor={colors.primary.main}
             colors={[colors.primary.main, colors.secondary.main]}
@@ -464,14 +546,18 @@ const DashboardScreen: React.FC = () => {
       >
         <View style={styles.summarySection}>
           <ProductionSummaryCard
-            title={user?.company || 'Tenant Company Name'}
+            title={marketSummary?.companies?.[0]?.name || user?.company || 'Tenant Company Name'}
             totalOrders={todayOverview?.total_orders ?? 0}
-            activeOrders={todayOverview?.in_progress ?? 0}
+            activeOrders={(todayOverview?.in_progress ?? 0) + (todayOverview?.normal ?? 0) + (todayOverview?.will_call ?? 0) + (todayOverview?.hold_delivery ?? 0)}
             cancelledOrders={todayOverview?.cancelled ?? 0}
-            deliveredQty={activeDeliveries?.orders?.reduce((sum, order) => sum + (order.delivered_qty || 0), 0) ?? 0}
-            totalQty={activeDeliveries?.orders?.reduce((sum, order) => sum + (order.ordered_qty || 0), 0) ?? 0}
-            regions={sampleRegions}
+            deliveredQty={marketSummary?.companies?.[0]?.usedCY ?? activeDeliveries?.orders?.reduce((sum, order) => sum + (order.delivered_qty || 0), 0) ?? 0}
+            totalQty={marketSummary?.companies?.[0]?.totalCY ?? activeDeliveries?.orders?.reduce((sum, order) => sum + (order.ordered_qty || 0), 0) ?? 0}
+            companies={companies}
+            regions={regions}
+            plants={plants}
+            onCompanyPress={(company) => console.log('Company pressed:', company.name)}
             onRegionPress={(region) => console.log('Region pressed:', region.name)}
+            onPlantPress={(plant) => console.log('Plant pressed:', plant.name)}
           />
         </View>
 
@@ -489,7 +575,6 @@ const DashboardScreen: React.FC = () => {
             total: todayOverview.total_orders ?? 0,
             completed: todayOverview.completed ?? 0,
             inProgress: todayOverview.in_progress ?? 0,
-            pending: todayOverview.normal ?? 0,
             cancelled: todayOverview.cancelled ?? 0,
           } : null}
           onMessagePress={() => navigation.navigate('Notifications')}
@@ -513,105 +598,109 @@ const DashboardScreen: React.FC = () => {
           </>
         )}
 
-        <SectionHeader title="Active Deliveries" actionLabel="View All" onAction={() => navigation.navigate('Map')} />
-        {activeDeliveries?.orders && activeDeliveries.orders.length > 0 ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.deliveryList}
-            decelerationRate="fast"
-            onScrollEndDrag={({ nativeEvent }) => {
-              const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-              const isNearEnd = layoutMeasurement.width + contentOffset.x >= contentSize.width - 150;
-              if (isNearEnd && hasNextPage && !isFetchingNextPage) {
-                fetchNextPage();
-              }
-            }}
-            onMomentumScrollEnd={({ nativeEvent }) => {
-              const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-              const isNearEnd = layoutMeasurement.width + contentOffset.x >= contentSize.width - 150;
-              if (isNearEnd && hasNextPage && !isFetchingNextPage) {
-                fetchNextPage();
-              }
-            }}
-            scrollEventThrottle={16}
-          >
-            {activeDeliveries.orders.map((order, index) => {
-              const deliveryItem: ActiveDelivery = {
-                id: order.order_id,
-                orderCode: order.order_code,
-                customerName: order.customer_name,
-                deliveryAddress: order.delivery_address || 'N/A',
-                productCodes: order.product_codes || 'N/A',
-                startTime: order.start_time || 'N/A',
-                orderedQty: order.ordered_qty || 0,
-                deliveredQty: order.delivered_qty || 0,
-                remainingQty: order.remaining_qty || 0,
-                progressPercent: order.progress_percent || 0,
-                status: order.status || 'Normal',
-              };
-              return (
-                <View key={order.order_id} style={index === activeDeliveries.orders.length - 1 ? { marginRight: spacing.sm } : undefined}>
-                  {renderDeliveryCard({
-                    item: deliveryItem,
-                    onPress: () => {
-                      const progressColor = getProgressBarColor(order.status, deliveryItem.progressPercent || 0);
-                      navigation.navigate('OrderDetail', {
-                        orderId: order.order_id,
-                        orderCode: order.order_code,
-                        orderDate: new Date().toISOString().split('T')[0],
-                        status: order.status,
-                        progressColor: progressColor,
-                      });
-                    },
-                  })}
-                </View>
-              );
-            })}
-
-            {(isFetchingNextPage || hasNextPage) && (
-              <TouchableOpacity
-                style={[styles.loadMoreButton, { backgroundColor: themeColors.card }]}
-                onPress={() => {
-                  if (!isFetchingNextPage && hasNextPage) {
+        {dateFilter === 'today' && (
+          <>
+            <SectionHeader title="Active Deliveries" actionLabel="View All" onAction={() => navigation.navigate('Map')} />
+            {activeDeliveries?.orders && activeDeliveries.orders.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.deliveryList}
+                decelerationRate="fast"
+                onScrollEndDrag={({ nativeEvent }) => {
+                  const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+                  const isNearEnd = layoutMeasurement.width + contentOffset.x >= contentSize.width - 150;
+                  if (isNearEnd && hasNextPage && !isFetchingNextPage) {
                     fetchNextPage();
                   }
                 }}
-                activeOpacity={0.7}
-                disabled={isFetchingNextPage || !hasNextPage}
+                onMomentumScrollEnd={({ nativeEvent }) => {
+                  const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+                  const isNearEnd = layoutMeasurement.width + contentOffset.x >= contentSize.width - 150;
+                  if (isNearEnd && hasNextPage && !isFetchingNextPage) {
+                    fetchNextPage();
+                  }
+                }}
+                scrollEventThrottle={16}
               >
-                {isFetchingNextPage ? (
-                  <ActivityIndicator size="small" color={colors.primary.main} />
-                ) : (
-                  <>
-                    <Icon name="chevron-right" size={ms(20)} color={colors.primary.main} />
-                    <Text variant="caption" style={{ color: colors.primary.main }}>
-                      More
-                    </Text>
-                  </>
+                {activeDeliveries.orders.map((order, index) => {
+                  const deliveryItem: ActiveDelivery = {
+                    id: order.order_id,
+                    orderCode: order.order_code,
+                    customerName: order.customer_name,
+                    deliveryAddress: order.delivery_address || 'N/A',
+                    productCodes: order.product_codes || 'N/A',
+                    startTime: order.start_time || 'N/A',
+                    orderedQty: order.ordered_qty || 0,
+                    deliveredQty: order.delivered_qty || 0,
+                    remainingQty: order.remaining_qty || 0,
+                    progressPercent: order.progress_percent || 0,
+                    status: order.status || 'Normal',
+                  };
+                  return (
+                    <View key={order.order_id} style={index === activeDeliveries.orders.length - 1 ? { marginRight: spacing.sm } : undefined}>
+                      {renderDeliveryCard({
+                        item: deliveryItem,
+                        onPress: () => {
+                          const progressColor = getProgressBarColor(order.status, deliveryItem.progressPercent || 0);
+                          navigation.navigate('OrderDetail', {
+                            orderId: order.order_id,
+                            orderCode: order.order_code,
+                            orderDate: new Date().toISOString().split('T')[0],
+                            status: order.status,
+                            progressColor: progressColor,
+                          });
+                        },
+                      })}
+                    </View>
+                  );
+                })}
+
+                {(isFetchingNextPage || hasNextPage) && (
+                  <TouchableOpacity
+                    style={[styles.loadMoreButton, { backgroundColor: themeColors.card }]}
+                    onPress={() => {
+                      if (!isFetchingNextPage && hasNextPage) {
+                        fetchNextPage();
+                      }
+                    }}
+                    activeOpacity={0.7}
+                    disabled={isFetchingNextPage || !hasNextPage}
+                  >
+                    {isFetchingNextPage ? (
+                      <ActivityIndicator size="small" color={colors.primary.main} />
+                    ) : (
+                      <>
+                        <Icon name="chevron-right" size={ms(20)} color={colors.primary.main} />
+                        <Text variant="caption" style={{ color: colors.primary.main }}>
+                          More
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
                 )}
-              </TouchableOpacity>
-            )}
-          </ScrollView>
-        ) : (
-          <View style={styles.emptyDeliveryCard}>
-            <View style={[styles.emptyDeliveryContent, { backgroundColor: themeColors.card }]}>
-              <View
-                style={[
-                  styles.emptyDeliveryIconBg,
-                  { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 },
-                ]}
-              >
-                <Icon name="truck-check-outline" size={ms(32)} color={themeColors.text.hint} />
+              </ScrollView>
+            ) : (
+              <View style={styles.emptyDeliveryCard}>
+                <View style={[styles.emptyDeliveryContent, { backgroundColor: themeColors.card }]}>
+                  <View
+                    style={[
+                      styles.emptyDeliveryIconBg,
+                      { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 },
+                    ]}
+                  >
+                    <Icon name="truck-check-outline" size={ms(32)} color={themeColors.text.hint} />
+                  </View>
+                  <Text variant="body" color="secondary" style={styles.emptyDeliveryTitle}>
+                    No Active Deliveries
+                  </Text>
+                  <Text variant="caption" color="hint" style={styles.emptyDeliverySubtitle}>
+                    Active orders will appear here
+                  </Text>
+                </View>
               </View>
-              <Text variant="body" color="secondary" style={styles.emptyDeliveryTitle}>
-                No Active Deliveries
-              </Text>
-              <Text variant="caption" color="hint" style={styles.emptyDeliverySubtitle}>
-                Active orders will appear here
-              </Text>
-            </View>
-          </View>
+            )}
+          </>
         )}
 
         <View style={{ height: TAB_BAR_HEIGHT + spacing.lg }} />

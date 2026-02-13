@@ -1,6 +1,6 @@
 
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
+import type { ScrollView as ScrollViewType } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Svg, {
   Path,
@@ -86,20 +87,45 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
 
   // Zoom state
   const [zoomLevel, setZoomLevel] = useState(1);
-  const MIN_ZOOM = 0.5;
-  const MAX_ZOOM = 3;
+  const [isAtEnd, setIsAtEnd] = useState(false);
+  const MIN_ZOOM = 1; // 100%
+  const MAX_ZOOM = 5; // 500%
   const ZOOM_STEP = 0.5;
+  const chartScrollRef = useRef<ScrollViewType>(null);
+  const currentScrollX = useRef(0);
 
   const handleZoomIn = () => {
+    if (isAtEnd || zoomLevel >= MAX_ZOOM) return; // Don't zoom in if at the end or max zoom
     setZoomLevel(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
+    if (zoomLevel <= MIN_ZOOM) return;
+    const newZoom = Math.max(zoomLevel - ZOOM_STEP, MIN_ZOOM);
+    setZoomLevel(newZoom);
+    setIsAtEnd(false); // Reset end state when zooming out
+    // Adjust scroll position to prevent blank screen
+    setTimeout(() => {
+      const newMaxScroll = baseChartWidth * newZoom - baseChartWidth;
+      if (currentScrollX.current > newMaxScroll) {
+        chartScrollRef.current?.scrollTo({ x: Math.max(0, newMaxScroll), animated: true });
+      }
+    }, 50);
   };
 
   const handleResetZoom = () => {
     setZoomLevel(1);
+    setIsAtEnd(false);
+    currentScrollX.current = 0;
+    chartScrollRef.current?.scrollTo({ x: 0, animated: true });
+  };
+
+  const handleScroll = (event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    currentScrollX.current = contentOffset.x;
+    // Check if scrolled to the end (with small threshold)
+    const isEnd = contentOffset.x + layoutMeasurement.width >= contentSize.width - 5;
+    setIsAtEnd(isEnd);
   };
 
   const toggleFilter = (key: string) => {
@@ -117,7 +143,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   const themeColors = isDark ? colors.dark : colors.light;
   const containerWidth = SCREEN_WIDTH - horizontalPadding * 2;
   const yAxisWidth = 25;
-  const chartPadding = { top: 15, right: 20, bottom: 30, left: 10 };
+  const chartPadding = { top: 15, right: 20, bottom: 50, left: 35 };
   const chartAreaHeight = height - chartPadding.top - chartPadding.bottom;
   const baseChartWidth = containerWidth - yAxisWidth;
   const zoomedChartWidth = baseChartWidth * zoomLevel;
@@ -264,17 +290,26 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
         index,
         display,
         show: true,
+        hasData: false,
       }));
     }
 
-    const interval = timePoints.length > 12 ? 3 : timePoints.length > 8 ? 2 : 1;
+    // Calculate how many labels can fit based on chart width and zoom
+    // Each rotated label needs approximately 50px of space
+    const labelWidth = 50;
+    const availableWidth = zoomedChartWidth - chartPadding.left - chartPadding.right;
+    const maxLabels = Math.max(2, Math.floor(availableWidth / labelWidth));
+
+    // Calculate interval to fit within maxLabels
+    const interval = Math.max(1, Math.ceil(timePoints.length / maxLabels));
 
     return timePoints.map((point, index) => ({
       index,
       display: point.time_display,
       show: index % interval === 0 || index === timePoints.length - 1,
+      hasData: point.waiting > 0 || point.pouring > 0 || (point.washout || 0) > 0,
     }));
-  }, [timePoints, hasData]);
+  }, [timePoints, hasData, zoomedChartWidth]);
 
   const hideTooltip = () => setTooltip(null);
 
@@ -299,15 +334,15 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
               onPress={handleResetZoom}
               activeOpacity={0.7}
             >
-              <Text style={[styles.zoomText, { color: themeColors.text.primary }]}>{Math.round(zoomLevel * 100)}%</Text>
+              <Icon name="magnify-expand" size={ms(18)} color={themeColors.text.primary} />
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.zoomButton, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}
               onPress={handleZoomIn}
-              disabled={zoomLevel >= MAX_ZOOM}
+              disabled={isAtEnd || zoomLevel >= MAX_ZOOM}
               activeOpacity={0.7}
             >
-              <Icon name="plus" size={ms(18)} color={zoomLevel >= MAX_ZOOM ? themeColors.text.disabled : themeColors.text.primary} />
+              <Icon name="plus" size={ms(18)} color={(isAtEnd || zoomLevel >= MAX_ZOOM) ? themeColors.text.disabled : themeColors.text.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -338,6 +373,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
 
           <View style={{ flex: 1, maxWidth: baseChartWidth, overflow: 'hidden' }}>
             <ScrollView
+              ref={chartScrollRef}
               horizontal
               showsHorizontalScrollIndicator={zoomLevel > 1}
               scrollEnabled={zoomLevel > 1}
@@ -347,6 +383,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
               scrollEventThrottle={16}
               directionalLockEnabled={true}
               disableIntervalMomentum={false}
+              onScroll={handleScroll}
             >
               <View style={{ width: zoomedChartWidth, position: 'relative' }}>
                 <Svg width={zoomedChartWidth} height={height}>
@@ -422,11 +459,12 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                       <SvgText
                         key={`x-${label.index}`}
                         x={x}
-                        y={height - 8}
+                        y={height - 28}
                         fontSize={ms(10)}
                         fill={themeColors.text.hint}
-                        textAnchor="middle"
+                        textAnchor="end"
                         fontFamily={fontFamily.medium}
+                        transform={`rotate(-45, ${x}, ${height - 28})`}
                       >
                         {label.display}
                       </SvgText>
@@ -464,6 +502,13 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
           </View>
         </View>
       </Pressable>
+
+      {zoomLevel > 1 && (
+        <View style={styles.swipeIndicator}>
+          <Icon name="gesture-swipe-horizontal" size={ms(16)} color={themeColors.text.hint} />
+          <Text style={[styles.swipeText, { color: themeColors.text.hint }]}>Swipe right to view more</Text>
+        </View>
+      )}
 
       <View style={styles.legend}>
         <TouchableOpacity
@@ -599,6 +644,17 @@ const styles = StyleSheet.create({
     borderRadius: ms(2),
   },
   legendLabel: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.medium,
+  },
+  swipeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: ms(6),
+    gap: ms(4),
+  },
+  swipeText: {
     fontSize: ms(11),
     fontFamily: fontFamily.medium,
   },

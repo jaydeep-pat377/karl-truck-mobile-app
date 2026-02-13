@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { orderService } from '../api/services/orderService';
 import {
   OrdersApiResponse,
@@ -8,7 +8,7 @@ import {
   OrdersStatusCounts,
 } from '../types/order';
 import { AxiosError } from 'axios';
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 
 interface ApiErrorResponse {
   success?: boolean;
@@ -16,6 +16,22 @@ interface ApiErrorResponse {
 }
 
 export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
+  const queryClient = useQueryClient();
+  const prevParamsRef = useRef<string | null>(null);
+
+  // Create a stable string key from params to detect changes
+  const paramsKey = useMemo(() => {
+    return JSON.stringify({
+      date_filter: params?.date_filter,
+      status: params?.status,
+      search: params?.search,
+      sort_by: params?.sort_by,
+      sort_order: params?.sort_order,
+      start_date: params?.start_date,
+      end_date: params?.end_date,
+    });
+  }, [params?.date_filter, params?.status, params?.search, params?.sort_by, params?.sort_order, params?.start_date, params?.end_date]);
+
   const query = useInfiniteQuery<OrdersApiResponse, AxiosError<ApiErrorResponse>>({
     queryKey: ['orders', params],
     queryFn: ({ pageParam = 1 }) =>
@@ -27,12 +43,22 @@ export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
       }
       return undefined;
     },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0, // Always refetch when params change
     gcTime: 10 * 60 * 1000,
     retry: 1,
     refetchOnMount: 'always',
     refetchOnWindowFocus: false,
   });
+
+  // Reset and refetch when filter params change
+  useEffect(() => {
+    if (prevParamsRef.current !== null && prevParamsRef.current !== paramsKey) {
+      console.log('🔄 Filter params changed, resetting query...');
+      // Invalidate the query to force a fresh fetch
+      queryClient.resetQueries({ queryKey: ['orders'] });
+    }
+    prevParamsRef.current = paramsKey;
+  }, [paramsKey, queryClient]);
 
 
   const orders: ApiOrder[] = useMemo(() => {

@@ -92,12 +92,62 @@ export interface RecentAlert {
   timestamp: string;
 }
 
+// Market Summary Types
+export interface MarketCompany {
+  id: string;
+  code: string;
+  name: string;
+  totalOrders: number;
+  activeOrders: number;
+  cancelledOrders: number;
+  totalCY: number;
+  usedCY: number;
+}
+
+export interface MarketRegion {
+  id: string;
+  name: string;
+  totalOrders: number;
+  activeOrders: number;
+  cancelledOrders: number;
+  totalCY: number;
+  usedCY: number;
+}
+
+export interface PlantWeather {
+  temperature_fahrenheit: number;
+  humidity: number;
+  wind_speed_mph: number;
+  condition: string;
+  icon: string;
+}
+
+export interface MarketPlant {
+  id: string;
+  code: string;
+  name: string;
+  regionName: string | null;
+  totalOrders: number;
+  activeOrders: number;
+  cancelledOrders: number;
+  totalCY: number;
+  usedCY: number;
+  weather: PlantWeather | null;
+}
+
+export interface MarketSummary {
+  companies: MarketCompany[];
+  regions: MarketRegion[];
+  plants: MarketPlant[];
+}
+
 export interface DashboardData {
   user: DashboardUser;
   notifications: DashboardNotifications;
   weather: DashboardWeather | null;
   today_overview: TodayOverview;
   today_progress: TodayProgress;
+  market_summary: MarketSummary;
   active_deliveries: ActiveDeliveries;
   recent_alerts: RecentAlert[];
 }

@@ -26,3 +26,5 @@ export { ContentLoader } from './ContentLoader';
 export { EmptyView, EmptyViewWithPreset, EmptyViewPresets } from './EmptyView';
 export type { EmptyViewProps, EmptyViewPresetKey } from './EmptyView';
 export { ScreenHeader } from './ScreenHeader';
+export { BottomSheet } from './BottomSheet';
+export type { BottomSheetProps } from './BottomSheet';

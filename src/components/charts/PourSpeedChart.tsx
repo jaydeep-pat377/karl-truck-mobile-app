@@ -1,6 +1,6 @@
 
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
+import type { ScrollView as ScrollViewType } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Svg, {
   Path,
@@ -101,20 +102,45 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
 
   // Zoom state
   const [zoomLevel, setZoomLevel] = useState(1);
-  const MIN_ZOOM = 0.5;
-  const MAX_ZOOM = 3;
+  const [isAtEnd, setIsAtEnd] = useState(false);
+  const MIN_ZOOM = 1; // 100%
+  const MAX_ZOOM = 5; // 500%
   const ZOOM_STEP = 0.5;
+  const chartScrollRef = useRef<ScrollViewType>(null);
+  const currentScrollX = useRef(0);
 
   const handleZoomIn = () => {
+    if (isAtEnd || zoomLevel >= MAX_ZOOM) return; // Don't zoom in if at the end or max zoom
     setZoomLevel(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
+    if (zoomLevel <= MIN_ZOOM) return;
+    const newZoom = Math.max(zoomLevel - ZOOM_STEP, MIN_ZOOM);
+    setZoomLevel(newZoom);
+    setIsAtEnd(false); // Reset end state when zooming out
+    // Adjust scroll position to prevent blank screen
+    setTimeout(() => {
+      const newMaxScroll = baseChartWidth * newZoom - baseChartWidth;
+      if (currentScrollX.current > newMaxScroll) {
+        chartScrollRef.current?.scrollTo({ x: Math.max(0, newMaxScroll), animated: true });
+      }
+    }, 50);
   };
 
   const handleResetZoom = () => {
     setZoomLevel(1);
+    setIsAtEnd(false);
+    currentScrollX.current = 0;
+    chartScrollRef.current?.scrollTo({ x: 0, animated: true });
+  };
+
+  const handleScroll = (event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    currentScrollX.current = contentOffset.x;
+    // Check if scrolled to the end (with small threshold)
+    const isEnd = contentOffset.x + layoutMeasurement.width >= contentSize.width - 5;
+    setIsAtEnd(isEnd);
   };
 
   const [tooltip, setTooltip] = useState<{
@@ -132,7 +158,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   const themeColors = isDark ? colors.dark : colors.light;
   const containerWidth = SCREEN_WIDTH - horizontalPadding * 2;
   const yAxisWidth = 40;
-  const padding = { top: 16, right: 20, bottom: 32, left: 10 };
+  const padding = { top: 16, right: 20, bottom: 50, left: 35 };
   const chartHeight = height - padding.top - padding.bottom;
   const baseChartWidth = containerWidth - yAxisWidth;
 
@@ -279,18 +305,42 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
 
 
   const xAxisLabels = useMemo(() => {
-    const labels: { time: number; display: string }[] = [];
+    const labels: { time: number; display: string; hasData: boolean }[] = [];
 
+    // Calculate how many labels can fit based on chart width
+    // Each rotated label needs approximately 50px of space
+    const labelWidth = 50;
+    const availableWidth = zoomedChartWidth - padding.left - padding.right;
+    const maxLabels = Math.max(2, Math.floor(availableWidth / labelWidth));
 
-    for (let time = timeRange.minTime; time <= timeRange.maxTime; time += 15) {
+    // Calculate time interval based on how many labels can fit
+    const totalMinutes = timeRange.maxTime - timeRange.minTime;
+    const rawInterval = Math.ceil(totalMinutes / maxLabels);
+
+    // Round to nearest 15 minutes for cleaner labels
+    const timeInterval = Math.max(15, Math.ceil(rawInterval / 15) * 15);
+
+    // Collect all data points times
+    const allDataTimes = [
+      ...orderedData.map(d => parseTimeToMinutes(d.time_display)),
+      ...deliveredData.map(d => parseTimeToMinutes(d.time_display)),
+      ...pouredData.map(d => parseTimeToMinutes(d.time_display)),
+    ];
+
+    for (let time = timeRange.minTime; time <= timeRange.maxTime; time += timeInterval) {
+      // Check if there's any data point within the time interval
+      const hasData = allDataTimes.some(dataTime =>
+        dataTime >= time && dataTime < time + timeInterval
+      );
       labels.push({
         time,
         display: formatMinutesToTime(time),
+        hasData,
       });
     }
 
     return labels;
-  }, [timeRange]);
+  }, [timeRange, zoomedChartWidth, orderedData, deliveredData, pouredData]);
 
 
   const renderMarker = (
@@ -387,15 +437,15 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
               onPress={handleResetZoom}
               activeOpacity={0.7}
             >
-              <Text style={[styles.zoomText, { color: themeColors.text.primary }]}>{Math.round(zoomLevel * 100)}%</Text>
+              <Icon name="magnify-expand" size={ms(18)} color={themeColors.text.primary} />
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.zoomButton, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}
               onPress={handleZoomIn}
-              disabled={zoomLevel >= MAX_ZOOM}
+              disabled={isAtEnd || zoomLevel >= MAX_ZOOM}
               activeOpacity={0.7}
             >
-              <Icon name="plus" size={ms(18)} color={zoomLevel >= MAX_ZOOM ? themeColors.text.disabled : themeColors.text.primary} />
+              <Icon name="plus" size={ms(18)} color={(isAtEnd || zoomLevel >= MAX_ZOOM) ? themeColors.text.disabled : themeColors.text.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -435,6 +485,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
             overflow: 'hidden',
           }}>
             <ScrollView
+              ref={chartScrollRef}
               horizontal
               showsHorizontalScrollIndicator={zoomLevel > 1}
               scrollEnabled={zoomLevel > 1}
@@ -444,6 +495,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
               scrollEventThrottle={16}
               directionalLockEnabled={true}
               disableIntervalMomentum={false}
+              onScroll={handleScroll}
             >
               <View style={[styles.chartArea, { width: zoomedChartWidth, backgroundColor: themeColors.card, overflow: 'visible' }]}>
                 <View style={{ position: 'relative', overflow: 'visible' }}>
@@ -495,15 +547,18 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                 {xAxisLabels.map((label, i) => {
                   const x = getX(label.time);
                   if (x < padding.left - 10 || x > zoomedChartWidth - padding.right + 10) return null;
+                  // Use darker color when no data at this time
+                  const labelColor = label.hasData ? themeColors.text.hint : (isDark ? colors.grey[40] : colors.grey[70]);
                   return (
                     <SvgText
                       key={`x-label-${i}`}
                       x={x}
-                      y={height - 8}
+                      y={height - 28}
                       fontSize={ms(9)}
-                      fill={themeColors.text.hint}
-                      textAnchor="middle"
+                      fill={labelColor}
+                      textAnchor="end"
                       fontFamily={fontFamily.medium}
+                      transform={`rotate(-45, ${x}, ${height - 28})`}
                     >
                       {label.display}
                     </SvgText>
@@ -589,6 +644,13 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
         </View>
 
       </Pressable>
+
+      {zoomLevel > 1 && (
+        <View style={styles.swipeIndicator}>
+          <Icon name="gesture-swipe-horizontal" size={ms(16)} color={themeColors.text.hint} />
+          <Text style={[styles.swipeText, { color: themeColors.text.hint }]}>Swipe right to view more</Text>
+        </View>
+      )}
 
       <View style={styles.legend}>
         {allSeriesConfig.map(s => {
@@ -727,6 +789,17 @@ const styles = StyleSheet.create({
     marginRight: ms(6),
   },
   legendText: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.medium,
+  },
+  swipeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: ms(6),
+    gap: ms(4),
+  },
+  swipeText: {
     fontSize: ms(11),
     fontFamily: fontFamily.medium,
   },

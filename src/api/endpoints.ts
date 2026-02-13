@@ -14,7 +14,7 @@ export const API_ENDPOINTS = {
     UPLOAD_AVATAR: '/users/profile/avatar',
   },
   DASHBOARD: {
-    GET: '/dashboard',
+    GET: '/new-dashboard',
   },
   ORDERS: {
     LIST: '/orders',

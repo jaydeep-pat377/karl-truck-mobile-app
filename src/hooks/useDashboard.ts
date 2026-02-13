@@ -10,18 +10,23 @@ interface ApiErrorResponse {
 }
 
 interface UseDashboardParams {
-  dateFilter?: DashboardDateFilter;
+  dateFilter?: DashboardDateFilter | 'calendar';
+  startDate?: string; // YYYY-MM-DD format for custom date
+  endDate?: string; // YYYY-MM-DD format for custom date
   deliveriesLimit?: number;
 }
 
 export const useDashboard = (params?: UseDashboardParams) => {
   const limit = params?.deliveriesLimit ?? 5;
+  const isCustomDate = params?.dateFilter === 'calendar' && params?.startDate && params?.endDate;
 
   const query = useInfiniteQuery<DashboardApiResponse, AxiosError<ApiErrorResponse>>({
-    queryKey: ['dashboard', params?.dateFilter, limit],
+    queryKey: ['dashboard', params?.dateFilter, params?.startDate, params?.endDate, limit],
     queryFn: ({ pageParam = 1 }) =>
       dashboardService.getDashboard({
-        date_filter: params?.dateFilter,
+        date_filter: isCustomDate ? undefined : (params?.dateFilter as DashboardDateFilter),
+        start_date: isCustomDate ? params?.startDate : undefined,
+        end_date: isCustomDate ? params?.endDate : undefined,
         page: pageParam as number,
         limit,
       }),
@@ -45,9 +50,14 @@ export const useDashboard = (params?: UseDashboardParams) => {
 
   const allDeliveryOrders: ActiveDeliveryOrder[] = useMemo(() => {
     if (!query.data?.pages) return [];
-    return query.data.pages.flatMap(
+    const allOrders = query.data.pages.flatMap(
       (page) => page.data?.active_deliveries?.orders ?? []
     );
+    // Remove duplicates based on order_id
+    const uniqueOrders = allOrders.filter(
+      (order, index, self) => index === self.findIndex((o) => o.order_id === order.order_id)
+    );
+    return uniqueOrders;
   }, [query.data?.pages]);
 
   const activeDeliveriesWithAllOrders = useMemo(() => {
@@ -79,6 +89,7 @@ export const useDashboard = (params?: UseDashboardParams) => {
     weather: firstPageData?.weather ?? null,
     todayOverview: firstPageData?.today_overview ?? null,
     todayProgress: firstPageData?.today_progress ?? null,
+    marketSummary: firstPageData?.market_summary ?? null,
     activeDeliveries: activeDeliveriesWithAllOrders,
     recentAlerts: firstPageData?.recent_alerts ?? [],
     isLoading: isInitialLoading,

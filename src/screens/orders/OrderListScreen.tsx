@@ -34,6 +34,7 @@ import { getProgressBarColor } from '../../utils/statusUtils';
 const dateFilters = [
   { id: 'today', label: 'Today' },
   { id: 'yesterday', label: 'Yesterday' },
+  { id: 'tomorrow', label: 'Tomorrow' },
   { id: 'nextWeek', label: 'Next Week' },
   { id: 'lastWeek', label: 'Last Week' },
   { id: 'calendar', label: '', isIcon: true },
@@ -192,6 +193,8 @@ const getApiDateFilter = (filter: DateFilterId, selectedDate: Date): OrdersQuery
       return 'today';
     case 'yesterday':
       return 'yesterday';
+    case 'tomorrow':
+      return 'tomorrow';
     case 'nextWeek':
       return 'next_week';
     case 'lastWeek':
@@ -856,7 +859,6 @@ export const OrderListScreen: React.FC = () => {
   useFocusEffect(
     useCallback(() => {
       if (statusFilterFromRoute) {
-
         const statusMap: Record<string, StatusFilterId> = {
           'Will Call': 'Will Call',
           'Hold Delivery': 'Hold Delivery',
@@ -877,6 +879,8 @@ export const OrderListScreen: React.FC = () => {
   );
 
   const filterBarAnim = useRef(new Animated.Value(0)).current;
+  const dateFilterScrollRef = useRef<ScrollView>(null);
+  const filterChipPositions = useRef<Record<string, { x: number; width: number }>>({});
 
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -1098,6 +1102,23 @@ export const OrderListScreen: React.FC = () => {
     });
   };
 
+  const scrollToFilter = useCallback((filterId: string) => {
+    const position = filterChipPositions.current[filterId];
+    if (position && dateFilterScrollRef.current) {
+      // Calculate scroll position to center the chip
+      const screenWidth = Dimensions.get('window').width;
+      const scrollX = Math.max(0, position.x - (screenWidth / 2) + (position.width / 2));
+      dateFilterScrollRef.current.scrollTo({ x: scrollX, animated: true });
+    }
+  }, []);
+
+  const handleFilterPress = useCallback((id: DateFilterId) => {
+    setActiveFilter(id);
+    if (id) {
+      scrollToFilter(id);
+    }
+  }, [scrollToFilter]);
+
   const renderDateFilter = useCallback(
     ({ id, label, isIcon }: { id: DateFilterId; label: string; isIcon?: boolean }) => {
       const isActive = activeFilter === id;
@@ -1105,6 +1126,12 @@ export const OrderListScreen: React.FC = () => {
       return (
         <TouchableOpacity
           key={id}
+          onLayout={(event) => {
+            if (id) {
+              const { x, width } = event.nativeEvent.layout;
+              filterChipPositions.current[id] = { x, width };
+            }
+          }}
           style={[
             styles.filterPill,
             isIcon && styles.filterPillIcon,
@@ -1116,7 +1143,7 @@ export const OrderListScreen: React.FC = () => {
               backgroundColor: isDark ? themeColors.surface : colors.grey[5],
             },
           ]}
-          onPress={() => (isIcon ? handleCalendarPress() : setActiveFilter(id))}
+          onPress={() => (isIcon ? handleCalendarPress() : handleFilterPress(id))}
           activeOpacity={0.7}>
           {isIcon ? (
             <View style={styles.calendarFilterContent}>
@@ -1160,7 +1187,7 @@ export const OrderListScreen: React.FC = () => {
         </TouchableOpacity>
       );
     },
-    [activeFilter, themeColors, handleCalendarPress, selectedDate, isDark, formatSelectedDate]
+    [activeFilter, themeColors, handleCalendarPress, handleFilterPress, selectedDate, isDark, formatSelectedDate]
   );
 
   const handleOrderDetails = useCallback((order: Order) => {
@@ -1336,6 +1363,7 @@ export const OrderListScreen: React.FC = () => {
         <>
           <View style={styles.filtersContainer}>
             <ScrollView
+              ref={dateFilterScrollRef}
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.filtersScroll}>

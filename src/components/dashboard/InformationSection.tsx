@@ -27,7 +27,6 @@ export interface TodayStats {
   total: number;
   completed: number;
   inProgress: number;
-  pending: number;
   cancelled: number;
 }
 
@@ -94,7 +93,7 @@ export const InformationSection: React.FC<InformationSectionProps> = ({
           disabled={!onWeatherPress}
         >
           <View style={[styles.infoCardIcon, { backgroundColor: `${colors.info.main}15` }]}>
-            <Icon name={getWeatherIcon(weather?.condition)} size={ms(24)} color={colors.info.main} />
+            <Icon name={getWeatherIcon(weather?.condition)} size={ms(18)} color={colors.info.main} />
           </View>
           <Text style={[styles.infoCardTitle, { color: themeColors.text.primary }]} numberOfLines={1}>
             {weather?.location || 'Weather'}
@@ -128,9 +127,12 @@ export const InformationSection: React.FC<InformationSectionProps> = ({
             disabled={!onStatsPress}
           >
             <View style={[styles.infoCardIcon, { backgroundColor: `${colors.primary.main}15` }]}>
-              <Icon name="chart-box-outline" size={ms(24)} color={colors.primary.main} />
+              <Icon name="chart-box-outline" size={ms(18)} color={colors.primary.main} />
             </View>
             <Text style={[styles.infoCardTitle, { color: themeColors.text.primary }]}>Today's Orders</Text>
+            <Text style={[styles.totalOrdersValue, { color: themeColors.text.primary }]}>
+              {todayStats?.total ?? 0}
+            </Text>
 
             <View style={styles.statsGrid}>
               <View style={styles.statItem}>
@@ -144,12 +146,6 @@ export const InformationSection: React.FC<InformationSectionProps> = ({
                   {todayStats?.inProgress ?? 0}
                 </Text>
                 <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Active</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: colors.dashboard.statBlue }]}>
-                  {todayStats?.pending ?? 0}
-                </Text>
-                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Pending</Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={[styles.statValue, { color: colors.dashboard.statRed }]}>
@@ -245,7 +241,8 @@ const styles = StyleSheet.create({
   infoCard: {
     flex: 1,
     borderRadius: ms(12),
-    padding: ms(12),
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(8),
     shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -257,30 +254,30 @@ const styles = StyleSheet.create({
     flex: 1.2,
   },
   infoCardIcon: {
-    width: ms(40),
-    height: ms(40),
-    borderRadius: ms(20),
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(16),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: ms(6),
+    marginBottom: ms(4),
   },
   infoCardTitle: {
-    fontSize: ms(11),
+    fontSize: ms(12),
     fontFamily: fontFamily.semiBold,
-    marginBottom: ms(4),
+    marginBottom: ms(2),
   },
   // Weather specific
   weatherStats: {
     alignItems: 'center',
   },
   weatherMainStat: {
-    fontSize: ms(22),
+    fontSize: ms(20),
     fontFamily: fontFamily.bold,
   },
   weatherSubStats: {
     flexDirection: 'row',
-    gap: ms(8),
-    marginTop: ms(4),
+    gap: ms(6),
+    marginTop: ms(2),
   },
   weatherSubStat: {
     flexDirection: 'row',
@@ -288,21 +285,26 @@ const styles = StyleSheet.create({
     gap: ms(2),
   },
   weatherSubStatText: {
-    fontSize: ms(10),
+    fontSize: ms(11),
     fontFamily: fontFamily.medium,
   },
   // Stats specific
+  totalOrdersValue: {
+    fontSize: ms(20),
+    fontFamily: fontFamily.bold,
+    marginBottom: ms(2),
+  },
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    marginTop: ms(4),
+    marginTop: ms(2),
   },
   statItem: {
     alignItems: 'center',
   },
   statValue: {
-    fontSize: ms(16),
+    fontSize: ms(15),
     fontFamily: fontFamily.bold,
   },
   statLabel: {

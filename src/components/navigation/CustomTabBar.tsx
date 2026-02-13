@@ -18,7 +18,7 @@ const tabBarTheme = {
   light: {
     background: colors.tabBar.light.background,
     containerShadowColor: colors.common.black,
-    containerShadowOpacity: 0.12,
+    containerShadowOpacity: 0.25,
     border: colors.tabBar.light.border,
     activePillBackground: colors.primary.main,
     activePillBorderColor: colors.primary.dark,
@@ -33,7 +33,7 @@ const tabBarTheme = {
   dark: {
     background: colors.tabBar.dark.background,
     containerShadowColor: colors.common.black,
-    containerShadowOpacity: 0.4,
+    containerShadowOpacity: 0.6,
     border: colors.common.transparent,
     activePillBackground: colors.primary.main,
     activePillBorderColor: colors.primary.light,
@@ -315,8 +315,8 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
             backgroundColor: themeColors.background,
             shadowColor: themeColors.containerShadowColor,
             shadowOpacity: themeColors.containerShadowOpacity,
-            borderColor: themeColors.border,
-            borderWidth: !isDark ? StyleSheet.hairlineWidth : 0,
+            borderColor: themeColors.activePillBackground,
+            borderWidth: 1.5,
           },
         ]}>
         {state.routes.map((route, index) => (
@@ -352,9 +352,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     overflow: 'visible',
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 12,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 16,
+    elevation: 24,
   },
   tabItem: {
     flex: 1,

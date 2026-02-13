@@ -29,6 +29,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useOrderDetails, useAlert } from '../../hooks';
 import { orderService } from '../../api/services/orderService';
 import { PerformanceCharts } from '../../components/charts';
+import { ScheduledLoadsBottomSheet } from '../../components/orders';
 
 type OrderDetailsRouteProp = RouteProp<RootStackParamList, 'OrderDetail'>;
 
@@ -175,6 +176,8 @@ const mockJobData = {
   avgWaitingMinutes: 15,
   avgPouringMinutes: 45,
   avgWashoutMinutes: 10,
+  scheduleDetails: [] as Array<any>,
+  scheduledLoads: [] as Array<any>,
 };
 
 interface AnimatedPressProps {
@@ -703,44 +706,63 @@ interface ProductCardItem {
   qr?: string;
 }
 
-interface OrderCodeDetailsCardProps {
-  products: ProductCardItem[];
-  isDark: boolean;
-  onProductPress: (product: ProductCardItem) => void;
+interface ScheduleDetailItem {
+  schedule_id?: string;
+  item_code?: string;
+  description?: string;
+  is_mix?: boolean;
+  slump?: string;
+  plant_code?: string;
+  plant_description?: string;
+  schedule_qty?: number;
+  schedule_delv_qty?: number;
+  number_of_loads?: number;
+  trucks_required?: number;
+  load_qty?: number;
+  truck_space?: number;
+  delivery_rate_per_hour?: number;
+  unload_time?: number;
+  unload_rate_per_hour?: number;
+  distance?: number;
+  time_to_job?: number;
+  time_to_plant?: number;
+  job_wash_time?: number;
+  truck_type_name?: string;
+  start_time?: string;
 }
 
-const BarcodeImage: React.FC<{ isDark: boolean }> = ({ isDark }) => {
-  const themeColors = isDark ? colors.dark : colors.light;
+interface ScheduledLoadItem {
+  load_number: number;
+  scheduled_time?: string;
+  actual_time?: string | null;
+  scheduled_qty?: string;
+  actual_qty?: string | null;
+  variance?: string | null;
+  truck_code?: string | null;
+  scheduled_on_job_time?: string;
+  scheduled_fin_pour_time?: string;
+  scheduled_at_plant_time?: string;
+  ticket_code?: string | null;
+  actual_on_job_time?: string | null;
+  actual_unload_time?: string | null;
+  actual_wash_time?: string | null;
+  actual_at_plant_time?: string | null;
+}
 
-  const generateBarcode = () => {
-    const bars = [];
-    const pattern = [1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1];
-    for (let i = 0; i < pattern.length; i++) {
-      bars.push(
-        <View
-          key={i}
-          style={{
-            backgroundColor: pattern[i] === 1 ? themeColors.text.primary : 'transparent',
-            width: 2.5,
-            height: '100%',
-          }}
-        />
-      );
-    }
-    return bars;
-  };
+interface ProductSKUDetailsCardProps {
+  products: ProductCardItem[];
+  scheduleDetails?: ScheduleDetailItem[];
+  scheduledLoads?: ScheduledLoadItem[];
+  isDark: boolean;
+  onOpenLoads?: () => void;
+}
 
-  return (
-    <View style={styles.ocBarcodeWrapper}>
-      {generateBarcode()}
-    </View>
-  );
-};
-
-const OrderCodeDetailsCard: React.FC<OrderCodeDetailsCardProps> = ({
+const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
   products,
+  scheduleDetails,
+  scheduledLoads,
   isDark,
-  onProductPress,
+  onOpenLoads,
 }) => {
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -748,100 +770,194 @@ const OrderCodeDetailsCard: React.FC<OrderCodeDetailsCardProps> = ({
     return null;
   }
 
+  const product = products[0];
+  const schedule = scheduleDetails?.[0];
+
   return (
-    <View style={styles.orderCodeSection}>
-      <Text style={[styles.ocSectionTitle, { color: themeColors.text.primary }]}>
-        Order Code Details
+    <View style={styles.skuSection}>
+      <Text style={[styles.skuSectionTitle, { color: themeColors.text.primary }]}>
+        Product Details
       </Text>
 
-      {products.map((product, index) => (
-        <View
-          key={product.productId || index}
-          style={[
-            styles.ocProductCard,
-            {
-              backgroundColor: themeColors.card,
-              borderColor: isDark ? themeColors.border : colors.grey[15],
-            },
-          ]}>
-          <View style={styles.ocMainRow}>
-            <View style={styles.ocLeftSection}>
-              <BarcodeImage isDark={isDark} />
-              <Text style={[styles.ocItemCode, { color: themeColors.text.primary }]} numberOfLines={1}>
+      {/* Main Product Card */}
+      <View style={[
+        styles.skuMainCard,
+        {
+          backgroundColor: themeColors.card,
+          borderColor: isDark ? themeColors.border : colors.grey[10],
+        }
+      ]}>
+        {/* Header with Item Code */}
+        <View style={[styles.skuHeader, { backgroundColor: isDark ? colors.primary.main + '20' : colors.primary.main + '08' }]}>
+          <View style={styles.skuHeaderLeft}>
+            <View style={[styles.skuIconBox, { backgroundColor: colors.primary.main }]}>
+              <Icon name="cube-outline" size={ms(20)} color={colors.common.white} />
+            </View>
+            <View style={styles.skuHeaderText}>
+              <Text style={[styles.skuItemCode, { color: themeColors.text.primary }]}>
                 {product.itemCode}
               </Text>
-            </View>
-
-            <View style={styles.ocRightSection}>
-              <View
-                style={[
-                  styles.ocProductBadge,
-                  {
-                    backgroundColor: product.isMix
-                      ? colors.success.main + '15'
-                      : colors.info.main + '15',
-                    borderColor: product.isMix
-                      ? colors.success.main
-                      : colors.info.main,
-                  },
-                ]}>
-                <Text
-                  style={[
-                    styles.ocProductBadgeText,
-                    { color: product.isMix ? colors.success.main : colors.info.main },
-                  ]}>
-                  {product.isMix ? 'Concrete' : 'Associated Product'}
-                </Text>
-              </View>
-
-              {product.description ? (
-                <Text style={[styles.ocProductSlump, { color: themeColors.text.primary, marginBottom: 4 }]} numberOfLines={1}>
-                  {product.description}
-                </Text>
-              ) : null}
-
-              <Text style={[styles.ocProductQty, { color: themeColors.text.primary }]}>
-                {product.orderedQty.toFixed(2)} CY
+              <Text style={[styles.skuDescription, { color: themeColors.text.secondary }]} numberOfLines={1}>
+                {product.description || 'Concrete Mix'}
               </Text>
-
-              <Text style={[styles.ocProductSlump, { color: colors.success.main }]}>
-                Delivered: {product.deliveredQty.toFixed(2)} CY
-              </Text>
-              <Text style={[styles.ocProductSlump, { color: product.remainingQty > 0 ? colors.warning.main : colors.success.main }]}>
-                Remaining: {product.remainingQty.toFixed(2)} CY
-              </Text>
-
-              {product.slump ? (
-                <Text style={[styles.ocProductSlump, { color: themeColors.text.secondary }]}>
-                  SLUMP: {product.slump}
-                </Text>
-              ) : null}
-
-              {product.qr ? (
-                <Text style={[styles.ocProductSlump, { color: themeColors.text.secondary }]}>
-                  QR: {product.qr}
-                </Text>
-              ) : null}
             </View>
           </View>
-
-          <TouchableOpacity
-            style={[
-              styles.ocDetailsLink,
-              {
-                backgroundColor: isDark ? themeColors.cardElevated : colors.common.white,
-                borderTopColor: isDark ? themeColors.border : colors.grey[10],
-              },
-            ]}
-            onPress={() => onProductPress(product)}
-            activeOpacity={0.7}>
-            <Text style={[styles.ocDetailsLinkText, { color: themeColors.text.primary }]}>
-              Click here to check details
+          <View style={[
+            styles.skuTypeBadge,
+            { backgroundColor: product.isMix ? colors.success.main : colors.info.main }
+          ]}>
+            <Icon name={product.isMix ? 'water' : 'package-variant'} size={ms(12)} color={colors.common.white} />
+            <Text style={styles.skuTypeBadgeText}>
+              {product.isMix ? 'Mix' : 'Product'}
             </Text>
-            <Icon name="arrow-right" size={16} color={themeColors.text.secondary} />
-          </TouchableOpacity>
+          </View>
         </View>
-      ))}
+
+        {/* Schedule Details Grid */}
+        {schedule && (
+          <View style={[styles.skuScheduleSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
+            <Text style={[styles.skuScheduleTitle, { color: themeColors.text.primary }]}>
+              Schedule Information
+            </Text>
+
+            {/* Row 1 - Loads & Quantity */}
+            <View style={styles.skuScheduleRow}>
+              <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
+                <Icon name="layers-triple" size={ms(18)} color={colors.secondary.main} />
+                <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
+                  {schedule.number_of_loads ?? '-'}
+                </Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Loads</Text>
+              </View>
+
+              <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
+                <Icon name="weight" size={ms(18)} color={colors.success.main} />
+                <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
+                  {schedule.load_qty ? `${schedule.load_qty}` : '-'}
+                </Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Load CY</Text>
+              </View>
+
+              <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
+                <Icon name="speedometer" size={ms(18)} color={colors.primary.main} />
+                <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
+                  {schedule.delivery_rate_per_hour ?? '-'}
+                </Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>CY/Hr</Text>
+              </View>
+            </View>
+
+            {/* Row 2 - Spacing & Distance */}
+            <View style={styles.skuScheduleRow}>
+              <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
+                <Icon name="clock-outline" size={ms(18)} color={colors.info.main} />
+                <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
+                  {schedule.truck_space ? `${schedule.truck_space}m` : '-'}
+                </Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Spacing</Text>
+              </View>
+
+              <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
+                <Icon name="map-marker-distance" size={ms(18)} color={colors.error.main} />
+                <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
+                  {schedule.distance ? `${schedule.distance}` : '-'}
+                </Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Miles</Text>
+              </View>
+
+              <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
+                <Icon name="truck-fast" size={ms(18)} color={colors.success.main} />
+                <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
+                  {schedule.time_to_job ? `${schedule.time_to_job}m` : '-'}
+                </Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>To Job</Text>
+              </View>
+            </View>
+
+            {/* Row 3 - Travel & Times */}
+            <View style={styles.skuScheduleRow}>
+              <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
+                <Icon name="truck-delivery" size={ms(18)} color={colors.warning.main} />
+                <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
+                  {schedule.time_to_plant ? `${schedule.time_to_plant}m` : '-'}
+                </Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>To Plant</Text>
+              </View>
+
+              <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
+                <Icon name="download" size={ms(18)} color={colors.secondary.main} />
+                <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
+                  {schedule.unload_time ? `${schedule.unload_time}m` : '-'}
+                </Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Unload</Text>
+              </View>
+
+              <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
+                <Icon name="water" size={ms(18)} color={colors.info.main} />
+                <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
+                  {schedule.job_wash_time ? `${schedule.job_wash_time}m` : '-'}
+                </Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Wash</Text>
+              </View>
+            </View>
+
+            {/* Additional Info Row */}
+            <View style={styles.skuAdditionalInfo}>
+              {schedule.truck_type_name && (
+                <View style={[styles.skuInfoChip, { backgroundColor: isDark ? themeColors.surface : colors.grey[5] }]}>
+                  <Icon name="truck-outline" size={ms(14)} color={isDark ? colors.grey[40] : themeColors.text.secondary} />
+                  <Text style={[styles.skuInfoChipText, { color: themeColors.text.primary }]}>
+                    {schedule.truck_type_name}
+                  </Text>
+                </View>
+              )}
+              {schedule.plant_description && (
+                <View style={[styles.skuInfoChip, { backgroundColor: isDark ? themeColors.surface : colors.grey[5] }]}>
+                  <Icon name="factory" size={ms(14)} color={isDark ? colors.grey[40] : themeColors.text.secondary} />
+                  <Text style={[styles.skuInfoChipText, { color: themeColors.text.primary }]}>
+                    {schedule.plant_description}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Scheduled Loads Button */}
+        {scheduledLoads && scheduledLoads.length > 0 && onOpenLoads && (
+          <View style={[styles.skuLoadsSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
+            <TouchableOpacity
+              style={styles.skuLoadsButton}
+              onPress={onOpenLoads}
+              activeOpacity={0.7}
+            >
+              <View style={styles.skuLoadsHeaderLeft}>
+                <View style={[styles.skuLoadsIconBox, { backgroundColor: isDark ? colors.secondary.main + '25' : colors.secondary.main + '15' }]}>
+                  <Icon name="format-list-numbered" size={ms(18)} color={colors.secondary.main} />
+                </View>
+                <View style={styles.skuLoadsButtonText}>
+                  <Text style={[styles.skuLoadsTitle, { color: themeColors.text.primary }]}>
+                    Scheduled Loads
+                  </Text>
+                  <Text style={[styles.skuLoadsSubtitle, { color: themeColors.text.secondary }]}>
+                    {scheduledLoads.filter(l => !!l.actual_time).length} of {scheduledLoads.length} completed
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.skuLoadsButtonRight}>
+                <View style={[styles.skuLoadsBadge, { backgroundColor: colors.secondary.main }]}>
+                  <Text style={styles.skuLoadsBadgeText}>{scheduledLoads.length}</Text>
+                </View>
+                <Icon
+                  name="chevron-right"
+                  size={ms(20)}
+                  color={themeColors.text.secondary}
+                />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
     </View>
   );
 };
@@ -1299,6 +1415,7 @@ export const OrderDetailsScreen: React.FC = () => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
   const { alertState, hideAlert, showError, showInfo } = useAlert();
+  const [showLoadsSheet, setShowLoadsSheet] = useState(false);
 
   const { orderId, orderCode, orderDate, status: passedStatus, progressColor } = route.params;
 
@@ -1444,6 +1561,51 @@ export const OrderDetailsScreen: React.FC = () => {
       avgWaitingMinutes: orderDetails.graphs?.trucks_on_job?.averages?.avg_waiting_minutes || 0,
       avgPouringMinutes: orderDetails.graphs?.trucks_on_job?.averages?.avg_pouring_minutes || 0,
       avgWashoutMinutes: orderDetails.graphs?.trucks_on_job?.averages?.avg_washout_minutes || 0,
+
+      // Product Schedule Details
+      scheduleDetails: (orderDetails as any).product_schedule_details?.map((s: any) => ({
+        schedule_id: s.schedule_id,
+        item_code: s.item_code,
+        description: s.description,
+        is_mix: s.is_mix,
+        slump: s.slump,
+        plant_code: s.plant_code,
+        plant_description: s.plant_description,
+        schedule_qty: s.schedule_qty,
+        schedule_delv_qty: s.schedule_delv_qty,
+        number_of_loads: s.number_of_loads,
+        trucks_required: s.trucks_required,
+        load_qty: s.load_qty,
+        truck_space: s.truck_space,
+        delivery_rate_per_hour: s.delivery_rate_per_hour,
+        unload_time: s.unload_time,
+        unload_rate_per_hour: s.unload_rate_per_hour,
+        distance: s.distance,
+        time_to_job: s.time_to_job,
+        time_to_plant: s.time_to_plant,
+        job_wash_time: s.job_wash_time,
+        truck_type_name: s.truck_type_name,
+        start_time: s.start_time,
+      })) || [],
+
+      // Scheduled Loads
+      scheduledLoads: (orderDetails as any).scheduled_loads?.items?.map((l: any) => ({
+        load_number: l.load_number,
+        scheduled_time: l.scheduled_time,
+        actual_time: l.actual_time,
+        scheduled_qty: l.scheduled_qty,
+        actual_qty: l.actual_qty,
+        variance: l.variance,
+        truck_code: l.truck_code,
+        scheduled_on_job_time: l.scheduled_on_job_time,
+        scheduled_fin_pour_time: l.scheduled_fin_pour_time,
+        scheduled_at_plant_time: l.scheduled_at_plant_time,
+        ticket_code: l.ticket_code,
+        actual_on_job_time: l.actual_on_job_time,
+        actual_unload_time: l.actual_unload_time,
+        actual_wash_time: l.actual_wash_time,
+        actual_at_plant_time: l.actual_at_plant_time,
+      })) || [],
     };
   }, [orderDetails]);
 
@@ -1675,7 +1837,7 @@ export const OrderDetailsScreen: React.FC = () => {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <TopGradientBackground
-          height="52%"
+          height="100%"
           showWaves={true}
           waveOpacity={0.12}
           absolute={true}
@@ -1710,7 +1872,7 @@ export const OrderDetailsScreen: React.FC = () => {
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <TopGradientBackground
-        height="52%"
+        height="100%"
         showWaves={true}
         waveOpacity={0.12}
         absolute={true}
@@ -1922,10 +2084,12 @@ export const OrderDetailsScreen: React.FC = () => {
             isDark={isDark}
           />
 
-          <OrderCodeDetailsCard
+          <ProductSKUDetailsCard
             products={jobData.products}
+            scheduleDetails={jobData.scheduleDetails}
+            scheduledLoads={jobData.scheduledLoads}
             isDark={isDark}
-            onProductPress={handleProductPress}
+            onOpenLoads={() => setShowLoadsSheet(true)}
           />
 
           <View style={[styles.truckBackgroundContainer, { backgroundColor: isDark ? colors.cardBg.dark : colors.cardBg.infoBg }]}>
@@ -2014,6 +2178,13 @@ export const OrderDetailsScreen: React.FC = () => {
         message={alertState.message}
         buttons={alertState.buttons}
         onClose={hideAlert}
+      />
+
+      <ScheduledLoadsBottomSheet
+        visible={showLoadsSheet}
+        onClose={() => setShowLoadsSheet(false)}
+        loads={jobData.scheduledLoads}
+        totalLoads={jobData.scheduleDetails?.[0]?.number_of_loads}
       />
     </View>
   );
@@ -2670,6 +2841,328 @@ const styles = StyleSheet.create({
   ocDetailsLinkText: {
     fontFamily: fontFamily.regular,
     fontSize: ms(13),
+  },
+  // Product SKU Details Styles
+  skuSection: {
+    marginTop: GRID.lg,
+  },
+  skuSectionTitle: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(16),
+    textAlign: 'center',
+    marginBottom: GRID.md,
+  },
+  skuMainCard: {
+    borderRadius: RADIUS.xl,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  skuHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: GRID.md,
+  },
+  skuHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: GRID.sm,
+  },
+  skuIconBox: {
+    width: ms(40),
+    height: ms(40),
+    borderRadius: RADIUS.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  skuHeaderText: {
+    flex: 1,
+  },
+  skuItemCode: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(16),
+  },
+  skuDescription: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
+    marginTop: 2,
+  },
+  skuTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: GRID.sm,
+    paddingVertical: GRID.xs,
+    borderRadius: RADIUS.full,
+    gap: 4,
+  },
+  skuTypeBadgeText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(10),
+    color: colors.common.white,
+  },
+  skuQuantitySection: {
+    padding: GRID.md,
+  },
+  skuQuantityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: GRID.sm,
+  },
+  skuQuantityLabel: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(12),
+  },
+  skuQuantityPercent: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(14),
+  },
+  skuProgressBar: {
+    height: ms(8),
+    borderRadius: RADIUS.full,
+    overflow: 'hidden',
+    marginBottom: GRID.md,
+  },
+  skuProgressFill: {
+    height: '100%',
+    borderRadius: RADIUS.full,
+  },
+  skuQuantityStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  skuStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  skuStatDot: {
+    width: ms(8),
+    height: ms(8),
+    borderRadius: ms(4),
+    marginBottom: 4,
+  },
+  skuStatLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(10),
+    marginBottom: 2,
+  },
+  skuStatValue: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(12),
+  },
+  skuScheduleSection: {
+    padding: GRID.md,
+    borderTopWidth: 1,
+  },
+  skuScheduleTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(13),
+    marginBottom: GRID.sm,
+  },
+  skuScheduleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: GRID.sm,
+    gap: GRID.sm,
+  },
+  skuScheduleItem: {
+    flex: 1,
+    paddingVertical: GRID.sm + 2,
+    paddingHorizontal: GRID.xs,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skuScheduleItemLabel: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(10),
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  skuScheduleItemValue: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(15),
+    marginTop: 4,
+  },
+  skuAdditionalInfo: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: GRID.xs,
+    marginTop: GRID.md,
+  },
+  skuInfoChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: GRID.sm,
+    paddingVertical: GRID.xs,
+    borderRadius: RADIUS.full,
+    gap: 4,
+  },
+  skuInfoChipText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(11),
+  },
+  skuLoadsSection: {
+    borderTopWidth: 1,
+  },
+  skuLoadsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: GRID.md,
+  },
+  skuLoadsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: GRID.md,
+  },
+  skuLoadsHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: GRID.sm,
+    flex: 1,
+  },
+  skuLoadsButtonText: {
+    flex: 1,
+  },
+  skuLoadsSubtitle: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+    marginTop: 2,
+  },
+  skuLoadsButtonRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: GRID.xs,
+  },
+  skuLoadsIconBox: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: RADIUS.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  skuLoadsTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(13),
+  },
+  skuLoadsBadge: {
+    minWidth: ms(20),
+    height: ms(20),
+    borderRadius: ms(10),
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  skuLoadsBadgeText: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(11),
+    color: colors.common.white,
+  },
+  skuLoadsList: {
+    paddingHorizontal: GRID.md,
+    paddingBottom: GRID.md,
+    gap: GRID.sm,
+  },
+  skuLoadCard: {
+    borderRadius: RADIUS.lg,
+    overflow: 'hidden',
+    ...SHADOWS.sm,
+  },
+  skuLoadCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: GRID.sm + 2,
+    gap: GRID.sm,
+  },
+  skuLoadBadge: {
+    paddingHorizontal: GRID.sm,
+    paddingVertical: GRID.xs,
+    borderRadius: RADIUS.sm,
+  },
+  skuLoadBadgeText: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(12),
+    color: colors.common.white,
+  },
+  skuLoadCardQty: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: GRID.sm,
+  },
+  skuLoadCardQtyText: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(15),
+  },
+  skuLoadStatusTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: GRID.xs + 2,
+    paddingVertical: 2,
+    borderRadius: RADIUS.full,
+    gap: 3,
+  },
+  skuLoadStatusText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(10),
+  },
+  skuLoadTruckTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: GRID.sm,
+    paddingVertical: GRID.xs,
+    borderRadius: RADIUS.md,
+    gap: 4,
+  },
+  skuLoadTruckText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+  },
+  skuLoadTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: GRID.sm,
+    paddingHorizontal: GRID.sm + 2,
+    borderTopWidth: 1,
+  },
+  skuLoadTimeBlock: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  skuLoadTimeBlockLabel: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(9),
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  skuLoadTimeBlockValue: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(13),
+  },
+  skuLoadTimeArrow: {
+    paddingHorizontal: 2,
+  },
+  skuLoadFooter: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    paddingVertical: GRID.xs + 2,
+    paddingHorizontal: GRID.sm + 2,
+    borderTopWidth: 1,
+    gap: GRID.md,
+  },
+  skuLoadFooterItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  skuLoadFooterText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(11),
   },
   expandableSection: {
     borderRadius: RADIUS.xl,

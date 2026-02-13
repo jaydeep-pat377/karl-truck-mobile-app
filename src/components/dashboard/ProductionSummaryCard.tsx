@@ -17,6 +17,38 @@ export interface RegionData {
   cancelledOrders: number;
 }
 
+export interface CompanyData {
+  id: string;
+  code: string;
+  name: string;
+  deliveredQty: number;
+  totalQty: number;
+  totalOrders: number;
+  activeOrders: number;
+  cancelledOrders: number;
+}
+
+export interface PlantWeatherData {
+  temperature: number;
+  humidity: number;
+  windSpeed: number;
+  condition: string;
+  icon: string;
+}
+
+export interface PlantData {
+  id: string;
+  code: string;
+  name: string;
+  regionName: string | null;
+  deliveredQty: number;
+  totalQty: number;
+  totalOrders: number;
+  activeOrders: number;
+  cancelledOrders: number;
+  weather: PlantWeatherData | null;
+}
+
 interface ProductionSummaryProps {
   title?: string;
   totalOrders: number;
@@ -24,8 +56,12 @@ interface ProductionSummaryProps {
   cancelledOrders: number;
   deliveredQty: number;
   totalQty: number;
+  companies?: CompanyData[];
   regions?: RegionData[];
+  plants?: PlantData[];
+  onCompanyPress?: (company: CompanyData) => void;
   onRegionPress?: (region: RegionData) => void;
+  onPlantPress?: (plant: PlantData) => void;
   onPress?: () => void;
 }
 
@@ -100,8 +136,12 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
   cancelledOrders,
   deliveredQty,
   totalQty,
+  companies = [],
   regions = [],
+  plants = [],
+  onCompanyPress,
   onRegionPress,
+  onPlantPress,
 }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -117,6 +157,49 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
 
   const formatQty = (qty: number) => {
     return qty % 1 === 0 ? qty.toString() : qty.toFixed(2);
+  };
+
+  const renderCompanyItem = ({ item }: { item: CompanyData }) => {
+    const companyProgress = item.totalQty > 0 ? (item.deliveredQty / item.totalQty) * 100 : 0;
+    const regionColors = isDark ? colors.regionCard.dark : colors.regionCard.light;
+
+    return (
+      <View style={[styles.regionCard, { backgroundColor: regionColors.background, minWidth: regionCardWidth }]}>
+        {/* Left side - Circle */}
+        <View style={styles.regionLeftSection}>
+          <RegionCircularProgress progress={companyProgress} size={circleSize} isDark={isDark} />
+        </View>
+
+        {/* Right side - Content */}
+        <View style={styles.regionRightSection}>
+          {/* Top row - Title + Badge */}
+          <View style={styles.regionTopRow}>
+            <Text style={[styles.regionName, { color: regionColors.titleColor, maxWidth: regionCardWidth * 0.5 }]} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <TouchableOpacity
+              style={[styles.regionBadge, { backgroundColor: colors.dashboard.statBlue }]}
+              onPress={() => onCompanyPress?.(item)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.regionBadgeText}>COMPANY</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Middle row - Qty */}
+          <Text style={styles.regionQtyRow}>
+            <Text style={[styles.regionQtyValue, { color: regionColors.qtyColor }]}>{formatQty(item.deliveredQty)}</Text>
+            <Text style={[styles.regionQtyOf, { color: regionColors.ofTextColor }]}> OF </Text>
+            <Text style={[styles.regionQtyValue, { color: regionColors.qtyColor }]}>{formatQty(item.totalQty)} CY</Text>
+          </Text>
+
+          {/* Bottom row - Stats */}
+          <Text style={[styles.regionStatsRow, { color: regionColors.statsColor }]}>
+            Total: {item.totalOrders}, Active: {item.activeOrders}, Cancelled: {item.cancelledOrders}
+          </Text>
+        </View>
+      </View>
+    );
   };
 
   const renderRegionItem = ({ item }: { item: RegionData }) => {
@@ -143,6 +226,49 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
               activeOpacity={0.7}
             >
               <Text style={styles.regionBadgeText}>REGION</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Middle row - Qty */}
+          <Text style={styles.regionQtyRow}>
+            <Text style={[styles.regionQtyValue, { color: regionColors.qtyColor }]}>{formatQty(item.deliveredQty)}</Text>
+            <Text style={[styles.regionQtyOf, { color: regionColors.ofTextColor }]}> OF </Text>
+            <Text style={[styles.regionQtyValue, { color: regionColors.qtyColor }]}>{formatQty(item.totalQty)} CY</Text>
+          </Text>
+
+          {/* Bottom row - Stats */}
+          <Text style={[styles.regionStatsRow, { color: regionColors.statsColor }]}>
+            Total: {item.totalOrders}, Active: {item.activeOrders}, Cancelled: {item.cancelledOrders}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  const renderPlantItem = ({ item }: { item: PlantData }) => {
+    const plantProgress = item.totalQty > 0 ? (item.deliveredQty / item.totalQty) * 100 : 0;
+    const regionColors = isDark ? colors.regionCard.dark : colors.regionCard.light;
+
+    return (
+      <View style={[styles.regionCard, { backgroundColor: regionColors.background, minWidth: regionCardWidth }]}>
+        {/* Left side - Circle */}
+        <View style={styles.regionLeftSection}>
+          <RegionCircularProgress progress={plantProgress} size={circleSize} isDark={isDark} />
+        </View>
+
+        {/* Right side - Content */}
+        <View style={styles.regionRightSection}>
+          {/* Top row - Title + Badge */}
+          <View style={styles.regionTopRow}>
+            <Text style={[styles.regionName, { color: regionColors.titleColor, maxWidth: regionCardWidth * 0.5 }]} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <TouchableOpacity
+              style={[styles.regionBadge, { backgroundColor: colors.dashboard.statGreen }]}
+              onPress={() => onPlantPress?.(item)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.regionBadgeText}>PLANT</Text>
             </TouchableOpacity>
           </View>
 
@@ -209,16 +335,49 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
       </View>
       */}
 
+      {companies.length > 0 && (
+        <View>
+          <Text style={[styles.sectionLabel, { color: themeColors.text.primary }]}>Company Summary</Text>
+          <FlatList
+            data={companies}
+            renderItem={renderCompanyItem}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.regionsList}
+            style={styles.regionsListOnly}
+          />
+        </View>
+      )}
+
       {regions.length > 0 && (
-        <FlatList
-          data={regions}
-          renderItem={renderRegionItem}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.regionsList}
-          style={styles.regionsListOnly}
-        />
+        <View style={companies.length > 0 ? styles.listMarginTop : undefined}>
+          <Text style={[styles.sectionLabel, { color: themeColors.text.primary }]}>Region Summary</Text>
+          <FlatList
+            data={regions}
+            renderItem={renderRegionItem}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.regionsList}
+            style={styles.regionsListOnly}
+          />
+        </View>
+      )}
+
+      {plants.length > 0 && (
+        <View style={(companies.length > 0 || regions.length > 0) ? styles.listMarginTop : undefined}>
+          <Text style={[styles.sectionLabel, { color: themeColors.text.primary }]}>Plant Summary</Text>
+          <FlatList
+            data={plants}
+            renderItem={renderPlantItem}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.regionsList}
+            style={styles.regionsListOnly}
+          />
+        </View>
       )}
 
       {/* Temporarily commented out - Production Section
@@ -263,6 +422,16 @@ const styles = StyleSheet.create({
   },
   regionsListOnly: {
     marginHorizontal: 0,
+    overflow: 'visible',
+  },
+  listMarginTop: {
+    marginTop: ms(12),
+  },
+  sectionLabel: {
+    fontSize: ms(14),
+    fontFamily: fontFamily.semiBold,
+    marginBottom: ms(8),
+    paddingHorizontal: ms(4),
   },
   container: {
     borderRadius: ms(10),
@@ -372,6 +541,7 @@ const styles = StyleSheet.create({
   },
   regionsList: {
     paddingHorizontal: ms(8),
+    paddingVertical: ms(6),
     gap: ms(10),
   },
   regionCard: {
@@ -380,6 +550,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: ms(12),
     paddingVertical: ms(12),
     borderRadius: ms(12),
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   regionLeftSection: {
     alignItems: 'center',
@@ -424,8 +599,8 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
   },
   regionStatsRow: {
-    fontSize: ms(10),
-    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
+    fontFamily: fontFamily.medium,
   },
 });
 

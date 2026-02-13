@@ -203,7 +203,7 @@ export interface OrdersApiResponse {
 }
 
 export interface OrdersQueryParams {
-  date_filter?: 'today' | 'yesterday' | 'last_week' | 'next_week' | 'custom';
+  date_filter?: 'today' | 'yesterday' | 'tomorrow' | 'last_week' | 'next_week' | 'custom';
   page?: number;
   limit?: number;
   status?: string;
