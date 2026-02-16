@@ -523,6 +523,7 @@ export const TicketDetailScreen: React.FC = () => {
     runningQty,
     orderedQty,
     driverName,
+    driverCode,
     driverPhone,
     truckCode,
     truckDescription,
@@ -593,6 +594,7 @@ export const TicketDetailScreen: React.FC = () => {
         truckCode: truckCode || undefined,
         ticketCode: apiTicketCode || undefined,
         driverName: driverName || undefined,
+        driverCode: driverCode || undefined,
         destination: deliveryAddress || undefined,
         orderCode: apiOrderCode || undefined,
         customerName: customerName || undefined,
@@ -610,7 +612,7 @@ export const TicketDetailScreen: React.FC = () => {
         'Truck location coordinates are not available at the moment. The truck may not have GPS data or the location service is temporarily unavailable. Please try again later.'
       );
     }
-  }, [truckLatitude, truckLongitude, truckCode, apiTicketCode, driverName, deliveryAddress, apiOrderCode, customerName, plantLocationLatitude, plantLocationLongitude, plantName, orderLocationLatitude, orderLocationLongitude, navigation, showWarning]);
+  }, [truckLatitude, truckLongitude, truckCode, apiTicketCode, driverName, driverCode, deliveryAddress, apiOrderCode, customerName, plantLocationLatitude, plantLocationLongitude, plantName, orderLocationLatitude, orderLocationLongitude, navigation, showWarning]);
 
   const handleGetDirections = useCallback(() => {
     if (truckLatitude && truckLongitude) {
@@ -636,6 +638,7 @@ export const TicketDetailScreen: React.FC = () => {
         truckCode: truckCode || undefined,
         ticketCode: apiTicketCode || undefined,
         driverName: driverName || undefined,
+        driverCode: driverCode || undefined,
         destination: deliveryAddress || undefined,
         orderCode: apiOrderCode || undefined,
         customerName: customerName || undefined,
@@ -648,7 +651,7 @@ export const TicketDetailScreen: React.FC = () => {
         jobLongitude: orderLocationLongitude || undefined,
       });
     }, 300);
-  }, [closeDirectionsMenu, navigation, truckLatitude, truckLongitude, truckCode, apiTicketCode, driverName, deliveryAddress, apiOrderCode, customerName, plantLocationLatitude, plantLocationLongitude, plantName, orderLocationLatitude, orderLocationLongitude]);
+  }, [closeDirectionsMenu, navigation, truckLatitude, truckLongitude, truckCode, apiTicketCode, driverName, driverCode, deliveryAddress, apiOrderCode, customerName, plantLocationLatitude, plantLocationLongitude, plantName, orderLocationLatitude, orderLocationLongitude]);
 
   const handleOpenInGoogleMaps = useCallback(() => {
     closeDirectionsMenu();
@@ -1038,7 +1041,7 @@ export const TicketDetailScreen: React.FC = () => {
           isDark={isDark}>
           <DetailRow label="Truck Code" value={truckCode} isDark={isDark} />
           <DetailRow label="Description" value={truckDescription} isDark={isDark} />
-          <DetailRow label="Driver" value={driverName} isDark={isDark} />
+          <DetailRow label="Driver Code" value={driverCode} isDark={isDark} />
           <DetailRow label="Driver Phone" value={driverPhone} isDark={isDark} isLast />
 
           {driverPhone && (

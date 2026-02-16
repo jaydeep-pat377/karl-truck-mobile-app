@@ -776,7 +776,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
   return (
     <View style={styles.skuSection}>
       <Text style={[styles.skuSectionTitle, { color: themeColors.text.primary }]}>
-        Product Details
+        Product & Schedule
       </Text>
 
       {/* Main Product Card */}
@@ -819,6 +819,19 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
             <Text style={[styles.skuScheduleTitle, { color: themeColors.text.primary }]}>
               Schedule Information
             </Text>
+
+            {/* Row 0 - Start Time */}
+            {schedule.start_time && (
+              <View style={styles.skuScheduleRow}>
+                <View style={[styles.skuScheduleItemWide, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
+                  <Icon name="clock-start" size={ms(18)} color={colors.primary.main} />
+                  <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
+                    {schedule.start_time}
+                  </Text>
+                  <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Start Time</Text>
+                </View>
+              </View>
+            )}
 
             {/* Row 1 - Loads & Quantity */}
             <View style={styles.skuScheduleRow}>
@@ -877,14 +890,6 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
             {/* Row 3 - Travel & Times */}
             <View style={styles.skuScheduleRow}>
               <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
-                <Icon name="truck-delivery" size={ms(18)} color={colors.warning.main} />
-                <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
-                  {schedule.time_to_plant ? `${schedule.time_to_plant}m` : '-'}
-                </Text>
-                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>To Plant</Text>
-              </View>
-
-              <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                 <Icon name="download" size={ms(18)} color={colors.secondary.main} />
                 <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                   {schedule.unload_time ? `${schedule.unload_time}m` : '-'}
@@ -899,18 +904,26 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
                 </Text>
                 <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Wash</Text>
               </View>
+
+              <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
+                <Icon name="truck-delivery" size={ms(18)} color={colors.warning.main} />
+                <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
+                  {schedule.time_to_plant ? `${schedule.time_to_plant}m` : '-'}
+                </Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>To Plant</Text>
+              </View>
             </View>
 
             {/* Additional Info Row */}
             <View style={styles.skuAdditionalInfo}>
-              {schedule.truck_type_name && (
+              {/* {schedule.truck_type_name && (
                 <View style={[styles.skuInfoChip, { backgroundColor: isDark ? themeColors.surface : colors.grey[5] }]}>
                   <Icon name="truck-outline" size={ms(14)} color={isDark ? colors.grey[40] : themeColors.text.secondary} />
                   <Text style={[styles.skuInfoChipText, { color: themeColors.text.primary }]}>
                     {schedule.truck_type_name}
                   </Text>
                 </View>
-              )}
+              )} */}
               {schedule.plant_description && (
                 <View style={[styles.skuInfoChip, { backgroundColor: isDark ? themeColors.surface : colors.grey[5] }]}>
                   <Icon name="factory" size={ms(14)} color={isDark ? colors.grey[40] : themeColors.text.secondary} />
@@ -2970,6 +2983,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: GRID.sm + 2,
     paddingHorizontal: GRID.xs,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skuScheduleItemWide: {
+    flex: 1,
+    paddingVertical: GRID.sm + 2,
+    paddingHorizontal: GRID.md,
     borderRadius: RADIUS.md,
     alignItems: 'center',
     justifyContent: 'center',

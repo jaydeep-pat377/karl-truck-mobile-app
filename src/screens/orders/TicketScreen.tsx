@@ -321,6 +321,13 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, isDark }) => {
             numberOfLines={1}>
             {ticket.truckName}
           </Text>
+          {ticket.load ? (
+            <View style={[styles.loadBadge, { backgroundColor: isDark ? colors.ticket.ui.dark.badgeBg : colors.primary.main + '12' }]}>
+              <Text style={[styles.loadText, { color: isDark ? colors.ticket.ui.dark.accentBlue : colors.primary.main }]}>
+                Load: {ticket.load}
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.timeContainer}>
             <Icon
               name="clock-outline"
@@ -665,7 +672,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
     const resetFilters: FilterOptions = {
       statuses: [],
       sortBy: 'time',
-      sortOrder: 'asc',
+      sortOrder: 'desc',
     };
     setLocalFilters(resetFilters);
     onReset();
@@ -691,7 +698,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
   const activeFiltersCount =
     localFilters.statuses.length +
-    (localFilters.sortBy !== 'time' || localFilters.sortOrder !== 'asc' ? 1 : 0);
+    (localFilters.sortBy !== 'time' || localFilters.sortOrder !== 'desc' ? 1 : 0);
 
   return (
     <Modal
@@ -934,7 +941,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
 const DEFAULT_FILTERS: FilterOptions = {
   statuses: [],
   sortBy: 'time',
-  sortOrder: 'asc',
+  sortOrder: 'desc',
 };
 
 export const TicketScreen: React.FC = () => {
@@ -996,7 +1003,7 @@ export const TicketScreen: React.FC = () => {
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (advancedFilters.statuses.length > 0) count += advancedFilters.statuses.length;
-    if (advancedFilters.sortBy !== 'time' || advancedFilters.sortOrder !== 'asc') count += 1;
+    if (advancedFilters.sortBy !== 'time' || advancedFilters.sortOrder !== 'desc') count += 1;
     return count;
   }, [advancedFilters]);
 
@@ -1507,6 +1514,16 @@ const styles = StyleSheet.create({
   timeText: {
     fontFamily: fontFamily.regular,
     fontSize: ms(11),
+  },
+  loadBadge: {
+    paddingHorizontal: ms(8),
+    paddingVertical: ms(3),
+    borderRadius: ms(6),
+    marginRight: ms(8),
+  },
+  loadText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(10),
   },
   totalText: {
     fontFamily: fontFamily.regular,

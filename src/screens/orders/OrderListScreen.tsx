@@ -1298,7 +1298,7 @@ export const OrderListScreen: React.FC = () => {
             </View>
           ) : (
             <Text variant="caption" color="secondary">
-              {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''} found
+              {filteredOrders.length} out of {pagination?.total ?? filteredOrders.length} orders displaying
             </Text>
           )}
           {activeFilter === 'calendar' &&
@@ -1312,7 +1312,7 @@ export const OrderListScreen: React.FC = () => {
         </View>
       </View>
     ),
-    [filteredOrders.length, activeFilter, handleClearFilter, isFilterLoading]
+    [filteredOrders.length, pagination?.total, activeFilter, handleClearFilter, isFilterLoading]
   );
 
   return (

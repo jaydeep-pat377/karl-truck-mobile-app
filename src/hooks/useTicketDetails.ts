@@ -57,6 +57,7 @@ export const useTicketDetails = (params: TicketDetailsQueryParams) => {
 
     driverName: ticket?.driver_name,
     driverPhone: ticket?.driver_phone,
+    driverCode: ticket?.driver_code,
 
     truck: ticket?.truck,
     truckCode: ticket?.truck?.truck_code,
