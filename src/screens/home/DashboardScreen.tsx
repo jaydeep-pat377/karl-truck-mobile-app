@@ -201,6 +201,7 @@ const DashboardScreen: React.FC = () => {
     }
   }, [isFilterChanging, isLoading, isRefetching]);
 
+
   const themeColors = isDark ? colors.dark : colors.light;
 
   const onRefresh = useCallback(() => {
@@ -579,7 +580,7 @@ const DashboardScreen: React.FC = () => {
           } : null}
           onMessagePress={() => navigation.navigate('Notifications')}
           onSeeAllPress={() => navigation.navigate('Notifications')}
-          onStatsPress={() => navigation.navigate('Map')}
+          onStatsPress={() => navigation.navigate('Today')}
           maxVisible={2}
         />
 
@@ -599,8 +600,8 @@ const DashboardScreen: React.FC = () => {
         )}
 
         {dateFilter === 'today' && (
-          <>
-            <SectionHeader title="Active Deliveries" actionLabel="View All" onAction={() => navigation.navigate('Map')} />
+          <View style={{ marginTop: spacing.md }}>
+            <SectionHeader title="Active Deliveries" actionLabel="View All" onAction={() => navigation.navigate('Today')} />
             {activeDeliveries?.orders && activeDeliveries.orders.length > 0 ? (
               <ScrollView
                 horizontal
@@ -700,7 +701,7 @@ const DashboardScreen: React.FC = () => {
                 </View>
               </View>
             )}
-          </>
+          </View>
         )}
 
         <View style={{ height: TAB_BAR_HEIGHT + spacing.lg }} />
@@ -765,12 +766,12 @@ const createStyles = (
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: spacing.lg,
-      marginTop: spacing.lg,
+      marginTop: spacing.sm,
       marginBottom: spacing.sm,
     },
 
     summarySection: {
-      marginTop: spacing.md,
+      marginTop: 0,
     },
 
     quickLaunchContainer: {

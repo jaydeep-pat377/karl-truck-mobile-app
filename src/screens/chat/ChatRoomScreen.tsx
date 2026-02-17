@@ -95,7 +95,7 @@ export const ChatRoomScreen: React.FC = () => {
 
   const keyboardHeight = useRef(new Animated.Value(0)).current;
 
-  const { roomId, roomName, chatId, orderId } = route.params;
+  const { roomId, roomName, chatId, orderId, orderDate, customerName, projectName, deliveryAddress } = route.params;
   const { messages, isLoading, sendMessage, isSending, loadMore, refetch } = useChatMessages({
     chatId,
     orderId,
@@ -276,7 +276,14 @@ export const ChatRoomScreen: React.FC = () => {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background, paddingTop: insets.top }]}>
         <StatusBar backgroundColor={themeColors.background} barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <ChatHeader title={roomName} onBack={() => navigation.goBack()} />
+        <ChatHeader
+          title={roomName}
+          onBack={() => navigation.goBack()}
+          orderDate={orderDate}
+          customerName={customerName}
+          projectName={projectName}
+          deliveryAddress={deliveryAddress}
+        />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary.main} />
           <Text variant="body" color="hint" style={styles.loadingText}>Loading messages...</Text>
@@ -345,7 +352,14 @@ export const ChatRoomScreen: React.FC = () => {
           backgroundColor={themeColors.background}
           barStyle={isDark ? 'light-content' : 'dark-content'}
         />
-        <ChatHeader title={roomName} onBack={() => navigation.goBack()} />
+        <ChatHeader
+          title={roomName}
+          onBack={() => navigation.goBack()}
+          orderDate={orderDate}
+          customerName={customerName}
+          projectName={projectName}
+          deliveryAddress={deliveryAddress}
+        />
         <Animated.View style={[styles.keyboardAvoidingView, { paddingBottom: keyboardHeight }]}>
           {chatContent}
         </Animated.View>
@@ -359,7 +373,13 @@ export const ChatRoomScreen: React.FC = () => {
         backgroundColor={themeColors.background}
         barStyle={isDark ? 'light-content' : 'dark-content'}
       />
-      <ChatHeader title={roomName} onBack={() => navigation.goBack()} />
+      <ChatHeader
+        title={roomName}
+        onBack={() => navigation.goBack()}
+        orderDate={orderDate}
+        customerName={customerName}
+        deliveryAddress={deliveryAddress}
+      />
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior="height"
