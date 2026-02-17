@@ -161,6 +161,7 @@ export const TodayOrdersScreen: React.FC = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    pagination,
   } = useOrders({
     date_filter: 'today',
     limit: 10,
@@ -300,6 +301,10 @@ export const TodayOrdersScreen: React.FC = () => {
         roomName: `Order #${order.orderCode}`,
         chatId: room.id ? Number(room.id) : orderId,
         orderId: orderId,
+        orderDate: order.scheduledDate,
+        customerName: order.customerName,
+        projectName: order.projectName,
+        deliveryAddress: order.deliveryAddress,
       });
     } catch (err) {
       console.error('Failed to open chat:', err);
@@ -376,8 +381,7 @@ export const TodayOrdersScreen: React.FC = () => {
 
       <View style={styles.ordersCountRow}>
         <Text style={[styles.ordersCountText, { color: themeColors.text.secondary }]}>
-          {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'} found
-          {activeSearchQuery.trim() && ` (filtered from ${apiOrders.length})`}
+          {filteredOrders.length} out of {pagination?.total ?? filteredOrders.length} orders displaying
         </Text>
       </View>
     </View>
