@@ -1,6 +1,4 @@
-
-
-const MAPBOX_ACCESS_TOKEN = 'MAPBOX_TOKEN_REMOVED';
+import { MAPBOX_ACCESS_TOKEN } from '@env';
 
 const MAPBOX_DIRECTIONS_API = 'https://api.mapbox.com/directions/v5/mapbox';
 

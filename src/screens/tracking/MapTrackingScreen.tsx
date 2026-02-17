@@ -20,8 +20,9 @@ import { spacing, ms, iconSizes } from '../../utils/responsive';
 import { useTrucks, useDirections } from '../../hooks';
 import { truckImagesByStatus } from '../../assets/images';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { MAPBOX_ACCESS_TOKEN } from '@env';
 
-Mapbox.setAccessToken('MAPBOX_TOKEN_REMOVED');
+Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN);
 
 const { height } = Dimensions.get('window');
 

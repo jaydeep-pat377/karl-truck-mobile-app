@@ -27,6 +27,7 @@ import { ms } from '../../utils/responsive';
 import { useOrderTracking, useDirections } from '../../hooks';
 import { TrackingTicket } from '../../types/orderTracking';
 import { truckImagesByStatus } from '../../assets/images';
+import { MAPBOX_ACCESS_TOKEN } from '@env';
 
 interface TruckMarkerProps {
   ticket: TrackingTicket;
@@ -120,7 +121,7 @@ const truckMarkerStyles = StyleSheet.create({
   },
 });
 
-Mapbox.setAccessToken('MAPBOX_TOKEN_REMOVED');
+Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN);
 
 const MAP_STYLES = {
   light: Mapbox.StyleURL.Street,
@@ -156,6 +157,7 @@ export const OrderTrackingScreen: React.FC = () => {
   const { orderId } = route.params;
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
+  const [isLegendExpanded, setIsLegendExpanded] = useState(false);
 
   const SHEET_MIN_HEIGHT = useMemo(() => screenHeight * 0.38, [screenHeight]);
   const SHEET_MAX_HEIGHT = useMemo(() => screenHeight * 0.78, [screenHeight]);
@@ -530,7 +532,8 @@ export const OrderTrackingScreen: React.FC = () => {
           />
 
           {tickets.map(ticket => {
-            if (!ticket.truck?.latitude || !ticket.truck?.longitude) return null;
+            // Don't show trucks that are at plant on the map
+            if (!ticket.truck?.latitude || !ticket.truck?.longitude || ticket.status === 'at_plant') return null;
             const isSelected = selectedTicketId === ticket.ticket_id;
             return (
               <Mapbox.MarkerView
@@ -591,36 +594,40 @@ export const OrderTrackingScreen: React.FC = () => {
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
           </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <View style={styles.headerTop}>
-              <Text style={styles.orderCode}>#{trackingData?.order_code}</Text>
-              <View style={styles.liveBadge}>
-                <View style={styles.liveDot} />
-                <Text style={styles.liveText}>LIVE</Text>
-              </View>
-            </View>
-            <Text style={styles.customerName} numberOfLines={1}>
-              {trackingData?.customer_name}
-            </Text>
-          </View>
         </SafeAreaView>
 
-        <View style={styles.statusLegend}>
-          <Text style={styles.legendTitle}>Status Legend</Text>
-          {[
-            { key: 'loading', color: colors.trackingStatus.loading, label: 'Loading' },
-            { key: 'to_job', color: colors.trackingStatus.toJob, label: 'To Job' },
-            { key: 'at_job', color: colors.trackingStatus.atJob, label: 'At Job' },
-            { key: 'pouring', color: colors.trackingStatus.pouring, label: 'Begin Pour' },
-            { key: 'washing', color: colors.trackingStatus.washing, label: 'Washing' },
-            { key: 'to_plant', color: colors.trackingStatus.toPlant, label: 'Returning' },
-          ].map((status) => (
-            <View key={status.key} style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: status.color }]} />
-              <Text style={styles.legendLabel}>{status.label}</Text>
+        <TouchableOpacity
+          style={[styles.statusLegend, !isLegendExpanded && styles.statusLegendCollapsed]}
+          onPress={() => setIsLegendExpanded(!isLegendExpanded)}
+          activeOpacity={0.9}
+        >
+          <View style={styles.legendHeader}>
+            <Icon name="information-outline" size={ms(14)} color={colors.common.white} />
+            {isLegendExpanded && <Text style={styles.legendTitle}>Status</Text>}
+            <Icon
+              name={isLegendExpanded ? 'chevron-up' : 'chevron-down'}
+              size={ms(14)}
+              color={colors.common.white}
+            />
+          </View>
+          {isLegendExpanded && (
+            <View style={styles.legendContent}>
+              {[
+                { key: 'loading', color: colors.trackingStatus.loading, label: 'Loading' },
+                { key: 'to_job', color: colors.trackingStatus.toJob, label: 'To Job' },
+                { key: 'at_job', color: colors.trackingStatus.atJob, label: 'At Job' },
+                { key: 'pouring', color: colors.trackingStatus.pouring, label: 'Pour' },
+                { key: 'washing', color: colors.trackingStatus.washing, label: 'Wash' },
+                { key: 'to_plant', color: colors.trackingStatus.toPlant, label: 'Return' },
+              ].map((status) => (
+                <View key={status.key} style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: status.color }]} />
+                  <Text style={styles.legendLabel}>{status.label}</Text>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
+          )}
+        </TouchableOpacity>
 
         <View style={[styles.mapControls, { top: insets.top + ms(70) }]}>
           <TouchableOpacity style={[styles.mapBtn, { backgroundColor: themeColors.card }]} onPress={handleFitAll}>
@@ -658,6 +665,48 @@ export const OrderTrackingScreen: React.FC = () => {
               <Icon name="chevron-up" size={ms(18)} color={themeColors.text.hint} />
             </Animated.View>
           </TouchableOpacity>
+        </View>
+
+        {/* Order Info Section */}
+        <View style={[styles.orderInfoCard, { backgroundColor: themeColors.card }]}>
+          <View style={styles.orderInfoHeader}>
+            <Text style={[styles.orderInfoCode, { color: themeColors.text.primary }]}>
+              #{trackingData?.order_code}
+            </Text>
+            <View style={styles.liveBadgeSmall}>
+              <View style={styles.liveDotSmall} />
+              <Text style={styles.liveTextSmall}>LIVE</Text>
+            </View>
+          </View>
+          <Text style={[styles.orderInfoCustomer, { color: themeColors.text.primary }]} numberOfLines={1}>
+            {trackingData?.customer_name}
+          </Text>
+          <View style={styles.orderInfoDetails}>
+            {trackingData?.order_date && (
+              <View style={styles.orderInfoRow}>
+                <Icon name="calendar" size={ms(12)} color={themeColors.text.hint} />
+                <Text style={[styles.orderInfoText, { color: themeColors.text.secondary }]}>
+                  {trackingData.order_date}
+                </Text>
+              </View>
+            )}
+            {trackingData?.project_name && (
+              <View style={styles.orderInfoRow}>
+                <Icon name="clipboard-text-outline" size={ms(12)} color={themeColors.text.hint} />
+                <Text style={[styles.orderInfoText, { color: themeColors.text.secondary }]} numberOfLines={1}>
+                  {trackingData.project_name}
+                </Text>
+              </View>
+            )}
+            {trackingData?.delivery_address && (
+              <View style={styles.orderInfoRow}>
+                <Icon name="map-marker" size={ms(12)} color={themeColors.text.hint} />
+                <Text style={[styles.orderInfoText, { color: themeColors.text.secondary }]} numberOfLines={1}>
+                  {trackingData.delivery_address}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
         <View style={[styles.progressCard, { backgroundColor: themeColors.card }]}>
@@ -780,37 +829,50 @@ const styles = StyleSheet.create({
 
   statusLegend: {
     position: 'absolute',
-    top: ms(100),
-    right: ms(12),
+    bottom: ms(16),
+    left: ms(12),
     backgroundColor: colors.semiTransparent.darkGray90,
-    borderRadius: ms(12),
-    paddingHorizontal: ms(12),
-    paddingVertical: ms(10),
+    borderRadius: ms(10),
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(8),
     shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
   },
+  statusLegendCollapsed: {
+    paddingHorizontal: ms(8),
+    paddingVertical: ms(6),
+  },
+  legendHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(6),
+  },
   legendTitle: {
-    fontSize: ms(12),
+    fontSize: ms(11),
     fontFamily: fontFamily.bold,
     color: colors.common.white,
-    marginBottom: ms(8),
+  },
+  legendContent: {
+    marginTop: ms(8),
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: ms(6),
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: ms(6),
   },
   legendDot: {
-    width: ms(11),
-    height: ms(11),
+    width: ms(8),
+    height: ms(8),
     borderRadius: ms(2),
-    marginRight: ms(8),
+    marginRight: ms(4),
   },
   legendLabel: {
-    fontSize: ms(11),
+    fontSize: ms(10),
     fontFamily: fontFamily.medium,
     color: colors.common.white,
   },
@@ -837,6 +899,17 @@ const styles = StyleSheet.create({
   handleWrap: { alignItems: 'center', paddingTop: ms(8), paddingBottom: ms(4) },
   handle: { width: ms(36), height: ms(4), borderRadius: ms(2) },
   handleIndicator: { marginTop: ms(2) },
+
+  orderInfoCard: { marginHorizontal: ms(12), borderRadius: ms(8), paddingHorizontal: ms(10), paddingVertical: ms(6), marginBottom: ms(6), shadowColor: colors.common.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 2 },
+  orderInfoHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: ms(2) },
+  orderInfoCode: { fontSize: ms(14), fontFamily: fontFamily.bold },
+  liveBadgeSmall: { flexDirection: 'row', alignItems: 'center', gap: ms(3), backgroundColor: colors.semiTransparent.teal20, paddingHorizontal: ms(5), paddingVertical: ms(1), borderRadius: ms(3) },
+  liveDotSmall: { width: ms(4), height: ms(4), borderRadius: ms(2), backgroundColor: colors.trackingStatus.live },
+  liveTextSmall: { fontSize: ms(7), fontFamily: fontFamily.bold, color: colors.trackingStatus.live, letterSpacing: 0.4 },
+  orderInfoCustomer: { fontSize: ms(12), fontFamily: fontFamily.semiBold, marginBottom: ms(3) },
+  orderInfoDetails: { gap: ms(2) },
+  orderInfoRow: { flexDirection: 'row', alignItems: 'center', gap: ms(4) },
+  orderInfoText: { fontSize: ms(10), fontFamily: fontFamily.regular, flex: 1 },
 
   progressCard: { marginHorizontal: ms(12), borderRadius: ms(10), paddingHorizontal: ms(10), paddingVertical: ms(8), shadowColor: colors.common.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 2 },
   progressTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: ms(6) },
