@@ -321,10 +321,12 @@ export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
         </TouchableOpacity>
       </ScrollView>
       <View style={styles.dateRow}>
-        <Icon name="calendar" size={ms(14)} color={themeColors.text.secondary} />
-        <Text style={[styles.dateText, { color: themeColors.text.primary }]}>
-          {getSelectedDateText(selectedFilter, selectedDate)}
-        </Text>
+        <View style={styles.dateRowLeft}>
+          <Icon name="calendar" size={ms(14)} color={themeColors.text.secondary} />
+          <Text style={[styles.dateText, { color: themeColors.text.primary }]}>
+            {getSelectedDateText(selectedFilter, selectedDate)}
+          </Text>
+        </View>
       </View>
 
       {/* Date Picker Modal */}
@@ -473,6 +475,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     marginTop: spacing.xs,
+  },
+  dateRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: ms(6),
   },
   dateText: {
