@@ -109,35 +109,49 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                   { backgroundColor: isDark ? themeColors.cardElevated : colors.common.white }
                 ]}
               >
-                {/* Card Header */}
+                {/* Card Header - Single Line */}
                 <View style={styles.loadCardHeader}>
+                  {/* Load Number */}
                   <View style={[
                     styles.loadBadge,
                     {
                       backgroundColor: isCompleted ? colors.success.main + '15' : colors.primary.main + '15',
-                      borderWidth: 1.5,
+                      borderWidth: 1,
                       borderColor: isCompleted ? colors.success.main : colors.primary.main
                     }
                   ]}>
                     <Text style={[styles.loadBadgeText, { color: isCompleted ? colors.success.main : colors.primary.main }]}>#{load.load_number}</Text>
                   </View>
 
-                  <View style={styles.loadCardQty}>
-                    <Text style={[styles.loadCardQtyText, { color: themeColors.text.primary }]}>
-                      {load.scheduled_qty}
-                    </Text>
-                    {isCompleted && (
-                      <View style={[styles.loadStatusTag, { backgroundColor: isDark ? colors.grey[60] : colors.grey[15] }]}>
-                        <Icon name="check-circle" size={ms(11)} color={isDark ? colors.grey[25] : colors.grey[60]} />
-                        <Text style={[styles.loadStatusText, { color: isDark ? colors.grey[25] : colors.grey[60] }]}>Done</Text>
-                      </View>
-                    )}
-                  </View>
+                  {/* Quantity */}
+                  <Text style={[styles.loadCardQtyText, { color: themeColors.text.primary }]} numberOfLines={1}>
+                    {load.scheduled_qty}
+                  </Text>
 
+                  {/* Spacer to push right items */}
+                  <View style={styles.headerSpacer} />
+
+                  {/* Status */}
+                  {isCompleted && (
+                    <View style={[styles.loadStatusTag, { backgroundColor: isDark ? colors.success.main + '20' : colors.success.main + '15' }]}>
+                      <Icon name="check-circle" size={ms(10)} color={colors.success.main} />
+                      <Text style={[styles.loadStatusText, { color: colors.success.main }]}>Done</Text>
+                    </View>
+                  )}
+
+                  {/* Ticket */}
+                  {load.ticket_code && (
+                    <View style={[styles.loadTicketTag, { backgroundColor: isDark ? colors.secondary.main + '20' : colors.secondary.main + '12' }]}>
+                      <Icon name="ticket-outline" size={ms(10)} color={colors.secondary.main} />
+                      <Text style={[styles.loadTicketText, { color: colors.secondary.main }]} numberOfLines={1}>{load.ticket_code}</Text>
+                    </View>
+                  )}
+
+                  {/* Truck */}
                   {load.truck_code && (
-                    <View style={[styles.loadTruckTag, { backgroundColor: isDark ? colors.info.main + '25' : colors.info.main + '12' }]}>
-                      <Icon name="truck" size={ms(12)} color={colors.info.main} />
-                      <Text style={[styles.loadTruckText, { color: colors.info.main }]}>{load.truck_code}</Text>
+                    <View style={[styles.loadTruckTag, { backgroundColor: isDark ? colors.info.main + '20' : colors.info.main + '12' }]}>
+                      <Icon name="truck" size={ms(10)} color={colors.info.main} />
+                      <Text style={[styles.loadTruckText, { color: colors.info.main }]} numberOfLines={1}>{load.truck_code}</Text>
                     </View>
                   )}
                 </View>
@@ -159,7 +173,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                   </View>
 
                   <View style={styles.loadTimeBlock}>
-                    <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>On Job</Text>
+                    <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>At Job</Text>
                     <Text style={[styles.loadTimeBlockValue, { color: themeColors.text.primary }]}>
                       {load.actual_on_job_time || load.scheduled_on_job_time || '--:--'}
                     </Text>
@@ -177,22 +191,9 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                   </View>
                 </View>
 
-                {/* Ticket, Wash & Return Info */}
-                {(load.ticket_code || load.actual_wash_time || load.actual_at_plant_time) && (
+                {/* Wash & Return Info */}
+                {(load.actual_wash_time || load.actual_at_plant_time) && (
                   <View style={[styles.loadInfoRow, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
-                    {load.ticket_code && (
-                      <View style={styles.loadInfoItem}>
-                        <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>Ticket</Text>
-                        <View style={[styles.loadInfoTag, {
-                          backgroundColor: isDark ? colors.grey[70] : colors.grey[8],
-                          borderWidth: 1,
-                          borderColor: isDark ? colors.grey[50] : colors.grey[15]
-                        }]}>
-                          <Icon name="ticket-confirmation" size={ms(12)} color={isDark ? colors.grey[25] : colors.grey[60]} />
-                          <Text style={[styles.loadInfoTagText, { color: isDark ? colors.grey[15] : colors.grey[70] }]}>{load.ticket_code}</Text>
-                        </View>
-                      </View>
-                    )}
                     {load.actual_wash_time && (
                       <View style={styles.loadInfoItem}>
                         <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>Wash</Text>
@@ -279,53 +280,67 @@ const styles = StyleSheet.create({
   loadCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: GRID.xs + 2,
+    paddingVertical: GRID.xs,
     paddingHorizontal: GRID.sm,
-    gap: GRID.sm,
+    gap: GRID.xs,
   },
   loadBadge: {
-    paddingHorizontal: GRID.sm,
-    paddingVertical: 3,
+    paddingHorizontal: GRID.xs + 2,
+    paddingVertical: 2,
     borderRadius: RADIUS.full,
   },
   loadBadgeText: {
     fontFamily: fontFamily.bold,
-    fontSize: ms(13),
+    fontSize: ms(11),
     color: colors.common.white,
   },
-  loadCardQty: {
+  headerSpacer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: GRID.sm,
   },
   loadCardQtyText: {
     fontFamily: fontFamily.semiBold,
-    fontSize: ms(15),
+    fontSize: ms(12),
+    flexShrink: 1,
   },
   loadStatusTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: GRID.xs + 2,
-    paddingVertical: 1,
+    paddingHorizontal: GRID.xs,
+    paddingVertical: 2,
     borderRadius: RADIUS.full,
     gap: 2,
   },
   loadStatusText: {
     fontFamily: fontFamily.semiBold,
-    fontSize: ms(10),
+    fontSize: ms(9),
   },
   loadTruckTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: GRID.sm,
+    paddingHorizontal: GRID.xs,
     paddingVertical: 2,
     borderRadius: RADIUS.full,
-    gap: 4,
+    gap: 2,
+    maxWidth: ms(70),
   },
   loadTruckText: {
     fontFamily: fontFamily.semiBold,
-    fontSize: ms(12),
+    fontSize: ms(10),
+    flexShrink: 1,
+  },
+  loadTicketTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: GRID.xs,
+    paddingVertical: 2,
+    borderRadius: RADIUS.full,
+    gap: 2,
+    maxWidth: ms(80),
+  },
+  loadTicketText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(10),
+    flexShrink: 1,
   },
   loadTimeRow: {
     flexDirection: 'row',

@@ -432,7 +432,7 @@ export const OrderTrackingScreen: React.FC = () => {
             <View style={styles.infoChip}>
               <Icon name="account-circle" size={ms(10)} color={themeColors.text.hint} />
               <Text style={[styles.infoText, { color: themeColors.text.secondary }]} numberOfLines={1}>
-                {ticket.driver?.name}
+                {ticket.driver?.code || 'N/A'}
               </Text>
             </View>
             <View style={[styles.infoDot, { backgroundColor: themeColors.text.hint }]} />
@@ -445,6 +445,14 @@ export const OrderTrackingScreen: React.FC = () => {
           </View>
 
           <View style={styles.ticketRow3}>
+            {ticket.product?.item_code && (
+              <View style={styles.productChip}>
+                <Icon name="cube-outline" size={ms(10)} color={colors.secondary.main} />
+                <Text style={styles.productText} numberOfLines={1}>
+                  {ticket.product.item_code}
+                </Text>
+              </View>
+            )}
             <View style={styles.qtyChip}>
               <Icon name="package-variant-closed" size={ms(11)} color={colors.primary.main} />
               <Text style={styles.qtyText} numberOfLines={1}>
@@ -952,6 +960,8 @@ const styles = StyleSheet.create({
   infoText: { fontSize: ms(11), fontFamily: fontFamily.regular, flexShrink: 1 },
   infoDot: { width: ms(2), height: ms(2), borderRadius: ms(1), marginHorizontal: ms(4), flexShrink: 0 },
   ticketRow3: { flexDirection: 'row', alignItems: 'center', gap: ms(8), flexWrap: 'wrap' },
+  productChip: { flexDirection: 'row', alignItems: 'center', gap: ms(3), backgroundColor: `${colors.secondary.main}12`, paddingHorizontal: ms(6), paddingVertical: ms(2), borderRadius: ms(4), flexShrink: 0 },
+  productText: { fontSize: ms(10), fontFamily: fontFamily.semiBold, color: colors.secondary.main },
   qtyChip: { flexDirection: 'row', alignItems: 'center', gap: ms(3), backgroundColor: `${colors.primary.main}12`, paddingHorizontal: ms(8), paddingVertical: ms(3), borderRadius: ms(6), flexShrink: 0 },
   qtyText: { fontSize: ms(13), fontFamily: fontFamily.bold, color: colors.primary.main },
   qtyUnit: { fontSize: ms(10), fontFamily: fontFamily.semiBold, color: colors.primary.main, marginLeft: ms(1) },

@@ -1979,10 +1979,12 @@ export const OrderDetailsScreen: React.FC = () => {
 
               <View style={styles.metricsMainRow}>
                 <View style={styles.metricItem}>
-                  <Text style={[styles.metricValue, { color: themeColors.text.primary }]}>
-                    {jobData.deliveredVolume.toFixed(2)}
+                  <View style={styles.metricValueRow}>
+                    <Text style={[styles.metricValue, { color: themeColors.text.primary }]} numberOfLines={1} adjustsFontSizeToFit>
+                      {jobData.deliveredVolume.toFixed(2)}
+                    </Text>
                     <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>cy</Text>
-                  </Text>
+                  </View>
                   <Text style={[styles.metricLabel, { color: themeColors.text.hint }]}>Delivered</Text>
                 </View>
 
@@ -1994,10 +1996,12 @@ export const OrderDetailsScreen: React.FC = () => {
                 />
 
                 <View style={styles.metricItem}>
-                  <Text style={[styles.metricValue, { color: themeColors.text.primary }]}>
-                    {jobData.orderedVolume.toFixed(2)}
+                  <View style={styles.metricValueRow}>
+                    <Text style={[styles.metricValue, { color: themeColors.text.primary }]} numberOfLines={1} adjustsFontSizeToFit>
+                      {jobData.orderedVolume.toFixed(2)}
+                    </Text>
                     <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>cy</Text>
-                  </Text>
+                  </View>
                   <Text style={[styles.metricLabel, { color: themeColors.text.hint }]}>Ordered</Text>
                 </View>
               </View>
@@ -2415,6 +2419,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  metricValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: ms(2),
   },
   metricValue: {
     fontFamily: fontFamily.bold,
