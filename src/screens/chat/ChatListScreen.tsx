@@ -59,6 +59,10 @@ export const ChatListScreen: React.FC = () => {
         roomName: room.name,
         chatId: Number(room.id),
         orderId: room.order_id,
+        orderDate: room.order_date,
+        customerName: room.customer_name,
+        projectName: room.project_name,
+        deliveryAddress: room.delivery_address,
       });
     },
     [navigation]
