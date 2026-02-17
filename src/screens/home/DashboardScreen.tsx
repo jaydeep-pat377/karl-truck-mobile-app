@@ -556,9 +556,41 @@ const DashboardScreen: React.FC = () => {
             companies={companies}
             regions={regions}
             plants={plants}
-            onCompanyPress={(company) => console.log('Company pressed:', company.name)}
-            onRegionPress={(region) => console.log('Region pressed:', region.name)}
-            onPlantPress={(plant) => console.log('Plant pressed:', plant.name)}
+            onCompanyPress={(company) => {
+              // Convert dashboard date filter format to orderlist format
+              const orderListDateFilter = dateFilter === 'next_week' ? 'nextWeek'
+                : dateFilter === 'last_week' ? 'lastWeek'
+                : dateFilter;
+              navigation.navigate('Orders', {
+                company_name: company.name,
+                date_filter: orderListDateFilter,
+                selected_date: dateFilter === 'calendar' ? formatDateForApi(selectedDate) : undefined,
+                _timestamp: Date.now(),
+              });
+            }}
+            onRegionPress={(region) => {
+              const orderListDateFilter = dateFilter === 'next_week' ? 'nextWeek'
+                : dateFilter === 'last_week' ? 'lastWeek'
+                : dateFilter;
+              navigation.navigate('Orders', {
+                region_name: region.name,
+                date_filter: orderListDateFilter,
+                selected_date: dateFilter === 'calendar' ? formatDateForApi(selectedDate) : undefined,
+                _timestamp: Date.now(),
+              });
+            }}
+            onPlantPress={(plant) => {
+              const orderListDateFilter = dateFilter === 'next_week' ? 'nextWeek'
+                : dateFilter === 'last_week' ? 'lastWeek'
+                : dateFilter;
+              navigation.navigate('Orders', {
+                plant_code: plant.code,
+                plant_name: plant.name,
+                date_filter: orderListDateFilter,
+                selected_date: dateFilter === 'calendar' ? formatDateForApi(selectedDate) : undefined,
+                _timestamp: Date.now(),
+              });
+            }}
           />
         </View>
 

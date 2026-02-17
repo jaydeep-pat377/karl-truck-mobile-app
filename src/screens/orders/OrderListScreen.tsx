@@ -813,6 +813,12 @@ export const OrderListScreen: React.FC = () => {
 
   const statusFilterFromRoute = route.params?.statusFilter;
   const filterTimestamp = route.params?._timestamp;
+  const companyNameFromRoute = route.params?.company_name;
+  const regionNameFromRoute = route.params?.region_name;
+  const plantCodeFromRoute = route.params?.plant_code;
+  const plantNameFromRoute = route.params?.plant_name;
+  const dateFilterFromRoute = route.params?.date_filter;
+  const selectedDateFromRoute = route.params?.selected_date;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
@@ -828,6 +834,14 @@ export const OrderListScreen: React.FC = () => {
   const [appliedFilters, setAppliedFilters] = useState<FilterState>(defaultFilterState);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [favoriteOverrides, setFavoriteOverrides] = useState<Record<string, boolean>>({});
+
+  // Dashboard filter state
+  const [dashboardFilter, setDashboardFilter] = useState<{
+    company_name?: string;
+    region_name?: string;
+    plant_code?: string;
+    plant_name?: string;
+  }>({});
 
   useEffect(() => {
     const keyboardShowEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -877,6 +891,34 @@ export const OrderListScreen: React.FC = () => {
       }
     }, [statusFilterFromRoute, filterTimestamp])
   );
+
+  // Handle dashboard filters and date filter from route params
+  useEffect(() => {
+    if (filterTimestamp) {
+      // Handle dashboard filters (company, region, plant)
+      if (companyNameFromRoute || regionNameFromRoute || plantCodeFromRoute) {
+        setDashboardFilter({
+          company_name: companyNameFromRoute,
+          region_name: regionNameFromRoute,
+          plant_code: plantCodeFromRoute,
+          plant_name: plantNameFromRoute,
+        });
+      }
+
+      // Apply date filter from route (from dashboard)
+      if (dateFilterFromRoute) {
+        setActiveFilter(dateFilterFromRoute);
+        setDebouncedFilter(dateFilterFromRoute);
+
+        // If calendar date was selected, also set the selected date
+        if (dateFilterFromRoute === 'calendar' && selectedDateFromRoute) {
+          const date = new Date(selectedDateFromRoute);
+          setSelectedDate(date);
+          setDebouncedDate(date);
+        }
+      }
+    }
+  }, [filterTimestamp, companyNameFromRoute, regionNameFromRoute, plantCodeFromRoute, plantNameFromRoute, dateFilterFromRoute, selectedDateFromRoute]);
 
   const filterBarAnim = useRef(new Animated.Value(0)).current;
   const dateFilterScrollRef = useRef<ScrollView>(null);
@@ -938,9 +980,23 @@ export const OrderListScreen: React.FC = () => {
     params.sort_by = sortParams.sort_by;
     params.sort_order = sortParams.sort_order;
 
+    // Add dashboard filters
+    if (dashboardFilter.company_name) {
+      params.company_name = dashboardFilter.company_name;
+    }
+    if (dashboardFilter.region_name) {
+      params.region_name = dashboardFilter.region_name;
+    }
+    if (dashboardFilter.plant_code) {
+      params.plant_code = dashboardFilter.plant_code;
+    }
+    if (dashboardFilter.plant_name) {
+      params.plant_name = dashboardFilter.plant_name;
+    }
+
     console.log('📋 Query params being sent to API:', params);
     return params;
-  }, [debouncedFilter, debouncedDate, appliedSearchQuery, appliedFilters.statuses, appliedFilters.sortBy]);
+  }, [debouncedFilter, debouncedDate, appliedSearchQuery, appliedFilters.statuses, appliedFilters.sortBy, dashboardFilter]);
 
   const {
     orders: apiOrders,
@@ -1375,6 +1431,39 @@ export const OrderListScreen: React.FC = () => {
             </ScrollView>
           </View>
 
+          {/* Dashboard Filter Chip */}
+          {(dashboardFilter.company_name || dashboardFilter.region_name || dashboardFilter.plant_code) && (
+            <View style={styles.dashboardFilterContainer}>
+              <View style={[styles.dashboardFilterChip, { backgroundColor: colors.primary.main + '15' }]}>
+                <Icon
+                  name={dashboardFilter.company_name ? 'domain' : dashboardFilter.region_name ? 'map-marker-radius' : 'factory'}
+                  size={ms(14)}
+                  color={colors.primary.main}
+                />
+                <Text style={[styles.dashboardFilterText, { color: colors.primary.main }]} numberOfLines={1}>
+                  {dashboardFilter.company_name || dashboardFilter.region_name || dashboardFilter.plant_name || dashboardFilter.plant_code}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    // Only clear company/region/plant filter, keep date filter as is
+                    setDashboardFilter({});
+                    navigation.setParams({
+                      company_name: undefined,
+                      region_name: undefined,
+                      plant_code: undefined,
+                      plant_name: undefined,
+                      _timestamp: Date.now()
+                    });
+                  }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.7}
+                >
+                  <Icon name="close-circle" size={ms(16)} color={colors.primary.main} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
           <View style={styles.searchContainer}>
             <View
               style={[
@@ -1617,6 +1706,24 @@ const styles = StyleSheet.create({
   filtersScroll: {
     paddingHorizontal: spacing.md,
     gap: spacing.xs,
+  },
+  dashboardFilterContainer: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  dashboardFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: ms(20),
+    gap: spacing.xs,
+    alignSelf: 'flex-start',
+  },
+  dashboardFilterText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+    maxWidth: ms(200),
   },
   filterPill: {
     paddingHorizontal: spacing.lg,

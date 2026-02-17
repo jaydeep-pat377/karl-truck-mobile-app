@@ -2,6 +2,7 @@ import 'react-native-url-polyfill/auto';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, AppStateStatus } from 'react-native';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY } from '@env';
 
 const generateUUID = (): string => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -11,10 +12,10 @@ const generateUUID = (): string => {
   });
 };
 
-const supabaseUrl = 'https://lwplbyltqsfmfvsgmrjq.supabase.co';
-const supabaseAnonKey = 'SUPABASE_KEY_REMOVED';
+const supabaseUrl = SUPABASE_URL;
+const supabaseAnonKey = SUPABASE_ANON_KEY;
 
-const supabaseServiceRoleKey = 'SUPABASE_SERVICE_KEY_REMOVED';
+const supabaseServiceRoleKey = SUPABASE_SERVICE_ROLE_KEY;
 
 const ANON_USER_ID_KEY = '@supabase_anon_user_id';
 

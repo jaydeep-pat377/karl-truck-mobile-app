@@ -212,4 +212,8 @@ export interface OrdersQueryParams {
   end_date?: string;
   sort_by?: 'order_date' | 'ordered_qty' | 'delivered_qty';
   sort_order?: 'asc' | 'desc';
+  company_name?: string;
+  region_name?: string;
+  plant_code?: string;
+  plant_name?: string;
 }

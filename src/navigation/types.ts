@@ -19,9 +19,22 @@ export type OrderStatusFilter =
   | 'In Progress'
   | 'Completed';
 
+export type DateFilterType = 'today' | 'yesterday' | 'tomorrow' | 'nextWeek' | 'lastWeek' | 'calendar';
+
+export interface OrdersFilterParams {
+  statusFilter?: OrderStatusFilter;
+  company_name?: string;
+  region_name?: string;
+  plant_code?: string;
+  plant_name?: string;
+  date_filter?: DateFilterType;
+  selected_date?: string; // ISO date string for calendar selection
+  _timestamp?: number;
+}
+
 export type MainTabParamList = {
   Home: undefined;
-  Orders: { statusFilter?: OrderStatusFilter; _timestamp?: number } | undefined;
+  Orders: OrdersFilterParams | undefined;
   Today: undefined;
   Notifications: undefined;
   Settings: undefined;

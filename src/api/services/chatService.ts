@@ -2,6 +2,7 @@ import { supabase, supabaseAdmin, isSupabaseConfigured, ensureAuthenticated } fr
 import { ChatRoom, Message, SendMessagePayload } from '../../types/chat';
 import { useAuthStore } from '../../store/authStore';
 import { Platform } from 'react-native';
+import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from '@env';
 
 export interface ImageAttachment {
   uri: string;
@@ -230,9 +231,7 @@ export const chatService = {
     const fileExt = image.name.split('.').pop() || 'jpg';
     const fileName = `${orderId}/${user.id}/${timestamp}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-    const supabaseUrl = 'https://lwplbyltqsfmfvsgmrjq.supabase.co';
-    const supabaseServiceKey = 'SUPABASE_SERVICE_KEY_REMOVED';
-    const uploadUrl = `${supabaseUrl}/storage/v1/object/${STORAGE_BUCKET}/${fileName}`;
+    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${fileName}`;
 
     console.log('[Chat] Uploading image:', fileName);
     console.log('[Chat] Image URI:', image.uri);
@@ -249,7 +248,7 @@ export const chatService = {
         console.log('[Chat] XHR response:', xhr.responseText);
 
         if (xhr.status >= 200 && xhr.status < 300) {
-          const publicUrl = `${supabaseUrl}/storage/v1/object/public/${STORAGE_BUCKET}/${fileName}`;
+          const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${fileName}`;
           console.log('[Chat] Upload successful:', publicUrl);
           resolve({
             url: publicUrl,
@@ -282,7 +281,7 @@ export const chatService = {
       };
 
       xhr.open('POST', uploadUrl);
-      xhr.setRequestHeader('Authorization', `Bearer ${supabaseServiceKey}`);
+      xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`);
       xhr.setRequestHeader('x-upsert', 'true');
 
 
