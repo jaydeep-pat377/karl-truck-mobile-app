@@ -30,10 +30,10 @@ export const MainNavigator: React.FC = () => {
         }}
       />
       <Tab.Screen
-        name="Map"
+        name="Today"
         component={TodayOrdersScreen}
         options={{
-          tabBarLabel: t('navigation.map'),
+          tabBarLabel: t('navigation.today'),
         }}
       />
       <Tab.Screen

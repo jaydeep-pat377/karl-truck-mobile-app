@@ -22,7 +22,7 @@ export type OrderStatusFilter =
 export type MainTabParamList = {
   Home: undefined;
   Orders: { statusFilter?: OrderStatusFilter; _timestamp?: number } | undefined;
-  Map: undefined;
+  Today: undefined;
   Notifications: undefined;
   Settings: undefined;
 };
@@ -175,6 +175,10 @@ export type ChatRoomScreenParams = {
   roomName: string;
   chatId: number;
   orderId: number;
+  orderDate?: string;
+  customerName?: string;
+  projectName?: string;
+  deliveryAddress?: string;
 };
 
 export type RootStackParamList = {

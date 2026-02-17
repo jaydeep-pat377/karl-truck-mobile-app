@@ -45,6 +45,10 @@ export interface ChatRoom {
   last_message_at?: string;
   last_message_preview?: string;
   unread_count?: number;
+  order_date?: string;
+  customer_name?: string;
+  project_name?: string;
+  delivery_address?: string;
 }
 
 export interface Message {
