@@ -1255,6 +1255,10 @@ export const OrderListScreen: React.FC = () => {
         roomName: `Order #${order.orderCode}`,
         chatId: room.id ? Number(room.id) : orderId,
         orderId: orderId,
+        orderDate: order.scheduledDate,
+        customerName: order.customerName,
+        projectName: order.projectName,
+        deliveryAddress: order.deliveryAddress,
       });
     } catch (error) {
       console.error('Failed to open chat:', error);
@@ -1456,12 +1460,35 @@ export const OrderListScreen: React.FC = () => {
           />
         </View>
       ) : (
-        <FlatList
-          data={filteredOrders}
-          extraData={filteredOrders}
-          renderItem={renderOrderCard}
-          keyExtractor={(item) => item.id}
-          ListHeaderComponent={renderListHeader}
+        <>
+          {/* Static Order Count Header */}
+          <View style={styles.staticListHeader}>
+            <View style={styles.ordersFoundRow}>
+              {isFilterLoading ? (
+                <View style={styles.filterLoadingRow}>
+                  <Text variant="caption" color="secondary">Updating...</Text>
+                </View>
+              ) : (
+                <Text variant="caption" color="secondary">
+                  {filteredOrders.length} out of {pagination?.total ?? filteredOrders.length} orders displaying
+                </Text>
+              )}
+              {activeFilter === 'calendar' &&
+                <TouchableOpacity
+                  style={styles.downloadIcon}
+                  onPress={handleClearFilter}
+                  activeOpacity={0.7}>
+                  <Text style={styles.clearText}>Clear</Text>
+                </TouchableOpacity>
+              }
+            </View>
+          </View>
+
+          <FlatList
+            data={filteredOrders}
+            extraData={filteredOrders}
+            renderItem={renderOrderCard}
+            keyExtractor={(item) => item.id}
           ListEmptyComponent={renderEmpty}
           ListFooterComponent={
             filteredOrders.length > 0 ? (
@@ -1501,6 +1528,7 @@ export const OrderListScreen: React.FC = () => {
             />
           }
         />
+        </>
       )}
 
       <DatePickerModal
@@ -1617,6 +1645,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.md,
+  },
+  staticListHeader: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
   },
   detailsToggle: {
     flexDirection: 'row',

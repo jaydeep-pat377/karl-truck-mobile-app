@@ -1711,6 +1711,10 @@ export const OrderDetailsScreen: React.FC = () => {
       roomName: `Order #${order.orderCode}`,
       chatId: parseInt(order.id, 10),
       orderId: parseInt(order.id, 10),
+      orderDate: order.scheduledDate,
+      customerName: order.customerName,
+      projectName: order.projectName,
+      deliveryAddress: order.deliveryAddress,
     });
   }, [navigation, order]);
 

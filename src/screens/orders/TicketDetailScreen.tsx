@@ -469,11 +469,13 @@ interface QuickActionProps {
   color: string;
   onPress: () => void;
   isDark: boolean;
+  disabled?: boolean;
 }
 
-const QuickAction: React.FC<QuickActionProps> = ({ icon, label, color, onPress, isDark }) => {
+const QuickAction: React.FC<QuickActionProps> = ({ icon, label, color, onPress, isDark, disabled }) => {
   const themeColors = isDark ? colors.dark : colors.light;
   const labelColor = isDark ? colors.common.white : colors.grey[60];
+  const disabledColor = isDark ? colors.grey[60] : colors.grey[40];
 
   return (
     <TouchableOpacity
@@ -483,16 +485,18 @@ const QuickAction: React.FC<QuickActionProps> = ({ icon, label, color, onPress, 
           backgroundColor: themeColors.card,
           borderWidth: isDark ? 0 : 1,
           borderColor: isDark ? 'transparent' : colors.grey[10],
+          opacity: disabled ? 0.5 : 1,
         },
       ]}
       onPress={onPress}
       activeOpacity={0.7}
+      disabled={disabled}
       hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
-      <View style={[styles.quickActionIcon, { backgroundColor: `${color}15` }]}>
-        <Icon name={icon} size={ms(20)} color={color} />
+      <View style={[styles.quickActionIcon, { backgroundColor: disabled ? `${disabledColor}15` : `${color}15` }]}>
+        <Icon name={icon} size={ms(20)} color={disabled ? disabledColor : color} />
       </View>
       <Text
-        style={[styles.quickActionLabel, { color: labelColor }]}
+        style={[styles.quickActionLabel, { color: disabled ? disabledColor : labelColor }]}
         numberOfLines={1}>
         {label}
       </Text>
@@ -550,9 +554,28 @@ export const TicketDetailScreen: React.FC = () => {
 
   const statusConfigMap = isDark ? STATUS_CONFIG_DARK : STATUS_CONFIG_LIGHT;
 
+  // Format ETA time to readable format (e.g., "2:30 PM")
+  const formatEtaTime = (etaString: string | null | undefined): string => {
+    if (!etaString) return '';
+    try {
+      const date = new Date(etaString);
+      if (isNaN(date.getTime())) return etaString;
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return etaString;
+    }
+  };
+
+  const formattedEta = formatEtaTime(etaAtJob);
+
   const currentStatus = statusCode || passedStatus || 'pending';
   const currentStatusDisplayText = statusDisplay || passedStatusDisplay;
   const statusInfo = statusConfigMap[currentStatus] || statusConfigMap.pending;
+  const isAtPlant = currentStatus === 'at_plant';
 
   const headerBadgeColors = getHeaderBadgeColors(currentStatus, isDark);
 
@@ -893,10 +916,10 @@ export const TicketDetailScreen: React.FC = () => {
               </View>
             </View>
             <View style={styles.heroRight}>
-              {etaAtJob && currentStatus !== 'at_plant' && (
+              {formattedEta && currentStatus !== 'at_plant' && (
                 <View style={styles.etaBadge}>
                   <Text style={styles.etaLabel}>ETA</Text>
-                  <Text style={styles.etaValue}>{etaAtJob}</Text>
+                  <Text style={styles.etaValue}>{formattedEta}</Text>
                 </View>
               )}
               <View style={styles.truckIconContainer}>
@@ -915,6 +938,7 @@ export const TicketDetailScreen: React.FC = () => {
             color={accentColor}
             onPress={handleTrackTruck}
             isDark={isDark}
+            disabled={isAtPlant}
           />
           <QuickAction
             icon="directions"
@@ -922,13 +946,7 @@ export const TicketDetailScreen: React.FC = () => {
             color={isDark ? colors.success.light : colors.success.main}
             onPress={handleGetDirections}
             isDark={isDark}
-          />
-          <QuickAction
-            icon="phone"
-            label="Call Driver"
-            color={isDark ? colors.warning.light : colors.warning.main}
-            onPress={handleCallDriver}
-            isDark={isDark}
+            disabled={isAtPlant}
           />
           <QuickAction
             icon="refresh"
@@ -1023,10 +1041,12 @@ export const TicketDetailScreen: React.FC = () => {
                 backgroundColor: isDark ? themeColors.surface : colors.grey[5],
                 borderWidth: isDark ? 0 : 1,
                 borderColor: isDark ? 'transparent' : colors.grey[10],
+                opacity: isAtPlant ? 0.5 : 1,
               },
             ]}
             onPress={handleGetDirections}
-            activeOpacity={0.8}>
+            activeOpacity={0.8}
+            disabled={isAtPlant}>
             <Icon name="map" size={ms(32)} color={isDark ? colors.grey[40] : colors.grey[50]} />
             <Text style={[styles.mapPreviewText, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>
               Tap to open in Maps
@@ -1043,25 +1063,6 @@ export const TicketDetailScreen: React.FC = () => {
           <DetailRow label="Description" value={truckDescription} isDark={isDark} />
           <DetailRow label="Driver Code" value={driverCode} isDark={isDark} />
           <DetailRow label="Driver Phone" value={driverPhone} isDark={isDark} isLast />
-
-          {driverPhone && (
-            <TouchableOpacity
-              style={[
-                styles.callCustomerBtn,
-                {
-                  backgroundColor: isDark ? colors.action.call.bgDark : colors.action.call.bgLight,
-                  borderWidth: isDark ? 0 : 1,
-                  borderColor: isDark ? colors.common.transparent : colors.action.call.borderLight,
-                },
-              ]}
-              onPress={handleCallDriver}
-              activeOpacity={0.8}>
-              <Icon name="phone" size={ms(18)} color={isDark ? colors.action.call.light : colors.action.call.dark} />
-              <Text style={[styles.callCustomerText, { color: isDark ? colors.action.call.light : colors.action.call.dark }]}>
-                Call Driver
-              </Text>
-            </TouchableOpacity>
-          )}
         </SectionCard>
 
         <SectionCard
@@ -1087,9 +1088,10 @@ export const TicketDetailScreen: React.FC = () => {
 
         <View style={styles.actionSection}>
           <TouchableOpacity
-            style={styles.primaryBtn}
+            style={[styles.primaryBtn, isAtPlant && { opacity: 0.5 }]}
             onPress={handleTrackTruck}
             activeOpacity={0.8}
+            disabled={isAtPlant}
             hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
             <View style={styles.primaryBtnContainer}>
               <LinearGradient
