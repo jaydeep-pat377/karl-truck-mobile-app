@@ -16,9 +16,9 @@ import {
   DateFilterChips,
   ProductionSummaryCard,
   QuickLaunchCard,
-  InformationSection,
+  AdvertisementCard,
 } from '../../components/dashboard';
-import type { DateFilter, QuickLaunchAction, InfoMessage, RegionData, CompanyData, PlantData } from '../../components/dashboard';
+import type { DateFilter, QuickLaunchAction, Advertisement, RegionData, CompanyData, PlantData } from '../../components/dashboard';
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
 import { ms, spacing, fontSizes, iconSizes } from '../../utils/responsive';
@@ -54,7 +54,7 @@ const defaultQuickLaunchActions: QuickLaunchAction[] = [
   },
   {
     id: 'order_concrete',
-    title: 'ORDER CONCRETE',
+    title: 'SAVED ORDERS',
     icon: 'clipboard-list',
     permission: 'order_concrete',
   },
@@ -230,27 +230,52 @@ const DashboardScreen: React.FC = () => {
 
 
 
-  const infoMessages: InfoMessage[] = useMemo(() => {
-    if (!recentAlerts || recentAlerts.length === 0) {
-      return [];
-    }
-    return recentAlerts.map((alert) => ({
-      id: alert.id,
-      type: alert.type as InfoMessage['type'],
-      title: alert.type.charAt(0).toUpperCase() + alert.type.slice(1),
-      message: alert.message,
-      timestamp: new Date(alert.timestamp).toLocaleTimeString(),
-      isRead: false,
-    }));
-  }, [recentAlerts]);
+  const advertisements: Advertisement[] = useMemo(() => {
+    return [
+      {
+        id: '1',
+        badge: 'Sponsored',
+        headline: 'Track Deliveries',
+        description: 'Monitor your concrete deliveries in real-time with live tracking.',
+        ctaText: 'View Companies',
+        illustrationType: 'delivery',
+        onAction: () => navigation.navigate('Main', { screen: 'Orders' }),
+      },
+      {
+        id: '2',
+        badge: 'Sponsored',
+        headline: 'Weather Updates',
+        description: 'Check weather conditions for optimal concrete pouring.',
+        ctaText: 'View Companies',
+        illustrationType: 'weather',
+        onAction: () => navigation.navigate('Main', { screen: 'Today' }),
+      },
+    ];
+  }, [navigation]);
 
 
   const quickLaunchActions = useMemo(() => {
     return defaultQuickLaunchActions;
   }, []);
 
-  const handleQuickLaunchPress = useCallback((_action: QuickLaunchAction) => {
-  }, []);
+  const handleQuickLaunchPress = useCallback((action: QuickLaunchAction) => {
+    if (action.id === 'order_concrete') {
+      // Convert dashboard date filter format to orderlist format
+      const orderListDateFilter = dateFilter === 'next_week' ? 'nextWeek'
+        : dateFilter === 'last_week' ? 'lastWeek'
+        : dateFilter;
+      // Navigate to Orders screen with is_favourite filter and current date filter
+      navigation.navigate('Main', {
+        screen: 'Orders',
+        params: {
+          is_favourite: true,
+          date_filter: orderListDateFilter,
+          selected_date: dateFilter === 'calendar' ? formatDateForApi(selectedDate) : undefined,
+          _timestamp: Date.now(),
+        },
+      });
+    }
+  }, [navigation, dateFilter, selectedDate]);
 
   const getStatusColor = (status: string) => {
     const normalizedStatus = status.toLowerCase().replace(/\s+/g, '_');
@@ -511,14 +536,22 @@ const DashboardScreen: React.FC = () => {
         <Text variant="h2" style={{ color: themeColors.text.primary }}>
           Overview
         </Text>
-        <TouchableOpacity style={styles.notificationButton} onPress={() => navigation.navigate('Notifications')}>
-          <Icon name="bell-outline" size={iconSizes.lg} color={themeColors.text.primary} />
-          {(notifications?.unread_count ?? 0) > 0 && (
-            <View style={[styles.notificationBadge, { backgroundColor: colors.error.main }]}>
-              <Text style={styles.notificationBadgeText}>{notifications?.unread_count}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={[styles.headerActionBtn, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
+            onPress={onRefresh}
+            activeOpacity={0.7}>
+            <Icon name="refresh" size={ms(18)} color={colors.primary.main} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.notificationButton} onPress={() => navigation.navigate('Notifications')}>
+            <Icon name="bell-outline" size={iconSizes.lg} color={themeColors.text.primary} />
+            {(notifications?.unread_count ?? 0) > 0 && (
+              <View style={[styles.notificationBadge, { backgroundColor: colors.error.main }]}>
+                <Text style={styles.notificationBadgeText}>{notifications?.unread_count}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <DateFilterChips
@@ -594,26 +627,9 @@ const DashboardScreen: React.FC = () => {
           />
         </View>
 
-        <SectionHeader title="Information" />
-        <InformationSection
-          messages={infoMessages}
-          weather={weather ? {
-            temperature: weather.avg_temperature_fahrenheit ?? weather.temperature,
-            humidity: weather.avg_humidity_percent ?? weather.humidity,
-            windSpeed: weather.avg_wind_speed_mph ?? weather.windSpeed,
-            condition: weather.condition,
-            location: weather.location,
-          } : null}
-          todayStats={todayOverview ? {
-            total: todayOverview.total_orders ?? 0,
-            completed: todayOverview.completed ?? 0,
-            inProgress: todayOverview.in_progress ?? 0,
-            cancelled: todayOverview.cancelled ?? 0,
-          } : null}
-          onMessagePress={() => navigation.navigate('Notifications')}
-          onSeeAllPress={() => navigation.navigate('Notifications')}
-          onStatsPress={() => navigation.navigate('Today')}
-          maxVisible={2}
+        <AdvertisementCard
+          advertisements={advertisements}
+          onActionPress={(ad) => ad.onAction?.()}
         />
 
         {quickLaunchActions.length > 0 && (
@@ -682,6 +698,7 @@ const DashboardScreen: React.FC = () => {
                             orderDate: new Date().toISOString().split('T')[0],
                             status: order.status,
                             progressColor: progressColor,
+                            sourceTab: 'Home',
                           });
                         },
                       })}
@@ -762,6 +779,18 @@ const createStyles = (
       alignItems: 'center',
       paddingHorizontal: spacing.lg,
       paddingBottom: spacing.sm,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: ms(8),
+    },
+    headerActionBtn: {
+      width: ms(36),
+      height: ms(36),
+      borderRadius: ms(18),
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     notificationButton: {
       position: 'relative',

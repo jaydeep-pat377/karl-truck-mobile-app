@@ -12,7 +12,7 @@ import {
   Modal,
   Share,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Svg, { Circle, Path, Defs, LinearGradient as SvgGradient, Stop, G, Text as SvgText } from 'react-native-svg';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -1372,18 +1372,42 @@ interface BottomTabProps {
   isDark: boolean;
 }
 
+const tabBarTheme = {
+  light: {
+    background: colors.tabBar?.light?.background || colors.common.white,
+    iconInactive: colors.tabBar?.light?.iconInactive || colors.grey[50],
+    iconActive: colors.tabBar?.light?.iconActive || colors.common.white,
+    labelActive: colors.tabBar?.light?.labelActive || colors.common.white,
+  },
+  dark: {
+    background: colors.tabBar?.dark?.background || colors.grey[85],
+    iconInactive: colors.tabBar?.dark?.iconInactive || colors.grey[50],
+    iconActive: colors.tabBar?.dark?.iconActive || colors.common.white,
+    labelActive: colors.tabBar?.dark?.labelActive || colors.common.white,
+  },
+};
+
 const BottomTabBar: React.FC<BottomTabProps> = ({ tabs, activeTab, onTabPress, isDark }) => {
-  const themeColors = isDark ? colors.dark : colors.light;
+  const themeColors = isDark ? tabBarTheme.dark : tabBarTheme.light;
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, GRID.sm) + GRID.xs;
+
+  const getIconName = (tab: { icon: string; label: string }, isActive: boolean): string => {
+    if (isActive) {
+      return tab.icon.replace('-outline', '');
+    }
+    return tab.icon;
+  };
 
   return (
-    <View style={[
-      styles.bottomTabBar,
-      {
-        backgroundColor: themeColors.card,
-        borderTopColor: isDark ? themeColors.border : colors.grey[10],
-      }
-    ]}>
-      <SafeAreaView edges={['bottom']} style={styles.bottomTabBarInner}>
+    <View style={[styles.bottomTabContainer, { paddingBottom: bottomPadding }]}>
+      <View style={[
+        styles.bottomTabBar,
+        {
+          backgroundColor: themeColors.background,
+          borderColor: colors.primary.main,
+        }
+      ]}>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.label;
           return (
@@ -1391,32 +1415,27 @@ const BottomTabBar: React.FC<BottomTabProps> = ({ tabs, activeTab, onTabPress, i
               key={tab.label}
               style={styles.bottomTabItem}
               onPress={() => onTabPress(tab.label)}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
             >
               <View style={[
-                styles.bottomTabIconBg,
-                isActive && { backgroundColor: colors.primary.main + '15' }
+                styles.bottomTabPill,
+                isActive && styles.bottomTabPillActive,
               ]}>
                 <Icon
-                  name={isActive ? tab.icon.replace('-outline', '') : tab.icon}
-                  size={22}
-                  color={isActive ? colors.primary.main : themeColors.text.hint}
+                  name={getIconName(tab, isActive)}
+                  size={ms(24)}
+                  color={isActive ? themeColors.iconActive : themeColors.iconInactive}
                 />
+                {isActive && (
+                  <Text style={[styles.bottomTabLabel, { color: themeColors.labelActive }]}>
+                    {tab.label}
+                  </Text>
+                )}
               </View>
-              <Text style={[
-                styles.bottomTabLabel,
-                {
-                  color: isActive ? colors.primary.main : themeColors.text.hint,
-                  fontFamily: isActive ? fontFamily.semiBold : fontFamily.medium,
-                }
-              ]}>
-                {tab.label}
-              </Text>
-              {isActive && <View style={styles.bottomTabIndicator} />}
             </TouchableOpacity>
           );
         })}
-      </SafeAreaView>
+      </View>
     </View>
   );
 };
@@ -1430,7 +1449,7 @@ export const OrderDetailsScreen: React.FC = () => {
   const { alertState, hideAlert, showError, showInfo } = useAlert();
   const [showLoadsSheet, setShowLoadsSheet] = useState(false);
 
-  const { orderId, orderCode, orderDate, status: passedStatus, progressColor } = route.params;
+  const { orderId, orderCode, orderDate, status: passedStatus, progressColor, sourceTab } = route.params;
 
   const {
     orderDetails,
@@ -1622,7 +1641,7 @@ export const OrderDetailsScreen: React.FC = () => {
     };
   }, [orderDetails]);
 
-  const [activeTab, setActiveTab] = useState('Jobs');
+  const [activeTab, setActiveTab] = useState(sourceTab || 'Orders');
   const [refreshing, setRefreshing] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -1704,6 +1723,16 @@ export const OrderDetailsScreen: React.FC = () => {
       orderDate: order.scheduledDate,
     });
   }, [navigation, order]);
+
+  const handleProductDetailsPress = useCallback(() => {
+    navigation.navigate('OrderProductDetails', {
+      orderId: order.id,
+      orderCode: order.orderCode,
+      orderDate: order.scheduledDate,
+      status: order.status,
+      progressColor: statusColor,
+    });
+  }, [navigation, order, statusColor]);
 
   const handleChatPress = useCallback(() => {
     navigation.navigate('ChatRoom', {
@@ -1814,12 +1843,33 @@ export const OrderDetailsScreen: React.FC = () => {
   const trucksChartData = useMemo(() => jobData.trucksOnJobData, [jobData.trucksOnJobData]);
 
   const bottomTabs = [
-    { icon: 'package-variant', label: 'Materials' },
-    { icon: 'briefcase-outline', label: 'Jobs' },
-    { icon: 'ticket-outline', label: 'Tickets' },
-    { icon: 'crosshairs-gps', label: 'Track' },
-    { icon: 'chat-outline', label: 'Chats' },
+    { icon: 'clipboard-text-outline', label: 'Orders' },
+    { icon: 'calendar-today', label: 'Today' },
+    { icon: 'home-outline', label: 'Home' },
+    { icon: 'bell-outline', label: 'Notifications' },
+    { icon: 'cog-outline', label: 'Settings' },
   ];
+
+  const handleTabPress = useCallback((tabLabel: string) => {
+    setActiveTab(tabLabel);
+    switch (tabLabel) {
+      case 'Orders':
+        navigation.navigate('Main', { screen: 'Orders' });
+        break;
+      case 'Today':
+        navigation.navigate('Main', { screen: 'Today' });
+        break;
+      case 'Home':
+        navigation.navigate('Main', { screen: 'Home' });
+        break;
+      case 'Notifications':
+        navigation.navigate('Main', { screen: 'Notifications' });
+        break;
+      case 'Settings':
+        navigation.navigate('Main', { screen: 'Settings' });
+        break;
+    }
+  }, [navigation]);
 
   if (isLoading) {
     return (
@@ -1829,6 +1879,10 @@ export const OrderDetailsScreen: React.FC = () => {
           showWaves={true}
           waveOpacity={0.12}
           absolute={true}
+          customColors={isDark
+            ? colors.gradients.dark.orderDetails
+            : colors.gradients.light.orderDetails
+          }
         />
         <SafeAreaView edges={['top']} style={styles.header}>
           <View style={styles.headerSafeArea}>
@@ -1846,6 +1900,12 @@ export const OrderDetailsScreen: React.FC = () => {
             color={isDark ? 'light' : 'dark'}
           />
         </View>
+        <BottomTabBar
+          tabs={bottomTabs}
+          activeTab={activeTab}
+          onTabPress={handleTabPress}
+          isDark={isDark}
+        />
       </View>
     );
   }
@@ -1858,6 +1918,10 @@ export const OrderDetailsScreen: React.FC = () => {
           showWaves={true}
           waveOpacity={0.12}
           absolute={true}
+          customColors={isDark
+            ? colors.gradients.dark.orderDetails
+            : colors.gradients.light.orderDetails
+          }
         />
         <SafeAreaView edges={['top']} style={styles.header}>
           <View style={styles.headerSafeArea}>
@@ -1882,6 +1946,12 @@ export const OrderDetailsScreen: React.FC = () => {
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
+        <BottomTabBar
+          tabs={bottomTabs}
+          activeTab={activeTab}
+          onTabPress={handleTabPress}
+          isDark={isDark}
+        />
       </View>
     );
   }
@@ -1893,6 +1963,10 @@ export const OrderDetailsScreen: React.FC = () => {
         showWaves={true}
         waveOpacity={0.12}
         absolute={true}
+        customColors={isDark
+          ? colors.gradients.dark.orderDetails
+          : colors.gradients.light.orderDetails
+        }
       />
 
       <ScrollView
@@ -1924,7 +1998,7 @@ export const OrderDetailsScreen: React.FC = () => {
                     color={isFavorite ? colors.warning.main : (isDark ? colors.common.white : colors.grey[80])}
                   />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7}>
+                <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={() => refetch()}>
                   <Icon name="refresh" size={18} color={isDark ? colors.common.white : colors.grey[80]} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={handleMenuToggle}>
@@ -2066,37 +2140,27 @@ export const OrderDetailsScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          <ProductScheduleCard
-            scheduleDate={order.scheduledDate}
-            scheduleTime={order.scheduledTime}
-            displayDate={jobData.displayDate}
-            estimatedFinish={jobData.estimatedFinishTime}
-            productType={order.productType}
-            productMix={order.productMix || ''}
-            plantName={jobData.plantName}
-            plantCode={jobData.plantCode}
-            plantPhone={jobData.plantPhone}
-            statusText={getStatusLabel(order.status)}
-            statusColor={statusColor}
-            isDark={isDark}
-            onCallPress={() => handleCall(jobData.plantPhone)}
-            scheduleRate={jobData.scheduleRate}
-            deliveredQty={jobData.deliveredVolume}
-            pouredQty={jobData.pouredVolume}
-            avgWaitingMinutes={jobData.avgWaitingMinutes}
-            avgPouringMinutes={jobData.avgPouringMinutes}
-            avgWashoutMinutes={jobData.avgWashoutMinutes}
-          />
-
-          <ContactDetailsCard
-            plantName={jobData.plantName}
-            plantCode={jobData.plantCode}
-            plantAddress1={jobData.plantAddress1}
-            plantAddress2={jobData.plantAddress2}
-            plantPhone={jobData.plantPhone}
-            isDark={isDark}
-            onCallPress={() => handleCall(jobData.plantPhone)}
-          />
+          {/* Product Details Card */}
+          <TouchableOpacity
+            style={[styles.productDetailsCard, { backgroundColor: themeColors.card }]}
+            onPress={handleProductDetailsPress}
+            activeOpacity={0.7}
+          >
+            <View style={styles.productDetailsCardContent}>
+              <View style={[styles.productDetailsIconBox, { backgroundColor: colors.primary.main }]}>
+                <Icon name="clipboard-text-outline" size={ms(22)} color={colors.common.white} />
+              </View>
+              <View style={styles.productDetailsTextContent}>
+                <Text style={[styles.productDetailsTitle, { color: themeColors.text.primary }]}>
+                  Product & Schedule Details
+                </Text>
+                <Text style={[styles.productDetailsSubtitle, { color: themeColors.text.secondary }]}>
+                  View product & schedule information
+                </Text>
+              </View>
+            </View>
+            <Icon name="chevron-right" size={ms(24)} color={themeColors.text.hint} />
+          </TouchableOpacity>
 
           <PerformanceCharts
             graphData={orderDetails?.graphs}
@@ -2105,26 +2169,9 @@ export const OrderDetailsScreen: React.FC = () => {
             isDark={isDark}
           />
 
-          <ProductSKUDetailsCard
-            products={jobData.products}
-            scheduleDetails={jobData.scheduleDetails}
-            scheduledLoads={jobData.scheduledLoads}
-            isDark={isDark}
-            onOpenLoads={() => setShowLoadsSheet(true)}
-          />
+          {/* Bottom spacing for tab bar */}
+          <View style={{ height: ms(100) }} />
 
-          <View style={[styles.truckBackgroundContainer, { backgroundColor: isDark ? colors.cardBg.dark : colors.cardBg.infoBg }]}>
-            <View style={styles.cityBackgroundWrapper}>
-              <Isolation_Mode
-                width="100%"
-                height="100%"
-                preserveAspectRatio="xMidYMax slice"
-              />
-            </View>
-            <View style={styles.truckOverlay}>
-              <YellowTruck width={150} height={(150 * 86) / 157} />
-            </View>
-          </View>
         </View>
       </ScrollView>
 
@@ -2206,6 +2253,13 @@ export const OrderDetailsScreen: React.FC = () => {
         onClose={() => setShowLoadsSheet(false)}
         loads={jobData.scheduledLoads}
         totalLoads={jobData.scheduleDetails?.[0]?.number_of_loads}
+      />
+
+      <BottomTabBar
+        tabs={bottomTabs}
+        activeTab={activeTab}
+        onTabPress={handleTabPress}
+        isDark={isDark}
       />
     </View>
   );
@@ -3583,44 +3637,58 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     fontSize: ms(10),
   },
-  bottomTabBar: {
+  bottomTabContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopWidth: 1,
-    ...SHADOWS.lg,
-    shadowOffset: { width: 0, height: -4 },
+    paddingHorizontal: GRID.lg,
+    paddingTop: GRID.md,
   },
-  bottomTabBarInner: {
+  bottomTabBar: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: GRID.sm,
+    height: ms(52),
+    borderRadius: ms(28),
+    paddingHorizontal: ms(6),
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1.5,
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 24,
   },
   bottomTabItem: {
+    flex: 1,
     alignItems: 'center',
-    paddingVertical: GRID.xs,
-    minWidth: 64,
-    position: 'relative',
-  },
-  bottomTabIconBg: {
-    width: 44,
-    height: 32,
-    borderRadius: RADIUS.md,
     justifyContent: 'center',
+  },
+  bottomTabPill: {
     alignItems: 'center',
-    marginBottom: 2,
+    justifyContent: 'center',
+    width: ms(40),
+    height: ms(40),
+    borderRadius: ms(18),
+  },
+  bottomTabPillActive: {
+    width: ms(58),
+    height: ms(62),
+    backgroundColor: colors.primary.main,
+    borderRadius: ms(20),
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
   },
   bottomTabLabel: {
-    fontSize: ms(10),
-  },
-  bottomTabIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    width: 24,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: colors.primary.main,
+    fontSize: ms(9),
+    fontFamily: fontFamily.semiBold,
+    letterSpacing: 0.4,
+    marginTop: ms(2),
+    textTransform: 'uppercase',
+    textAlign: 'center',
   },
   menuModalWrapper: {
     flex: 1,
@@ -3692,6 +3760,41 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fontFamily.medium,
     fontSize: ms(14),
+  },
+  // Product Details Card Styles
+  productDetailsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: RADIUS.xl,
+    padding: GRID.md,
+    marginBottom: GRID.md,
+    ...SHADOWS.sm,
+  },
+  productDetailsCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: GRID.md,
+  },
+  productDetailsIconBox: {
+    width: ms(44),
+    height: ms(44),
+    borderRadius: RADIUS.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  productDetailsTextContent: {
+    flex: 1,
+  },
+  productDetailsTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(15),
+    marginBottom: 2,
+  },
+  productDetailsSubtitle: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
   },
 });
 

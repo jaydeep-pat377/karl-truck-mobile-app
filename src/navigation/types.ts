@@ -29,6 +29,7 @@ export interface OrdersFilterParams {
   plant_name?: string;
   date_filter?: DateFilterType;
   selected_date?: string; // ISO date string for calendar selection
+  is_favourite?: boolean;
   _timestamp?: number;
 }
 
@@ -194,10 +195,18 @@ export type ChatRoomScreenParams = {
   deliveryAddress?: string;
 };
 
+export type OrderProductDetailsScreenParams = {
+  orderId: string;
+  orderCode: string;
+  orderDate: string;
+  status?: string;
+  progressColor?: string;
+};
+
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
-  OrderDetail: { orderId: string; orderCode: string; orderDate: string; status?: string; progressColor?: string };
+  OrderDetail: { orderId: string; orderCode: string; orderDate: string; status?: string; progressColor?: string; sourceTab?: 'Orders' | 'Today' | 'Home' };
   TodayOrders: undefined;
   Tracking: { orderId: string };
   Weather: WeatherScreenParams;
@@ -209,6 +218,7 @@ export type RootStackParamList = {
   MapTracking: MapTrackingScreenParams;
   ChatRoom: ChatRoomScreenParams;
   Appointments: NavigatorScreenParams<AppointmentsStackParamList>;
+  OrderProductDetails: OrderProductDetailsScreenParams;
 };
 
 export type AuthStackScreenProps<T extends keyof AuthStackParamList> =

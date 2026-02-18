@@ -11,7 +11,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card, StatusBadge, WeatherEvaporationPill, Icon } from '../common';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
-import { ms } from '../../utils/responsive';
+import { ms, isSmallDevice, spacing } from '../../utils/responsive';
 import { getStatusColor, getProgressBarColor } from '../../utils/statusUtils';
 
 interface OrderCardProps {
@@ -165,15 +165,54 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               <Text
                 variant="captionSmall"
                 color="secondary"
+                numberOfLines={1}
+                ellipsizeMode="tail"
                 style={[styles.orderId, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
                 #{order.orderCode}
               </Text>
               <Text
                 variant="captionSmall"
+                numberOfLines={1}
+                ellipsizeMode="tail"
                 style={[styles.dateTime, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
                 {formatDate(order.scheduledDate)} • {order.scheduledTime}
               </Text>
             </View>
+            {evaporationRateValue !== null && evaporationRateValue !== undefined && (
+              <View style={[
+                styles.evaporationRatePill,
+                {
+                  backgroundColor: evaporationRateValue < 0.1
+                    ? colors.dashboard.statGreen
+                    : evaporationRateValue < 0.25
+                      ? colors.dashboard.statYellow
+                      : colors.dashboard.statRed,
+                }
+              ]}>
+                <Icon
+                  name="waves"
+                  size={ms(10)}
+                  color={evaporationRateValue < 0.1 || evaporationRateValue >= 0.25
+                    ? '#FFFFFF'
+                    : '#000000'}
+                />
+                <Text
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.8}
+                  style={[
+                    styles.evaporationRateText,
+                    {
+                      color: evaporationRateValue < 0.1 || evaporationRateValue >= 0.25
+                        ? '#FFFFFF'
+                        : '#000000',
+                    }
+                  ]}>
+                  Evap. Rt: {evaporationRateValue.toFixed(2)}
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.titleRow}>
@@ -203,6 +242,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 onPress={onWeatherPress}
                 isLoading={isWeatherLoading}
                 size="small"
+                showEvaporationRate={false}
               />
             )}
           </View>
@@ -385,22 +425,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: ms(2),
+    gap: ms(6),
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
     gap: ms(5),
-    flexWrap: 'wrap',
+    minWidth: 0,
+    overflow: 'hidden',
   },
   orderId: {
-    fontSize: ms(13),
+    fontSize: ms(11),
     fontFamily: fontFamily.semiBold,
+    flexShrink: 1,
   },
   dateTime: {
-    marginLeft: ms(2),
-    fontSize: 12,
+    fontSize: ms(10),
     fontFamily: fontFamily.medium,
+    flexShrink: 2,
+  },
+  evaporationRatePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: ms(5),
+    paddingVertical: ms(2),
+    borderRadius: ms(8),
+    flexShrink: 0,
+    gap: ms(3),
+  },
+  evaporationRateText: {
+    fontSize: ms(9),
+    fontFamily: fontFamily.semiBold,
   },
   ESTTitle: {
     fontSize: ms(11),

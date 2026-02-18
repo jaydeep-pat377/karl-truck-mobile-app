@@ -819,6 +819,7 @@ export const OrderListScreen: React.FC = () => {
   const plantNameFromRoute = route.params?.plant_name;
   const dateFilterFromRoute = route.params?.date_filter;
   const selectedDateFromRoute = route.params?.selected_date;
+  const isFavouriteFromRoute = route.params?.is_favourite;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
@@ -842,6 +843,9 @@ export const OrderListScreen: React.FC = () => {
     plant_code?: string;
     plant_name?: string;
   }>({});
+
+  // Favourite filter state
+  const [isFavouriteFilter, setIsFavouriteFilter] = useState<boolean>(false);
 
   useEffect(() => {
     const keyboardShowEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -905,6 +909,11 @@ export const OrderListScreen: React.FC = () => {
         });
       }
 
+      // Handle favourite filter
+      if (isFavouriteFromRoute !== undefined) {
+        setIsFavouriteFilter(isFavouriteFromRoute);
+      }
+
       // Apply date filter from route (from dashboard)
       if (dateFilterFromRoute) {
         setActiveFilter(dateFilterFromRoute);
@@ -918,7 +927,7 @@ export const OrderListScreen: React.FC = () => {
         }
       }
     }
-  }, [filterTimestamp, companyNameFromRoute, regionNameFromRoute, plantCodeFromRoute, plantNameFromRoute, dateFilterFromRoute, selectedDateFromRoute]);
+  }, [filterTimestamp, companyNameFromRoute, regionNameFromRoute, plantCodeFromRoute, plantNameFromRoute, dateFilterFromRoute, selectedDateFromRoute, isFavouriteFromRoute]);
 
   const filterBarAnim = useRef(new Animated.Value(0)).current;
   const dateFilterScrollRef = useRef<ScrollView>(null);
@@ -994,9 +1003,14 @@ export const OrderListScreen: React.FC = () => {
       params.plant_name = dashboardFilter.plant_name;
     }
 
+    // Add favourite filter
+    if (isFavouriteFilter) {
+      params.is_favourite = true;
+    }
+
     console.log('📋 Query params being sent to API:', params);
     return params;
-  }, [debouncedFilter, debouncedDate, appliedSearchQuery, appliedFilters.statuses, appliedFilters.sortBy, dashboardFilter]);
+  }, [debouncedFilter, debouncedDate, appliedSearchQuery, appliedFilters.statuses, appliedFilters.sortBy, dashboardFilter, isFavouriteFilter]);
 
   const {
     orders: apiOrders,
@@ -1254,6 +1268,7 @@ export const OrderListScreen: React.FC = () => {
       orderDate: order.scheduledDate,
       status: order.status,
       progressColor: progressColor,
+      sourceTab: 'Orders',
     });
   }, [navigation]);
 
@@ -1394,7 +1409,7 @@ export const OrderListScreen: React.FC = () => {
           <Icon name="arrow-left" size={iconSizes.lg} color={themeColors.text.primary} />
         </TouchableOpacity>
 
-        <Text variant="h2">Orders</Text>
+        <Text variant="h2">{isFavouriteFilter ? 'Saved Orders' : 'Orders'}</Text>
 
         <View style={styles.headerActions}>
           {!isLoading && (
@@ -1459,6 +1474,35 @@ export const OrderListScreen: React.FC = () => {
                   activeOpacity={0.7}
                 >
                   <Icon name="close-circle" size={ms(16)} color={colors.primary.main} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Saved Orders Filter Chip */}
+          {isFavouriteFilter && (
+            <View style={styles.dashboardFilterContainer}>
+              <View style={[styles.dashboardFilterChip, { backgroundColor: colors.warning.main + '15' }]}>
+                <Icon
+                  name="star"
+                  size={ms(14)}
+                  color={colors.warning.main}
+                />
+                <Text style={[styles.dashboardFilterText, { color: colors.warning.main }]} numberOfLines={1}>
+                  Saved Orders
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setIsFavouriteFilter(false);
+                    navigation.setParams({
+                      is_favourite: undefined,
+                      _timestamp: Date.now()
+                    });
+                  }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.7}
+                >
+                  <Icon name="close-circle" size={ms(16)} color={colors.warning.main} />
                 </TouchableOpacity>
               </View>
             </View>

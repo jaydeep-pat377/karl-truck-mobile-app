@@ -9,3 +9,5 @@ export { InformationSection } from './InformationSection';
 export type { InfoMessage, WeatherInfo, TodayStats } from './InformationSection';
 export { ProductionSummaryCard } from './ProductionSummaryCard';
 export type { RegionData, CompanyData, PlantData, PlantWeatherData, SummaryTabType } from './ProductionSummaryCard';
+export { AdvertisementCard } from './AdvertisementCard';
+export type { Advertisement } from './AdvertisementCard';

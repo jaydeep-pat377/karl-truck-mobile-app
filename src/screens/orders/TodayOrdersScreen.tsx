@@ -244,6 +244,7 @@ export const TodayOrdersScreen: React.FC = () => {
       orderDate: order.scheduledDate,
       status: order.status,
       progressColor: progressColor,
+      sourceTab: 'Today',
     });
   }, [navigation]);
 

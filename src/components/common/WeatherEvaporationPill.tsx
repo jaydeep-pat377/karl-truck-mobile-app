@@ -19,6 +19,7 @@ interface WeatherEvaporationPillProps {
   onPress?: () => void;
   isLoading?: boolean;
   size?: 'small' | 'medium';
+  showEvaporationRate?: boolean;
 }
 
 const EVAPORATION_THRESHOLDS = {
@@ -85,6 +86,7 @@ export const WeatherEvaporationPill: React.FC<WeatherEvaporationPillProps> = ({
   onPress,
   isLoading = false,
   size = 'small',
+  showEvaporationRate = true,
 }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -139,7 +141,7 @@ export const WeatherEvaporationPill: React.FC<WeatherEvaporationPillProps> = ({
                 numberOfLines={1}>
                 {formatTemperature(weather.temperature, weather.temperatureUnit)}
               </Text>
-              {evaporationRate !== null && evaporationRate !== undefined && (
+              {showEvaporationRate && evaporationRate !== null && evaporationRate !== undefined && (
                 <>
                   <View style={[styles.divider, { backgroundColor: riskColors.text + '40' }]} />
                   <Text

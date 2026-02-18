@@ -340,14 +340,14 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
   },
   tabBadge: {
-    paddingHorizontal: ms(6),
-    paddingVertical: ms(2),
-    borderRadius: ms(10),
-    minWidth: ms(20),
+    paddingHorizontal: ms(5),
+    paddingVertical: ms(1),
+    borderRadius: ms(8),
+    minWidth: ms(16),
     alignItems: 'center',
   },
   tabBadgeText: {
-    fontSize: ms(11),
+    fontSize: ms(9),
     fontFamily: fontFamily.bold,
   },
   summaryList: {

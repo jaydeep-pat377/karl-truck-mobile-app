@@ -216,4 +216,5 @@ export interface OrdersQueryParams {
   region_name?: string;
   plant_code?: string;
   plant_name?: string;
+  is_favourite?: boolean;
 }

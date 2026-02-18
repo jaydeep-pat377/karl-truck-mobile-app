@@ -8,6 +8,7 @@ import { OrderDetailsScreen } from '../screens/orders/OrderDetailsScreen';
 import { TodayOrdersScreen } from '../screens/orders/TodayOrdersScreen';
 import { TicketScreen } from '../screens/orders/TicketScreen';
 import { TicketDetailScreen } from '../screens/orders/TicketDetailScreen';
+import { OrderProductDetailsScreen } from '../screens/orders/OrderProductDetailsScreen';
 import { WeatherScreen, ProductDetailsScreen, ProductCodeScreen, EvaporationListScreen } from '../screens/weather';
 import { MapTrackingScreen } from '../screens/tracking/MapTrackingScreen';
 import { OrderTrackingScreen } from '../screens/tracking/OrderTrackingScreen';
@@ -119,6 +120,13 @@ export const RootNavigator: React.FC = () => {
           <Stack.Screen
             name="ChatRoom"
             component={ChatRoomScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="OrderProductDetails"
+            component={OrderProductDetailsScreen}
             options={{
               animation: 'slide_from_right',
             }}

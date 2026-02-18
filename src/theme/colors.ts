@@ -574,6 +574,7 @@ export const colors = {
       header: ['#458b00', '#5aa510', '#FFFFFF'],
       topBackground: ['#367000', '#458b00', '#5aa510', '#e8f5e0', '#F2F2F2'],
       topBackgroundLocations: [0, 0.2, 0.4, 0.7, 1],
+      orderDetails: ['#2E7D32', '#388E3C', '#43A047', '#4CAF50', '#F2F2F2'],
     },
     dark: {
       primary: ['#367000', '#458b00'],
@@ -584,6 +585,7 @@ export const colors = {
       header: ['#367000', '#2d5a00', '#262626'],
       topBackground: ['#367000', '#458b00', '#323232', '#262626', '#000000'],
       topBackgroundLocations: [0, 0.25, 0.5, 0.75, 1],
+      orderDetails: ['#1B5E20', '#2E7D32', '#388E3C', '#2D4A2E', '#1E1E1E'],
     },
   },
 };

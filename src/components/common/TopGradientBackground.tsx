@@ -219,11 +219,17 @@ export const TopGradientBackground: React.FC<TopGradientBackgroundProps> = memo(
   }, [isDark, customColors]);
 
   const gradientLocations = useMemo(() => {
-    if (isDark) {
+    // Match locations to the number of gradient colors
+    const colorCount = gradientColors.length;
+    if (colorCount === 5) {
+      return [0, 0.2, 0.4, 0.7, 1];
+    } else if (colorCount === 4) {
       return [0, 0.3, 0.7, 1];
+    } else if (colorCount === 3) {
+      return [0, 0.5, 1];
     }
     return [0, 0.2, 0.4, 0.7, 1];
-  }, [isDark]);
+  }, [gradientColors.length]);
 
   const containerStyle = useMemo((): ViewStyle => ({
     width: SCREEN_WIDTH,
