@@ -1,6 +1,8 @@
 export { Text } from './Text';
 export { Icon } from './Icon';
 export type { IconProps } from './Icon';
+export { ConcreteMixerIcon } from './ConcreteMixerIcon';
+export type { ConcreteMixerIconProps } from './ConcreteMixerIcon';
 export { default as EvaporationProgress } from './EvaporationProgress';
 export { Button } from './Button';
 export { Card } from './Card';

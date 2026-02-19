@@ -379,12 +379,6 @@ export const TodayOrdersScreen: React.FC = () => {
           </View>
         </View>
       )}
-
-      <View style={styles.ordersCountRow}>
-        <Text style={[styles.ordersCountText, { color: themeColors.text.secondary }]}>
-          {filteredOrders.length} out of {pagination?.total ?? filteredOrders.length} orders displaying
-        </Text>
-      </View>
     </View>
   );
 
@@ -500,7 +494,13 @@ export const TodayOrdersScreen: React.FC = () => {
           <TruckLoader size={120} message="Loading orders..." color={isDark ? 'light' : 'dark'} />
         </View>
       ) : (
-        <FlatList
+        <>
+          <View style={styles.staticOrdersCountRow}>
+            <Text style={[styles.ordersCountText, { color: themeColors.text.secondary }]}>
+              {filteredOrders.length} out of {pagination?.total ?? filteredOrders.length} orders displaying
+            </Text>
+          </View>
+          <FlatList
           data={filteredOrders}
           extraData={filteredOrders}
           renderItem={renderOrderCard}
@@ -537,7 +537,8 @@ export const TodayOrdersScreen: React.FC = () => {
             }
           }}
           onEndReachedThreshold={0.5}
-        />
+          />
+        </>
       )}
     </SafeAreaView>
   );
@@ -649,6 +650,12 @@ const styles = StyleSheet.create({
   ordersCountRow: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  staticOrdersCountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   ordersCountText: {
     fontSize: ms(12),

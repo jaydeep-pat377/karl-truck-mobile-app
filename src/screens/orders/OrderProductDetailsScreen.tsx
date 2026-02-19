@@ -12,6 +12,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, TopGradientBackground, TruckLoader, Icon } from '../../components/common';
 import { ScheduledLoadsBottomSheet } from '../../components/orders';
+import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, spacing } from '../../utils/responsive';
@@ -40,6 +41,17 @@ interface ProductCardItem {
   qr?: string;
 }
 
+interface AssociatedProduct {
+  order_product_id?: string;
+  product_id?: string;
+  item_code?: string;
+  description?: string;
+  is_mix?: boolean;
+  ordered_qty?: number;
+  delivered_qty?: number;
+  order_qty_unit?: string;
+}
+
 interface ScheduleDetailItem {
   schedule_id?: string;
   item_code?: string;
@@ -63,6 +75,7 @@ interface ScheduleDetailItem {
   job_wash_time?: number;
   truck_type_name?: string;
   start_time?: string;
+  associated_products?: AssociatedProduct[];
 }
 
 interface ScheduledLoadItem {
@@ -168,15 +181,33 @@ export const OrderProductDetailsScreen: React.FC = () => {
       job_wash_time: s.job_wash_time,
       truck_type_name: s.truck_type_name,
       start_time: s.start_time,
+      associated_products: s.associated_products?.map((ap: any) => ({
+        order_product_id: ap.order_product_id,
+        product_id: ap.product_id,
+        item_code: ap.item_code,
+        description: ap.description,
+        is_mix: ap.is_mix,
+        ordered_qty: ap.ordered_qty,
+        delivered_qty: ap.delivered_qty,
+        order_qty_unit: ap.order_qty_unit,
+      })) || [],
     })) || [];
     const scheduledLoads: ScheduledLoadItem[] = (orderDetails as any).scheduled_loads?.items?.map((l: any) => ({
       load_number: l.load_number,
       ticket_code: l.ticket_code,
-      qty: l.qty,
-      status: l.status,
+      scheduled_qty: l.scheduled_qty,
+      actual_qty: l.actual_qty,
+      variance: l.variance,
       truck_code: l.truck_code,
       scheduled_time: l.scheduled_time,
       actual_time: l.actual_time,
+      scheduled_on_job_time: l.scheduled_on_job_time,
+      scheduled_fin_pour_time: l.scheduled_fin_pour_time,
+      scheduled_at_plant_time: l.scheduled_at_plant_time,
+      actual_on_job_time: l.actual_on_job_time,
+      actual_unload_time: l.actual_unload_time,
+      actual_wash_time: l.actual_wash_time,
+      actual_at_plant_time: l.actual_at_plant_time,
     })) || [];
 
     return {
@@ -243,12 +274,18 @@ export const OrderProductDetailsScreen: React.FC = () => {
         />
         <SafeAreaView edges={['top']} style={styles.header}>
           <View style={styles.headerTopRow}>
-            <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
-              <Icon name="arrow-left" size={22} color={isDark ? colors.common.white : colors.grey[80]} />
+            <TouchableOpacity
+              style={[styles.headerBackBtn, { backgroundColor: colors.common.white + '15' }]}
+              onPress={handleBack}
+              activeOpacity={0.7}
+            >
+              <Icon name="arrow-left" size={22} color={colors.common.white} />
             </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: isDark ? colors.common.white : colors.grey[80] }]}>
-              Product & Schedule Details
-            </Text>
+            <View style={styles.headerTitleContainer}>
+              <Text style={[styles.headerTitle, { color: colors.common.white }]}>
+                Product & Schedule
+              </Text>
+            </View>
             <View style={styles.headerPlaceholder} />
           </View>
         </SafeAreaView>
@@ -278,12 +315,18 @@ export const OrderProductDetailsScreen: React.FC = () => {
         />
         <SafeAreaView edges={['top']} style={styles.header}>
           <View style={styles.headerTopRow}>
-            <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
-              <Icon name="arrow-left" size={22} color={isDark ? colors.common.white : colors.grey[80]} />
+            <TouchableOpacity
+              style={[styles.headerBackBtn, { backgroundColor: colors.common.white + '15' }]}
+              onPress={handleBack}
+              activeOpacity={0.7}
+            >
+              <Icon name="arrow-left" size={22} color={colors.common.white} />
             </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: isDark ? colors.common.white : colors.grey[80] }]}>
-              Product & Schedule Details
-            </Text>
+            <View style={styles.headerTitleContainer}>
+              <Text style={[styles.headerTitle, { color: colors.common.white }]}>
+                Product & Schedule
+              </Text>
+            </View>
             <View style={styles.headerPlaceholder} />
           </View>
         </SafeAreaView>
@@ -331,19 +374,34 @@ export const OrderProductDetailsScreen: React.FC = () => {
 
       <SafeAreaView edges={['top']} style={styles.header}>
         <View style={styles.headerTopRow}>
-          <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
-            <Icon name="arrow-left" size={22} color={isDark ? colors.common.white : colors.grey[80]} />
+          <TouchableOpacity
+            style={[styles.headerBackBtn, { backgroundColor: colors.common.white + '15' }]}
+            onPress={handleBack}
+            activeOpacity={0.7}
+          >
+            <Icon name="arrow-left" size={22} color={colors.common.white} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? colors.common.white : colors.grey[80] }]}>
-            Product & Schedule Details
-          </Text>
-          <TouchableOpacity style={styles.headerActionBtn} onPress={() => refetch()} activeOpacity={0.7}>
-            <Icon name="refresh" size={18} color={isDark ? colors.common.white : colors.grey[80]} />
+
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { color: colors.common.white }]}>
+              Product & Schedule
+            </Text>
+            <View style={[styles.headerOrderBadge, { backgroundColor: colors.common.white + '20' }]}>
+              <Icon name="file-document-outline" size={12} color={colors.common.white} />
+              <Text style={[styles.headerOrderText, { color: colors.common.white }]}>
+                #{orderCode}
+              </Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.headerActionBtn, { backgroundColor: colors.common.white + '15' }]}
+            onPress={() => refetch()}
+            activeOpacity={0.7}
+          >
+            <Icon name="refresh" size={18} color={colors.common.white} />
           </TouchableOpacity>
         </View>
-        <Text style={[styles.headerSubtitle, { color: isDark ? colors.common.white : colors.grey[80] }]}>
-          Order #{orderCode}
-        </Text>
       </SafeAreaView>
 
       <ScrollView
@@ -408,7 +466,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
             <View style={[styles.infoGrid, { marginTop: GRID.xs }]}>
               <View style={[styles.infoItem, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
                 <View style={styles.infoItemHeader}>
-                  <Icon name="truck-delivery" size={14} color={colors.success.main} />
+                  <ConcreteTruck width={ms(18)} height={ms(12)} color={colors.success.main} />
                   <Text style={[styles.infoItemLabel, { color: themeColors.text.hint }]}>Delivered Qty</Text>
                 </View>
                 <Text style={[styles.infoItemValue, { color: colors.success.main }]}>
@@ -421,7 +479,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
 
               <View style={[styles.infoItem, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
                 <View style={styles.infoItemHeader}>
-                  <Icon name="truck-delivery" size={14} color={colors.info.main} />
+                  <ConcreteTruck width={ms(18)} height={ms(12)} color={colors.info.main} />
                   <Text style={[styles.infoItemLabel, { color: themeColors.text.hint }]}>Loads</Text>
                 </View>
                 <Text style={[styles.infoItemValue, { color: colors.info.main }]}>
@@ -533,10 +591,6 @@ export const OrderProductDetailsScreen: React.FC = () => {
         {/* Product SKU Details Card */}
         {product && (
           <View style={styles.skuSection}>
-            <Text style={[styles.skuSectionTitle, { color: themeColors.text.primary }]}>
-              SKU Details
-            </Text>
-
             <View style={[
               styles.skuMainCard,
               {
@@ -544,8 +598,16 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 borderColor: isDark ? themeColors.border : colors.grey[10],
               }
             ]}>
-              {/* Header with Mix Badge */}
-              <View style={[styles.skuHeader, { backgroundColor: isDark ? colors.primary.main + '20' : colors.primary.main + '08', justifyContent: 'flex-start' }]}>
+              {/* Card Header with SKU Details Title */}
+              <View style={styles.skuCardHeader}>
+                <View style={styles.cardTitleRow}>
+                  <View style={[styles.cardIconContainer, { backgroundColor: colors.secondary.main }]}>
+                    <Icon name="barcode" size={16} color={colors.common.white} />
+                  </View>
+                  <Text style={[styles.cardTitle, { color: themeColors.text.primary }]}>
+                    SKU Details
+                  </Text>
+                </View>
                 <View style={[
                   styles.skuTypeBadge,
                   { backgroundColor: product.isMix ? colors.success.main : colors.info.main }
@@ -610,7 +672,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                     </View>
 
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
-                      <Icon name="truck-fast" size={ms(18)} color={colors.success.main} />
+                      <ConcreteTruck width={ms(22)} height={ms(16)} color={colors.success.main} />
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                         {schedule.time_to_job ? `${schedule.time_to_job}m` : '-'}
                       </Text>
@@ -621,7 +683,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                   {/* Row 3 - Travel & Times */}
                   <View style={styles.skuScheduleRow}>
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
-                      <Icon name="download" size={ms(18)} color={colors.secondary.main} />
+                      <ConcreteTruck width={ms(22)} height={ms(16)} color={colors.secondary.main} />
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                         {schedule.unload_time ? `${schedule.unload_time}m` : '-'}
                       </Text>
@@ -637,7 +699,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                     </View>
 
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
-                      <Icon name="truck-delivery" size={ms(18)} color={colors.warning.main} />
+                      <ConcreteTruck width={ms(22)} height={ms(16)} color={colors.warning.main} />
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                         {schedule.time_to_plant ? `${schedule.time_to_plant}m` : '-'}
                       </Text>
@@ -659,6 +721,59 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 </View>
               )}
 
+              {/* Associated Products Section */}
+              {schedule?.associated_products && schedule.associated_products.length > 0 && (
+                <View style={[styles.associatedProductsSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
+                  <View style={styles.associatedProductsHeader}>
+                    <View style={[styles.associatedProductsIconBox, { backgroundColor: isDark ? colors.info.main + '25' : colors.info.main + '12' }]}>
+                      <Icon name="link-variant" size={ms(16)} color={colors.info.main} />
+                    </View>
+                    <Text style={[styles.associatedProductsTitle, { color: themeColors.text.primary }]}>
+                      Associated Products
+                    </Text>
+                    <View style={[styles.associatedProductsCountBadge, { backgroundColor: colors.info.main }]}>
+                      <Text style={styles.associatedProductsCountText}>{schedule.associated_products.length}</Text>
+                    </View>
+                  </View>
+                  {schedule.associated_products.map((ap, index) => (
+                    <View
+                      key={ap.order_product_id || index}
+                      style={[
+                        styles.associatedProductItem,
+                        {
+                          backgroundColor: isDark ? themeColors.cardElevated : colors.common.white,
+                          borderColor: isDark ? themeColors.border : colors.grey[10],
+                        }
+                      ]}
+                    >
+                      <View style={styles.associatedProductRow}>
+                        <View style={[styles.associatedProductIcon, { backgroundColor: isDark ? colors.primary.main + '20' : colors.primary.main + '10' }]}>
+                          <Icon name="package-variant-closed" size={ms(18)} color={colors.primary.main} />
+                        </View>
+                        <View style={styles.associatedProductInfo}>
+                          <Text style={[styles.associatedProductCode, { color: themeColors.text.primary }]} numberOfLines={1}>
+                            {ap.item_code}
+                          </Text>
+                          {ap.description && (
+                            <Text style={[styles.associatedProductDesc, { color: themeColors.text.secondary }]} numberOfLines={2}>
+                              {ap.description}
+                            </Text>
+                          )}
+                        </View>
+                        <View style={[styles.associatedProductQtyBadge, { backgroundColor: isDark ? colors.success.main + '20' : colors.success.main + '12' }]}>
+                          <Text style={[styles.associatedProductQtyValue, { color: colors.success.main }]}>
+                            {ap.ordered_qty}
+                          </Text>
+                          <Text style={[styles.associatedProductQtyUnit, { color: colors.success.main }]}>
+                            {ap.order_qty_unit || 'qty'}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+
               {/* Scheduled Loads Button */}
               {jobData.scheduledLoads && jobData.scheduledLoads.length > 0 && (
                 <View style={[styles.skuLoadsSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
@@ -669,7 +784,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                   >
                     <View style={styles.skuLoadsHeaderLeft}>
                       <View style={[styles.skuLoadsIconBox, { backgroundColor: isDark ? colors.secondary.main + '25' : colors.secondary.main + '15' }]}>
-                        <Icon name="format-list-numbered" size={ms(18)} color={colors.secondary.main} />
+                        <ConcreteTruck width={ms(22)} height={ms(16)} color={colors.secondary.main} />
                       </View>
                       <View style={styles.skuLoadsButtonText}>
                         <Text style={[styles.skuLoadsTitle, { color: themeColors.text.primary }]}>
@@ -716,31 +831,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingTop: spacing.sm,
   },
   headerBackBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: ms(12),
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+  },
   headerTitle: {
-    fontSize: ms(18),
+    fontSize: ms(17),
     fontFamily: fontFamily.bold,
   },
-  headerSubtitle: {
-    fontSize: ms(13),
-    fontFamily: fontFamily.medium,
-    textAlign: 'center',
+  headerOrderBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(4),
+    borderRadius: ms(12),
     marginTop: spacing.xs,
+    gap: ms(4),
+  },
+  headerOrderText: {
+    fontSize: ms(12),
+    fontFamily: fontFamily.semiBold,
   },
   headerPlaceholder: {
-    width: 40,
+    width: 44,
   },
   headerActionBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: ms(12),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -922,15 +1050,25 @@ const styles = StyleSheet.create({
   skuSection: {
     marginBottom: spacing.md,
   },
-  skuSectionTitle: {
-    fontSize: ms(14),
-    fontFamily: fontFamily.semiBold,
-    marginBottom: spacing.sm,
-  },
   skuMainCard: {
     borderRadius: ms(12),
     borderWidth: 1,
     overflow: 'hidden',
+  },
+  skuCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: GRID.md,
+  },
+  skuProductInfo: {
+    marginHorizontal: GRID.md,
+    marginBottom: GRID.md,
+    padding: GRID.md,
+    borderRadius: ms(10),
+  },
+  skuProductInfoContent: {
+    flex: 1,
   },
   skuHeader: {
     flexDirection: 'row',
@@ -1032,6 +1170,96 @@ const styles = StyleSheet.create({
   skuInfoChipText: {
     fontSize: ms(11),
     fontFamily: fontFamily.medium,
+  },
+  associatedProductsSection: {
+    padding: GRID.md,
+    borderTopWidth: 1,
+  },
+  associatedProductsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: GRID.sm + 4,
+  },
+  associatedProductsIconBox: {
+    width: ms(28),
+    height: ms(28),
+    borderRadius: ms(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: GRID.sm,
+  },
+  associatedProductsTitle: {
+    fontSize: ms(14),
+    fontFamily: fontFamily.semiBold,
+    flex: 1,
+  },
+  associatedProductsCountBadge: {
+    minWidth: ms(22),
+    height: ms(22),
+    borderRadius: ms(11),
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: ms(6),
+  },
+  associatedProductsCountText: {
+    color: colors.common.white,
+    fontSize: ms(11),
+    fontFamily: fontFamily.bold,
+  },
+  associatedProductItem: {
+    borderRadius: ms(12),
+    padding: GRID.sm + 4,
+    marginBottom: GRID.sm,
+    borderWidth: 1,
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  associatedProductRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  associatedProductIcon: {
+    width: ms(40),
+    height: ms(40),
+    borderRadius: ms(10),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: GRID.sm + 2,
+  },
+  associatedProductInfo: {
+    flex: 1,
+    marginRight: GRID.sm,
+  },
+  associatedProductCode: {
+    fontSize: ms(13),
+    fontFamily: fontFamily.semiBold,
+    marginBottom: 2,
+  },
+  associatedProductDesc: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.regular,
+    lineHeight: ms(15),
+  },
+  associatedProductQtyBadge: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(6),
+    borderRadius: ms(10),
+    minWidth: ms(50),
+  },
+  associatedProductQtyValue: {
+    fontSize: ms(15),
+    fontFamily: fontFamily.bold,
+  },
+  associatedProductQtyUnit: {
+    fontSize: ms(9),
+    fontFamily: fontFamily.medium,
+    textTransform: 'uppercase',
+    marginTop: 1,
   },
   skuLoadsSection: {
     borderTopWidth: 1,

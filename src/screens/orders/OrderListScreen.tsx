@@ -1456,7 +1456,11 @@ export const OrderListScreen: React.FC = () => {
                   color={colors.primary.main}
                 />
                 <Text style={[styles.dashboardFilterText, { color: colors.primary.main }]} numberOfLines={1}>
-                  {dashboardFilter.company_name || dashboardFilter.region_name || dashboardFilter.plant_name || dashboardFilter.plant_code}
+                  {dashboardFilter.company_name
+                    ? `${dashboardFilter.company_name} (Company)`
+                    : dashboardFilter.region_name
+                    ? `${dashboardFilter.region_name} (Region)`
+                    : `${dashboardFilter.plant_name || dashboardFilter.plant_code} (Plant)`}
                 </Text>
                 <TouchableOpacity
                   onPress={() => {

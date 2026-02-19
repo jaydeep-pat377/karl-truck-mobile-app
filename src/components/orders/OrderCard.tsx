@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card, StatusBadge, WeatherEvaporationPill, Icon } from '../common';
+import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, isSmallDevice, spacing } from '../../utils/responsive';
@@ -161,7 +162,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         <View style={styles.cardContent}>
           <View style={styles.headerRow}>
             <View style={styles.headerLeft}>
-              <StatusBadge status={order.status} size="small" customColor={progressBarColor} />
+              <StatusBadge status={order.status} size="xsmall" customColor={progressBarColor} />
               <Text
                 variant="captionSmall"
                 color="secondary"
@@ -292,11 +293,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
               <View style={styles.metricsRow}>
                 <View style={styles.metricItem}>
-                  <Icon
-                    name="truck-outline"
-                    size={ms(12)}
-                    color={themeColors.text.secondary}
-                  />
+                  <ConcreteTruck width={ms(16)} height={ms(12)} color={themeColors.text.secondary} />
                   <Text variant="captionSmall" color="secondary">
                     {order.completedLoads || 0}/{order.totalLoads || 0}
                   </Text>

@@ -9,6 +9,7 @@ export const truck5 = require('./truck_light_blue.png');
 export const truck6 = require('./truck_red.png');
 export const truck7 = require('./truck_gray.png');
 export const truck8 = require('./truck_dark_green.png');
+export const MixtureTruck = require('./concreteMixerTruckIcon.jpg');
 
 export const truckImages = [
   truck,
@@ -20,6 +21,7 @@ export const truckImages = [
   truck6,
   truck7,
   truck8,
+  MixtureTruck
 ];
 
 export const truckImagesByStatus: Record<string, any> = {
@@ -52,4 +54,5 @@ export default {
   truck8,
   truckImages,
   truckImagesByStatus,
+  MixtureTruck
 };

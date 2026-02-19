@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, BottomSheet } from '../common';
+import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { ms, spacing } from '../../utils/responsive';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
@@ -150,7 +151,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                   {/* Truck */}
                   {load.truck_code && (
                     <View style={[styles.loadTruckTag, { backgroundColor: isDark ? colors.info.main + '20' : colors.info.main + '12' }]}>
-                      <Icon name="truck" size={ms(10)} color={colors.info.main} />
+                      <ConcreteTruck width={ms(16)} height={ms(12)} color={colors.info.main} />
                       <Text style={[styles.loadTruckText, { color: colors.info.main }]} numberOfLines={1}>{load.truck_code}</Text>
                     </View>
                   )}

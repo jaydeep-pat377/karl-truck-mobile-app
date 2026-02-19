@@ -9,7 +9,7 @@ import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms } from '../../utils/responsive';
 
-type BadgeSize = 'small' | 'medium' | 'large';
+type BadgeSize = 'xsmall' | 'small' | 'medium' | 'large';
 
 interface StatusBadgeProps {
   status: OrderStatus | TruckStatus | string;
@@ -180,6 +180,13 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   const backgroundColor = hexToRgba(baseColor, colorConfig.bgOpacity);
 
   const sizeConfig = {
+    xsmall: {
+      paddingHorizontal: ms(5),
+      paddingVertical: ms(1),
+      borderRadius: ms(4),
+      fontSize: ms(8),
+      letterSpacing: 0.2,
+    },
     small: {
       paddingHorizontal: ms(6),
       paddingVertical: ms(0),
@@ -205,7 +212,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   const config = sizeConfig[size];
   const iconName = statusIcons[status] || 'help-circle-outline';
-  const iconSize = size === 'small' ? ms(16) : size === 'medium' ? ms(18) : ms(20);
+  const iconSize = size === 'xsmall' ? ms(10) : size === 'small' ? ms(16) : size === 'medium' ? ms(18) : ms(20);
 
   return (
     <View

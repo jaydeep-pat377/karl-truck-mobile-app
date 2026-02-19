@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Path, Defs, LinearGradient as SvgGradient, Stop, G, Text as SvgText } from 'react-native-svg';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, TopGradientBackground, TruckLoader, Icon, AlertModal } from '../../components/common';
@@ -1445,9 +1446,18 @@ export const OrderDetailsScreen: React.FC = () => {
   const route = useRoute<OrderDetailsRouteProp>();
   const queryClient = useQueryClient();
   const { isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const themeColors = isDark ? colors.dark : colors.light;
   const { alertState, hideAlert, showError, showInfo } = useAlert();
   const [showLoadsSheet, setShowLoadsSheet] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Animated header background opacity - becomes visible as user scrolls
+  const headerBackgroundOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   const { orderId, orderCode, orderDate, status: passedStatus, progressColor, sourceTab } = route.params;
 
@@ -1830,8 +1840,6 @@ export const OrderDetailsScreen: React.FC = () => {
   const menuItems = [
     { id: '1', icon: 'share-variant', label: 'Share Order', onPress: handleShare },
     { id: '2', icon: 'crosshairs-gps', label: 'Track Order', onPress: handleTrackOrder },
-    { id: '3', icon: 'file-document-outline', label: 'Download Invoice', onPress: handleDownloadInvoice },
-    { id: '4', icon: 'history', label: 'Order History', onPress: handleViewOrderHistory },
   ];
 
   const formatScheduleDate = (dateStr: string, timeStr: string) => {
@@ -1969,11 +1977,50 @@ export const OrderDetailsScreen: React.FC = () => {
         }
       />
 
-      <ScrollView
+      {/* Fixed Header */}
+      <View style={[styles.fixedHeader, { paddingTop: insets.top }]}>
+        <Animated.View
+          style={[
+            styles.fixedHeaderBackground,
+            {
+              backgroundColor: isDark ? '#1B5E20' : '#2E7D32',
+              opacity: headerBackgroundOpacity
+            }
+          ]}
+        />
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
+            <Icon name="arrow-left" size={22} color={colors.common.white} />
+          </TouchableOpacity>
+
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={handleToggleFavorite}>
+              <Icon
+                name={isFavorite ? 'star' : 'star-outline'}
+                size={18}
+                color={isFavorite ? colors.warning.main : colors.common.white}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={() => refetch()}>
+              <Icon name="refresh" size={18} color={colors.common.white} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={handleMenuToggle}>
+              <Icon name="dots-vertical" size={18} color={colors.common.white} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      <Animated.ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + ms(56) }]}
         showsVerticalScrollIndicator={false}
         bounces={true}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -1983,30 +2030,8 @@ export const OrderDetailsScreen: React.FC = () => {
             progressBackgroundColor={isDark ? themeColors.cardElevated : colors.common.white}
           />
         }>
-        <SafeAreaView edges={['top']} style={styles.header}>
+        <View style={styles.header}>
           <View style={styles.headerSafeArea}>
-            <View style={styles.headerTopRow}>
-              <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
-                <Icon name="arrow-left" size={22} color={isDark ? colors.common.white : colors.grey[80]} />
-              </TouchableOpacity>
-
-              <View style={styles.headerActions}>
-                <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={handleToggleFavorite}>
-                  <Icon
-                    name={isFavorite ? 'star' : 'star-outline'}
-                    size={18}
-                    color={isFavorite ? colors.warning.main : (isDark ? colors.common.white : colors.grey[80])}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={() => refetch()}>
-                  <Icon name="refresh" size={18} color={isDark ? colors.common.white : colors.grey[80]} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={handleMenuToggle}>
-                  <Icon name="dots-vertical" size={18} color={isDark ? colors.common.white : colors.grey[80]} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
             <Text style={[styles.headerSiteName, { color: isDark ? colors.common.white : colors.grey[80] }]}>{jobData.siteName}</Text>
 
             <View style={styles.headerChipsRow}>
@@ -2038,11 +2063,10 @@ export const OrderDetailsScreen: React.FC = () => {
               </Text>
             </View>
           </View>
-        </SafeAreaView>
+        </View>
 
         <View style={styles.contentContainer}>
-          <AnimatedPress>
-            <View style={[styles.metricsCard, { backgroundColor: themeColors.card }, SHADOWS.md]}>
+          <View style={[styles.metricsCard, { backgroundColor: themeColors.card }, SHADOWS.md]}>
 
               <View style={styles.headerStatusContainer}>
                 <View style={[styles.headerStatusBadge, { backgroundColor: statusColor + '20' }]}>
@@ -2090,8 +2114,7 @@ export const OrderDetailsScreen: React.FC = () => {
                 </Text>
                 <Icon name="information-outline" size={14} color={themeColors.text.hint} />
               </View>
-            </View>
-          </AnimatedPress>
+          </View>
 
           <StatusPipeline statuses={jobData.statusPills} isDark={isDark} />
 
@@ -2173,7 +2196,7 @@ export const OrderDetailsScreen: React.FC = () => {
           <View style={{ height: ms(100) }} />
 
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       <Modal
         visible={menuVisible}
@@ -2300,6 +2323,18 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     fontSize: ms(14),
     color: colors.common.white,
+  },
+  fixedHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingHorizontal: GRID.md,
+    paddingBottom: GRID.sm,
+  },
+  fixedHeaderBackground: {
+    ...StyleSheet.absoluteFillObject,
   },
   header: {
     paddingBottom: GRID.lg,

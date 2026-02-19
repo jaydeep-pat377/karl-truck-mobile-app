@@ -17,6 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, TruckLoader, AlertModal } from '../../components/common';
+import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, vs } from '../../utils/responsive';
@@ -923,7 +924,7 @@ export const TicketDetailScreen: React.FC = () => {
                 </View>
               )}
               <View style={styles.truckIconContainer}>
-                <Icon name="truck-delivery" size={ms(44)} color={colors.headerOverlay.textBrightest} />
+                <ConcreteTruck width={ms(50)} height={ms(36)} color={colors.headerOverlay.textBrightest} />
               </View>
             </View>
           </View>

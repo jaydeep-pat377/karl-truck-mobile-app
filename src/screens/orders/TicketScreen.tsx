@@ -17,6 +17,7 @@ import { useNavigation, useRoute, RouteProp, NavigationProp } from '@react-navig
 import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, TruckLoader, ListFooterLoader, Icon } from '../../components/common';
+import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { spacing, ms } from '../../utils/responsive';
@@ -284,7 +285,7 @@ const TruckVisual: React.FC<TruckVisualProps> = ({ isDark }) => {
         },
       ]}>
       <View style={[styles.truckAccentLine, { backgroundColor: iconColor }]} />
-      <Icon name="truck-delivery" size={ms(24)} color={iconColor} />
+      <ConcreteTruck width={ms(28)} height={ms(20)} color={iconColor} />
     </View>
   );
 };
@@ -378,6 +379,7 @@ interface OrderHeaderProps {
   orderDate: string;
   deliveryAddress: string;
   totalTickets: number;
+  totalLoads: number;
   totalDeliveredQty: number;
   orderedQty: number;
   progressDisplay: string;
@@ -388,6 +390,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
   orderDate,
   deliveryAddress,
   totalTickets,
+  totalLoads,
   totalDeliveredQty,
   orderedQty,
   progressDisplay,
@@ -445,6 +448,15 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
               {deliveryAddress}
             </Text>
           </View>
+          <View style={styles.loadsRow}>
+            <ConcreteTruck width={ms(18)} height={ms(12)} color={colors.success.main} />
+            <Text style={[styles.loadsLabel, { color: themeColors.text.hint }]}>
+              Total Loads:
+            </Text>
+            <Text style={[styles.loadsValue, { color: colors.success.main }]}>
+              {totalLoads}
+            </Text>
+          </View>
         </View>
 
         <View
@@ -457,7 +469,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
             {progressData.ticketCount}
           </Text>
           <Text style={[styles.ticketCountLabel, { color: accentColorLight }]}>
-            Loads
+            Tickets
           </Text>
         </View>
       </View>
@@ -967,6 +979,7 @@ export const TicketScreen: React.FC = () => {
     totalDeliveredQty,
     progressDisplay,
     totalTickets,
+    totalLoads,
     isLoading,
     isRefetching,
     refetch,
@@ -1089,6 +1102,7 @@ export const TicketScreen: React.FC = () => {
         orderDate={displayDate}
         deliveryAddress={deliveryAddress}
         totalTickets={totalTickets}
+        totalLoads={totalLoads}
         totalDeliveredQty={totalDeliveredQty}
         orderedQty={orderedQty}
         progressDisplay={progressDisplay}
@@ -1104,6 +1118,7 @@ export const TicketScreen: React.FC = () => {
     displayDate,
     deliveryAddress,
     totalTickets,
+    totalLoads,
     totalDeliveredQty,
     orderedQty,
     progressDisplay,
@@ -1146,12 +1161,6 @@ export const TicketScreen: React.FC = () => {
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={[styles.headerBtn, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
-          onPress={handleRefresh}
-          activeOpacity={0.7}>
-          <Icon name="refresh" size={ms(18)} color={colors.primary.main} />
-        </TouchableOpacity>
       </View>
 
       {!isLoading && (
@@ -1254,6 +1263,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerTruckContainer: {
+    width: ms(40),
+    height: ms(32),
+    borderRadius: ms(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
@@ -1319,6 +1335,20 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: ms(12),
     flex: 1,
+  },
+  loadsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(4),
+    marginTop: ms(4),
+  },
+  loadsLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
+  },
+  loadsValue: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(12),
   },
   ticketCountBadge: {
     alignItems: 'center',
