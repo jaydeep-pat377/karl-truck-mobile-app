@@ -21,6 +21,8 @@ export type OrderStatusFilter =
 
 export type DateFilterType = 'today' | 'yesterday' | 'tomorrow' | 'nextWeek' | 'lastWeek' | 'calendar';
 
+export type OrderTabFilter = 'all' | 'saved' | 'scheduled' | 'active' | 'completed' | 'cancelled' | 'requested';
+
 export interface OrdersFilterParams {
   statusFilter?: OrderStatusFilter;
   company_name?: string;
@@ -30,12 +32,13 @@ export interface OrdersFilterParams {
   date_filter?: DateFilterType;
   selected_date?: string; // ISO date string for calendar selection
   is_favourite?: boolean;
+  tab?: OrderTabFilter; // Tab filter for order status tabs
   _timestamp?: number;
 }
 
 export type MainTabParamList = {
   Home: undefined;
-  Orders: OrdersFilterParams | undefined;
+  Orders: (NavigatorScreenParams<OrdersStackParamList> & OrdersFilterParams) | OrdersFilterParams | undefined;
   Today: undefined;
   Notifications: undefined;
   Settings: undefined;
@@ -48,9 +51,15 @@ export type ChatStackParamList = {
 };
 
 export type OrdersStackParamList = {
-  OrderList: undefined;
-  OrderDetail: { orderId: string };
-  Tracking: { orderId: string };
+  OrderList: OrdersFilterParams | undefined;
+  OrderDetailInTab: {
+    orderId: string;
+    orderCode: string;
+    orderDate: string;
+    status?: string;
+    progressColor?: string;
+    sourceTab?: 'Orders' | 'Today' | 'Home';
+  };
 };
 
 export type SettingsStackParamList = {

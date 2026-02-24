@@ -3,8 +3,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
 import { MainTabParamList } from './types';
 import { DashboardScreen } from '../screens/home';
-import { OrderListScreen } from '../screens/orders/OrderListScreen';
-import { TodayOrdersScreen } from '../screens/orders/TodayOrdersScreen';
+import { OrdersNavigator } from './OrdersNavigator';
+// import { TodayOrdersScreen } from '../screens/orders/TodayOrdersScreen'; // Temporarily hidden
 import { NotificationScreen } from '../screens/notifications/NotificationScreen';
 import { SettingsNavigator } from './SettingsNavigator';
 import { CustomTabBar } from '../components/navigation';
@@ -23,12 +23,20 @@ export const MainNavigator: React.FC = () => {
       initialRouteName="Home"
     >
       <Tab.Screen
+        name="Home"
+        component={DashboardScreen}
+        options={{
+          tabBarLabel: t('navigation.home'),
+        }}
+      />
+      <Tab.Screen
         name="Orders"
-        component={OrderListScreen}
+        component={OrdersNavigator}
         options={{
           tabBarLabel: t('navigation.orders'),
         }}
       />
+      {/* Temporarily hidden
       <Tab.Screen
         name="Today"
         component={TodayOrdersScreen}
@@ -36,13 +44,7 @@ export const MainNavigator: React.FC = () => {
           tabBarLabel: t('navigation.today'),
         }}
       />
-      <Tab.Screen
-        name="Home"
-        component={DashboardScreen}
-        options={{
-          tabBarLabel: t('navigation.home'),
-        }}
-      />
+      */}
       <Tab.Screen
         name="Notifications"
         component={NotificationScreen}

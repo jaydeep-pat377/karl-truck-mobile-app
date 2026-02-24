@@ -50,6 +50,28 @@ interface AssociatedProduct {
   ordered_qty?: number;
   delivered_qty?: number;
   order_qty_unit?: string;
+  slump?: string | null;
+  schedule_number?: string | null;
+}
+
+interface PrimaryProduct {
+  item_code?: string;
+  description?: string;
+  quantity?: number;
+  slump?: string;
+  schedule_number?: string;
+  start_time?: string;
+}
+
+interface CombinedProductItem {
+  itemCode: string;
+  description: string;
+  quantity: number;
+  quantityUnit?: string;
+  slump: string;
+  scheduleNumber: string;
+  startTime?: string;
+  isPrimary: boolean;
 }
 
 interface ScheduleDetailItem {
@@ -135,7 +157,9 @@ export const OrderProductDetailsScreen: React.FC = () => {
         plantAddress1: '',
         plantAddress2: '',
         scheduleRate: 0,
+        orderedVolume: 0,
         deliveredVolume: 0,
+        slump: '',
         scheduledDelvQty: 0,
         pouredPercent: 0,
         numberOfLoads: 0,
@@ -143,6 +167,22 @@ export const OrderProductDetailsScreen: React.FC = () => {
         avgWaitingMinutes: 0,
         avgPouringMinutes: 0,
         avgWashoutMinutes: 0,
+        spacingMinutes: 0,
+        scheduledRate: 0,
+        actualSpacingMinutes: 0,
+        customerName: '',
+        projectName: '',
+        weatherData: null as {
+          temperature_fahrenheit?: number | null;
+          humidity?: number | null;
+          wind_speed_mph?: number | null;
+          wind_direction?: string | null;
+          evaporation_rate?: number | null;
+          evaporation_level?: string | null;
+          weather_condition?: string | null;
+          weather_description?: string | null;
+        } | null,
+        combinedProducts: [] as CombinedProductItem[],
       };
     }
 
@@ -225,7 +265,9 @@ export const OrderProductDetailsScreen: React.FC = () => {
       plantAddress1: orderDetails.plant_details?.address1 || '',
       plantAddress2: orderDetails.plant_details?.address2 || '',
       scheduleRate: orderDetails.graphs?.pour_speed?.schedule_rate || 0,
+      orderedVolume: orderDetails.ordered_qty || 0,
       deliveredVolume: orderDetails.delivered_qty || 0,
+      slump: (orderDetails as any).product_schedule_details?.[0]?.slump || '',
       scheduledDelvQty: (orderDetails as any).product_schedule_details?.[0]?.schedule_delv_qty || 0,
       pouredPercent: orderDetails.ordered_qty
         ? Math.round(((orderDetails.delivered_qty ?? 0) / orderDetails.ordered_qty) * 100)
@@ -235,6 +277,49 @@ export const OrderProductDetailsScreen: React.FC = () => {
       avgWaitingMinutes: orderDetails.graphs?.trucks_on_job?.averages?.avg_waiting_minutes || 0,
       avgPouringMinutes: orderDetails.graphs?.trucks_on_job?.averages?.avg_pouring_minutes || 0,
       avgWashoutMinutes: orderDetails.graphs?.trucks_on_job?.averages?.avg_washout_minutes || 0,
+      spacingMinutes: (orderDetails as any).product_schedule_details?.[0]?.pour_rate?.spacing_min || (orderDetails as any).product_schedule_details?.[0]?.truck_space || 0,
+      scheduledRate: (orderDetails as any).product_schedule_details?.[0]?.pour_rate?.scheduled_rate || 0,
+      actualSpacingMinutes: (orderDetails as any).product_schedule_details?.[0]?.pour_rate?.actual_spacing_min || 0,
+      customerName: (orderDetails as any).customer_name || '',
+      projectName: (orderDetails as any).project_name || '',
+      weatherData: (orderDetails as any).weather_data || null,
+      combinedProducts: (() => {
+        const productSchedule = (orderDetails as any).product_schedule_details?.[0];
+        const combined: CombinedProductItem[] = [];
+
+        // Add primary product first
+        const primaryProduct = productSchedule?.primary_product as PrimaryProduct | undefined;
+        if (primaryProduct) {
+          combined.push({
+            itemCode: primaryProduct.item_code || '',
+            description: primaryProduct.description || '',
+            quantity: primaryProduct.quantity || 0,
+            quantityUnit: 'CY',
+            slump: primaryProduct.slump || '-',
+            scheduleNumber: primaryProduct.schedule_number || '-',
+            startTime: primaryProduct.start_time || '',
+            isPrimary: true,
+          });
+        }
+
+        // Add associated products
+        const associatedProducts = productSchedule?.associated_products as AssociatedProduct[] | undefined;
+        if (associatedProducts && associatedProducts.length > 0) {
+          associatedProducts.forEach((ap) => {
+            combined.push({
+              itemCode: ap.item_code || '',
+              description: ap.description || '',
+              quantity: ap.ordered_qty || 0,
+              quantityUnit: ap.order_qty_unit || '',
+              slump: ap.slump || '-',
+              scheduleNumber: ap.schedule_number || '-',
+              isPrimary: false,
+            });
+          });
+        }
+
+        return combined;
+      })(),
     };
   }, [orderDetails]);
 
@@ -389,7 +474,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
             <View style={[styles.headerOrderBadge, { backgroundColor: colors.common.white + '20' }]}>
               <Icon name="file-document-outline" size={12} color={colors.common.white} />
               <Text style={[styles.headerOrderText, { color: colors.common.white }]}>
-                #{orderCode}
+                {orderCode}
               </Text>
             </View>
           </View>
@@ -417,6 +502,68 @@ export const OrderProductDetailsScreen: React.FC = () => {
           />
         }
       >
+        {/* Order Info Card - Customer, Project, Weather (Compact) */}
+        {(jobData.customerName || jobData.projectName || jobData.weatherData) && (
+          <View style={[styles.orderInfoCard, { backgroundColor: themeColors.card }]}>
+            {/* Customer & Project Info - Compact */}
+            {(jobData.customerName || jobData.projectName) && (
+              <View style={styles.orderInfoCompactContainer}>
+                {jobData.customerName && (
+                  <View style={styles.orderInfoCompactRow}>
+                    <Icon name="account-outline" size={ms(14)} color={colors.primary.main} />
+                    <Text style={[styles.orderInfoCompactText, { color: themeColors.text.primary }]} numberOfLines={1}>
+                      {jobData.customerName}
+                    </Text>
+                  </View>
+                )}
+                {jobData.projectName && (
+                  <View style={styles.orderInfoCompactRow}>
+                    <Icon name="domain" size={ms(14)} color={colors.secondary.main} />
+                    <Text style={[styles.orderInfoCompactText, { color: themeColors.text.primary }]} numberOfLines={1}>
+                      {jobData.projectName}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Weather & Evaporation Info - Compact Grid */}
+            {jobData.weatherData && (
+              <View style={[
+                styles.weatherCompactContainer,
+                (jobData.customerName || jobData.projectName) && { borderTopWidth: 1, borderTopColor: isDark ? themeColors.border : colors.grey[10] }
+              ]}>
+                <View style={styles.weatherCompactGrid}>
+                  <View style={styles.weatherCompactItem}>
+                    <Icon name="thermometer" size={ms(14)} color={colors.error.main} />
+                    <Text style={[styles.weatherCompactValue, { color: themeColors.text.primary }]}>
+                      {jobData.weatherData.temperature_fahrenheit ?? '--'}°F
+                    </Text>
+                  </View>
+                  <View style={styles.weatherCompactItem}>
+                    <Icon name="water-percent" size={ms(14)} color={colors.info.main} />
+                    <Text style={[styles.weatherCompactValue, { color: themeColors.text.primary }]}>
+                      {jobData.weatherData.humidity ?? '--'}%
+                    </Text>
+                  </View>
+                  <View style={styles.weatherCompactItem}>
+                    <Icon name="weather-windy" size={ms(14)} color={colors.success.main} />
+                    <Text style={[styles.weatherCompactValue, { color: themeColors.text.primary }]}>
+                      {jobData.weatherData.wind_speed_mph ?? '--'} mph
+                    </Text>
+                  </View>
+                  <View style={styles.weatherCompactItem}>
+                    <Icon name="water-outline" size={ms(14)} color={colors.warning.main} />
+                    <Text style={[styles.weatherCompactValue, { color: themeColors.text.primary }]}>
+                      {jobData.weatherData.evaporation_rate ?? '--'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Product Schedule Card */}
         <View style={[styles.card, { backgroundColor: themeColors.card }]}>
           <View style={styles.cardHeader}>
@@ -459,6 +606,22 @@ export const OrderProductDetailsScreen: React.FC = () => {
               <Text style={[styles.infoItemSubValue, { color: themeColors.text.secondary }]} numberOfLines={1}>
                 {jobData.productMix}
               </Text>
+              {jobData.orderedVolume > 0 && (
+                <View style={styles.productSlumpRow}>
+                  <Icon name="scale" size={ms(10)} color={colors.primary.main} />
+                  <Text style={[styles.productInfoBadgeText, { color: colors.primary.main }]}>
+                    Order Qty: {jobData.orderedVolume} CY
+                  </Text>
+                </View>
+              )}
+              {jobData.slump && (
+                <View style={styles.productSlumpRow}>
+                  <Icon name="arrow-collapse-down" size={ms(10)} color={colors.info.main} />
+                  <Text style={[styles.productInfoBadgeText, { color: colors.info.main }]}>
+                    Slump: {jobData.slump} inch
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -484,6 +647,35 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 </View>
                 <Text style={[styles.infoItemValue, { color: colors.info.main }]}>
                   {jobData.numberOfLoads}/{jobData.totalLoads}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Pour Rate Row - Spacing, Scheduled Rate, Actual Spacing */}
+          {(jobData.spacingMinutes > 0 || jobData.scheduledRate > 0 || jobData.actualSpacingMinutes > 0) && (
+            <View style={[styles.timingRow, { backgroundColor: isDark ? themeColors.surface : colors.grey[3], marginTop: GRID.xs, marginHorizontal: GRID.md }]}>
+              <View style={styles.timingItem}>
+                <Icon name="timer-sand" size={14} color={colors.secondary.main} />
+                <Text style={[styles.timingLabel, { color: themeColors.text.hint }]}>Spacing</Text>
+                <Text style={[styles.timingValue, { color: themeColors.text.primary }]}>
+                  {jobData.spacingMinutes > 0 ? `${jobData.spacingMinutes}m` : '-'}
+                </Text>
+              </View>
+              <View style={[styles.timingDivider, { backgroundColor: themeColors.border }]} />
+              <View style={styles.timingItem}>
+                <Icon name="speedometer" size={14} color={colors.primary.main} />
+                <Text style={[styles.timingLabel, { color: themeColors.text.hint }]}>Sched Rate</Text>
+                <Text style={[styles.timingValue, { color: themeColors.text.primary }]}>
+                  {jobData.scheduledRate > 0 ? `${jobData.scheduledRate}` : '-'}
+                </Text>
+              </View>
+              <View style={[styles.timingDivider, { backgroundColor: themeColors.border }]} />
+              <View style={styles.timingItem}>
+                <Icon name="clock-check-outline" size={14} color={colors.success.main} />
+                <Text style={[styles.timingLabel, { color: themeColors.text.hint }]}>Actual</Text>
+                <Text style={[styles.timingValue, { color: themeColors.text.primary }]}>
+                  {jobData.actualSpacingMinutes > 0 ? `${jobData.actualSpacingMinutes.toFixed(1)}m` : '-'}
                 </Text>
               </View>
             </View>
@@ -721,53 +913,96 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 </View>
               )}
 
-              {/* Associated Products Section */}
-              {schedule?.associated_products && schedule.associated_products.length > 0 && (
+              {/* Products List Section - Primary + Associated */}
+              {jobData.combinedProducts.length > 0 && (
                 <View style={[styles.associatedProductsSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
                   <View style={styles.associatedProductsHeader}>
-                    <View style={[styles.associatedProductsIconBox, { backgroundColor: isDark ? colors.info.main + '25' : colors.info.main + '12' }]}>
-                      <Icon name="link-variant" size={ms(16)} color={colors.info.main} />
+                    <View style={[styles.associatedProductsIconBox, { backgroundColor: isDark ? colors.primary.main + '25' : colors.primary.main + '12' }]}>
+                      <Icon name="cube-outline" size={ms(16)} color={colors.primary.main} />
                     </View>
                     <Text style={[styles.associatedProductsTitle, { color: themeColors.text.primary }]}>
-                      Associated Products
+                      Primary Products
                     </Text>
-                    <View style={[styles.associatedProductsCountBadge, { backgroundColor: colors.info.main }]}>
-                      <Text style={styles.associatedProductsCountText}>{schedule.associated_products.length}</Text>
+                    <View style={[styles.associatedProductsCountBadge, { backgroundColor: colors.primary.main }]}>
+                      <Text style={styles.associatedProductsCountText}>{jobData.combinedProducts.length}</Text>
                     </View>
                   </View>
-                  {schedule.associated_products.map((ap, index) => (
+
+                  {/* Products List */}
+                  {jobData.combinedProducts.map((item, index) => (
                     <View
-                      key={ap.order_product_id || index}
+                      key={`${item.itemCode}-${index}`}
                       style={[
-                        styles.associatedProductItem,
+                        styles.productListItem,
                         {
-                          backgroundColor: isDark ? themeColors.cardElevated : colors.common.white,
-                          borderColor: isDark ? themeColors.border : colors.grey[10],
+                          backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3],
+                          borderColor: item.isPrimary
+                            ? (isDark ? colors.primary.main + '40' : colors.primary.main + '30')
+                            : (isDark ? themeColors.border : colors.grey[10]),
                         }
                       ]}
                     >
-                      <View style={styles.associatedProductRow}>
-                        <View style={[styles.associatedProductIcon, { backgroundColor: isDark ? colors.primary.main + '20' : colors.primary.main + '10' }]}>
-                          <Icon name="package-variant-closed" size={ms(18)} color={colors.primary.main} />
-                        </View>
-                        <View style={styles.associatedProductInfo}>
-                          <Text style={[styles.associatedProductCode, { color: themeColors.text.primary }]} numberOfLines={1}>
-                            {ap.item_code}
+                      {/* Product Header Row */}
+                      <View style={styles.productListHeader}>
+                        <View style={styles.productTypeLabelRow}>
+                          <View style={[
+                            styles.productTypeDot,
+                            { backgroundColor: item.isPrimary ? colors.primary.main : colors.secondary.main }
+                          ]} />
+                          <Text style={[
+                            styles.productTypeLabelText,
+                            { color: item.isPrimary ? colors.primary.main : colors.secondary.main }
+                          ]}>
+                            {item.isPrimary ? 'Primary' : 'Associated'}
                           </Text>
-                          {ap.description && (
-                            <Text style={[styles.associatedProductDesc, { color: themeColors.text.secondary }]} numberOfLines={2}>
-                              {ap.description}
+                        </View>
+                        <Text style={[styles.productListItemCode, { color: colors.primary.main }]}>
+                          {item.itemCode}
+                        </Text>
+                      </View>
+
+                      {/* Description Row */}
+                      {item.description && (
+                        <Text style={[styles.productListDesc, { color: themeColors.text.secondary }]} numberOfLines={2}>
+                          {item.description}
+                        </Text>
+                      )}
+
+                      {/* Details Grid */}
+                      <View style={styles.productListDetailsGrid}>
+                        {/* Quantity */}
+                        <View style={styles.productListDetailItem}>
+                          <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Qty</Text>
+                          <Text style={[styles.productListDetailValue, { color: colors.success.main }]}>
+                            {item.quantity} {item.quantityUnit || ''}
+                          </Text>
+                        </View>
+
+                        {/* Slump */}
+                        <View style={styles.productListDetailItem}>
+                          <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Slump</Text>
+                          <Text style={[styles.productListDetailValue, { color: themeColors.text.primary }]}>
+                            {item.slump !== '-' ? `${item.slump}"` : '-'}
+                          </Text>
+                        </View>
+
+                        {/* Schedule # */}
+                        <View style={styles.productListDetailItem}>
+                          <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Schedule #</Text>
+                          <Text style={[styles.productListDetailValue, { color: themeColors.text.primary }]}>
+                            {item.scheduleNumber}
+                          </Text>
+                        </View>
+
+                        {/* Start Time */}
+                        {jobData.scheduleTime && (
+                          <View style={styles.productListDetailItem}>
+                            <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Start Time</Text>
+                            <Text style={[styles.productListDetailValue, { color: colors.info.main }]}>
+                              {jobData.scheduleTime}
                             </Text>
-                          )}
-                        </View>
-                        <View style={[styles.associatedProductQtyBadge, { backgroundColor: isDark ? colors.success.main + '20' : colors.success.main + '12' }]}>
-                          <Text style={[styles.associatedProductQtyValue, { color: colors.success.main }]}>
-                            {ap.ordered_qty}
-                          </Text>
-                          <Text style={[styles.associatedProductQtyUnit, { color: colors.success.main }]}>
-                            {ap.order_qty_unit || 'qty'}
-                          </Text>
-                        </View>
+                          </View>
+                        )}
                       </View>
                     </View>
                   ))}
@@ -981,6 +1216,21 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     marginTop: 2,
   },
+  productSlumpRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(4),
+    marginTop: GRID.xs,
+  },
+  productInfoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(3),
+  },
+  productInfoBadgeText: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.semiBold,
+  },
   averagesRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1002,6 +1252,30 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
   },
   averageDivider: {
+    width: 1,
+    height: ms(24),
+  },
+  timingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    padding: GRID.sm,
+    borderRadius: ms(8),
+  },
+  timingItem: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  timingLabel: {
+    fontSize: ms(9),
+    fontFamily: fontFamily.medium,
+    textTransform: 'uppercase',
+  },
+  timingValue: {
+    fontSize: ms(12),
+    fontFamily: fontFamily.semiBold,
+  },
+  timingDivider: {
     width: 1,
     height: ms(24),
   },
@@ -1309,6 +1583,134 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: ms(100),
+  },
+  // Order Info Compact styles
+  orderInfoCard: {
+    borderRadius: ms(10),
+    marginBottom: spacing.sm,
+    overflow: 'hidden',
+  },
+  orderInfoCompactContainer: {
+    paddingHorizontal: GRID.sm + 2,
+    paddingVertical: GRID.sm,
+    gap: ms(4),
+  },
+  orderInfoCompactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(6),
+  },
+  orderInfoCompactText: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.medium,
+    flex: 1,
+  },
+  // Weather Compact styles
+  weatherCompactContainer: {
+    paddingHorizontal: GRID.sm + 2,
+    paddingVertical: GRID.sm,
+  },
+  weatherCompactGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  weatherCompactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(4),
+  },
+  weatherCompactValue: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.semiBold,
+  },
+  // Primary Product Grid styles
+  primaryProductGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: GRID.sm,
+    marginBottom: GRID.sm,
+  },
+  primaryProductItem: {
+    width: '31%',
+    padding: GRID.sm,
+    borderRadius: ms(8),
+    alignItems: 'center',
+  },
+  primaryProductLabel: {
+    fontSize: ms(9),
+    fontFamily: fontFamily.medium,
+    textTransform: 'uppercase',
+    marginBottom: ms(2),
+  },
+  primaryProductValue: {
+    fontSize: ms(12),
+    fontFamily: fontFamily.semiBold,
+    textAlign: 'center',
+  },
+  primaryProductDescRow: {
+    padding: GRID.sm,
+    borderRadius: ms(8),
+  },
+  primaryProductDescText: {
+    fontSize: ms(12),
+    fontFamily: fontFamily.medium,
+    marginTop: ms(2),
+    lineHeight: ms(16),
+  },
+  // Product List styles
+  productListItem: {
+    borderRadius: ms(10),
+    padding: GRID.sm + 2,
+    marginBottom: GRID.sm,
+    borderWidth: 1,
+  },
+  productListHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: GRID.xs,
+  },
+  productTypeLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(6),
+  },
+  productTypeDot: {
+    width: ms(8),
+    height: ms(8),
+    borderRadius: ms(4),
+  },
+  productTypeLabelText: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.semiBold,
+  },
+  productListItemCode: {
+    fontSize: ms(13),
+    fontFamily: fontFamily.bold,
+  },
+  productListDesc: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.regular,
+    lineHeight: ms(15),
+    marginBottom: GRID.sm,
+  },
+  productListDetailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: GRID.sm,
+  },
+  productListDetailItem: {
+    minWidth: '22%',
+  },
+  productListDetailLabel: {
+    fontSize: ms(9),
+    fontFamily: fontFamily.medium,
+    textTransform: 'uppercase',
+    marginBottom: ms(2),
+  },
+  productListDetailValue: {
+    fontSize: ms(12),
+    fontFamily: fontFamily.semiBold,
   },
 });
 

@@ -264,7 +264,9 @@ export const ProductDetailsScreen: React.FC = () => {
               <Icon name="chevron-left" size={ms(24)} color={colors.common.white} />
             </TouchableOpacity>
 
-            <Text style={styles.headerTitle}>{config.title}</Text>
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.headerTitle}>{config.title}</Text>
+            </View>
 
             <View style={styles.headerPlaceholder} />
           </View>
@@ -393,16 +395,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.common.white + '15',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: ms(4),
+  },
+  headerTitleContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontFamily: fontFamily.semiBold,
     fontSize: responsive(ms(18), ms(22)),
     color: colors.common.white,
-    flex: 1,
     textAlign: 'center',
   },
   headerPlaceholder: {
     width: ms(40),
+    height: ms(40),
+    marginBottom: ms(4),
   },
   locationRow: {
     flexDirection: 'row',

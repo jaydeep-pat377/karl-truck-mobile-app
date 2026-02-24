@@ -57,9 +57,13 @@ export const useTicketsByOrder = (params: UseTicketsByOrderParams) => {
     orderCode: order?.order_code,
     orderDate: order?.order_date,
     customerName: order?.customer_name,
+    projectName: order?.project_name,
     deliveryAddress: order?.delivery_address,
+    weatherData: order?.weather_data,
 
     totalTickets: summary?.total_tickets ?? 0,
+    activeTickets: summary?.active_tickets ?? 0,
+    cancelledTickets: summary?.cancelled_tickets ?? 0,
     totalDeliveredQty: summary?.total_delivered_qty ?? 0,
     orderedQty: summary?.ordered_qty ?? 0,
     remainingQty: summary?.remaining_qty ?? 0,

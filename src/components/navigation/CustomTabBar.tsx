@@ -14,6 +14,29 @@ import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
 import { useTheme } from '../../contexts/ThemeContext';
 
+// Helper to check if user is on a detail/nested screen (not the main tab screen)
+const isOnDetailScreen = (routes: any[]): boolean => {
+  for (const route of routes) {
+    if (route?.state && route.state.routes && route.state.routes.length > 0) {
+      const nestedIndex = route.state.index;
+      // If nested index > 0, user is on a detail screen (not the first/main screen)
+      if (typeof nestedIndex === 'number' && nestedIndex > 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+// Helper to get the actual focused tab index
+const getActualFocusedIndex = (state: any, routes: any[]): number => {
+  // Check if state.index is a valid number within bounds
+  if (typeof state.index === 'number' && state.index >= 0 && state.index < routes.length) {
+    return state.index;
+  }
+  return 0; // Default to Home
+};
+
 const tabBarTheme = {
   light: {
     background: colors.tabBar.light.background,
@@ -96,7 +119,16 @@ const TabItem: React.FC<TabItemProps> = ({
   theme,
 }) => {
   const { options } = descriptors[route.key];
-  const isFocused = state.index === index;
+
+  const routes = state?.routes || [];
+  const focusedIndex = getActualFocusedIndex(state || {}, routes);
+
+  // Check if user is on a detail screen - if so, no tab should be highlighted
+  const onDetailScreen = isOnDetailScreen(routes);
+
+  // Tab is focused only if we're on a main tab screen (not detail) AND this is the focused tab
+  const isFocused = !onDetailScreen && focusedIndex === index;
+
   const themeColors = tabBarTheme[theme];
 
   const scaleAnim = useRef(new Animated.Value(isFocused ? 1 : 0.95)).current;

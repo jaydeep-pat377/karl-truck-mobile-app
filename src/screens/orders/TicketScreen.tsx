@@ -131,20 +131,39 @@ const STATUS_CONFIG: Record<TicketStatus, StatusConfig> = {
   },
   at_plant: {
     label: 'AT PLANT',
-    icon: 'factory',
+    icon: 'domain',
     bgColor: `${colors.trackingStatus.atPlant}15`,
     textColor: colors.trackingStatus.atPlant,
     iconBg: `${colors.trackingStatus.atPlant}15`,
     progressStep: 9,
   },
   cancelled: {
-    label: 'CANCELLED',
+    label: 'VOIDED',
     icon: 'close-circle',
     bgColor: `${colors.trackingStatus.cancelled}15`,
     textColor: colors.trackingStatus.cancelled,
     iconBg: `${colors.trackingStatus.cancelled}15`,
     progressStep: -1,
   },
+};
+
+// Weather helper functions (matching OrderCard logic)
+const getEvaporationBgColor = (rate: number | null | undefined): string => {
+  if (rate === null || rate === undefined) return colors.grey[40];
+  if (rate < 0.10) return colors.success.main; // green
+  if (rate < 0.20) return colors.warning.main; // yellow
+  if (rate < 0.30) return '#FF6B6B'; // light red
+  if (rate < 0.40) return '#E53935'; // medium red
+  return '#B71C1C'; // dark red
+};
+
+const getEvaporationText = (rate: number | null | undefined): string => {
+  if (rate === null || rate === undefined) return '';
+  if (rate < 0.10) return 'Low';
+  if (rate < 0.20) return 'Moderate';
+  if (rate < 0.30) return 'High';
+  if (rate < 0.40) return 'Very High';
+  return 'Severe';
 };
 
 const STATUS_CONFIG_DARK: Record<TicketStatus, StatusConfig> = {
@@ -222,14 +241,14 @@ const STATUS_CONFIG_DARK: Record<TicketStatus, StatusConfig> = {
   },
   at_plant: {
     label: 'AT PLANT',
-    icon: 'factory',
+    icon: 'domain',
     bgColor: `${colors.trackingStatus.atPlant}20`,
     textColor: colors.trackingStatus.atPlant,
     iconBg: `${colors.trackingStatus.atPlant}20`,
     progressStep: 9,
   },
   cancelled: {
-    label: 'CANCELLED',
+    label: 'VOIDED',
     icon: 'close-circle',
     bgColor: `${colors.trackingStatus.cancelled}20`,
     textColor: colors.trackingStatus.cancelled,
@@ -244,7 +263,8 @@ interface StatusBadgeProps {
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status, displayLabel }) => {
-  const label = displayLabel || status.label;
+  // Use displayLabel if provided (from API), fallback to status.label
+  const label = displayLabel?.toUpperCase() || status.label || '';
 
   return (
     <View style={styles.statusBadgeContainer}>
@@ -252,7 +272,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, displayLabel }) => {
         <Icon name={status.icon} size={ms(14)} color={status.textColor} />
       </View>
       <View style={[styles.statusTextBadge, { backgroundColor: status.bgColor }]}>
-        <Text style={[styles.statusText, { color: status.textColor }]}>
+        <Text style={[styles.statusText, { color: status.textColor }]} numberOfLines={1}>
           {label}
         </Text>
       </View>
@@ -356,7 +376,10 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, isDark }) => {
         </View>
 
         <View style={styles.ticketBottomRow}>
-          <Text style={[styles.totalText, { color: themeColors.text.hint }]}>
+          <Text
+            style={[styles.totalText, { color: themeColors.text.hint }]}
+            numberOfLines={1}
+            ellipsizeMode="tail">
             {ticket.runQtyOrdQty}
           </Text>
           <StatusBadge status={status}
@@ -375,26 +398,41 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, isDark }) => {
   );
 };
 
+interface WeatherData {
+  temperature_fahrenheit?: number;
+  humidity?: number;
+  wind_speed_mph?: number;
+  evaporation_rate?: number;
+  weather_condition?: string;
+  weather_description?: string;
+}
+
 interface OrderHeaderProps {
   orderDate: string;
   deliveryAddress: string;
+  customerName?: string;
+  projectName?: string | null;
   totalTickets: number;
   totalLoads: number;
   totalDeliveredQty: number;
   orderedQty: number;
   progressDisplay: string;
   isDark: boolean;
+  weatherData?: WeatherData | null;
 }
 
 const OrderHeader: React.FC<OrderHeaderProps> = ({
   orderDate,
   deliveryAddress,
+  customerName,
+  projectName,
   totalTickets,
   totalLoads,
   totalDeliveredQty,
   orderedQty,
   progressDisplay,
   isDark,
+  weatherData,
 }) => {
   const themeColors = isDark ? colors.dark : colors.light;
   const ticketUi = isDark ? colors.ticket.ui.dark : colors.ticket.ui.light;
@@ -440,6 +478,16 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
           <Text style={[styles.orderDate, { color: themeColors.text.primary }]}>
             ORDER - {orderDate}
           </Text>
+          {customerName && (
+            <Text style={[styles.customerName, { color: themeColors.text.primary }]} numberOfLines={1}>
+              {customerName}
+            </Text>
+          )}
+          {projectName && (
+            <Text style={[styles.projectName, { color: themeColors.text.secondary }]} numberOfLines={1}>
+              {projectName}
+            </Text>
+          )}
           <View style={styles.addressRow}>
             <Icon name="map-marker-outline" size={ms(14)} color={themeColors.text.hint} />
             <Text
@@ -451,10 +499,10 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
           <View style={styles.loadsRow}>
             <ConcreteTruck width={ms(18)} height={ms(12)} color={colors.success.main} />
             <Text style={[styles.loadsLabel, { color: themeColors.text.hint }]}>
-              Total Loads:
+              Total Tickets:
             </Text>
             <Text style={[styles.loadsValue, { color: colors.success.main }]}>
-              {totalLoads}
+              {totalTickets}
             </Text>
           </View>
         </View>
@@ -473,6 +521,57 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
           </Text>
         </View>
       </View>
+
+      {/* Weather Info Row */}
+      {weatherData && (
+        <View style={styles.headerWeatherRow}>
+          <Icon
+            name="weather-partly-cloudy"
+            size={ms(14)}
+            color={colors.info.main}
+          />
+          <Text
+            style={[styles.headerWeatherDescText, { color: themeColors.text.secondary }]}
+            numberOfLines={1}>
+            Partly cloudy
+          </Text>
+          {weatherData.temperature_fahrenheit !== null && weatherData.temperature_fahrenheit !== undefined && (
+            <>
+              <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+              <Text style={[styles.headerWeatherInfoText, { color: themeColors.text.secondary }]}>
+                {weatherData.temperature_fahrenheit}°F
+              </Text>
+            </>
+          )}
+          {weatherData.wind_speed_mph !== null && weatherData.wind_speed_mph !== undefined && (
+            <>
+              <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+              <Text style={[styles.headerWeatherInfoText, { color: themeColors.text.secondary }]}>
+                {weatherData.wind_speed_mph} mph wind
+              </Text>
+            </>
+          )}
+          {weatherData.humidity !== null && weatherData.humidity !== undefined && (
+            <>
+              <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+              <Text style={[styles.headerWeatherInfoText, { color: themeColors.text.secondary }]}>
+                {weatherData.humidity}% RH
+              </Text>
+            </>
+          )}
+          {weatherData.evaporation_rate !== null && weatherData.evaporation_rate !== undefined && (
+            <View
+              style={[
+                styles.headerEvapRateBadge,
+                { backgroundColor: getEvaporationBgColor(weatherData.evaporation_rate) }
+              ]}>
+              <Text style={styles.headerEvapRateText}>
+                {getEvaporationText(weatherData.evaporation_rate)}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
 
       <View style={[styles.orderDivider, { backgroundColor: themeColors.border }]} />
 
@@ -576,12 +675,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
         ]}>
         <TextInput
           style={[styles.searchInput, { color: themeColors.text.primary }]}
-          placeholder="Search tickets, trucks, drivers..."
+          placeholder="Search Tickets, Trucks, Drivers..."
           placeholderTextColor={isDark ? themeColors.text.hint : colors.grey[40]}
           value={value}
           onChangeText={onChangeText}
           returnKeyType="search"
           onSubmitEditing={onSearch}
+          autoCapitalize="sentences"
         />
         {value.length > 0 && (
           <TouchableOpacity onPress={onClear} style={styles.clearButton}>
@@ -701,7 +801,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
     { id: 'washing', label: 'Washing', color: colors.info.main },
     { id: 'to_plant', label: 'To Plant', color: colors.ticket.status.returning.text },
     { id: 'at_plant', label: 'At Plant', color: colors.ticket.status.atPlant.text },
-    { id: 'cancelled', label: 'Cancelled', color: colors.error.main },
+    { id: 'cancelled', label: 'Voided', color: colors.error.main },
   ];
 
   const sortOptions: { id: 'time'; label: string; icon: string }[] = [
@@ -975,10 +1075,15 @@ export const TicketScreen: React.FC = () => {
   const {
     order,
     tickets: apiTickets,
+    customerName,
+    projectName,
+    weatherData,
     orderedQty,
     totalDeliveredQty,
     progressDisplay,
     totalTickets,
+    activeTickets,
+    cancelledTickets,
     totalLoads,
     isLoading,
     isRefetching,
@@ -993,6 +1098,37 @@ export const TicketScreen: React.FC = () => {
     : 'Order';
   const deliveryAddress = order?.delivery_address || 'Loading...';
 
+  const getDisplayStatus = useCallback((status: string, statusDisplay: string): string => {
+    const lowerStatus = status?.toLowerCase() || '';
+    const lowerDisplay = statusDisplay?.toLowerCase() || '';
+    // Show "Voided" for any cancelled-related status
+    if (lowerStatus.includes('cancel') || lowerDisplay.includes('cancel')) {
+      return 'Voided';
+    }
+    return statusDisplay || status || '';
+  }, []);
+
+  const getTimestampForStatus = useCallback((status: string, timestamps: TicketByOrderItem['timestamps']): string => {
+    if (!timestamps) return '';
+
+    // Map status to corresponding timestamp field
+    const statusTimestampMap: Record<string, string | null | undefined> = {
+      pending: timestamps.ticketed,
+      ticketed: timestamps.ticketed,
+      loading: timestamps.loading,
+      loaded: timestamps.loaded,
+      to_job: timestamps.to_job,
+      at_job: timestamps.at_job,
+      pouring: timestamps.pouring,
+      washing: timestamps.washing,
+      to_plant: timestamps.to_plant,
+      at_plant: timestamps.at_plant,
+      cancelled: timestamps.ticketed,
+    };
+
+    return statusTimestampMap[status] || timestamps.eta_at_job || timestamps.ticketed || '';
+  }, []);
+
   const allTickets = useMemo(
     () => (apiTickets || []).map((ticket: TicketByOrderItem): DeliveryTicket => ({
       id: ticket.ticket_code || '',
@@ -1003,14 +1139,14 @@ export const TicketScreen: React.FC = () => {
       totalOrderQuantity: ticket.ordered_qty ?? 0,
       unit: 'CY',
       status: ticket.status || 'ticketed',
-      statusDisplay: ticket.status_display || '',
-      scheduledTime: ticket.timestamps?.eta_at_job || ticket.timestamps?.ticketed || '',
+      statusDisplay: getDisplayStatus(ticket.status, ticket.status_display),
+      scheduledTime: getTimestampForStatus(ticket.status, ticket.timestamps),
       product: ticket.product || '',
       load: ticket.load || '',
       loadQty: ticket.load_qty || '',
       runQtyOrdQty: ticket.run_qty_ord_qty || '',
     })),
-    [apiTickets]
+    [apiTickets, getDisplayStatus, getTimestampForStatus]
   );
 
   const activeFiltersCount = useMemo(() => {
@@ -1101,16 +1237,19 @@ export const TicketScreen: React.FC = () => {
       <OrderHeader
         orderDate={displayDate}
         deliveryAddress={deliveryAddress}
+        customerName={customerName}
+        projectName={projectName}
         totalTickets={totalTickets}
         totalLoads={totalLoads}
         totalDeliveredQty={totalDeliveredQty}
         orderedQty={orderedQty}
         progressDisplay={progressDisplay}
         isDark={isDark}
+        weatherData={weatherData}
       />
       <View style={styles.listHeaderRow}>
         <Text style={[styles.listHeaderText, { color: themeColors.text.secondary }]}>
-          {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''}
+          {activeTickets} ticket{activeTickets !== 1 ? 's' : ''}{cancelledTickets > 0 ? ` | ${cancelledTickets} voided` : ''}
         </Text>
       </View>
     </View>
@@ -1118,13 +1257,17 @@ export const TicketScreen: React.FC = () => {
     displayDate,
     deliveryAddress,
     totalTickets,
+    activeTickets,
+    cancelledTickets,
     totalLoads,
+    customerName,
+    projectName,
     totalDeliveredQty,
     orderedQty,
     progressDisplay,
     isDark,
     themeColors,
-    filteredTickets.length,
+    weatherData,
   ]);
 
   const renderTicket = useCallback(
@@ -1157,10 +1300,29 @@ export const TicketScreen: React.FC = () => {
             Delivery Tickets
           </Text>
           <Text style={[styles.headerSubtitle, { color: themeColors.text.hint }]}>
-            Order #{orderCode}
+            Order {orderCode}
           </Text>
+          {customerName && (
+            <Text
+              style={[styles.headerCustomerName, { color: themeColors.text.secondary }]}
+              numberOfLines={1}
+              ellipsizeMode="tail">
+              {customerName}
+            </Text>
+          )}
         </View>
 
+        <TouchableOpacity
+          style={[styles.headerBtn, { backgroundColor: themeColors.surface }]}
+          onPress={() => refetch()}
+          activeOpacity={0.7}
+          disabled={isRefetching}>
+          <Icon
+            name="refresh"
+            size={ms(20)}
+            color={isRefetching ? themeColors.text.hint : themeColors.text.primary}
+          />
+        </TouchableOpacity>
       </View>
 
       {!isLoading && (
@@ -1283,6 +1445,13 @@ const styles = StyleSheet.create({
     fontSize: ms(11),
     marginTop: ms(2),
   },
+  headerCustomerName: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+    marginTop: ms(2),
+    maxWidth: '100%',
+    paddingHorizontal: ms(10),
+  },
   orderHeader: {
     borderRadius: ms(14),
     padding: ms(14),
@@ -1294,7 +1463,7 @@ const styles = StyleSheet.create({
   },
   orderTopSection: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   orderIconBox: {
     width: ms(44),
@@ -1324,6 +1493,16 @@ const styles = StyleSheet.create({
   orderDate: {
     fontFamily: fontFamily.semiBold,
     fontSize: ms(13),
+    marginBottom: ms(3),
+  },
+  customerName: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+    marginBottom: ms(2),
+  },
+  projectName: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
     marginBottom: ms(3),
   },
   addressRow: {
@@ -1369,6 +1548,38 @@ const styles = StyleSheet.create({
   orderDivider: {
     height: 1,
     marginVertical: ms(12),
+  },
+  headerWeatherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: ms(12),
+    gap: ms(4),
+  },
+  headerWeatherDescText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+    maxWidth: ms(80),
+  },
+  headerWeatherDot: {
+    width: ms(2),
+    height: ms(2),
+    borderRadius: ms(1),
+  },
+  headerWeatherInfoText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(10),
+  },
+  headerEvapRateBadge: {
+    paddingHorizontal: ms(8),
+    borderRadius: ms(10),
+    marginLeft: ms(4),
+  },
+  headerEvapRateText: {
+    fontSize: ms(8),
+    fontFamily: fontFamily.bold,
+    color: colors.common.white,
+    lineHeight: ms(13),
   },
   progressSection: {},
   progressHeader: {
@@ -1504,12 +1715,14 @@ const styles = StyleSheet.create({
     paddingVertical: ms(4),
     paddingHorizontal: ms(8),
     borderRadius: ms(6),
-    minWidth: ms(60),
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statusText: {
     fontFamily: fontFamily.semiBold,
     fontSize: ms(9),
     letterSpacing: 0.3,
+    textAlign: 'center',
   },
   ticketMainRow: {
     flexDirection: 'row',
@@ -1534,7 +1747,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: ms(1),
-    gap: ms(8),
+    gap: ms(4),
   },
   timeContainer: {
     flexDirection: 'row',
@@ -1558,7 +1771,7 @@ const styles = StyleSheet.create({
   totalText: {
     fontFamily: fontFamily.regular,
     fontSize: ms(11),
-    flexShrink: 1,
+    flex: 1,
   },
   chevronContainer: {
     justifyContent: 'center',

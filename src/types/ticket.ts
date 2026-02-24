@@ -1,4 +1,4 @@
-
+import { RealtimeOrderUpdates } from './order';
 
 export type ApiTicketStatus =
   | 'cancelled'
@@ -161,12 +161,42 @@ export interface TicketByOrderItem {
   timestamps: TicketTimestamps;
 }
 
+export interface TicketsByOrderWeatherData {
+  source?: string;
+  humidity?: number;
+  latitude?: number;
+  longitude?: number;
+  wind_gust?: number | null;
+  fetched_at?: string;
+  wind_speed?: number;
+  pressure_hpa?: number;
+  weather_icon?: string;
+  pressure_inhg?: number;
+  wind_direction?: string;
+  wind_speed_mph?: number;
+  evaporation_rate?: number;
+  clouds_percentage?: number;
+  evaporation_level?: string;
+  visibility_meters?: number;
+  weather_condition?: string;
+  temperature_celsius?: number;
+  weather_description?: string;
+  dew_point_fahrenheit?: number;
+  temperature_fahrenheit?: number;
+  wind_direction_degrees?: number;
+  temperature_max_fahrenheit?: number;
+  temperature_min_fahrenheit?: number;
+  concrete_temperature_fahrenheit?: number | null;
+}
+
 export interface TicketsByOrderOrder {
   order_id: string;
   order_code: string;
   order_date: string;
   customer_name: string;
+  project_name?: string | null;
   delivery_address: string;
+  weather_data?: TicketsByOrderWeatherData | null;
 }
 
 export interface TicketsByOrderFilters {
@@ -188,6 +218,8 @@ export interface TicketsByOrderFilters {
 
 export interface TicketsByOrderSummary {
   total_tickets: number;
+  active_tickets: number;
+  cancelled_tickets: number;
   total_delivered_qty: number;
   ordered_qty: number;
   remaining_qty: number;
@@ -355,6 +387,7 @@ export interface OrderDetailsOrder {
   start_time: string;
   estimated_finish_time: string;
   customer_name: string;
+  project_name?: string | null;
   delivery_address: string;
   delivery_addr1?: string;
   delivery_addr2?: string;
@@ -382,6 +415,7 @@ export interface OrderDetailsOrder {
   tickets_count?: number;
   notes_count?: number;
   graphs?: OrderGraphs;
+  realtime_order_updates?: RealtimeOrderUpdates;
 }
 
 export interface OrderDetailsApiData {
@@ -406,6 +440,17 @@ export interface TicketDetailsTruck {
   longitude: string;
 }
 
+export interface TicketDetailsDurations {
+  loading: number | string | null;
+  loaded: number | string | null;
+  to_job: number | string | null;
+  at_job: number | string | null;
+  pouring: number | string | null;
+  washing: number | string | null;
+  to_plant: number | string | null;
+  at_plant: number | string | null;
+}
+
 export interface TicketDetailsStatus {
   status: ApiTicketStatus;
   status_display: string;
@@ -422,6 +467,7 @@ export interface TicketDetailsStatus {
   washing: string | null;
   to_plant: string | null;
   at_plant: string | null;
+  durations?: TicketDetailsDurations;
 }
 
 export interface TicketDetailsProduct {
@@ -435,6 +481,14 @@ export interface TicketDetailsProduct {
 export interface TicketDetailsLocation {
   latitude: number;
   longitude: number;
+}
+
+export interface DeliveryMetrics {
+  spacing_minutes: string | null;
+  waiting_minutes: string | null;
+  pour_minutes: string | null;
+  performance_minutes: string | null;
+  idle_minutes: string | null;
 }
 
 export interface TicketDetailsTicket {
@@ -451,16 +505,20 @@ export interface TicketDetailsTicket {
   plant_code: string;
   plant_name: string;
   plant_address: string;
+  plant_phone: string | null;
   running_qty: number;
   ordered_qty: number;
+  load_qty?: number;
   driver_name: string;
   driver_phone: string | null;
+  driver_code?: string;
   created_date: string;
   truck: TicketDetailsTruck;
   plant_location: TicketDetailsLocation | null;
   order_location: TicketDetailsLocation | null;
   status: TicketDetailsStatus;
   products: TicketDetailsProduct[];
+  delivery_metrics?: DeliveryMetrics | null;
 }
 
 export interface TicketDetailsData {

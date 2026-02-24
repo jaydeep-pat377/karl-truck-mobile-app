@@ -6,7 +6,7 @@ import { API_BASE_URL, API_TIMEOUT } from '@env';
 import { STORAGE_KEYS } from '../utils/storage';
 import { alertService } from '../services/alertService';
 
-const FALLBACK_URL = 'http://api.truckast.ai/api';
+const FALLBACK_URL = 'http://10.0.2.2:5000/api';
 const BASE_URL = API_BASE_URL || FALLBACK_URL;
 const TIMEOUT = Number(API_TIMEOUT) || 15000;
 

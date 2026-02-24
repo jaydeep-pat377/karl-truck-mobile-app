@@ -17,11 +17,14 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList, MainTabParamList } from '../../navigation/types';
+import { RootStackParamList, MainTabParamList, OrdersStackParamList, OrderTabFilter } from '../../navigation/types';
+import { CompositeNavigationProp } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card, ListFooterLoader, TruckLoader, Icon } from '../../components/common';
 import { OrderCard } from '../../components/orders';
+import { OrderStatusTabs } from '../../components/dashboard';
+import type { OrderStatusFilter, OrderStatusCount } from '../../components/dashboard';
 import { Order, ApiOrder, OrdersQueryParams, WeatherCondition } from '../../types';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
@@ -146,9 +149,8 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
 
   const productCode = apiOrder.product_codes || 'N/A';
 
-  const estimatedLoadsPerTruck = 10;
-  const totalLoads = Math.ceil(apiOrder.ordered_qty / estimatedLoadsPerTruck) || 1;
-  const completedLoads = apiOrder.tickets_count || 0;
+  const totalLoads = apiOrder.total_loads || 0;
+  const completedLoads = apiOrder.active_tickets || 0;
 
   return {
     id: apiOrder.order_id,
@@ -805,21 +807,42 @@ const FilterModal: React.FC<FilterModalProps> = ({
 };
 
 export const OrderListScreen: React.FC = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const route = useRoute<RouteProp<MainTabParamList, 'Orders'>>();
+  const navigation = useNavigation<CompositeNavigationProp<
+    NativeStackNavigationProp<OrdersStackParamList>,
+    NativeStackNavigationProp<RootStackParamList>
+  >>();
+  const route = useRoute<RouteProp<OrdersStackParamList, 'OrderList'>>();
   const { isDark } = useTheme();
   const { getOrCreateRoom } = useChatRooms();
   const { showAlert } = useGlobalAlert();
 
-  const statusFilterFromRoute = route.params?.statusFilter;
-  const filterTimestamp = route.params?._timestamp;
-  const companyNameFromRoute = route.params?.company_name;
-  const regionNameFromRoute = route.params?.region_name;
-  const plantCodeFromRoute = route.params?.plant_code;
-  const plantNameFromRoute = route.params?.plant_name;
-  const dateFilterFromRoute = route.params?.date_filter;
-  const selectedDateFromRoute = route.params?.selected_date;
-  const isFavouriteFromRoute = route.params?.is_favourite;
+  // State to hold params from parent tab navigator
+  const [parentTabParams, setParentTabParams] = useState<typeof route.params | undefined>(undefined);
+
+  // Check for parent tab params when screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      const parentRoute = navigation.getParent()?.getState()?.routes?.find(r => r.name === 'Orders');
+      const parentParams = parentRoute?.params as typeof route.params | undefined;
+      if (parentParams?._timestamp && parentParams._timestamp !== parentTabParams?._timestamp) {
+        setParentTabParams(parentParams);
+      }
+    }, [navigation, parentTabParams?._timestamp])
+  );
+
+  // Merge parent params with direct route params (direct params take priority)
+  const effectiveParams = { ...parentTabParams, ...route.params };
+
+  const statusFilterFromRoute = effectiveParams?.statusFilter;
+  const filterTimestamp = effectiveParams?._timestamp;
+  const companyNameFromRoute = effectiveParams?.company_name;
+  const regionNameFromRoute = effectiveParams?.region_name;
+  const plantCodeFromRoute = effectiveParams?.plant_code;
+  const plantNameFromRoute = effectiveParams?.plant_name;
+  const dateFilterFromRoute = effectiveParams?.date_filter;
+  const selectedDateFromRoute = effectiveParams?.selected_date;
+  const isFavouriteFromRoute = effectiveParams?.is_favourite;
+  const tabFromRoute = effectiveParams?.tab;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
@@ -846,6 +869,11 @@ export const OrderListScreen: React.FC = () => {
 
   // Favourite filter state
   const [isFavouriteFilter, setIsFavouriteFilter] = useState<boolean>(false);
+
+  // Order status tabs filter
+  const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatusFilter>('all');
+  const [isTabLoading, setIsTabLoading] = useState(false);
+  const [isDateFilterLoading, setIsDateFilterLoading] = useState(false);
 
   useEffect(() => {
     const keyboardShowEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -914,6 +942,11 @@ export const OrderListScreen: React.FC = () => {
         setIsFavouriteFilter(isFavouriteFromRoute);
       }
 
+      // Handle tab filter from route (e.g., 'saved' from dashboard)
+      if (tabFromRoute) {
+        setOrderStatusFilter(tabFromRoute);
+      }
+
       // Apply date filter from route (from dashboard)
       if (dateFilterFromRoute) {
         setActiveFilter(dateFilterFromRoute);
@@ -927,7 +960,7 @@ export const OrderListScreen: React.FC = () => {
         }
       }
     }
-  }, [filterTimestamp, companyNameFromRoute, regionNameFromRoute, plantCodeFromRoute, plantNameFromRoute, dateFilterFromRoute, selectedDateFromRoute, isFavouriteFromRoute]);
+  }, [filterTimestamp, companyNameFromRoute, regionNameFromRoute, plantCodeFromRoute, plantNameFromRoute, dateFilterFromRoute, selectedDateFromRoute, isFavouriteFromRoute, tabFromRoute]);
 
   const filterBarAnim = useRef(new Animated.Value(0)).current;
   const dateFilterScrollRef = useRef<ScrollView>(null);
@@ -1003,22 +1036,28 @@ export const OrderListScreen: React.FC = () => {
       params.plant_name = dashboardFilter.plant_name;
     }
 
-    // Add favourite filter
+    // Add favourite filter (from route params)
     if (isFavouriteFilter) {
       params.is_favourite = true;
     }
 
-    console.log('📋 Query params being sent to API:', params);
+    // Add tab filter based on order status tabs
+    if (orderStatusFilter !== 'all') {
+      params.tab = orderStatusFilter as 'saved' | 'scheduled' | 'active' | 'completed' | 'cancelled' | 'requested';
+    }
+
     return params;
-  }, [debouncedFilter, debouncedDate, appliedSearchQuery, appliedFilters.statuses, appliedFilters.sortBy, dashboardFilter, isFavouriteFilter]);
+  }, [debouncedFilter, debouncedDate, appliedSearchQuery, appliedFilters.statuses, appliedFilters.sortBy, dashboardFilter, isFavouriteFilter, orderStatusFilter]);
 
   const {
     orders: apiOrders,
     pagination,
     statusCounts,
+    tabCounts,
     isLoading,
     isFilterLoading,
     isRefetching,
+    isFetching,
     refetch,
     fetchNextPage,
     hasNextPage,
@@ -1034,6 +1073,24 @@ export const OrderListScreen: React.FC = () => {
     return count;
   }, [appliedFilters]);
 
+  // Order status tabs counts - use tab_counts from API response
+  // "all" is calculated as sum of scheduled + active + completed + cancelled (excludes saved as it overlaps)
+  const orderStatusCounts: OrderStatusCount = useMemo(() => {
+    const allCount = (tabCounts?.scheduled || 0) +
+                     (tabCounts?.active || 0) +
+                     (tabCounts?.completed || 0) +
+                     (tabCounts?.cancelled || 0);
+    return {
+      all: allCount,
+      saved: tabCounts?.saved || 0,
+      scheduled: tabCounts?.scheduled || 0,
+      active: tabCounts?.active || 0,
+      completed: tabCounts?.completed || 0,
+      cancelled: tabCounts?.cancelled || 0,
+      requested: tabCounts?.requested || 0,
+    };
+  }, [tabCounts]);
+
   React.useEffect(() => {
     Animated.spring(filterBarAnim, {
       toValue: activeFilterCount > 0 ? 1 : 0,
@@ -1047,11 +1104,21 @@ export const OrderListScreen: React.FC = () => {
 
   useEffect(() => {
     if (wasRefetchingRef.current && !isRefetching) {
-
       setFavoriteOverrides({});
     }
     wasRefetchingRef.current = isRefetching;
   }, [isRefetching]);
+
+  // Clear loading states when not fetching anymore
+  useEffect(() => {
+    if ((isTabLoading || isDateFilterLoading) && !isFetching && !isLoading) {
+      const timer = setTimeout(() => {
+        setIsTabLoading(false);
+        setIsDateFilterLoading(false);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [isTabLoading, isDateFilterLoading, isFetching, isLoading]);
 
   const mappedOrders = useMemo(() => {
     return apiOrders.map(order => {
@@ -1066,6 +1133,9 @@ export const OrderListScreen: React.FC = () => {
 
   const filteredOrders = useMemo(() => {
     let orders = mappedOrders;
+
+    // Tab filtering is now handled by the API via the 'tab' parameter
+    // No need for client-side status filtering
 
     if (appliedFilters.productType !== 'all') {
       const productMap: Record<string, string> = {
@@ -1088,7 +1158,6 @@ export const OrderListScreen: React.FC = () => {
   }, [mappedOrders, appliedFilters.productType, appliedFilters.hasAlertOnly]);
 
   const handleSearch = useCallback(() => {
-    console.log('🔍 Search triggered with query:', searchQuery.trim());
     setAppliedSearchQuery(searchQuery.trim());
   }, [searchQuery]);
 
@@ -1099,8 +1168,11 @@ export const OrderListScreen: React.FC = () => {
   }, [refetch]);
 
   const handleDateSelect = useCallback((date: Date) => {
+    setIsDateFilterLoading(true);
     setSelectedDate(date);
     setActiveFilter('calendar');
+    // Reset order status tab to 'all' when date filter changes
+    setOrderStatusFilter('all');
   }, []);
 
   const handleCalendarPress = useCallback(() => {
@@ -1127,6 +1199,14 @@ export const OrderListScreen: React.FC = () => {
   const handleClearAllFilters = useCallback(() => {
     setAppliedFilters(defaultFilterState);
   }, []);
+
+  const handleOrderStatusChange = useCallback((status: OrderStatusFilter) => {
+    if (status === orderStatusFilter) return;
+
+    setIsTabLoading(true);
+    setOrderStatusFilter(status);
+    // Loading state will be cleared when API fetch completes (via isFetching effect)
+  }, [orderStatusFilter]);
 
   const handleRefresh = useCallback(() => {
     refetch();
@@ -1183,11 +1263,16 @@ export const OrderListScreen: React.FC = () => {
   }, []);
 
   const handleFilterPress = useCallback((id: DateFilterId) => {
+    if (id === activeFilter) return;
+
+    setIsDateFilterLoading(true);
     setActiveFilter(id);
+    // Reset order status tab to 'all' when date filter changes
+    setOrderStatusFilter('all');
     if (id) {
       scrollToFilter(id);
     }
-  }, [scrollToFilter]);
+  }, [scrollToFilter, activeFilter]);
 
   const renderDateFilter = useCallback(
     ({ id, label, isIcon }: { id: DateFilterId; label: string; isIcon?: boolean }) => {
@@ -1262,7 +1347,7 @@ export const OrderListScreen: React.FC = () => {
 
   const handleOrderDetails = useCallback((order: Order) => {
     const progressColor = getProgressBarColor(order.status, order.progress || 0);
-    navigation.navigate('OrderDetail', {
+    navigation.navigate('OrderDetailInTab', {
       orderId: order.id,
       orderCode: order.orderCode,
       orderDate: order.scheduledDate,
@@ -1363,6 +1448,8 @@ export const OrderListScreen: React.FC = () => {
     [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleChat, handleToggleFavorite, chatLoadingOrderId]
   );
 
+  const ItemSeparator = useCallback(() => <View style={styles.separator} />, []);
+
   const renderListHeader = useCallback(
     () => (
       <View style={styles.listHeader}>
@@ -1434,7 +1521,7 @@ export const OrderListScreen: React.FC = () => {
         </View>
       </View>
 
-      {!isLoading && (
+      {!isLoading && !isTabLoading && !isDateFilterLoading && (
         <>
           <View style={styles.filtersContainer}>
             <ScrollView
@@ -1546,6 +1633,12 @@ export const OrderListScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
           </View>
+
+          <OrderStatusTabs
+            selectedStatus={orderStatusFilter}
+            onStatusChange={handleOrderStatusChange}
+            counts={orderStatusCounts}
+          />
         </>
       )}
 
@@ -1588,11 +1681,11 @@ export const OrderListScreen: React.FC = () => {
         </TouchableOpacity>
       </Animated.View>
 
-      {isLoading ? (
+      {isLoading || isTabLoading || isDateFilterLoading ? (
         <View style={styles.loadingContainer} pointerEvents="box-none">
           <TruckLoader
             size={120}
-            message="Loading orders..."
+            message={isTabLoading || isDateFilterLoading ? "Filtering orders..." : "Loading orders..."}
             color={isDark ? 'light' : 'dark'}
           />
         </View>
@@ -1623,38 +1716,42 @@ export const OrderListScreen: React.FC = () => {
 
           <FlatList
             data={filteredOrders}
-            extraData={filteredOrders}
             renderItem={renderOrderCard}
             keyExtractor={(item) => item.id}
-          ListEmptyComponent={renderEmpty}
-          ListFooterComponent={
-            filteredOrders.length > 0 ? (
-              <ListFooterLoader
-                isLoading={isFetchingNextPage}
-                hasMore={hasNextPage === true}
-                totalItems={pagination?.total}
-                loadingText="Loading more orders..."
-                endMessageText={pagination?.total ? `Showing all ${pagination.total} orders` : undefined}
-                noMoreText="No more orders"
-              />
-            ) : null
-          }
-          contentContainerStyle={[
-            styles.listContent,
-            filteredOrders.length === 0 && styles.emptyListContent,
-            { paddingBottom: TAB_BAR_HEIGHT + spacing.xl + keyboardHeight },
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          initialNumToRender={6}
-          maxToRenderPerBatch={5}
-          windowSize={5}
-          removeClippedSubviews={true}
-          updateCellsBatchingPeriod={50}
+            ListEmptyComponent={renderEmpty}
+            ListFooterComponent={
+              filteredOrders.length > 0 ? (
+                <ListFooterLoader
+                  isLoading={isFetchingNextPage}
+                  hasMore={hasNextPage === true}
+                  totalItems={pagination?.total}
+                  loadingText="Loading more orders..."
+                  endMessageText={pagination?.total ? `Showing all ${pagination.total} orders` : undefined}
+                  noMoreText="No more orders"
+                />
+              ) : null
+            }
+            contentContainerStyle={[
+              styles.listContent,
+              filteredOrders.length === 0 && styles.emptyListContent,
+              { paddingBottom: TAB_BAR_HEIGHT + spacing.xl + keyboardHeight },
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            ItemSeparatorComponent={ItemSeparator}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.3}
+            initialNumToRender={5}
+            maxToRenderPerBatch={3}
+            windowSize={3}
+            removeClippedSubviews={true}
+            updateCellsBatchingPeriod={100}
+            getItemLayout={(_, index) => ({
+              length: 180,
+              offset: 180 * index,
+              index,
+            })}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}

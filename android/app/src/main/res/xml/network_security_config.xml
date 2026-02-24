@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Network Security Configuration
-
-  TEMPORARY: Allowing HTTP for api.truckast.ai because server lacks SSL.
-  TODO: Remove cleartextTrafficPermitted once HTTPS is configured on server.
+  Server now supports HTTPS - cleartext kept for local development only.
 -->
 <network-security-config>
-    <!-- Base config - trust system CAs for HTTPS -->
-    <base-config cleartextTrafficPermitted="false">
+    <!-- Base config - allow cleartext for local development -->
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
@@ -29,6 +27,6 @@
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">10.0.2.2</domain>
         <domain includeSubdomains="true">10.0.3.2</domain>
-        <domain includeSubdomains="true">192.168.1.6</domain>
+        <domain includeSubdomains="true">192.168.1.3</domain>
     </domain-config>
 </network-security-config>

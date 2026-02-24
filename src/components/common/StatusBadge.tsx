@@ -20,15 +20,24 @@ interface StatusBadgeProps {
 
 const statusLabels: Record<string, string> = {
   NORMAL: 'Normal',
+  Normal: 'Normal',
   WILL_CALL: 'Will Call',
+  'Will Call': 'Will Call',
   WEATHER_PERMITTING: 'Weather',
   HOLD: 'On Hold',
+  'Hold Delivery': 'On Hold',
   COMPLETED: 'Completed',
+  Completed: 'Completed',
   WAIT_LIST: 'Wait List',
+  'Wait List': 'Wait List',
   PRE_POUR: 'Pre-Pour',
   IN_PROCESS: 'In Progress',
+  'In Progress': 'In Progress',
   CANCELLED: 'Cancelled',
+  Canceled: 'Cancelled',
+  Cancelled: 'Cancelled',
   DELAYED: 'Delayed',
+  Delayed: 'Delayed',
   ENRT: 'En Route',
   ONSIT: 'On Site',
   LOADING: 'Loading',
@@ -38,15 +47,24 @@ const statusLabels: Record<string, string> = {
 
 const statusIcons: Record<string, string> = {
   NORMAL: 'checkbox-marked-circle-outline',
+  Normal: 'checkbox-marked-circle-outline',
   WILL_CALL: 'phone-outline',
+  'Will Call': 'phone-outline',
   WEATHER_PERMITTING: 'weather-partly-cloudy',
   HOLD: 'pause-circle-outline',
+  'Hold Delivery': 'pause-circle-outline',
   COMPLETED: 'check-circle-outline',
+  Completed: 'check-circle-outline',
   WAIT_LIST: 'clock-outline',
+  'Wait List': 'clock-outline',
   PRE_POUR: 'timer-sand',
   IN_PROCESS: 'progress-clock',
+  'In Progress': 'progress-clock',
   CANCELLED: 'close-circle-outline',
+  Canceled: 'close-circle-outline',
+  Cancelled: 'close-circle-outline',
   DELAYED: 'alert-circle-outline',
+  Delayed: 'alert-circle-outline',
   ENRT: 'truck-delivery-outline',
   ONSIT: 'map-marker-check-outline',
   LOADING: 'package-variant',
@@ -61,8 +79,12 @@ interface StatusColorConfig {
 }
 
 const statusColors: Record<string, StatusColorConfig> = {
-
   DELAYED: {
+    text: colors.statusBadge.red.text,
+    textDark: colors.statusBadge.red.textDark,
+    bgOpacity: 0.1,
+  },
+  Delayed: {
     text: colors.statusBadge.red.text,
     textDark: colors.statusBadge.red.textDark,
     bgOpacity: 0.1,
@@ -72,49 +94,71 @@ const statusColors: Record<string, StatusColorConfig> = {
     textDark: colors.statusBadge.red.textDark,
     bgOpacity: 0.1,
   },
-
+  Canceled: {
+    text: colors.statusBadge.red.text,
+    textDark: colors.statusBadge.red.textDark,
+    bgOpacity: 0.1,
+  },
+  Cancelled: {
+    text: colors.statusBadge.red.text,
+    textDark: colors.statusBadge.red.textDark,
+    bgOpacity: 0.1,
+  },
   PRE_POUR: {
     text: colors.statusBadge.amber.text,
     textDark: colors.statusBadge.amber.textDark,
     bgOpacity: 0.1,
   },
-
   WILL_CALL: {
     text: colors.statusBadge.yellow.text,
     textDark: colors.statusBadge.yellow.textDark,
-    bgOpacity: 0.12,
+    bgOpacity: 0.15,
   },
-
+  'Will Call': {
+    text: colors.statusBadge.yellow.text,
+    textDark: colors.statusBadge.yellow.textDark,
+    bgOpacity: 0.15,
+  },
   WEATHER_PERMITTING: {
     text: colors.statusBadge.blue.text,
     textDark: colors.statusBadge.blue.textDark,
     bgOpacity: 0.1,
   },
-
   COMPLETED: {
     text: colors.statusBadge.green.text,
     textDark: colors.statusBadge.green.textDark,
     bgOpacity: 0.1,
   },
-
+  Completed: {
+    text: colors.statusBadge.green.text,
+    textDark: colors.statusBadge.green.textDark,
+    bgOpacity: 0.1,
+  },
   IN_PROCESS: {
     text: colors.statusBadge.green.text,
     textDark: colors.statusBadge.green.textDark,
     bgOpacity: 0.1,
   },
-
+  'In Progress': {
+    text: colors.statusBadge.green.text,
+    textDark: colors.statusBadge.green.textDark,
+    bgOpacity: 0.1,
+  },
   ONSIT: {
     text: colors.statusBadge.blue.text,
     textDark: colors.statusBadge.blue.textDark,
     bgOpacity: 0.1,
   },
-
   NORMAL: {
     text: colors.statusBadge.green.text,
     textDark: colors.statusBadge.green.textDark,
     bgOpacity: 0.1,
   },
-
+  Normal: {
+    text: colors.statusBadge.green.text,
+    textDark: colors.statusBadge.green.textDark,
+    bgOpacity: 0.1,
+  },
   ENRT: {
     text: colors.statusBadge.purple.text,
     textDark: colors.statusBadge.purple.textDark,
@@ -125,14 +169,22 @@ const statusColors: Record<string, StatusColorConfig> = {
     textDark: colors.statusBadge.purple.textDark,
     bgOpacity: 0.1,
   },
-
   HOLD: {
     text: colors.statusBadge.red.text,
     textDark: colors.statusBadge.red.textDark,
     bgOpacity: 0.1,
   },
-
+  'Hold Delivery': {
+    text: colors.statusBadge.red.text,
+    textDark: colors.statusBadge.red.textDark,
+    bgOpacity: 0.1,
+  },
   WAIT_LIST: {
+    text: colors.statusBadge.gray.text,
+    textDark: colors.statusBadge.gray.textDark,
+    bgOpacity: 0.12,
+  },
+  'Wait List': {
     text: colors.statusBadge.gray.text,
     textDark: colors.statusBadge.gray.textDark,
     bgOpacity: 0.12,
@@ -228,6 +280,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       ]}>
       <Icon name={iconName} size={iconSize} color={textColor} />
       <Text
+        numberOfLines={1}
         style={[
           styles.text,
           {
@@ -244,13 +297,18 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
 const styles = StyleSheet.create({
   badge: {
-    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'center',
+    flexShrink: 0,
+    flexGrow: 0,
+    flexBasis: 'auto',
   },
   text: {
     fontFamily: fontFamily.semiBold,
     textTransform: 'uppercase',
+    flexShrink: 0,
+    flexGrow: 0,
   },
 });
 

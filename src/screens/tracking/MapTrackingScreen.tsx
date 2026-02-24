@@ -14,7 +14,7 @@ import Mapbox from '@rnmapbox/maps';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../navigation/types';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text, Icon } from '../../components/common';
+import { Text, Icon, TruckLoader } from '../../components/common';
 import { colors } from '../../theme/colors';
 import { spacing, ms, iconSizes } from '../../utils/responsive';
 import { useTrucks, useDirections } from '../../hooks';
@@ -47,6 +47,23 @@ const STATUS_COLORS: Record<string, string> = {
   idle: colors.grey[50],
 };
 
+// Default center coordinates (Oklahoma) - used when no valid coordinates available
+const DEFAULT_CENTER: [number, number] = [-97.5164, 35.4676];
+
+// Validate coordinates to prevent showing ocean/water
+const isValidCoordinate = (lat: number, lng: number): boolean => {
+  // Check for NaN, null, undefined
+  if (lat === null || lat === undefined || lng === null || lng === undefined) return false;
+  if (isNaN(lat) || isNaN(lng)) return false;
+  // Check valid range
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+  // Check for 0,0 (ocean) - likely invalid data
+  if (lat === 0 && lng === 0) return false;
+  // Check for very small values that are likely invalid
+  if (Math.abs(lat) < 0.001 && Math.abs(lng) < 0.001) return false;
+  return true;
+};
+
 type MapTrackingRouteProp = RouteProp<RootStackParamList, 'MapTracking'>;
 
 export const MapTrackingScreen: React.FC = () => {
@@ -55,7 +72,9 @@ export const MapTrackingScreen: React.FC = () => {
   const route = useRoute<MapTrackingRouteProp>();
   const themeColors = isDark ? colors.dark : colors.light;
   const cameraRef = useRef<Mapbox.Camera>(null);
+  const mapRef = useRef<Mapbox.MapView>(null);
   const [showRoute, setShowRoute] = useState(false);
+  const [currentZoom, setCurrentZoom] = useState(15);
 
   const {
     latitude: paramLatitude,
@@ -77,7 +96,7 @@ export const MapTrackingScreen: React.FC = () => {
 
   const dateRange = useMemo(() => getDateRange(), []);
 
-  const { trucks } = useTrucks({
+  const { trucks, isLoading: isTrucksLoading } = useTrucks({
     pageSize: 10,
     sortBy: 'created_at',
     sortOrder: 'desc',
@@ -85,24 +104,40 @@ export const MapTrackingScreen: React.FC = () => {
     dateTo: dateRange.dateTo,
   });
 
+  const [mapReady, setMapReady] = useState(false);
+
   const getMapCenter = useMemo((): [number, number] => {
 
     if (paramLatitude && paramLongitude) {
-      return [parseFloat(paramLongitude), parseFloat(paramLatitude)];
+      const lat = parseFloat(paramLatitude);
+      const lng = parseFloat(paramLongitude);
+      if (isValidCoordinate(lat, lng)) {
+        return [lng, lat];
+      }
     }
 
     if (paramJobLatitude && paramJobLongitude) {
-      return [parseFloat(paramJobLongitude), parseFloat(paramJobLatitude)];
+      const lat = parseFloat(paramJobLatitude);
+      const lng = parseFloat(paramJobLongitude);
+      if (isValidCoordinate(lat, lng)) {
+        return [lng, lat];
+      }
     }
 
     if (paramPlantLatitude && paramPlantLongitude) {
-      return [parseFloat(paramPlantLongitude), parseFloat(paramPlantLatitude)];
+      const lat = parseFloat(paramPlantLatitude);
+      const lng = parseFloat(paramPlantLongitude);
+      if (isValidCoordinate(lat, lng)) {
+        return [lng, lat];
+      }
     }
 
-    if (trucks.length === 0) return [-98.6698, 35.5306];
+    // Filter trucks with valid coordinates
+    const validTrucks = trucks.filter(t => isValidCoordinate(t.latitude, t.longitude));
+    if (validTrucks.length === 0) return DEFAULT_CENTER;
 
-    const lats = trucks.map((item) => item.latitude);
-    const longs = trucks.map((item) => item.longitude);
+    const lats = validTrucks.map((item) => item.latitude);
+    const longs = validTrucks.map((item) => item.longitude);
 
     const minLat = Math.min(...lats);
     const maxLat = Math.max(...lats);
@@ -112,34 +147,13 @@ export const MapTrackingScreen: React.FC = () => {
     return [(minLong + maxLong) / 2, (minLat + maxLat) / 2];
   }, [trucks, paramLatitude, paramLongitude, paramJobLatitude, paramJobLongitude, paramPlantLatitude, paramPlantLongitude]);
 
-  useEffect(() => {
-    if (cameraRef.current) {
-
-      if (paramLatitude && paramLongitude) {
-        cameraRef.current.setCamera({
-          centerCoordinate: [parseFloat(paramLongitude), parseFloat(paramLatitude)],
-          zoomLevel: 14,
-          animationDuration: 1000,
-        });
-      }
-
-      else if (paramJobLatitude && paramJobLongitude) {
-        cameraRef.current.setCamera({
-          centerCoordinate: [parseFloat(paramJobLongitude), parseFloat(paramJobLatitude)],
-          zoomLevel: 12,
-          animationDuration: 1000,
-        });
-      }
-    }
-  }, [paramLatitude, paramLongitude, paramJobLatitude, paramJobLongitude]);
-
   const highlightedTruck = useMemo(() => {
     if (!paramLatitude || !paramLongitude) return null;
 
     const lat = parseFloat(paramLatitude);
     const lng = parseFloat(paramLongitude);
 
-    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    if (!isValidCoordinate(lat, lng)) {
       return null;
     }
 
@@ -161,7 +175,7 @@ export const MapTrackingScreen: React.FC = () => {
     const lat = parseFloat(paramPlantLatitude);
     const lng = parseFloat(paramPlantLongitude);
 
-    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    if (!isValidCoordinate(lat, lng)) {
       return null;
     }
 
@@ -172,13 +186,19 @@ export const MapTrackingScreen: React.FC = () => {
     };
   }, [paramPlantLatitude, paramPlantLongitude, paramPlantName]);
 
+  // Check if two locations are near each other (within ~500 meters)
+  const areLocationsNear = (lat1: number, lng1: number, lat2: number, lng2: number): boolean => {
+    const threshold = 0.005; // approximately 500 meters
+    return Math.abs(lat1 - lat2) < threshold && Math.abs(lng1 - lng2) < threshold;
+  };
+
   const jobLocation = useMemo(() => {
     if (!paramJobLatitude || !paramJobLongitude) return null;
 
     const lat = parseFloat(paramJobLatitude);
     const lng = parseFloat(paramJobLongitude);
 
-    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    if (!isValidCoordinate(lat, lng)) {
       return null;
     }
 
@@ -189,6 +209,17 @@ export const MapTrackingScreen: React.FC = () => {
       customerName: paramCustomerName,
     };
   }, [paramJobLatitude, paramJobLongitude, paramDestination, paramCustomerName]);
+
+  // Check if truck and job location are near each other
+  const isTruckNearJob = useMemo(() => {
+    if (!highlightedTruck || !jobLocation) return false;
+    return areLocationsNear(
+      highlightedTruck.latitude,
+      highlightedTruck.longitude,
+      jobLocation.latitude,
+      jobLocation.longitude
+    );
+  }, [highlightedTruck, jobLocation]);
 
   const {
     routeGeoJSON,
@@ -225,6 +256,46 @@ export const MapTrackingScreen: React.FC = () => {
 
   const displayRouteGeoJSON = routeGeoJSON || fallbackRouteGeoJSON;
 
+  // Calculate bounds to fit all locations (truck, plant, job) with offset padding
+  const allLocationsBounds = useMemo(() => {
+    const locations: { lat: number; lng: number }[] = [];
+
+    if (highlightedTruck) {
+      locations.push({ lat: highlightedTruck.latitude, lng: highlightedTruck.longitude });
+    }
+    if (plantLocation) {
+      locations.push({ lat: plantLocation.latitude, lng: plantLocation.longitude });
+    }
+    if (jobLocation) {
+      locations.push({ lat: jobLocation.latitude, lng: jobLocation.longitude });
+    }
+
+    // Need at least 1 location
+    if (locations.length === 0) return null;
+
+    const lats = locations.map(l => l.lat);
+    const lngs = locations.map(l => l.lng);
+
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+
+    // Calculate dynamic padding based on the distance between points
+    const latDiff = maxLat - minLat;
+    const lngDiff = maxLng - minLng;
+
+    // Use larger padding for closer points, smaller for distant points
+    const basePadding = Math.max(latDiff, lngDiff) * 0.3;
+    const minPadding = 0.01; // Minimum padding
+    const padding = Math.max(basePadding, minPadding);
+
+    return {
+      ne: [maxLng + padding, maxLat + padding] as [number, number],
+      sw: [minLng - padding, minLat - padding] as [number, number],
+    };
+  }, [highlightedTruck, plantLocation, jobLocation]);
+
   const routeBounds = useMemo(() => {
     if (!plantLocation || !jobLocation) return null;
 
@@ -240,21 +311,78 @@ export const MapTrackingScreen: React.FC = () => {
     };
   }, [plantLocation, jobLocation]);
 
-  useEffect(() => {
-    if (routeBounds && cameraRef.current) {
+  // Calculate initial camera bounds - used as Camera prop directly
+  const initialCameraBounds = useMemo(() => {
+    if (!allLocationsBounds) return undefined;
 
+    return {
+      ne: allLocationsBounds.ne,
+      sw: allLocationsBounds.sw,
+      paddingTop: 100,
+      paddingRight: 80,
+      paddingBottom: 250,
+      paddingLeft: 80,
+    };
+  }, [allLocationsBounds]);
+
+  // Determine if we should use bounds or centerCoordinate
+  const hasAnyLocation = useMemo(() => {
+    return !!(highlightedTruck || plantLocation || jobLocation);
+  }, [highlightedTruck, plantLocation, jobLocation]);
+
+  const hasMultipleLocations = useMemo(() => {
+    let count = 0;
+    if (highlightedTruck) count++;
+    if (plantLocation) count++;
+    if (jobLocation) count++;
+    return count >= 2;
+  }, [highlightedTruck, plantLocation, jobLocation]);
+
+  // Only set single location camera if we don't have bounds to show
+  useEffect(() => {
+    if (cameraRef.current && !allLocationsBounds) {
+      if (paramLatitude && paramLongitude) {
+        const lat = parseFloat(paramLatitude);
+        const lng = parseFloat(paramLongitude);
+        if (isValidCoordinate(lat, lng)) {
+          cameraRef.current.setCamera({
+            centerCoordinate: [lng, lat],
+            zoomLevel: 14,
+            animationDuration: 1000,
+          });
+        }
+      } else if (paramJobLatitude && paramJobLongitude) {
+        const lat = parseFloat(paramJobLatitude);
+        const lng = parseFloat(paramJobLongitude);
+        if (isValidCoordinate(lat, lng)) {
+          cameraRef.current.setCamera({
+            centerCoordinate: [lng, lat],
+            zoomLevel: 12,
+            animationDuration: 1000,
+          });
+        }
+      }
+    }
+  }, [paramLatitude, paramLongitude, paramJobLatitude, paramJobLongitude, allLocationsBounds]);
+
+  // Fit bounds when map is ready to show all markers (truck, plant, job)
+  useEffect(() => {
+    if (mapReady && allLocationsBounds && cameraRef.current) {
+      // Use longer delay to ensure map is fully rendered
       const timer = setTimeout(() => {
-        cameraRef.current?.fitBounds(
-          routeBounds.ne,
-          routeBounds.sw,
-          [80, 80, 200, 80],
-          1000
-        );
+        if (cameraRef.current && allLocationsBounds) {
+          cameraRef.current.fitBounds(
+            allLocationsBounds.ne,
+            allLocationsBounds.sw,
+            [100, 80, 250, 80], // [top, right, bottom, left] padding
+            1000 // animation duration
+          );
+        }
       }, 500);
 
       return () => clearTimeout(timer);
     }
-  }, [routeBounds]);
+  }, [mapReady, allLocationsBounds]);
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -265,17 +393,31 @@ export const MapTrackingScreen: React.FC = () => {
       />
       <View style={styles.mapContainer}>
         <Mapbox.MapView
+          ref={mapRef}
           style={styles.map}
           styleURL={isDark ? MAP_STYLES.dark : MAP_STYLES.light}
           logoEnabled={false}
           attributionEnabled={false}
+          onDidFinishLoadingMap={() => setMapReady(true)}
+          onCameraChanged={(state) => {
+            if (state?.properties?.zoom) {
+              setCurrentZoom(state.properties.zoom);
+            }
+          }}
         >
           <Mapbox.Camera
             ref={cameraRef}
-            defaultSettings={{
-              centerCoordinate: getMapCenter,
-              zoomLevel: 10,
-            }}
+            {...(hasAnyLocation && initialCameraBounds
+              ? {
+                  bounds: initialCameraBounds,
+                }
+              : {
+                  centerCoordinate: getMapCenter,
+                  zoomLevel: 12,
+                }
+            )}
+            animationMode="flyTo"
+            animationDuration={0}
           />
           {showRoute && displayRouteGeoJSON && (
             <Mapbox.ShapeSource id="routeLine" shape={displayRouteGeoJSON}>
@@ -299,7 +441,28 @@ export const MapTrackingScreen: React.FC = () => {
               />
             </Mapbox.ShapeSource>
           )}
-          {trucks.map((truck) => {
+          {/* Plant location - render first (bottom layer) */}
+          {plantLocation && (
+            <Mapbox.MarkerView
+              key="plant-location"
+              coordinate={[plantLocation.longitude, plantLocation.latitude]}
+              anchor={{ x: 0.5, y: 1 }}
+            >
+              <View style={styles.markerContainer}>
+                <View style={styles.plantMarker}>
+                  <Icon name="truck" size={ms(18)} color={colors.common.white} />
+                </View>
+                <View style={styles.plantMarkerArrow} />
+                <View style={styles.plantMarkerLabel}>
+                  <Text variant="captionSmall" style={styles.plantMarkerText} numberOfLines={1}>
+                    {plantLocation.plantName || 'Plant Location'}
+                  </Text>
+                </View>
+              </View>
+            </Mapbox.MarkerView>
+          )}
+          {/* Trucks - render second */}
+          {trucks.filter(truck => isValidCoordinate(truck.latitude, truck.longitude)).map((truck) => {
             const truckImage = truckImagesByStatus[truck.status] || truckImagesByStatus.ticketed;
             return (
               <Mapbox.MarkerView
@@ -315,6 +478,7 @@ export const MapTrackingScreen: React.FC = () => {
               </Mapbox.MarkerView>
             );
           })}
+          {/* Highlighted truck - render after other markers so it's visible on top */}
           {highlightedTruck && (
             <Mapbox.MarkerView
               key="highlighted-truck"
@@ -340,25 +504,7 @@ export const MapTrackingScreen: React.FC = () => {
               </TouchableOpacity>
             </Mapbox.MarkerView>
           )}
-          {plantLocation && (
-            <Mapbox.MarkerView
-              key="plant-location"
-              coordinate={[plantLocation.longitude, plantLocation.latitude]}
-              anchor={{ x: 0.5, y: 1 }}
-            >
-              <View style={styles.markerContainer}>
-                <View style={styles.plantMarker}>
-                  <Icon name="truck" size={ms(18)} color={colors.common.white} />
-                </View>
-                <View style={styles.plantMarkerArrow} />
-                <View style={styles.plantMarkerLabel}>
-                  <Text variant="captionSmall" style={styles.plantMarkerText} numberOfLines={1}>
-                    {plantLocation.plantName || 'Plant Location'}
-                  </Text>
-                </View>
-              </View>
-            </Mapbox.MarkerView>
-          )}
+          {/* Job location - render LAST (top layer) so it's always visible */}
           {jobLocation && (
             <Mapbox.MarkerView
               key="job-location"
@@ -434,24 +580,30 @@ export const MapTrackingScreen: React.FC = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.mapControlButton, { backgroundColor: themeColors.card }]}
-            onPress={() => cameraRef.current?.zoomTo(12, 300)}
+            onPress={() => {
+              const newZoom = Math.min(currentZoom + 1, 18);
+              cameraRef.current?.zoomTo(newZoom, 300);
+            }}
           >
             <Icon name="plus" size={ms(18)} color={themeColors.text.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.mapControlButton, { backgroundColor: themeColors.card }]}
-            onPress={() => cameraRef.current?.zoomTo(8, 300)}
+            onPress={() => {
+              const newZoom = Math.max(currentZoom - 1, 3);
+              cameraRef.current?.zoomTo(newZoom, 300);
+            }}
           >
             <Icon name="minus" size={ms(18)} color={themeColors.text.primary} />
           </TouchableOpacity>
-          {routeBounds && (
+          {allLocationsBounds && (
             <TouchableOpacity
               style={[styles.mapControlButton, { backgroundColor: themeColors.card }]}
               onPress={() => {
                 cameraRef.current?.fitBounds(
-                  routeBounds.ne,
-                  routeBounds.sw,
-                  [80, 80, 200, 80],
+                  allLocationsBounds.ne,
+                  allLocationsBounds.sw,
+                  [100, 80, 250, 80], // [top, right, bottom, left] padding
                   1000
                 );
               }}
@@ -494,6 +646,17 @@ export const MapTrackingScreen: React.FC = () => {
             <Text variant="caption" style={{ color: colors.error.main, marginLeft: spacing.xs, flex: 1 }}>
               {routeErrorMessage}
             </Text>
+          </View>
+        )}
+
+        {/* Loading overlay - shows while map and data are loading */}
+        {(!mapReady || isTrucksLoading) && (
+          <View style={[styles.loadingOverlay, { backgroundColor: themeColors.background }]}>
+            <TruckLoader
+              size={120}
+              message="Loading map..."
+              color={isDark ? 'light' : 'dark'}
+            />
           </View>
         )}
       </View>
@@ -739,7 +902,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: ms(10),
-    paddingVertical: ms(6),
+    paddingVertical: ms(10),
     borderRadius: ms(20),
     shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 2 },
@@ -747,7 +910,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
     gap: ms(6),
-    marginBottom: ms(12),
   },
   routeToggleText: {
     fontSize: ms(12),
@@ -775,7 +937,7 @@ const styles = StyleSheet.create({
   routeInfoCard: {
     position: 'absolute',
     left: spacing.md,
-    top: height * 0.15,
+    top: height * 0.21,
     borderRadius: ms(12),
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -812,12 +974,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: spacing.md,
     right: spacing.md,
-    top: height * 0.15,
+    top: height * 0.21,
     borderRadius: ms(8),
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
   },
 });
 

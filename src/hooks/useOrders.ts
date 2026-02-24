@@ -6,6 +6,7 @@ import {
   ApiOrder,
   OrdersPagination,
   OrdersStatusCounts,
+  OrdersTabCounts,
 } from '../types/order';
 import { AxiosError } from 'axios';
 import { useMemo, useEffect, useRef } from 'react';
@@ -43,35 +44,32 @@ export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
       }
       return undefined;
     },
-    staleTime: 0, // Always refetch when params change
+    staleTime: 2 * 60 * 1000, // Cache data for 2 minutes
     gcTime: 10 * 60 * 1000,
     retry: 1,
-    refetchOnMount: 'always',
+    refetchOnMount: true, // Only refetch if stale
     refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData, // Show previous data while loading new
   });
 
-  // Reset and refetch when filter params change
+  // Invalidate query when filter params change (but don't reset - keep showing old data)
   useEffect(() => {
     if (prevParamsRef.current !== null && prevParamsRef.current !== paramsKey) {
-      console.log('🔄 Filter params changed, resetting query...');
-      // Invalidate the query to force a fresh fetch
-      queryClient.resetQueries({ queryKey: ['orders'] });
+      // Invalidate to trigger refetch, but placeholderData will show previous results
+      queryClient.invalidateQueries({ queryKey: ['orders', params] });
     }
     prevParamsRef.current = paramsKey;
-  }, [paramsKey, queryClient]);
+  }, [paramsKey, params, queryClient]);
 
 
   const orders: ApiOrder[] = useMemo(() => {
     if (!query.data?.pages) return [];
 
-
-    console.log('📦 Orders API Response:', JSON.stringify(query.data.pages, null, 2));
-
     const allOrders = query.data.pages.flatMap((page) =>
       page.success ? page.data.orders : []
     );
 
-
+    // Remove duplicates (in case of overlapping pages)
     const uniqueOrders = allOrders.filter(
       (order, index, self) =>
         index === self.findIndex((o) => o.order_id === order.order_id)
@@ -94,6 +92,12 @@ export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
     return firstPage.success ? firstPage.data.status_counts : null;
   }, [query.data?.pages]);
 
+  const tabCounts: OrdersTabCounts | null = useMemo(() => {
+    if (!query.data?.pages?.length) return null;
+    const firstPage = query.data.pages[0];
+    return firstPage.success ? firstPage.data.tab_counts || null : null;
+  }, [query.data?.pages]);
+
   const errorMessage =
     query.error?.response?.data?.message ||
     (query.error ? 'Failed to load orders' : null);
@@ -107,6 +111,7 @@ export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
     orders,
     pagination,
     statusCounts,
+    tabCounts,
     isLoading: isInitialLoading,
     isFilterLoading,
     isError: query.isError,

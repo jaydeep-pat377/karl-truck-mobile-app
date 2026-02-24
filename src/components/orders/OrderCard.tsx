@@ -86,7 +86,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   );
 };
 
-export const OrderCard: React.FC<OrderCardProps> = ({
+export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   order,
   showDetails = true,
   onPress,
@@ -126,7 +126,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   };
 
   const getEvaporationRate = () => {
-
     if (order.weather?.evaporationRate !== undefined && order.weather?.evaporationRate !== null) {
       return order.weather.evaporationRate;
     }
@@ -138,6 +137,54 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   };
 
   const evaporationRateValue = getEvaporationRate();
+
+  // Get weather data from either format
+  const getWeatherData = () => {
+    const weatherData = order.weather_data || order.weather;
+    if (!weatherData) return null;
+
+    return {
+      description: weatherData.weather_description || weatherData.description || '',
+      temperature: weatherData.temperature_fahrenheit ?? weatherData.temperature ?? null,
+      windSpeed: weatherData.wind_speed_mph ?? weatherData.windSpeed ?? null,
+      humidity: weatherData.humidity ?? null,
+      condition: weatherData.weather_condition || weatherData.condition || '',
+    };
+  };
+
+  const weatherData = getWeatherData();
+
+  // Get evaporation rate background color
+  const getEvaporationBgColor = (rate: number | null) => {
+    if (rate === null || rate === undefined) return colors.grey[40];
+    if (rate < 0.10) return colors.success.main; // green
+    if (rate < 0.20) return colors.warning.main; // yellow
+    if (rate < 0.30) return '#FF6B6B'; // light red
+    if (rate < 0.40) return '#E53935'; // medium red
+    return '#B71C1C'; // dark red
+  };
+
+  // Get evaporation rate text label
+  const getEvaporationText = (rate: number | null) => {
+    if (rate === null || rate === undefined) return '';
+    if (rate < 0.10) return 'Low';
+    if (rate < 0.20) return 'Moderate';
+    if (rate < 0.30) return 'High';
+    if (rate < 0.40) return 'Very High';
+    return 'Severe';
+  };
+
+  // Get weather icon name based on condition
+  const getWeatherIconName = (condition: string) => {
+    const conditionLower = condition.toLowerCase();
+    if (conditionLower.includes('cloud')) return 'weather-cloudy';
+    if (conditionLower.includes('rain')) return 'weather-rainy';
+    if (conditionLower.includes('sun') || conditionLower.includes('clear')) return 'weather-sunny';
+    if (conditionLower.includes('storm') || conditionLower.includes('thunder')) return 'weather-lightning';
+    if (conditionLower.includes('snow')) return 'weather-snowy';
+    if (conditionLower.includes('fog') || conditionLower.includes('mist')) return 'weather-fog';
+    return 'weather-partly-cloudy';
+  };
 
   return (
     <Card
@@ -161,59 +208,40 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         <View style={styles.cardTouchable}>
         <View style={styles.cardContent}>
           <View style={styles.headerRow}>
-            <View style={styles.headerLeft}>
-              <StatusBadge status={order.status} size="xsmall" customColor={progressBarColor} />
-              <Text
-                variant="captionSmall"
-                color="secondary"
-                numberOfLines={1}
-                ellipsizeMode="tail"
-                style={[styles.orderId, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
-                #{order.orderCode}
-              </Text>
-              <Text
-                variant="captionSmall"
-                numberOfLines={1}
-                ellipsizeMode="tail"
-                style={[styles.dateTime, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
-                {formatDate(order.scheduledDate)} • {order.scheduledTime}
-              </Text>
+            <View style={styles.statusBadgeContainer}>
+              <StatusBadge
+                status={order.status}
+                size="xsmall"
+                customColor={progressBarColor}
+              />
             </View>
-            {evaporationRateValue !== null && evaporationRateValue !== undefined && (
-              <View style={[
-                styles.evaporationRatePill,
-                {
-                  backgroundColor: evaporationRateValue < 0.1
-                    ? colors.dashboard.statGreen
-                    : evaporationRateValue < 0.25
-                      ? colors.dashboard.statYellow
-                      : colors.dashboard.statRed,
-                }
-              ]}>
-                <Icon
-                  name="waves"
-                  size={ms(10)}
-                  color={evaporationRateValue < 0.1 || evaporationRateValue >= 0.25
-                    ? '#FFFFFF'
-                    : '#000000'}
-                />
-                <Text
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.8}
-                  style={[
-                    styles.evaporationRateText,
-                    {
-                      color: evaporationRateValue < 0.1 || evaporationRateValue >= 0.25
-                        ? '#FFFFFF'
-                        : '#000000',
-                    }
-                  ]}>
-                  Evap. Rt: {evaporationRateValue.toFixed(2)}
-                </Text>
-              </View>
-            )}
+            <Text
+              variant="captionSmall"
+              color="secondary"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={[styles.orderId, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
+              {order.orderCode}
+            </Text>
+            <Text
+              variant="captionSmall"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={[styles.dateTime, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
+              {formatDate(order.scheduledDate)} • {order.scheduledTime}
+            </Text>
+            <TouchableOpacity
+              style={styles.favoriteButton}
+              onPress={onFavoritePress}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Icon
+                name={isFavorite ? 'star' : 'star-outline'}
+                size={ms(18)}
+                color={isFavorite ? colors.warning.main : (isDark ? colors.grey[50] : colors.grey[40])}
+              />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.titleRow}>
@@ -235,17 +263,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               style={[styles.locationText, { color: themeColors.text.secondary }]}>
               {order.deliveryAddress}
             </Text>
-
-            {(order.weather || isWeatherLoading) && (
-              <WeatherEvaporationPill
-                weather={order.weather}
-                evaporationRate={evaporationRateValue}
-                onPress={onWeatherPress}
-                isLoading={isWeatherLoading}
-                size="small"
-                showEvaporationRate={false}
-              />
-            )}
           </View>
 
           <View style={styles.productRow}>
@@ -291,58 +308,81 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 </Text>
               </View>
 
-              <View style={styles.metricsRow}>
-                <View style={styles.metricItem}>
-                  <ConcreteTruck width={ms(16)} height={ms(12)} color={themeColors.text.secondary} />
-                  <Text variant="captionSmall" color="secondary">
-                    {order.completedLoads || 0}/{order.totalLoads || 0}
-                  </Text>
-                </View>
-
-                <View style={[styles.metricDot, { backgroundColor: themeColors.text.hint }]} />
-
-                {order.estimatedFinishTime && (
-                  <>
-                    <View style={styles.metricItem}>
-                      <Text
-                        style={styles.ESTTitle}
-                        variant="captionSmall"
-                        color="secondary">
-                        {`EST ${order.estimatedFinishTime}`}
-                      </Text>
-                    </View>
-                  </>
-                )}
-
-                {order.distance && (
-                  <>
-                    <View style={[styles.metricDot, { backgroundColor: themeColors.text.hint }]} />
-                    <View style={styles.metricItem}>
-                      <Icon
-                        name="map-marker-distance"
-                        size={ms(12)}
-                        color={themeColors.text.hint}
-                      />
-                      <Text variant="captionSmall" color="hint">
-                        {order.distance}
-                      </Text>
-                    </View>
-                  </>
-                )}
-
-                <TouchableOpacity
-                  style={styles.favoriteButtonBottom}
-                  onPress={onFavoritePress}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Icon
-                    name={isFavorite ? 'star' : 'star-outline'}
-                    size={ms(20)}
-                    color={isFavorite ? colors.warning.main : (isDark ? colors.grey[50] : colors.grey[40])}
-                  />
-                </TouchableOpacity>
+              <View style={styles.loadsRow}>
+                <ConcreteTruck width={ms(16)} height={ms(12)} color={themeColors.text.secondary} />
+                <Text variant="captionSmall" color="secondary">
+                  {order.completedLoads || 0}/{order.totalLoads || 0}
+                </Text>
               </View>
+
+              {/* Weather Info Row */}
+              {weatherData && (
+                <View style={styles.weatherInfoRow}>
+                  <Icon
+                    name="weather-partly-cloudy"
+                    size={ms(14)}
+                    color={colors.info.main}
+                  />
+                  <Text
+                    variant="captionSmall"
+                    numberOfLines={1}
+                    style={[styles.weatherDescText, { color: themeColors.text.secondary }]}>
+                    Partly cloudy
+                  </Text>
+                  {weatherData.temperature !== null && (
+                    <>
+                      <View style={[styles.weatherDot, { backgroundColor: themeColors.text.hint }]} />
+                      <Text variant="captionSmall" style={{ color: themeColors.text.secondary }}>
+                        {weatherData.temperature}°F
+                      </Text>
+                    </>
+                  )}
+                  {weatherData.windSpeed !== null && (
+                    <>
+                      <View style={[styles.weatherDot, { backgroundColor: themeColors.text.hint }]} />
+                      <Text variant="captionSmall" style={{ color: themeColors.text.secondary }}>
+                        {weatherData.windSpeed} mph wind
+                      </Text>
+                    </>
+                  )}
+                  {weatherData.humidity !== null && (
+                    <>
+                      <View style={[styles.weatherDot, { backgroundColor: themeColors.text.hint }]} />
+                      <Text variant="captionSmall" style={{ color: themeColors.text.secondary }}>
+                        {weatherData.humidity}% RH
+                      </Text>
+                    </>
+                  )}
+                  {evaporationRateValue !== null && (
+                    <TouchableOpacity
+                      onPress={onWeatherPress}
+                      activeOpacity={0.7}
+                      style={[
+                        styles.evapRateBadge,
+                        { backgroundColor: getEvaporationBgColor(evaporationRateValue) }
+                      ]}>
+                      <Text style={styles.evapRateText}>
+                        {getEvaporationText(evaporationRateValue)}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {order.distance && (
+                <View style={styles.metricsRow}>
+                  <View style={styles.metricItem}>
+                    <Icon
+                      name="map-marker-distance"
+                      size={ms(12)}
+                      color={themeColors.text.hint}
+                    />
+                    <Text variant="captionSmall" color="hint">
+                      {order.distance}
+                    </Text>
+                  </View>
+                </View>
+              )}
             </>
           )}
         </View>
@@ -389,7 +429,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       </View>
     </Card>
   );
-};
+});
 
 const styles = StyleSheet.create({
   card: {
@@ -411,26 +451,22 @@ const styles = StyleSheet.create({
     paddingTop: ms(8),
     paddingBottom: ms(8),
   },
-  favoriteButtonBottom: {
-    marginLeft: 'auto',
-    paddingLeft: ms(8),
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: ms(2),
+    marginBottom: ms(4),
     gap: ms(6),
   },
-  headerLeft: {
-    flexDirection: 'row',
+  statusBadgeContainer: {
+    flexShrink: 0,
+    flexGrow: 0,
+  },
+  favoriteButton: {
+    marginLeft: 'auto',
+    paddingLeft: ms(4),
+    justifyContent: 'center',
     alignItems: 'center',
-    flex: 1,
-    gap: ms(5),
-    minWidth: 0,
-    overflow: 'hidden',
+    flexShrink: 0,
   },
   orderId: {
     fontSize: ms(11),
@@ -440,24 +476,7 @@ const styles = StyleSheet.create({
   dateTime: {
     fontSize: ms(10),
     fontFamily: fontFamily.medium,
-    flexShrink: 2,
-  },
-  evaporationRatePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: ms(5),
-    paddingVertical: ms(2),
-    borderRadius: ms(8),
-    flexShrink: 0,
-    gap: ms(3),
-  },
-  evaporationRateText: {
-    fontSize: ms(9),
-    fontFamily: fontFamily.semiBold,
-  },
-  ESTTitle: {
-    fontSize: ms(11),
-    fontFamily: fontFamily.semiBold,
+    flexShrink: 1,
   },
   titleRow: {
     marginBottom: ms(4),
@@ -519,6 +538,40 @@ const styles = StyleSheet.create({
     fontSize: ms(10),
     minWidth: ms(28),
     textAlign: 'right',
+  },
+  loadsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: ms(4),
+    marginBottom: ms(6),
+  },
+  weatherInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: ms(6),
+    gap: ms(4),
+  },
+  weatherDescText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+    maxWidth: ms(70),
+  },
+  weatherDot: {
+    width: ms(2),
+    height: ms(2),
+    borderRadius: ms(1),
+  },
+  evapRateBadge: {
+    paddingHorizontal: ms(8),
+    borderRadius: ms(10),
+  },
+  evapRateText: {
+    fontSize: ms(8),
+    fontFamily: fontFamily.bold,
+    color: colors.common.white,
+    lineHeight: ms(13),
   },
   metricsRow: {
     flexDirection: 'row',

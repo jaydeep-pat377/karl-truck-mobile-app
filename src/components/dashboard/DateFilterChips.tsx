@@ -9,6 +9,12 @@ import { fontFamily } from '../../theme/typography';
 
 export type DateFilter = 'today' | 'yesterday' | 'tomorrow' | 'next_week' | 'last_week' | 'calendar';
 
+interface DateRange {
+  start_date: string;
+  end_date: string;
+  filter: string;
+}
+
 interface DateFilterChipsProps {
   selectedFilter: DateFilter;
   onFilterChange: (filter: DateFilter) => void;
@@ -17,59 +23,17 @@ interface DateFilterChipsProps {
   showDatePicker?: boolean;
   onCalendarPress?: () => void;
   onCloseDatePicker?: () => void;
+  dateRange?: DateRange | null;
 }
 
-const formatDate = (date: Date): string => {
+const formatDateFromString = (dateString: string): string => {
+  const date = new Date(dateString + 'T00:00:00');
   return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 };
 
-const formatDateShort = (date: Date): string => {
+const formatDateShortFromString = (dateString: string): string => {
+  const date = new Date(dateString + 'T00:00:00');
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-};
-
-const getSelectedDateText = (filter: DateFilter, customDate?: Date): string => {
-  const today = new Date();
-
-  switch (filter) {
-    case 'today':
-      return formatDate(today);
-    case 'yesterday': {
-      const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
-      return formatDate(yesterday);
-    }
-    case 'tomorrow': {
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
-      return formatDate(tomorrow);
-    }
-    case 'next_week': {
-      const dayOfWeek = today.getDay();
-      const daysUntilNextMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
-      const nextMonday = new Date(today);
-      nextMonday.setDate(today.getDate() + daysUntilNextMonday);
-      const nextSunday = new Date(nextMonday);
-      nextSunday.setDate(nextMonday.getDate() + 6);
-      return `${formatDateShort(nextMonday)} - ${formatDateShort(nextSunday)}`;
-    }
-    case 'last_week': {
-      const dayOfWeek = today.getDay();
-      const daysToLastMonday = dayOfWeek === 0 ? 6 : dayOfWeek + 6;
-      const lastMonday = new Date(today);
-      lastMonday.setDate(today.getDate() - daysToLastMonday);
-      const lastSunday = new Date(lastMonday);
-      lastSunday.setDate(lastMonday.getDate() + 6);
-      return `${formatDateShort(lastMonday)} - ${formatDateShort(lastSunday)}`;
-    }
-    case 'calendar': {
-      if (customDate) {
-        return formatDate(customDate);
-      }
-      return formatDate(today);
-    }
-    default:
-      return '';
-  }
 };
 
 const formatSelectedDateShort = (date: Date): string => {
@@ -92,6 +56,7 @@ export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
   showDatePicker = false,
   onCalendarPress,
   onCloseDatePicker,
+  dateRange,
 }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -220,51 +185,7 @@ export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.container}
       >
-        {filterOptions.map((option, index) => {
-          const isSelected = selectedFilter === option.key;
-          return (
-            <TouchableOpacity
-              key={option.key}
-              onLayout={(event) => {
-                const { x, width } = event.nativeEvent.layout;
-                chipPositions.current[option.key] = { x, width };
-              }}
-              style={[
-                styles.chip,
-                index > 0 && styles.chipMargin,
-                {
-                  backgroundColor: isSelected
-                    ? colors.primary.main
-                    : isDark
-                      ? colors.dark.surface
-                      : colors.common.white,
-                  borderColor: isSelected
-                    ? colors.primary.main
-                    : isDark
-                      ? colors.dark.border
-                      : colors.grey[25],
-                },
-              ]}
-              onPress={() => handleFilterPress(option.key)}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  {
-                    color: isSelected
-                      ? colors.common.white
-                      : themeColors.text.primary,
-                  },
-                ]}
-              >
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-
-        {/* Calendar Icon Chip */}
+        {/* Calendar Icon Chip - First */}
         <TouchableOpacity
           onLayout={(event) => {
             const { x, width } = event.nativeEvent.layout;
@@ -272,7 +193,6 @@ export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
           }}
           style={[
             styles.chip,
-            styles.chipMargin,
             styles.calendarChip,
             {
               backgroundColor: isCalendarSelected
@@ -319,15 +239,64 @@ export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
             )}
           </View>
         </TouchableOpacity>
+
+        {/* Date Filter Options */}
+        {filterOptions.map((option) => {
+          const isSelected = selectedFilter === option.key;
+          return (
+            <TouchableOpacity
+              key={option.key}
+              onLayout={(event) => {
+                const { x, width } = event.nativeEvent.layout;
+                chipPositions.current[option.key] = { x, width };
+              }}
+              style={[
+                styles.chip,
+                styles.chipMargin,
+                {
+                  backgroundColor: isSelected
+                    ? colors.primary.main
+                    : isDark
+                      ? colors.dark.surface
+                      : colors.common.white,
+                  borderColor: isSelected
+                    ? colors.primary.main
+                    : isDark
+                      ? colors.dark.border
+                      : colors.grey[25],
+                },
+              ]}
+              onPress={() => handleFilterPress(option.key)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.chipText,
+                  {
+                    color: isSelected
+                      ? colors.common.white
+                      : themeColors.text.primary,
+                  },
+                ]}
+              >
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
-      <View style={styles.dateRow}>
-        <View style={styles.dateRowLeft}>
-          <Icon name="calendar" size={ms(14)} color={themeColors.text.secondary} />
-          <Text style={[styles.dateText, { color: themeColors.text.primary }]}>
-            {getSelectedDateText(selectedFilter, selectedDate)}
-          </Text>
+      {dateRange?.start_date && (
+        <View style={styles.dateRow}>
+          <View style={styles.dateRowLeft}>
+            <Icon name="calendar" size={ms(14)} color={themeColors.text.secondary} />
+            <Text style={[styles.dateText, { color: themeColors.text.primary }]}>
+              {dateRange.start_date === dateRange.end_date
+                ? formatDateFromString(dateRange.start_date)
+                : `${formatDateShortFromString(dateRange.start_date)} - ${formatDateShortFromString(dateRange.end_date)}`}
+            </Text>
+          </View>
         </View>
-      </View>
+      )}
 
       {/* Date Picker Modal */}
       {showDatePicker && (

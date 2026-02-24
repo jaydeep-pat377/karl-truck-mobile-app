@@ -92,6 +92,7 @@ export const useDashboard = (params?: UseDashboardParams) => {
     marketSummary: firstPageData?.market_summary ?? null,
     activeDeliveries: activeDeliveriesWithAllOrders,
     recentAlerts: firstPageData?.recent_alerts ?? [],
+    dateRange: firstPageData?.date_range ?? null,
     isLoading: isInitialLoading,
     isError: query.isError,
     error: errorMessage,

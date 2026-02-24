@@ -176,13 +176,13 @@ const STATUS_CONFIG_LIGHT: Record<ApiTicketStatus, StatusConfig> = {
   },
   at_plant: {
     label: 'AT PLANT',
-    icon: 'factory',
+    icon: 'domain',
     color: colors.trackingStatus.atPlant,
     bgColor: `${colors.trackingStatus.atPlant}15`,
     progressStep: 9,
   },
   cancelled: {
-    label: 'CANCELLED',
+    label: 'VOIDED',
     icon: 'close-circle',
     color: colors.trackingStatus.cancelled,
     bgColor: `${colors.trackingStatus.cancelled}15`,
@@ -256,13 +256,13 @@ const STATUS_CONFIG_DARK: Record<ApiTicketStatus, StatusConfig> = {
   },
   at_plant: {
     label: 'AT PLANT',
-    icon: 'factory',
+    icon: 'domain',
     color: colors.trackingStatus.atPlant,
     bgColor: `${colors.trackingStatus.atPlant}20`,
     progressStep: 9,
   },
   cancelled: {
-    label: 'CANCELLED',
+    label: 'VOIDED',
     icon: 'close-circle',
     color: colors.trackingStatus.cancelled,
     bgColor: `${colors.trackingStatus.cancelled}20`,
@@ -279,7 +279,7 @@ const TIMELINE_STEPS = [
   { key: 'pouring', label: 'Pouring', icon: 'water' },
   { key: 'washing', label: 'Washing', icon: 'water-pump' },
   { key: 'to_plant', label: 'To Plant', icon: 'truck-delivery' },
-  { key: 'at_plant', label: 'At Plant', icon: 'factory' },
+  { key: 'at_plant', label: 'At Plant', icon: 'domain' },
 ];
 
 interface SectionCardProps {
@@ -369,17 +369,28 @@ interface VerticalTimelineProps {
     toPlant?: string | null;
     atPlant?: string | null;
   };
+  durations: {
+    loading?: string | number | null;
+    loaded?: string | number | null;
+    toJob?: string | number | null;
+    atJob?: string | number | null;
+    pouring?: string | number | null;
+    washing?: string | number | null;
+    toPlant?: string | number | null;
+    atPlant?: string | number | null;
+  };
   currentStatus: ApiTicketStatus;
   isDark: boolean;
 }
 
-const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, currentStatus, isDark }) => {
+const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, durations, currentStatus, isDark }) => {
   const themeColors = isDark ? colors.dark : colors.light;
   const completedColor = isDark ? colors.primary.light : colors.primary.main;
   const activeColor = isDark ? colors.secondary.light : colors.secondary.main;
   const completedTextColor = isDark ? colors.common.white : colors.grey[80];
   const pendingTextColor = isDark ? colors.grey[40] : colors.grey[50];
   const timeTextColor = isDark ? colors.grey[40] : colors.grey[60];
+  const durationColor = isDark ? colors.grey[50] : colors.grey[50];
 
   const getTimeForStep = (key: string): string | null => {
     const timeMap: Record<string, string | null | undefined> = {
@@ -396,16 +407,60 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, current
     return timeMap[key] || null;
   };
 
+  const getDurationForStep = (key: string): string | number | null => {
+    const durationMap: Record<string, string | number | null | undefined> = {
+      loading: durations.loading,
+      loaded: durations.loaded,
+      to_job: durations.toJob,
+      at_job: durations.atJob,
+      pouring: durations.pouring,
+      washing: durations.washing,
+      to_plant: durations.toPlant,
+      at_plant: durations.atPlant,
+    };
+    const value = durationMap[key];
+    // Filter out "--" or null/undefined values
+    if (value === null || value === undefined || value === '--') {
+      return null;
+    }
+    return value;
+  };
+
+  const formatDuration = (value: string | number): string => {
+    // If it's already a string (from API), return it directly
+    if (typeof value === 'string') {
+      return value;
+    }
+    // If it's a number, format it
+    if (value < 60) {
+      return `${value} minute${value !== 1 ? 's' : ''}`;
+    }
+    const hours = Math.floor(value / 60);
+    const mins = value % 60;
+    if (mins > 0) {
+      return `${hours} hour${hours !== 1 ? 's' : ''} ${mins} minute${mins !== 1 ? 's' : ''}`;
+    }
+    return `${hours} hour${hours !== 1 ? 's' : ''}`;
+  };
+
   const statusOrder = TIMELINE_STEPS.map(s => s.key);
   const currentIndex = statusOrder.indexOf(currentStatus);
 
+  // Get the next step's duration to show after current step
+  const getNextStepDuration = (index: number): string | number | null => {
+    if (index >= TIMELINE_STEPS.length - 1) return null;
+    const nextStep = TIMELINE_STEPS[index + 1];
+    return getDurationForStep(nextStep.key);
+  };
+
   return (
-    <View style={styles.verticalTimeline}>
+    <View>
       {TIMELINE_STEPS.map((step, index) => {
         const stepTime = getTimeForStep(step.key);
         const isCompleted = stepTime !== null;
         const isActive = step.key === currentStatus;
         const stepColor = isCompleted ? completedColor : themeColors.border;
+        const nextDuration = getNextStepDuration(index);
 
         return (
           <View key={step.key} style={styles.timelineItem}>
@@ -454,6 +509,13 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, current
                 <View style={styles.activeIndicator}>
                   <View style={[styles.activeDot, { backgroundColor: activeColor }]} />
                   <Text style={[styles.activeText, { color: activeColor }]}>Current Status</Text>
+                </View>
+              )}
+              {nextDuration !== null && isCompleted && (
+                <View style={styles.durationRow}>
+                  <Text style={[styles.durationText, { color: durationColor }]}>
+                    -- {formatDuration(nextDuration)}
+                  </Text>
                 </View>
               )}
             </View>
@@ -505,6 +567,209 @@ const QuickAction: React.FC<QuickActionProps> = ({ icon, label, color, onPress, 
   );
 };
 
+interface DeliveryMetricsCardProps {
+  spacingMinutes: string | null;
+  waitingMinutes: string | null;
+  pourMinutes: string | null;
+  performanceMinutes: string | null;
+  idleMinutes: string | null;
+  isDark: boolean;
+}
+
+const DeliveryMetricsCard: React.FC<DeliveryMetricsCardProps> = ({
+  spacingMinutes,
+  waitingMinutes,
+  pourMinutes,
+  performanceMinutes,
+  idleMinutes,
+  isDark,
+}) => {
+  const themeColors = isDark ? colors.dark : colors.light;
+
+  const parseMinutes = (value: string | null): string => {
+    if (!value || value === '--') return '--';
+    const match = value.match(/(-?\d+)/);
+    return match ? `${match[1]} min` : value;
+  };
+
+  const getNumericValue = (value: string | null): number | null => {
+    if (!value || value === '--') return null;
+    const match = value.match(/(-?\d+)/);
+    return match ? parseInt(match[1], 10) : null;
+  };
+
+  const getIdleColor = (): string => {
+    const idleValue = getNumericValue(idleMinutes);
+    const spacingValue = getNumericValue(spacingMinutes);
+
+    if (idleValue === null) {
+      return isDark ? colors.grey[40] : colors.grey[60];
+    }
+
+    // If idle equals spacing, return black/neutral
+    if (spacingValue !== null && idleValue === spacingValue) {
+      return isDark ? colors.common.white : colors.grey[85];
+    }
+
+    // If positive, return green
+    if (idleValue > 0) {
+      return isDark ? colors.success.light : colors.success.main;
+    }
+
+    // If negative, return red
+    if (idleValue < 0) {
+      return isDark ? colors.error.light : colors.error.main;
+    }
+
+    // Default (zero)
+    return isDark ? colors.common.white : colors.grey[85];
+  };
+
+  const metrics = [
+    {
+      icon: 'clock-fast',
+      value: parseMinutes(spacingMinutes),
+      label: 'Spacing',
+      color: isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light,
+    },
+    {
+      icon: 'timer-sand',
+      value: parseMinutes(waitingMinutes),
+      label: 'Waiting',
+      color: isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light,
+    },
+    {
+      icon: 'speedometer',
+      value: parseMinutes(performanceMinutes),
+      label: 'Performance',
+      color: isDark ? colors.infoIcons.purple.dark : colors.infoIcons.purple.light,
+    },
+    {
+      icon: 'water',
+      value: parseMinutes(pourMinutes),
+      label: 'Pour Out',
+      color: isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light,
+    },
+    {
+      icon: 'timer-off',
+      value: parseMinutes(idleMinutes),
+      label: 'Idle',
+      color: isDark ? colors.grey[40] : colors.grey[60],
+      valueColor: getIdleColor(),
+    },
+  ];
+
+  const hasAnyMetrics = spacingMinutes || waitingMinutes || pourMinutes || performanceMinutes || idleMinutes;
+
+  if (!hasAnyMetrics) return null;
+
+  const titleColor = isDark ? colors.common.white : colors.grey[80];
+  const iconColor = isDark ? colors.primary.light : colors.primary.main;
+
+  return (
+    <View
+      style={[
+        styles.deliveryMetricsCard,
+        {
+          backgroundColor: themeColors.card,
+          borderWidth: isDark ? 0 : 1,
+          borderColor: isDark ? 'transparent' : colors.grey[10],
+        },
+      ]}>
+      <View style={styles.deliveryMetricsHeader}>
+        <View style={[styles.deliveryMetricsIconBox, { backgroundColor: `${iconColor}15` }]}>
+          <Icon name="chart-timeline-variant" size={ms(18)} color={iconColor} />
+        </View>
+        <Text style={[styles.deliveryMetricsTitle, { color: titleColor }]}>Delivery Metrics</Text>
+      </View>
+      {/* Row 1: First 2 items */}
+      <View style={styles.deliveryMetricsRow}>
+        {metrics.slice(0, 2).map((metric) => (
+          <View
+            key={metric.label}
+            style={[
+              styles.deliveryMetricCard,
+              { backgroundColor: isDark ? themeColors.surface : colors.grey[5] }
+            ]}
+          >
+            <View style={[styles.deliveryMetricCardIcon, { backgroundColor: `${metric.color}15` }]}>
+              <Icon name={metric.icon} size={ms(16)} color={metric.color} />
+            </View>
+            <View style={styles.deliveryMetricCardContent}>
+              <Text style={[styles.deliveryMetricCardValue, { color: metric.valueColor || (isDark ? colors.common.white : colors.grey[85]) }]}>
+                {metric.value}
+              </Text>
+              <Text
+                style={[styles.deliveryMetricCardLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {metric.label}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+      {/* Row 2: Next 2 items */}
+      <View style={styles.deliveryMetricsRow}>
+        {metrics.slice(2, 4).map((metric) => (
+          <View
+            key={metric.label}
+            style={[
+              styles.deliveryMetricCard,
+              { backgroundColor: isDark ? themeColors.surface : colors.grey[5] }
+            ]}
+          >
+            <View style={[styles.deliveryMetricCardIcon, { backgroundColor: `${metric.color}15` }]}>
+              <Icon name={metric.icon} size={ms(16)} color={metric.color} />
+            </View>
+            <View style={styles.deliveryMetricCardContent}>
+              <Text style={[styles.deliveryMetricCardValue, { color: metric.valueColor || (isDark ? colors.common.white : colors.grey[85]) }]}>
+                {metric.value}
+              </Text>
+              <Text
+                style={[styles.deliveryMetricCardLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {metric.label}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+      {/* Row 3: Last item centered */}
+      <View style={styles.deliveryMetricsRowCenter}>
+        {metrics.slice(4).map((metric) => (
+          <View
+            key={metric.label}
+            style={[
+              styles.deliveryMetricCardCenter,
+              { backgroundColor: isDark ? themeColors.surface : colors.grey[5] }
+            ]}
+          >
+            <View style={[styles.deliveryMetricCardIcon, { backgroundColor: `${metric.color}15` }]}>
+              <Icon name={metric.icon} size={ms(16)} color={metric.color} />
+            </View>
+            <View style={styles.deliveryMetricCardContent}>
+              <Text style={[styles.deliveryMetricCardValue, { color: metric.valueColor || (isDark ? colors.common.white : colors.grey[85]) }]}>
+                {metric.value}
+              </Text>
+              <Text
+                style={[styles.deliveryMetricCardLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {metric.label}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+};
+
 export const TicketDetailScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<TicketDetailRouteProp>();
@@ -521,12 +786,17 @@ export const TicketDetailScreen: React.FC = () => {
     ticket,
     ticketCode: apiTicketCode,
     orderCode: apiOrderCode,
+    loadNumber,
     customerName,
     deliveryAddress,
+    projectName,
+    plantCode,
     plantName,
     plantAddress,
+    plantPhone,
     runningQty,
     orderedQty,
+    loadQty,
     driverName,
     driverCode,
     driverPhone,
@@ -541,8 +811,11 @@ export const TicketDetailScreen: React.FC = () => {
     statusCode,
     statusDisplay,
     etaAtJob,
+    removeReasonCode,
     timestamps,
+    durations,
     products,
+    deliveryMetrics,
     isLoading,
     isRefetching,
     refetch,
@@ -577,6 +850,7 @@ export const TicketDetailScreen: React.FC = () => {
   const currentStatusDisplayText = statusDisplay || passedStatusDisplay;
   const statusInfo = statusConfigMap[currentStatus] || statusConfigMap.pending;
   const isAtPlant = currentStatus === 'at_plant';
+  const isCancelled = currentStatus === 'cancelled' || currentStatus?.toLowerCase().includes('cancel');
 
   const headerBadgeColors = getHeaderBadgeColors(currentStatus, isDark);
 
@@ -648,6 +922,10 @@ export const TicketDetailScreen: React.FC = () => {
       );
     }
   }, [truckLatitude, truckLongitude, showWarning]);
+
+  const handleShowQRCode = useCallback(() => {
+    // TODO: Implement QR code functionality
+  }, []);
 
   const closeDirectionsMenu = useCallback(() => {
     setShowDirectionsMenu(false);
@@ -758,7 +1036,7 @@ export const TicketDetailScreen: React.FC = () => {
               <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
             </TouchableOpacity>
             <View style={styles.headerTitleSection}>
-              <Text style={styles.headerTitle}>Ticket Details</Text>
+              <Text style={styles.headerTitle}>Ticket</Text>
             </View>
             <View style={styles.headerBtnPlaceholder} />
           </View>
@@ -795,7 +1073,7 @@ export const TicketDetailScreen: React.FC = () => {
               <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
             </TouchableOpacity>
             <View style={styles.headerTitleSection}>
-              <Text style={styles.headerTitle}>Ticket Details</Text>
+              <Text style={styles.headerTitle}>Ticket</Text>
             </View>
             <View style={styles.headerBtnPlaceholder} />
           </View>
@@ -856,7 +1134,7 @@ export const TicketDetailScreen: React.FC = () => {
         style={styles.fullScreenScrollView}
         contentContainerStyle={[
           styles.fullScreenScrollContent,
-          { paddingBottom: Math.max(vs(40), insets.bottom + GRID.xl) },
+          { paddingBottom: Math.max(vs(20), insets.bottom + GRID.md) },
         ]}
         showsVerticalScrollIndicator={false}
         bounces={true}
@@ -887,20 +1165,34 @@ export const TicketDetailScreen: React.FC = () => {
               <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
             </TouchableOpacity>
             <View style={styles.headerTitleSection}>
-              <Text style={styles.headerTitle}>Ticket Details</Text>
+              <Text style={styles.headerTitle}>Ticket</Text>
+            </View>
+            <View style={styles.headerIconRight}>
+              <ConcreteTruck width={ms(40)} height={ms(40)} color={colors.common.white} />
+            </View>
+          </View>
+          {(apiOrderCode || customerName || projectName) && (
+            <View style={styles.headerSubtitleSection}>
               {apiOrderCode && (
-                <Text style={styles.headerSubtitle}>Order #{apiOrderCode}</Text>
+                <Text style={styles.headerSubtitle}>Order {apiOrderCode}</Text>
+              )}
+              {customerName && (
+                <View style={styles.headerSubtitleRow}>
+                  <Icon name="account" size={ms(12)} color={colors.headerOverlay.text} />
+                  <Text style={styles.headerSubtitleWithIcon} numberOfLines={1}>{customerName}</Text>
+                </View>
+              )}
+              {projectName && (
+                <View style={styles.headerSubtitleRow}>
+                  <Icon name="domain" size={ms(12)} color={colors.headerOverlay.text} />
+                  <Text style={styles.headerSubtitleWithIcon} numberOfLines={1}>{projectName}</Text>
+                </View>
               )}
             </View>
-            <View style={styles.headerBtnPlaceholder} />
-          </View>
+          )}
 
           <View style={styles.heroSection}>
             <View style={styles.heroLeft}>
-              <View style={styles.ticketNumberRow}>
-                <Icon name="ticket-confirmation" size={ms(16)} color={colors.headerOverlay.textBright} />
-                <Text style={styles.ticketLabel}>TICKET</Text>
-              </View>
               <Text
                 style={styles.ticketNumber}
                 numberOfLines={1}
@@ -915,6 +1207,20 @@ export const TicketDetailScreen: React.FC = () => {
                   {statusInfo.label}
                 </AppText>
               </View>
+              {isCancelled && removeReasonCode && (
+                <View style={styles.voidedReasonRow}>
+                  <Text style={styles.voidedReasonText}>
+                    Code: {removeReasonCode}
+                  </Text>
+                </View>
+              )}
+              {isAtPlant && timestamps.atPlant && (
+                <View style={styles.voidedReasonRow}>
+                  <Text style={styles.voidedReasonText}>
+                    {timestamps.atPlant}
+                  </Text>
+                </View>
+              )}
             </View>
             <View style={styles.heroRight}>
               {formattedEta && currentStatus !== 'at_plant' && (
@@ -923,191 +1229,199 @@ export const TicketDetailScreen: React.FC = () => {
                   <Text style={styles.etaValue}>{formattedEta}</Text>
                 </View>
               )}
-              <View style={styles.truckIconContainer}>
-                <ConcreteTruck width={ms(50)} height={ms(36)} color={colors.headerOverlay.textBrightest} />
-              </View>
             </View>
           </View>
         </View>
 
         <View style={styles.scrollContentWrapper}>
 
-        <View style={styles.quickActionsRow}>
-          <QuickAction
-            icon="map-marker-radius"
-            label="Track"
-            color={accentColor}
-            onPress={handleTrackTruck}
-            isDark={isDark}
-            disabled={isAtPlant}
-          />
-          <QuickAction
-            icon="directions"
-            label="Directions"
-            color={isDark ? colors.success.light : colors.success.main}
-            onPress={handleGetDirections}
-            isDark={isDark}
-            disabled={isAtPlant}
-          />
-          <QuickAction
-            icon="refresh"
-            label="Refresh"
-            color={isDark ? colors.secondary.light : colors.secondary.main}
-            onPress={() => refetch()}
-            isDark={isDark}
-          />
-        </View>
-
-        <View
-          style={[
-            styles.progressCard,
-            {
-              backgroundColor: themeColors.card,
-              borderWidth: isDark ? 0 : 1,
-              borderColor: isDark ? 'transparent' : colors.grey[10],
-            },
-          ]}>
-          <View style={styles.progressCardHeader}>
-            <View style={styles.progressTitleRow}>
-              <Icon name="package-variant" size={ms(18)} color={accentColor} />
-              <Text style={[styles.progressCardTitle, { color: isDark ? colors.common.white : colors.grey[80] }]}>
-                Load Details
-              </Text>
-            </View>
-            <View style={[styles.progressBadge, { backgroundColor: isDark ? accentColor + '25' : colors.primary.main + '18' }]}>
-              <Text style={[styles.progressBadgeText, { color: isDark ? accentColor : colors.primary.dark }]}>{percentage.toFixed(1)}%</Text>
-            </View>
+          <View style={styles.quickActionsRow}>
+            <QuickAction
+              icon="map-marker-radius"
+              label="Track"
+              color={accentColor}
+              onPress={handleGetDirections}
+              isDark={isDark}
+              disabled={isAtPlant || isCancelled}
+            />
+            <QuickAction
+              icon="qrcode"
+              label="QR Code"
+              color={isDark ? colors.success.light : colors.success.main}
+              onPress={handleShowQRCode}
+              isDark={isDark}
+            />
+            <QuickAction
+              icon="refresh"
+              label="Refresh"
+              color={isDark ? colors.secondary.light : colors.secondary.main}
+              onPress={() => refetch()}
+              isDark={isDark}
+            />
           </View>
 
-          <View style={styles.loadStatsRow}>
-            <View style={styles.loadStatItem}>
-              <Text style={[styles.loadStatValue, { color: accentColor }]}>
-                {runningQty.toFixed(2)}
-              </Text>
-              <Text style={[styles.loadStatLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
-                Running (CY)
-              </Text>
-            </View>
-            <View style={[styles.loadStatDivider, { backgroundColor: isDark ? themeColors.border : colors.grey[15] }]} />
-            <View style={styles.loadStatItem}>
-              <Text style={[styles.loadStatValue, { color: isDark ? colors.common.white : colors.grey[85] }]}>
-                {orderedQty}
-              </Text>
-              <Text style={[styles.loadStatLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
-                Ordered (CY)
-              </Text>
-            </View>
-            <View style={[styles.loadStatDivider, { backgroundColor: isDark ? themeColors.border : colors.grey[15] }]} />
-            <View style={styles.loadStatItem}>
-              <Text style={[styles.loadStatValue, { color: isDark ? colors.success.light : colors.success.main }]}>
-                {Math.max(orderedQty - runningQty, 0).toFixed(2)}
-              </Text>
-              <Text style={[styles.loadStatLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
-                Remaining (CY)
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBarBg, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}>
-              <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: accentColor }]} />
-            </View>
-          </View>
-        </View>
-
-        {productInfo && (
-          <SectionCard
-            title="Product Information"
-            icon="beaker-outline"
-            iconColor={isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light}
-            isDark={isDark}>
-            <DetailRow label="Item Code" value={productInfo.code} isDark={isDark} />
-            <DetailRow label="Description" value={productInfo.name} isDark={isDark} />
-            <DetailRow label="Type" value={productInfo.isMix ? 'Mix Design' : 'Product'} isDark={isDark} isLast />
-          </SectionCard>
-        )}
-
-        <SectionCard
-          title="Delivery Location"
-          icon="map-marker"
-          iconColor={isDark ? colors.error.light : colors.error.main}
-          isDark={isDark}>
-          <DetailRow label="Address" value={deliveryAddress} isDark={isDark} />
-          <DetailRow label="Customer" value={customerName} isDark={isDark} isLast />
-
-          <TouchableOpacity
+          <View
             style={[
-              styles.mapPreview,
+              styles.progressCard,
               {
-                backgroundColor: isDark ? themeColors.surface : colors.grey[5],
+                backgroundColor: themeColors.card,
                 borderWidth: isDark ? 0 : 1,
                 borderColor: isDark ? 'transparent' : colors.grey[10],
-                opacity: isAtPlant ? 0.5 : 1,
               },
-            ]}
-            onPress={handleGetDirections}
-            activeOpacity={0.8}
-            disabled={isAtPlant}>
-            <Icon name="map" size={ms(32)} color={isDark ? colors.grey[40] : colors.grey[50]} />
-            <Text style={[styles.mapPreviewText, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>
-              Tap to open in Maps
-            </Text>
-          </TouchableOpacity>
-        </SectionCard>
-
-        <SectionCard
-          title="Truck & Driver"
-          icon="truck"
-          iconColor={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light}
-          isDark={isDark}>
-          <DetailRow label="Truck Code" value={truckCode} isDark={isDark} />
-          <DetailRow label="Description" value={truckDescription} isDark={isDark} />
-          <DetailRow label="Driver Code" value={driverCode} isDark={isDark} />
-          <DetailRow label="Driver Phone" value={driverPhone} isDark={isDark} isLast />
-        </SectionCard>
-
-        <SectionCard
-          title="Plant Information"
-          icon="factory"
-          iconColor={isDark ? colors.infoIcons.purple.dark : colors.infoIcons.purple.light}
-          isDark={isDark}>
-          <DetailRow label="Plant" value={plantName} isDark={isDark} />
-          <DetailRow label="Address" value={plantAddress} isDark={isDark} isLast />
-        </SectionCard>
-
-        <SectionCard
-          title="Delivery Timeline"
-          icon="timeline-clock"
-          iconColor={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light}
-          isDark={isDark}>
-          <VerticalTimeline
-            timestamps={timestamps}
-            currentStatus={currentStatus}
-            isDark={isDark}
-          />
-        </SectionCard>
-
-        <View style={styles.actionSection}>
-          <TouchableOpacity
-            style={[styles.primaryBtn, isAtPlant && { opacity: 0.5 }]}
-            onPress={handleTrackTruck}
-            activeOpacity={0.8}
-            disabled={isAtPlant}
-            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
-            <View style={styles.primaryBtnContainer}>
-              <LinearGradient
-                colors={headerGradient}
-                style={StyleSheet.absoluteFill}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              />
-              <View style={styles.primaryBtnContent}>
-                <Icon name="map-marker-radius" size={ms(20)} color={colors.common.white} />
-                <Text style={styles.primaryBtnText}>Track Truck on Map</Text>
+            ]}>
+            <View style={styles.progressCardHeader}>
+              <View style={styles.progressTitleRow}>
+                <Icon name="package-variant" size={ms(18)} color={accentColor} />
+                <Text style={[styles.progressCardTitle, { color: isDark ? colors.common.white : colors.grey[80] }]}>
+                  Load Details
+                </Text>
+              </View>
+              <View style={[styles.progressBadge, { backgroundColor: isDark ? accentColor + '25' : colors.primary.main + '18' }]}>
+                <Text style={[styles.progressBadgeText, { color: isDark ? accentColor : colors.primary.dark }]}>{percentage.toFixed(1)}%</Text>
               </View>
             </View>
-          </TouchableOpacity>
-        </View>
+
+            <View style={styles.loadStatsRow}>
+              <View style={styles.loadStatItem}>
+                <Text style={[styles.loadStatValue, { color: accentColor }]}>
+                  {runningQty.toFixed(2)}
+                </Text>
+                <Text style={[styles.loadStatLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
+                  Running (CY)
+                </Text>
+              </View>
+              <View style={[styles.loadStatDivider, { backgroundColor: isDark ? themeColors.border : colors.grey[15] }]} />
+              <View style={styles.loadStatItem}>
+                <Text style={[styles.loadStatValue, { color: isDark ? colors.common.white : colors.grey[85] }]}>
+                  {orderedQty}
+                </Text>
+                <Text style={[styles.loadStatLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
+                  Ordered (CY)
+                </Text>
+              </View>
+              <View style={[styles.loadStatDivider, { backgroundColor: isDark ? themeColors.border : colors.grey[15] }]} />
+              <View style={styles.loadStatItem}>
+                <Text style={[styles.loadStatValue, { color: isDark ? colors.success.light : colors.success.main }]}>
+                  {Math.max(orderedQty - runningQty, 0).toFixed(2)}
+                </Text>
+                <Text style={[styles.loadStatLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
+                  Remaining (CY)
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.progressBarContainer}>
+              <View style={[styles.progressBarBg, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}>
+                <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: accentColor }]} />
+              </View>
+            </View>
+
+            <View style={[styles.loadInfoRow, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
+              <View style={styles.loadInfoItem}>
+                <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
+                  Load #
+                </Text>
+                <Text style={[styles.loadInfoValue, { color: isDark ? colors.common.white : colors.grey[85] }]}>
+                  {loadNumber || '-'}
+                </Text>
+              </View>
+              {loadQty !== undefined && loadQty !== null && (
+                <View style={[styles.loadInfoItem, { minWidth: ms(100) }]}>
+                  <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
+                    Amount
+                  </Text>
+                  <Text style={[styles.loadInfoValue, { color: isDark ? colors.common.white : colors.grey[85] }]}>
+                    {loadQty} CY
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {productInfo && (
+            <SectionCard
+              title="Product Information"
+              icon="beaker-outline"
+              iconColor={isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light}
+              isDark={isDark}>
+              <DetailRow label="Item Code" value={productInfo.code} isDark={isDark} />
+              <DetailRow label="Description" value={productInfo.name} isDark={isDark} />
+              <DetailRow label="Type" value={productInfo.isMix ? 'Mix Design' : 'Product'} isDark={isDark} isLast={!loadQty} />
+              {loadQty !== undefined && loadQty !== null && (
+                <DetailRow label="Load Amount" value={`${loadQty} CY`} isDark={isDark} isLast />
+              )}
+            </SectionCard>
+          )}
+
+          <SectionCard
+            title="Delivery Location"
+            icon="map-marker"
+            iconColor={isDark ? colors.error.light : colors.error.main}
+            isDark={isDark}>
+            <DetailRow label="Address" value={deliveryAddress} isDark={isDark} />
+            <DetailRow label="Customer" value={customerName} isDark={isDark} isLast />
+
+            <View
+              style={[
+                styles.mapPreview,
+                {
+                  backgroundColor: isDark ? themeColors.surface : colors.grey[5],
+                  borderWidth: isDark ? 0 : 1,
+                  borderColor: isDark ? 'transparent' : colors.grey[10],
+                },
+              ]}>
+              <Icon name="domain" size={ms(32)} color={isDark ? colors.grey[40] : colors.grey[50]} />
+              {projectName ? (
+                <Text style={[styles.mapPreviewText, { color: isDark ? colors.grey[40] : colors.grey[50] }]} numberOfLines={2}>
+                  {projectName}
+                </Text>
+              ) : null}
+            </View>
+          </SectionCard>
+
+          <SectionCard
+            title="Truck & Driver"
+            icon="truck"
+            iconColor={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light}
+            isDark={isDark}>
+            <DetailRow label="Truck Code" value={truckCode} isDark={isDark} />
+            <DetailRow label="Description" value={truckDescription} isDark={isDark} />
+            <DetailRow label="Driver Code" value={driverCode} isDark={isDark} />
+            <DetailRow label="Driver Phone" value={driverPhone} isDark={isDark} isLast />
+          </SectionCard>
+
+          <SectionCard
+            title="Plant Information"
+            icon="domain"
+            iconColor={isDark ? colors.infoIcons.purple.dark : colors.infoIcons.purple.light}
+            isDark={isDark}>
+            <DetailRow label="Plant" value={plantName} isDark={isDark} />
+            <DetailRow label="Code" value={plantCode} isDark={isDark} />
+            <DetailRow label="Address" value={plantAddress} isDark={isDark} />
+            <DetailRow label="Phone" value={plantPhone} isDark={isDark} isLast />
+          </SectionCard>
+
+          <DeliveryMetricsCard
+            spacingMinutes={deliveryMetrics?.spacing_minutes || null}
+            waitingMinutes={deliveryMetrics?.waiting_minutes || null}
+            pourMinutes={deliveryMetrics?.pour_minutes || null}
+            performanceMinutes={deliveryMetrics?.performance_minutes || null}
+            idleMinutes={deliveryMetrics?.idle_minutes || null}
+            isDark={isDark}
+          />
+
+          <SectionCard
+            title="Delivery Timeline"
+            icon="timeline-clock"
+            iconColor={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light}
+            isDark={isDark}>
+            <VerticalTimeline
+              timestamps={timestamps}
+              durations={durations}
+              currentStatus={currentStatus}
+              isDark={isDark}
+            />
+          </SectionCard>
         </View>
       </ScrollView>
 
@@ -1249,7 +1563,6 @@ const styles = StyleSheet.create({
     marginTop: GRID.md,
     marginBottom: GRID.lg,
   },
-
   emptyStateContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1310,13 +1623,10 @@ const styles = StyleSheet.create({
     fontSize: ms(14),
     marginLeft: GRID.sm,
   },
-
   headerContainer: {
-
     paddingBottom: GRID.lg,
   },
   headerContainerLoading: {
-
     paddingBottom: GRID.md,
   },
   headerBar: {
@@ -1340,6 +1650,30 @@ const styles = StyleSheet.create({
     width: ms(40),
     height: ms(40),
   },
+  headerIconRight: {
+    width: ms(40),
+    height: ms(40),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitleInline: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(17),
+    color: colors.common.white,
+    marginLeft: GRID.sm,
+    ...Platform.select({
+      ios: { lineHeight: ms(22) },
+      android: {},
+    }),
+  },
+  headerBarRight: {
+    flex: 1,
+  },
+  headerSubtitleSection: {
+    alignItems: 'center',
+    paddingHorizontal: GRID.md,
+    marginTop: GRID.xs,
+  },
   headerTitleSection: {
     alignItems: 'center',
     flex: 1,
@@ -1359,6 +1693,21 @@ const styles = StyleSheet.create({
     fontSize: ms(11),
     color: colors.headerOverlay.text,
     marginTop: ms(2),
+    ...Platform.select({
+      ios: { lineHeight: ms(14) },
+      android: {},
+    }),
+  },
+  headerSubtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: ms(2),
+  },
+  headerSubtitleWithIcon: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+    color: colors.headerOverlay.text,
+    marginLeft: ms(4),
     ...Platform.select({
       ios: { lineHeight: ms(14) },
       android: {},
@@ -1426,6 +1775,14 @@ const styles = StyleSheet.create({
       android: {},
     }),
   },
+  voidedReasonRow: {
+    marginTop: GRID.xs,
+  },
+  voidedReasonText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(14),
+    color: colors.headerOverlay.text,
+  },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1467,7 +1824,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   fullScreenScrollView: {
     flex: 1,
   },
@@ -1485,7 +1841,22 @@ const styles = StyleSheet.create({
     padding: GRID.md,
     flexGrow: 1,
   },
-
+  customerProjectCard: {
+    borderRadius: RADIUS.md,
+    padding: GRID.md,
+    marginBottom: GRID.md,
+    gap: GRID.sm,
+  },
+  customerProjectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: GRID.sm,
+  },
+  customerProjectText: {
+    fontSize: ms(14),
+    fontFamily: fontFamily.medium,
+    flex: 1,
+  },
   quickActionsRow: {
     flexDirection: 'row',
     marginBottom: GRID.md,
@@ -1531,7 +1902,6 @@ const styles = StyleSheet.create({
       android: {},
     }),
   },
-
   progressCard: {
     borderRadius: RADIUS.lg,
     padding: GRID.md,
@@ -1606,7 +1976,30 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: ms(3),
   },
-
+  loadInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginTop: GRID.md,
+    paddingTop: GRID.md,
+    borderTopWidth: 1,
+  },
+  loadInfoItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: ms(80),
+  },
+  loadInfoLabel: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(11),
+    marginBottom: vs(2),
+    textAlign: 'center',
+  },
+  loadInfoValue: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(15),
+    textAlign: 'center',
+  },
   sectionCard: {
     borderRadius: RADIUS.lg,
     padding: GRID.md,
@@ -1640,7 +2033,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     fontSize: ms(14),
   },
-
   detailRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -1674,20 +2066,21 @@ const styles = StyleSheet.create({
       android: {},
     }),
   },
-
   mapPreview: {
     height: ms(80),
     borderRadius: RADIUS.md,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: GRID.md,
+    paddingHorizontal: GRID.md,
   },
   mapPreviewText: {
     fontFamily: fontFamily.medium,
     fontSize: ms(11),
     marginTop: GRID.xs,
+    textAlign: 'center',
+    paddingHorizontal: GRID.sm,
   },
-
   callCustomerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1703,8 +2096,6 @@ const styles = StyleSheet.create({
     fontSize: ms(13),
     marginLeft: GRID.sm,
   },
-
-  verticalTimeline: {},
   timelineItem: {
     flexDirection: 'row',
     minHeight: ms(48),
@@ -1739,6 +2130,13 @@ const styles = StyleSheet.create({
     width: ms(2),
     flex: 1,
     marginVertical: ms(2),
+  },
+  durationRow: {
+    paddingBottom: ms(4),
+  },
+  durationText: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
   },
   timelineContent: {
     flex: 1,
@@ -1781,7 +2179,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     fontSize: ms(9),
   },
-
   actionSection: {
     marginTop: GRID.sm,
     marginBottom: GRID.md,
@@ -1866,7 +2263,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     fontSize: ms(13),
   },
-
   directionsModalContainer: {
     flex: 1,
     backgroundColor: colors.overlay.medium,
@@ -1947,6 +2343,113 @@ const styles = StyleSheet.create({
   directionsMenuCancelText: {
     fontFamily: fontFamily.semiBold,
     fontSize: ms(15),
+  },
+  deliveryMetricsCard: {
+    borderRadius: RADIUS.lg,
+    padding: GRID.md,
+    marginBottom: GRID.md,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.common.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  deliveryMetricsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: GRID.md,
+  },
+  deliveryMetricsIconBox: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: RADIUS.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: GRID.sm,
+  },
+  deliveryMetricsTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(14),
+  },
+  deliveryMetricsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: GRID.sm,
+    marginBottom: GRID.sm,
+  },
+  deliveryMetricsRowCenter: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  deliveryMetricCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: GRID.sm,
+    paddingHorizontal: GRID.sm + 2,
+    borderRadius: RADIUS.md,
+  },
+  deliveryMetricCardCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: GRID.sm,
+    paddingHorizontal: GRID.md,
+    borderRadius: RADIUS.md,
+    minWidth: '48%',
+  },
+  deliveryMetricCardIcon: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: GRID.sm,
+  },
+  deliveryMetricCardContent: {
+    flex: 1,
+  },
+  deliveryMetricCardValue: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(13),
+  },
+  deliveryMetricCardLabel: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(12),
+    marginTop: ms(2),
+  },
+  deliveryMetricRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  deliveryMetricItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: GRID.xs,
+  },
+  deliveryMetricIconBox: {
+    width: ms(36),
+    height: ms(36),
+    borderRadius: ms(18),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: GRID.xs,
+  },
+  deliveryMetricValue: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(14),
+    marginBottom: ms(2),
+  },
+  deliveryMetricLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(10),
+    textAlign: 'center',
   },
 });
 

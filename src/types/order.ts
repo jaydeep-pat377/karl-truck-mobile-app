@@ -161,6 +161,8 @@ export interface ApiOrder {
   is_removed: boolean;
   has_notes: boolean;
   tickets_count: number;
+  active_tickets?: number;
+  total_loads?: number;
   product_codes?: string;
   product_description?: string;
   weather_data: ApiOrderWeatherData | null;
@@ -190,11 +192,21 @@ export interface OrdersStatusCounts {
   pending: number;
 }
 
+export interface OrdersTabCounts {
+  saved: number;
+  scheduled: number;
+  active: number;
+  completed: number;
+  cancelled: number;
+  requested: number;
+}
+
 export interface OrdersResponseData {
   orders: ApiOrder[];
   pagination: OrdersPagination;
   filters: OrdersFilters;
   status_counts: OrdersStatusCounts;
+  tab_counts?: OrdersTabCounts;
 }
 
 export interface OrdersApiResponse {
@@ -217,4 +229,55 @@ export interface OrdersQueryParams {
   plant_code?: string;
   plant_name?: string;
   is_favourite?: boolean;
+  tab?: 'saved' | 'scheduled' | 'active' | 'completed' | 'cancelled' | 'requested';
+}
+
+export interface RealtimeOrderUpdateItem {
+  id: string;
+  order_id: string;
+  order_code: string;
+  order_date: string;
+  table_name: string;
+  record_id: string | null;
+  field_name: string;
+  old_value: string;
+  new_value: string;
+  old_display_value: string;
+  new_display_value: string;
+  change_message: string;
+  change_type: string;
+  change_source: string;
+  changed_at: string;
+  cron_execution_id: string;
+  related_field_name: string | null;
+  related_old_value: string | null;
+  related_new_value: string | null;
+  related_display_message: string | null;
+  display_order: number;
+  has_comment: boolean;
+}
+
+export interface OrderCreatedProduct {
+  item_code: string;
+  description: string;
+  quantity: string;
+  slump: string | null;
+}
+
+export interface OrderCreatedItem {
+  change_type: 'order_created';
+  order_number: string;
+  order_status: string;
+  plant: string;
+  delivery_address: string;
+  purchase_order: string;
+  instructions: string;
+  ordered_by: string;
+  created: string;
+  products: OrderCreatedProduct[];
+}
+
+export interface RealtimeOrderUpdates {
+  items: (RealtimeOrderUpdateItem | OrderCreatedItem)[];
+  count: number;
 }

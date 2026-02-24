@@ -308,8 +308,8 @@ export const colors = {
       textDark: '#f7bb00',
     },
     yellow: {
-      text: '#d9a300',
-      textDark: '#f7bb00',
+      text: '#92400E',
+      textDark: '#FDE047',
     },
     green: {
       text: '#458b00',

@@ -141,6 +141,12 @@ export interface MarketSummary {
   plants: MarketPlant[];
 }
 
+export interface DateRange {
+  start_date: string;
+  end_date: string;
+  filter: string;
+}
+
 export interface DashboardData {
   user: DashboardUser;
   notifications: DashboardNotifications;
@@ -150,6 +156,7 @@ export interface DashboardData {
   market_summary: MarketSummary;
   active_deliveries: ActiveDeliveries;
   recent_alerts: RecentAlert[];
+  date_range?: DateRange;
 }
 
 export interface DashboardApiResponse {

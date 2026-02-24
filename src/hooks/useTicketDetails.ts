@@ -51,9 +51,11 @@ export const useTicketDetails = (params: TicketDetailsQueryParams) => {
     plantCode: ticket?.plant_code,
     plantName: ticket?.plant_name,
     plantAddress: ticket?.plant_address,
+    plantPhone: ticket?.plant_phone,
 
     runningQty: ticket?.running_qty ?? 0,
     orderedQty: ticket?.ordered_qty ?? 0,
+    loadQty: ticket?.load_qty,
 
     driverName: ticket?.driver_name,
     driverPhone: ticket?.driver_phone,
@@ -78,6 +80,7 @@ export const useTicketDetails = (params: TicketDetailsQueryParams) => {
     statusTimestamp: ticket?.status?.timestamp,
     statusTimestampDisplay: ticket?.status?.timestamp_display,
     etaAtJob: ticket?.status?.eta_at_job,
+    removeReasonCode: ticket?.status?.remove_reason_code,
 
     timestamps: {
       ticketed: ticket?.status?.ticketed,
@@ -91,7 +94,25 @@ export const useTicketDetails = (params: TicketDetailsQueryParams) => {
       atPlant: ticket?.status?.at_plant,
     },
 
+    durations: {
+      loading: ticket?.status?.durations?.loading ?? null,
+      loaded: ticket?.status?.durations?.loaded ?? null,
+      toJob: ticket?.status?.durations?.to_job ?? null,
+      atJob: ticket?.status?.durations?.at_job ?? null,
+      pouring: ticket?.status?.durations?.pouring ?? null,
+      washing: ticket?.status?.durations?.washing ?? null,
+      toPlant: ticket?.status?.durations?.to_plant ?? null,
+      atPlant: ticket?.status?.durations?.at_plant ?? null,
+    },
+
     products: ticket?.products || [],
+
+    deliveryMetrics: ticket?.delivery_metrics || null,
+    spacingMinutes: ticket?.delivery_metrics?.spacing_minutes || null,
+    waitingMinutes: ticket?.delivery_metrics?.waiting_minutes || null,
+    pourMinutes: ticket?.delivery_metrics?.pour_minutes || null,
+    performanceMinutes: ticket?.delivery_metrics?.performance_minutes || null,
+    idleMinutes: ticket?.delivery_metrics?.idle_minutes || null,
 
     isLoading: query.isLoading,
     isError: query.isError,

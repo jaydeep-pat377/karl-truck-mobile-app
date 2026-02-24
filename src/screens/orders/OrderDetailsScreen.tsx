@@ -20,19 +20,19 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Text, TopGradientBackground, TruckLoader, Icon, AlertModal } from '../../components/common';
 import YellowTruck from '../../assets/svgs/yellowTruck.svg';
 import Isolation_Mode from '../../assets/svgs/Isolation_Mode.svg';
-import { Order } from '../../types';
+import { Order, OrderCreatedItem } from '../../types';
 import { colors } from '../../theme/colors';
 import { getStatusColor, getStatusLabel } from '../../utils/statusUtils';
 import { fontFamily } from '../../theme/typography';
 import { ms } from '../../utils/responsive';
-import { RootStackParamList } from '../../navigation/types';
+import { RootStackParamList, OrdersStackParamList } from '../../navigation/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useOrderDetails, useAlert } from '../../hooks';
 import { orderService } from '../../api/services/orderService';
 import { PerformanceCharts } from '../../components/charts';
 import { ScheduledLoadsBottomSheet } from '../../components/orders';
 
-type OrderDetailsRouteProp = RouteProp<RootStackParamList, 'OrderDetail'>;
+type OrderDetailsRouteProp = RouteProp<OrdersStackParamList, 'OrderDetailInTab'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -1366,80 +1366,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
   );
 };
 
-interface BottomTabProps {
-  tabs: Array<{ icon: string; label: string }>;
-  activeTab: string;
-  onTabPress: (tab: string) => void;
-  isDark: boolean;
-}
-
-const tabBarTheme = {
-  light: {
-    background: colors.tabBar?.light?.background || colors.common.white,
-    iconInactive: colors.tabBar?.light?.iconInactive || colors.grey[50],
-    iconActive: colors.tabBar?.light?.iconActive || colors.common.white,
-    labelActive: colors.tabBar?.light?.labelActive || colors.common.white,
-  },
-  dark: {
-    background: colors.tabBar?.dark?.background || colors.grey[85],
-    iconInactive: colors.tabBar?.dark?.iconInactive || colors.grey[50],
-    iconActive: colors.tabBar?.dark?.iconActive || colors.common.white,
-    labelActive: colors.tabBar?.dark?.labelActive || colors.common.white,
-  },
-};
-
-const BottomTabBar: React.FC<BottomTabProps> = ({ tabs, activeTab, onTabPress, isDark }) => {
-  const themeColors = isDark ? tabBarTheme.dark : tabBarTheme.light;
-  const insets = useSafeAreaInsets();
-  const bottomPadding = Math.max(insets.bottom, GRID.sm) + GRID.xs;
-
-  const getIconName = (tab: { icon: string; label: string }, isActive: boolean): string => {
-    if (isActive) {
-      return tab.icon.replace('-outline', '');
-    }
-    return tab.icon;
-  };
-
-  return (
-    <View style={[styles.bottomTabContainer, { paddingBottom: bottomPadding }]}>
-      <View style={[
-        styles.bottomTabBar,
-        {
-          backgroundColor: themeColors.background,
-          borderColor: colors.primary.main,
-        }
-      ]}>
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.label;
-          return (
-            <TouchableOpacity
-              key={tab.label}
-              style={styles.bottomTabItem}
-              onPress={() => onTabPress(tab.label)}
-              activeOpacity={0.75}
-            >
-              <View style={[
-                styles.bottomTabPill,
-                isActive && styles.bottomTabPillActive,
-              ]}>
-                <Icon
-                  name={getIconName(tab, isActive)}
-                  size={ms(24)}
-                  color={isActive ? themeColors.iconActive : themeColors.iconInactive}
-                />
-                {isActive && (
-                  <Text style={[styles.bottomTabLabel, { color: themeColors.labelActive }]}>
-                    {tab.label}
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </View>
-  );
-};
 
 export const OrderDetailsScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -1459,7 +1385,7 @@ export const OrderDetailsScreen: React.FC = () => {
     extrapolate: 'clamp',
   });
 
-  const { orderId, orderCode, orderDate, status: passedStatus, progressColor, sourceTab } = route.params;
+  const { orderId, orderCode, orderDate, status: passedStatus, progressColor } = route.params;
 
   const {
     orderDetails,
@@ -1483,6 +1409,7 @@ export const OrderDetailsScreen: React.FC = () => {
       id: orderDetails.order_id,
       orderCode: orderDetails.order_code,
       customerName: orderDetails.customer_name,
+      projectName: orderDetails.project_name,
       deliveryAddress: orderDetails.delivery_address,
       scheduledDate: orderDetails.order_date,
       scheduledTime: orderDetails.start_time,
@@ -1599,6 +1526,7 @@ export const OrderDetailsScreen: React.FC = () => {
 
       displayDate: orderDetails.display_date || '',
       estimatedFinishTime: orderDetails.estimated_finish_time || '',
+      scheduledTime: orderDetails.start_time || '',
       scheduleRate: orderDetails.graphs?.pour_speed?.schedule_rate || 0,
       avgWaitingMinutes: orderDetails.graphs?.trucks_on_job?.averages?.avg_waiting_minutes || 0,
       avgPouringMinutes: orderDetails.graphs?.trucks_on_job?.averages?.avg_pouring_minutes || 0,
@@ -1628,6 +1556,16 @@ export const OrderDetailsScreen: React.FC = () => {
         job_wash_time: s.job_wash_time,
         truck_type_name: s.truck_type_name,
         start_time: s.start_time,
+        associated_products: s.associated_products?.map((ap: any) => ({
+          order_product_id: ap.order_product_id,
+          product_id: ap.product_id,
+          item_code: ap.item_code,
+          description: ap.description,
+          is_mix: ap.is_mix,
+          ordered_qty: ap.ordered_qty,
+          delivered_qty: ap.delivered_qty,
+          order_qty_unit: ap.order_qty_unit,
+        })) || [],
       })) || [],
 
       // Scheduled Loads
@@ -1651,10 +1589,10 @@ export const OrderDetailsScreen: React.FC = () => {
     };
   }, [orderDetails]);
 
-  const [activeTab, setActiveTab] = useState(sourceTab || 'Orders');
   const [refreshing, setRefreshing] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showAllUpdates, setShowAllUpdates] = useState(false);
 
 
   useEffect(() => {
@@ -1850,35 +1788,6 @@ export const OrderDetailsScreen: React.FC = () => {
   const pourSpeedChartData = useMemo(() => jobData.pourSpeedData, [jobData.pourSpeedData]);
   const trucksChartData = useMemo(() => jobData.trucksOnJobData, [jobData.trucksOnJobData]);
 
-  const bottomTabs = [
-    { icon: 'clipboard-text-outline', label: 'Orders' },
-    { icon: 'calendar-today', label: 'Today' },
-    { icon: 'home-outline', label: 'Home' },
-    { icon: 'bell-outline', label: 'Notifications' },
-    { icon: 'cog-outline', label: 'Settings' },
-  ];
-
-  const handleTabPress = useCallback((tabLabel: string) => {
-    setActiveTab(tabLabel);
-    switch (tabLabel) {
-      case 'Orders':
-        navigation.navigate('Main', { screen: 'Orders' });
-        break;
-      case 'Today':
-        navigation.navigate('Main', { screen: 'Today' });
-        break;
-      case 'Home':
-        navigation.navigate('Main', { screen: 'Home' });
-        break;
-      case 'Notifications':
-        navigation.navigate('Main', { screen: 'Notifications' });
-        break;
-      case 'Settings':
-        navigation.navigate('Main', { screen: 'Settings' });
-        break;
-    }
-  }, [navigation]);
-
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -1908,12 +1817,6 @@ export const OrderDetailsScreen: React.FC = () => {
             color={isDark ? 'light' : 'dark'}
           />
         </View>
-        <BottomTabBar
-          tabs={bottomTabs}
-          activeTab={activeTab}
-          onTabPress={handleTabPress}
-          isDark={isDark}
-        />
       </View>
     );
   }
@@ -1954,12 +1857,6 @@ export const OrderDetailsScreen: React.FC = () => {
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
-        <BottomTabBar
-          tabs={bottomTabs}
-          activeTab={activeTab}
-          onTabPress={handleTabPress}
-          isDark={isDark}
-        />
       </View>
     );
   }
@@ -2033,6 +1930,15 @@ export const OrderDetailsScreen: React.FC = () => {
         <View style={styles.header}>
           <View style={styles.headerSafeArea}>
             <Text style={[styles.headerSiteName, { color: isDark ? colors.common.white : colors.grey[80] }]}>{jobData.siteName}</Text>
+
+            {order.projectName && (
+              <View style={styles.headerProjectRow}>
+                <Icon name="office-building" size={12} color={isDark ? colors.common.white : colors.grey[80]} />
+                <Text style={[styles.headerProjectName, { color: isDark ? colors.common.white : colors.grey[80] }]} numberOfLines={1}>
+                  {order.projectName}
+                </Text>
+              </View>
+            )}
 
             <View style={styles.headerChipsRow}>
               <View style={[styles.headerChip, { backgroundColor: isDark ? colors.common.white + '20' : colors.common.black + '15' }]}>
@@ -2177,9 +2083,48 @@ export const OrderDetailsScreen: React.FC = () => {
                 <Text style={[styles.productDetailsTitle, { color: themeColors.text.primary }]}>
                   Product & Schedule Details
                 </Text>
-                <Text style={[styles.productDetailsSubtitle, { color: themeColors.text.secondary }]}>
-                  View product & schedule information
-                </Text>
+                {jobData.scheduleDetails && jobData.scheduleDetails.length > 0 ? (
+                  <View style={styles.productScheduleInfo}>
+                    {jobData.scheduleDetails.map((schedule, index) => (
+                      <View key={schedule.schedule_id || index} style={index > 0 ? styles.productScheduleItem : undefined}>
+                        <View style={styles.productScheduleRow}>
+                          <Text style={[styles.productScheduleLabel, { color: themeColors.text.secondary }]}>
+                            Start Time
+                          </Text>
+                          <Text style={[styles.productScheduleValue, { color: themeColors.text.primary }]}>
+                            {jobData.scheduledTime || 'N/A'}
+                          </Text>
+                        </View>
+                        <View style={styles.productScheduleRow}>
+                          <Text style={[styles.productScheduleLabel, { color: themeColors.text.secondary }]}>
+                            Product
+                          </Text>
+                          <Text style={[styles.productScheduleValue, { color: themeColors.text.primary }]} numberOfLines={1}>
+                            {schedule.item_code} {schedule.schedule_qty} CY
+                          </Text>
+                        </View>
+                        {schedule.associated_products && schedule.associated_products.length > 0 && (
+                          <View style={styles.associatedProductsContainer}>
+                            {schedule.associated_products.map((ap: any, apIndex: number) => (
+                              <View key={ap.order_product_id || apIndex} style={styles.productScheduleRow}>
+                                <Text style={[styles.productScheduleLabel, { color: themeColors.text.hint }]}>
+                                  {apIndex === 0 ? 'Associated' : ''}
+                                </Text>
+                                <Text style={[styles.productScheduleValue, { color: themeColors.text.secondary }]} numberOfLines={1}>
+                                  {ap.item_code} {ap.ordered_qty} {ap.order_qty_unit || 'ea'}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={[styles.productDetailsSubtitle, { color: themeColors.text.secondary }]}>
+                    View product & schedule information
+                  </Text>
+                )}
               </View>
             </View>
             <Icon name="chevron-right" size={ms(24)} color={themeColors.text.hint} />
@@ -2191,6 +2136,168 @@ export const OrderDetailsScreen: React.FC = () => {
             truckSpace={jobData.avgSpacing ? parseInt(jobData.avgSpacing) : 0}
             isDark={isDark}
           />
+
+          {/* Order Activity Section - Combined Order Updates and Order Created */}
+          {orderDetails?.realtime_order_updates && orderDetails.realtime_order_updates.items.length > 0 && (() => {
+            const orderCreatedItem = orderDetails.realtime_order_updates.items.find(
+              (item): item is OrderCreatedItem => item.change_type === 'order_created'
+            );
+            const updateItems = orderDetails.realtime_order_updates.items.filter(item => item.change_type !== 'order_created');
+
+            return (
+              <View style={[styles.orderUpdatesSection, { backgroundColor: themeColors.card }]}>
+                {/* Header with total count */}
+                <View style={styles.orderUpdatesSectionHeader}>
+                  <View style={styles.orderUpdatesTitleRow}>
+                    <Icon name="history" size={ms(20)} color={colors.primary.main} />
+                    <Text style={[styles.orderUpdatesSectionTitle, { color: themeColors.text.primary }]}>
+                      Order Activity
+                    </Text>
+                  </View>
+                  <View style={[styles.orderUpdatesCountBadge, { backgroundColor: colors.primary.main + '15' }]}>
+                    <Text style={[styles.orderUpdatesCountText, { color: colors.primary.main }]}>
+                      {orderDetails.realtime_order_updates.count}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Order Updates Timeline */}
+                {updateItems.length > 0 && (
+                  <>
+                    <View style={styles.orderUpdatesTimeline}>
+                      {(showAllUpdates ? updateItems : updateItems.slice(0, 1)).map((update) => (
+                        <View key={update.id} style={[
+                          styles.orderUpdateItem,
+                          { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }
+                        ]}>
+                          <View style={[styles.orderUpdateIconBox, { backgroundColor: colors.info.main + '15' }]}>
+                            <Icon name="information-outline" size={ms(18)} color={colors.info.main} />
+                          </View>
+                          <View style={styles.orderUpdateContent}>
+                            <Text style={[styles.orderUpdateMessage, { color: themeColors.text.primary }]}>
+                              {update.change_message}
+                            </Text>
+                            <View style={styles.orderUpdateMeta}>
+                              <Icon name="clock-outline" size={ms(12)} color={themeColors.text.hint} />
+                              <Text style={[styles.orderUpdateTime, { color: themeColors.text.hint }]}>
+                                {update.changed_at}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                    {updateItems.length > 1 && (
+                      <TouchableOpacity
+                        style={styles.seeMoreButton}
+                        onPress={() => setShowAllUpdates(!showAllUpdates)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.seeMoreText, { color: colors.primary.main }]}>
+                          {showAllUpdates ? 'See Less' : `See More (${updateItems.length - 1} more)`}
+                        </Text>
+                        <Icon
+                          name={showAllUpdates ? 'chevron-up' : 'chevron-down'}
+                          size={ms(16)}
+                          color={colors.primary.main}
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
+
+                {/* Order Created Section */}
+                {orderCreatedItem && (
+                  <View style={[styles.orderCreatedInCard, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
+                    <View style={styles.orderCreatedHeader}>
+                      <View style={styles.orderCreatedTitleRow}>
+                        <View style={[styles.orderCreatedIconBox, { backgroundColor: colors.success.main + '15' }]}>
+                          <Icon name="clipboard-plus-outline" size={ms(18)} color={colors.success.main} />
+                        </View>
+                        <Text style={[styles.orderCreatedTitle, { color: themeColors.text.primary }]}>
+                          Order Created
+                        </Text>
+                      </View>
+                      <Text style={[styles.orderCreatedTime, { color: themeColors.text.hint }]}>
+                        {orderCreatedItem.created}
+                      </Text>
+                    </View>
+
+                    <View style={styles.orderCreatedDetails}>
+                      <View style={styles.orderCreatedRow}>
+                        <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>Status</Text>
+                        <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]}>{orderCreatedItem.order_status}</Text>
+                      </View>
+                      <View style={styles.orderCreatedRow}>
+                        <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>Plant</Text>
+                        <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]}>{orderCreatedItem.plant}</Text>
+                      </View>
+                      <View style={styles.orderCreatedRow}>
+                        <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>Delivery</Text>
+                        <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]}>{orderCreatedItem.delivery_address}</Text>
+                      </View>
+                      {orderCreatedItem.purchase_order && (
+                        <View style={styles.orderCreatedRow}>
+                          <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>PO#</Text>
+                          <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]}>{orderCreatedItem.purchase_order}</Text>
+                        </View>
+                      )}
+                      {orderCreatedItem.instructions && (
+                        <View style={styles.orderCreatedRow}>
+                          <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>Instructions</Text>
+                          <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]}>{orderCreatedItem.instructions}</Text>
+                        </View>
+                      )}
+                      {orderCreatedItem.ordered_by && (
+                        <View style={styles.orderCreatedRow}>
+                          <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>Ordered By</Text>
+                          <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]} numberOfLines={2}>{orderCreatedItem.ordered_by}</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {orderCreatedItem.products && orderCreatedItem.products.length > 0 && (
+                      <View style={[styles.orderCreatedProducts, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
+                        <Text style={[styles.orderCreatedProductsTitle, { color: themeColors.text.secondary }]}>
+                          Products ({orderCreatedItem.products.length})
+                        </Text>
+                        {orderCreatedItem.products.map((product, index) => (
+                          <View key={index} style={[styles.orderCreatedProductItem, { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }]}>
+                            <View style={styles.orderCreatedProductRow}>
+                              <Icon name="cube-outline" size={ms(14)} color={colors.primary.main} />
+                              <Text style={[styles.orderCreatedProductCode, { color: themeColors.text.primary }]}>
+                                {product.item_code}
+                              </Text>
+                            </View>
+                            <View style={styles.orderCreatedProductRow}>
+                              <Icon name="text-box-outline" size={ms(14)} color={themeColors.text.secondary} />
+                              <Text style={[styles.orderCreatedProductDesc, { color: themeColors.text.secondary }]} numberOfLines={2}>
+                                {product.description}
+                              </Text>
+                            </View>
+                            <View style={styles.orderCreatedProductRow}>
+                              <Icon name="scale" size={ms(14)} color={colors.primary.main} />
+                              <Text style={[styles.orderCreatedProductQty, { color: colors.primary.main }]}>
+                                {product.quantity}
+                              </Text>
+                            </View>
+                            {product.slump && (
+                              <View style={styles.orderCreatedProductRow}>
+                                <Icon name="water" size={ms(14)} color={themeColors.text.hint} />
+                                <Text style={[styles.orderCreatedProductSlump, { color: themeColors.text.hint }]}>
+                                  Slump: {product.slump}"
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            );
+          })()}
 
           {/* Bottom spacing for tab bar */}
           <View style={{ height: ms(100) }} />
@@ -2276,13 +2383,6 @@ export const OrderDetailsScreen: React.FC = () => {
         onClose={() => setShowLoadsSheet(false)}
         loads={jobData.scheduledLoads}
         totalLoads={jobData.scheduleDetails?.[0]?.number_of_loads}
-      />
-
-      <BottomTabBar
-        tabs={bottomTabs}
-        activeTab={activeTab}
-        onTabPress={handleTabPress}
-        isDark={isDark}
       />
     </View>
   );
@@ -2399,6 +2499,18 @@ const styles = StyleSheet.create({
     color: colors.common.white,
     textAlign: 'center',
     marginTop: GRID.sm,
+  },
+  headerProjectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: GRID.xs,
+    marginTop: GRID.xs,
+  },
+  headerProjectName: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(12),
+    color: colors.common.white,
   },
   headerChipsRow: {
     flexDirection: 'row',
@@ -3672,59 +3784,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     fontSize: ms(10),
   },
-  bottomTabContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: GRID.lg,
-    paddingTop: GRID.md,
-  },
-  bottomTabBar: {
-    flexDirection: 'row',
-    height: ms(52),
-    borderRadius: ms(28),
-    paddingHorizontal: ms(6),
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1.5,
-    shadowColor: colors.common.black,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 24,
-  },
-  bottomTabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bottomTabPill: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: ms(40),
-    height: ms(40),
-    borderRadius: ms(18),
-  },
-  bottomTabPillActive: {
-    width: ms(58),
-    height: ms(62),
-    backgroundColor: colors.primary.main,
-    borderRadius: ms(20),
-    shadowColor: colors.common.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  bottomTabLabel: {
-    fontSize: ms(9),
-    fontFamily: fontFamily.semiBold,
-    letterSpacing: 0.4,
-    marginTop: ms(2),
-    textTransform: 'uppercase',
-    textAlign: 'center',
-  },
   menuModalWrapper: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -3830,6 +3889,203 @@ const styles = StyleSheet.create({
   productDetailsSubtitle: {
     fontFamily: fontFamily.regular,
     fontSize: ms(12),
+  },
+  productScheduleInfo: {
+    marginTop: 4,
+  },
+  productScheduleItem: {
+    marginTop: 8,
+  },
+  productScheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  productScheduleLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
+    width: ms(70),
+  },
+  productScheduleValue: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(12),
+    flex: 1,
+  },
+  associatedProductsContainer: {
+    marginTop: 2,
+  },
+  // Order Created Section Styles
+  orderCreatedSection: {
+    borderRadius: RADIUS.xl,
+    padding: GRID.md,
+    marginBottom: GRID.md,
+    ...SHADOWS.sm,
+  },
+  orderCreatedInCard: {
+    borderTopWidth: 1,
+    marginTop: GRID.md,
+    paddingTop: GRID.md,
+  },
+  orderCreatedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: GRID.md,
+  },
+  orderCreatedTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: GRID.sm,
+  },
+  orderCreatedIconBox: {
+    width: ms(36),
+    height: ms(36),
+    borderRadius: RADIUS.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  orderCreatedTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(16),
+  },
+  orderCreatedTime: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+  },
+  orderCreatedDetails: {
+    gap: GRID.sm,
+  },
+  orderCreatedRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  orderCreatedLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
+    width: ms(80),
+  },
+  orderCreatedValue: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(12),
+    flex: 1,
+  },
+  orderCreatedProducts: {
+    marginTop: GRID.md,
+    paddingTop: GRID.md,
+    borderTopWidth: 1,
+    gap: GRID.sm,
+  },
+  orderCreatedProductsTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(13),
+    marginBottom: GRID.xs,
+  },
+  orderCreatedProductItem: {
+    padding: GRID.sm,
+    borderRadius: RADIUS.md,
+    gap: GRID.xs,
+  },
+  orderCreatedProductRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: GRID.xs,
+  },
+  orderCreatedProductCode: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+    flex: 1,
+  },
+  orderCreatedProductQty: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+  },
+  orderCreatedProductDesc: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+    flex: 1,
+  },
+  orderCreatedProductSlump: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+  },
+  // Order Updates Section Styles
+  orderUpdatesSection: {
+    borderRadius: RADIUS.xl,
+    padding: GRID.md,
+    marginBottom: GRID.md,
+    ...SHADOWS.sm,
+  },
+  orderUpdatesSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: GRID.md,
+  },
+  orderUpdatesTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: GRID.sm,
+  },
+  orderUpdatesSectionTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(16),
+  },
+  orderUpdatesCountBadge: {
+    paddingHorizontal: GRID.sm,
+    paddingVertical: GRID.xs / 2,
+    borderRadius: RADIUS.full,
+  },
+  orderUpdatesCountText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+  },
+  orderUpdatesTimeline: {
+    gap: GRID.sm,
+  },
+  orderUpdateItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: GRID.sm,
+    borderRadius: RADIUS.md,
+    gap: GRID.sm,
+  },
+  orderUpdateIconBox: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: RADIUS.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  orderUpdateContent: {
+    flex: 1,
+  },
+  orderUpdateMessage: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(13),
+    lineHeight: ms(18),
+  },
+  orderUpdateMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: GRID.xs,
+    gap: GRID.xs,
+  },
+  orderUpdateTime: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+    flex: 1,
+  },
+  seeMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: GRID.sm,
+    marginTop: GRID.xs,
+    gap: GRID.xs,
+  },
+  seeMoreText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(13),
   },
 });
 

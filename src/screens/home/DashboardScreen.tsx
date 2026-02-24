@@ -95,11 +95,10 @@ const DashboardScreen: React.FC = () => {
 
   const {
     notifications,
-    weather,
     todayOverview,
     marketSummary,
     activeDeliveries,
-    recentAlerts,
+    dateRange,
     isLoading,
     isError,
     error,
@@ -264,11 +263,11 @@ const DashboardScreen: React.FC = () => {
       const orderListDateFilter = dateFilter === 'next_week' ? 'nextWeek'
         : dateFilter === 'last_week' ? 'lastWeek'
         : dateFilter;
-      // Navigate to Orders screen with is_favourite filter and current date filter
+      // Navigate to Orders screen with saved tab and current date filter
       navigation.navigate('Main', {
         screen: 'Orders',
         params: {
-          is_favourite: true,
+          tab: 'saved',
           date_filter: orderListDateFilter,
           selected_date: dateFilter === 'calendar' ? formatDateForApi(selectedDate) : undefined,
           _timestamp: Date.now(),
@@ -313,7 +312,11 @@ const DashboardScreen: React.FC = () => {
     const progressPercent = Math.min(item.progressPercent, 100);
     const progressColor = getProgressBarColor(item.status, progressPercent);
 
-    const formatQty = (qty: number) => (qty % 1 === 0 ? qty.toString() : qty.toFixed(1));
+    // Safe formatter that handles null, undefined, and 0
+    const formatQty = (qty: number | null | undefined): string => {
+      if (qty === null || qty === undefined) return '0';
+      return qty % 1 === 0 ? qty.toString() : qty.toFixed(1);
+    };
 
     return (
       <TouchableOpacity
@@ -338,7 +341,7 @@ const DashboardScreen: React.FC = () => {
           <View style={styles.deliveryHeader}>
             <View style={styles.deliveryHeaderLeft}>
               <Text style={[styles.deliveryOrderCode, { color: themeColors.text.primary }]} numberOfLines={1}>
-                #{item.orderCode}
+                {item.orderCode}
               </Text>
               <View
                 style={[
@@ -375,28 +378,39 @@ const DashboardScreen: React.FC = () => {
             ]}
           >
             <View style={styles.deliveryStatItem}>
-              <Text style={[styles.deliveryStatValue, { color: themeColors.text.primary }]}>
-                {formatQty(item.orderedQty)}
-              </Text>
-              <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Order</Text>
+              <View style={styles.deliveryStatValueRow}>
+                <Text style={[styles.deliveryStatValue, { color: themeColors.text.primary }]}>
+                  {formatQty(item.orderedQty)}
+                </Text>
+                <Text style={[styles.deliveryStatUnit, { color: themeColors.text.primary }]}> CY</Text>
+              </View>
+              <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Ordered</Text>
             </View>
             <View style={[styles.deliveryStatDivider, { backgroundColor: themeColors.border }]} />
             <View style={styles.deliveryStatItem}>
-              <Text style={[styles.deliveryStatValue, { color: colors.dashboard.statGreen }]}>
-                {formatQty(item.deliveredQty)}
-              </Text>
-              <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Done</Text>
+              <View style={styles.deliveryStatValueRow}>
+                <Text style={[styles.deliveryStatValue, { color: colors.dashboard.statGreen }]}>
+                  {formatQty(item.deliveredQty)}
+                </Text>
+                <Text style={[styles.deliveryStatUnit, { color: colors.dashboard.statGreen }]}> CY</Text>
+              </View>
+              <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Poured</Text>
             </View>
             <View style={[styles.deliveryStatDivider, { backgroundColor: themeColors.border }]} />
             <View style={styles.deliveryStatItem}>
-              <Text style={[styles.deliveryStatValue, { color: colors.dashboard.statYellow }]}>
-                {formatQty(item.remainingQty)}
-              </Text>
-              <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Left</Text>
+              <View style={styles.deliveryStatValueRow}>
+                <Text style={[styles.deliveryStatValue, { color: colors.dashboard.statYellow }]}>
+                  {formatQty(item.remainingQty)}
+                </Text>
+                <Text style={[styles.deliveryStatUnit, { color: colors.dashboard.statYellow }]}> CY</Text>
+              </View>
+              <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Remaining</Text>
             </View>
             <View style={[styles.deliveryStatDivider, { backgroundColor: themeColors.border }]} />
             <View style={styles.deliveryStatItem}>
-              <Text style={[styles.deliveryStatValue, { color: progressColor }]}>{progressPercent}%</Text>
+              <Text style={[styles.deliveryStatValue, { color: progressColor }]}>
+                {progressPercent}%
+              </Text>
               <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Progress</Text>
             </View>
           </View>
@@ -562,6 +576,7 @@ const DashboardScreen: React.FC = () => {
         showDatePicker={showDatePicker}
         onCalendarPress={handleCalendarPress}
         onCloseDatePicker={handleCloseDatePicker}
+        dateRange={dateRange}
       />
 
       <ScrollView
@@ -649,7 +664,7 @@ const DashboardScreen: React.FC = () => {
 
         {dateFilter === 'today' && (
           <View style={{ marginTop: spacing.md }}>
-            <SectionHeader title="Active Deliveries" actionLabel="View All" onAction={() => navigation.navigate('Today')} />
+            <SectionHeader title="Active Deliveries" actionLabel="View All" onAction={() => navigation.navigate('Orders', { date_filter: 'today', _timestamp: Date.now() })} />
             {activeDeliveries?.orders && activeDeliveries.orders.length > 0 ? (
               <ScrollView
                 horizontal
@@ -692,13 +707,16 @@ const DashboardScreen: React.FC = () => {
                         item: deliveryItem,
                         onPress: () => {
                           const progressColor = getProgressBarColor(order.status, deliveryItem.progressPercent || 0);
-                          navigation.navigate('OrderDetail', {
-                            orderId: order.order_id,
-                            orderCode: order.order_code,
-                            orderDate: new Date().toISOString().split('T')[0],
-                            status: order.status,
-                            progressColor: progressColor,
-                            sourceTab: 'Home',
+                          navigation.navigate('Orders', {
+                            screen: 'OrderDetailInTab',
+                            params: {
+                              orderId: order.order_id,
+                              orderCode: order.order_code,
+                              orderDate: new Date().toISOString().split('T')[0],
+                              status: order.status,
+                              progressColor: progressColor,
+                              sourceTab: 'Home',
+                            },
                           });
                         },
                       })}
@@ -846,8 +864,8 @@ const createStyles = (
       paddingVertical: ms(4),
     },
     deliveryCardWrapper: {
-      width: screenWidth * 0.8,
-      maxWidth: ms(320),
+      width: screenWidth * 0.92,
+      maxWidth: ms(400),
       marginRight: ms(12),
     },
     deliveryCard: {
@@ -929,19 +947,31 @@ const createStyles = (
     deliveryStatsRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-around',
-      marginHorizontal: ms(12),
+      justifyContent: 'space-between',
+      marginHorizontal: ms(8),
       paddingVertical: ms(8),
+      paddingHorizontal: ms(4),
       borderRadius: ms(8),
       marginBottom: ms(8),
     },
     deliveryStatItem: {
       flex: 1,
       alignItems: 'center',
+      minWidth: ms(50),
+    },
+    deliveryStatValueRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'center',
     },
     deliveryStatValue: {
-      fontSize: ms(15),
+      fontSize: ms(12),
       fontFamily: fontFamily.bold,
+      textAlign: 'center',
+    },
+    deliveryStatUnit: {
+      fontSize: ms(9),
+      fontFamily: fontFamily.medium,
     },
     deliveryStatLabel: {
       fontSize: ms(9),

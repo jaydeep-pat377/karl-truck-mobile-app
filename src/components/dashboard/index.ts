@@ -1,6 +1,8 @@
 export { CircularProgress } from './CircularProgress';
 export { DateFilterChips } from './DateFilterChips';
 export type { DateFilter } from './DateFilterChips';
+export { OrderStatusTabs } from './OrderStatusTabs';
+export type { OrderStatusFilter, OrderStatusCount } from './OrderStatusTabs';
 export { SummaryCard } from './SummaryCard';
 export type { SummaryCardData } from './SummaryCard';
 export { QuickLaunchCard } from './QuickLaunchCard';

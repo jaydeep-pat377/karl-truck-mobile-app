@@ -78,9 +78,8 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     : 0;
 
   const productCode = apiOrder.product_codes || 'N/A';
-  const estimatedLoadsPerTruck = 10;
-  const totalLoads = Math.ceil(apiOrder.ordered_qty / estimatedLoadsPerTruck) || 1;
-  const completedLoads = apiOrder.tickets_count || 0;
+  const totalLoads = apiOrder.total_loads || 0;
+  const completedLoads = apiOrder.active_tickets || 0;
 
   return {
     id: apiOrder.order_id,
