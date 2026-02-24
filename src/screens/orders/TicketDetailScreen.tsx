@@ -1130,6 +1130,26 @@ export const TicketDetailScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={headerGradient[0]} />
 
+      {/* Static Header Bar */}
+      <View style={[styles.staticHeaderBar, { paddingTop: insets.top, backgroundColor: headerGradient[0] }]}>
+        <View style={styles.headerBar}>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={handleBack}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
+          </TouchableOpacity>
+          <View style={styles.headerTitleSection}>
+            <Text style={styles.headerTitle}>Ticket</Text>
+          </View>
+          <View style={styles.headerIconRight}>
+            <ConcreteTruck width={ms(40)} height={ms(40)} color={colors.common.white} />
+          </View>
+        </View>
+      </View>
+
+      {/* Scrollable Content */}
       <ScrollView
         style={styles.fullScreenScrollView}
         contentContainerStyle={[
@@ -1148,29 +1168,13 @@ export const TicketDetailScreen: React.FC = () => {
             tintColor={colors.common.white}
             colors={[colors.common.white, colors.secondary.light]}
             progressBackgroundColor={colors.primary.main}
-            progressViewOffset={insets.top + ms(40)}
           />
         }>
-        <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
+        <View style={styles.headerContainer}>
           <LinearGradient
             colors={headerGradient}
             style={StyleSheet.absoluteFill}
           />
-          <View style={styles.headerBar}>
-            <TouchableOpacity
-              style={styles.headerBtn}
-              onPress={handleBack}
-              activeOpacity={0.7}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
-            </TouchableOpacity>
-            <View style={styles.headerTitleSection}>
-              <Text style={styles.headerTitle}>Ticket</Text>
-            </View>
-            <View style={styles.headerIconRight}>
-              <ConcreteTruck width={ms(40)} height={ms(40)} color={colors.common.white} />
-            </View>
-          </View>
           {(apiOrderCode || customerName || projectName) && (
             <View style={styles.headerSubtitleSection}>
               {apiOrderCode && (
@@ -1622,6 +1626,9 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     fontSize: ms(14),
     marginLeft: GRID.sm,
+  },
+  staticHeaderBar: {
+    zIndex: 10,
   },
   headerContainer: {
     paddingBottom: GRID.lg,

@@ -404,16 +404,11 @@ const HumidityCard: React.FC<HumidityCardProps> = ({ value, description }) => {
 interface RecommendationChipProps {
   label: string;
   color: string;
-  onPress?: () => void;
 }
 
-const RecommendationChip: React.FC<RecommendationChipProps> = ({ label, color, onPress }) => {
+const RecommendationChip: React.FC<RecommendationChipProps> = ({ label, color }) => {
   return (
-    <TouchableOpacity
-      style={[styles.recommendationChip, { backgroundColor: color }]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
+    <View style={[styles.recommendationChip, { backgroundColor: color }]}>
       <Text
         style={styles.recommendationChipText}
         numberOfLines={1}
@@ -421,7 +416,7 @@ const RecommendationChip: React.FC<RecommendationChipProps> = ({ label, color, o
       >
         {label}
       </Text>
-    </TouchableOpacity>
+    </View>
   );
 };
 
@@ -548,7 +543,6 @@ export const WeatherScreen: React.FC = () => {
   }, []);
 
   const handleShare = useCallback(async () => {
-    setMenuVisible(false);
     try {
       await Share.share({
         message: `Weather Update for ${weather.location}\nTemperature: ${weather.temperature}°${weather.temperatureUnit}\nCondition: ${weather.condition}\nMax: ${weather.maxTemp}° | Min: ${weather.minTemp}°`,
@@ -634,9 +628,34 @@ export const WeatherScreen: React.FC = () => {
         style={styles.gradientBackground}
       />
 
+      {/* Static Header - Only Top Row */}
+      <View style={[styles.staticHeader, { paddingTop: insets.top }]}>
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
+            <Icon name="chevron-left" size={24} color={colors.common.white} />
+          </TouchableOpacity>
+
+          <Text style={styles.headerTitle}>Weather Update</Text>
+
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerActionBtn} onPress={onRefresh} activeOpacity={0.7}>
+              {isRefetching ? (
+                <ActivityIndicator size="small" color={colors.common.white} />
+              ) : (
+                <Icon name="refresh" size={20} color={colors.common.white} />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerActionBtn} onPress={handleShare} activeOpacity={0.7}>
+              <Icon name="share-variant" size={20} color={colors.common.white} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* Scrollable Content */}
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top }]}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         bounces={true}
         refreshControl={
@@ -646,27 +665,9 @@ export const WeatherScreen: React.FC = () => {
             tintColor={colors.common.white}
             colors={[colors.primary.main, colors.secondary.main]}
             progressBackgroundColor={isDark ? themeColors.cardElevated : colors.common.white}
-            progressViewOffset={insets.top}
           />
         }>
         <View style={styles.headerContent}>
-          <View style={styles.headerTopRow}>
-            <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
-              <Icon name="chevron-left" size={24} color={colors.common.white} />
-            </TouchableOpacity>
-
-            <Text style={styles.headerTitle}>Weather Update</Text>
-
-            <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.headerActionBtn} onPress={onRefresh} activeOpacity={0.7}>
-                <Icon name="refresh" size={20} color={colors.common.white} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.headerActionBtn} onPress={handleMenuToggle} activeOpacity={0.7}>
-                <Icon name="menu" size={20} color={colors.common.white} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
           <View style={styles.locationOrderRow}>
             <View style={styles.locationContainer}>
               <Icon name="map-marker" size={16} color={colors.common.white} />
@@ -837,6 +838,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
+  staticHeader: {
+    paddingHorizontal: GRID.md,
+  },
   headerContent: {
     paddingHorizontal: GRID.md,
   },
@@ -844,8 +848,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: GRID.md,
     paddingTop: GRID.sm,
+    paddingBottom: GRID.sm,
   },
   headerBackBtn: {
     width: 40,

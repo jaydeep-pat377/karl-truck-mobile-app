@@ -2,8 +2,22 @@
 
 export type UserRole = 'dispatcher' | 'customer' | 'driver' | 'admin' | 'authenticated';
 
+export interface TenantInfo {
+  tenant_client_id: string;
+  tenant_id: number;
+  tenant_name: string;
+  tenant_redirect_url: string;
+  tenant_subdomain: string;
+  tenant_supabase_url: string;
+  tenant_uuid: string;
+}
+
 export interface UserMetadata {
   email_verified: boolean;
+  central_user_id?: number;
+  central_user_uuid?: string;
+  full_name?: string;
+  tenant?: TenantInfo;
 }
 
 export interface User {

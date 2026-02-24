@@ -1719,7 +1719,6 @@ export const OrderDetailsScreen: React.FC = () => {
   }, [navigation, order, orderDetails]);
 
   const handleShare = useCallback(async () => {
-    setMenuVisible(false);
     try {
       await Share.share({
         message: `Order Details\n\nOrder: ${order.orderCode}\nCustomer: ${order.customerName}\nStatus: ${order.status}\nProduct: ${order.productType}\nQuantity: ${order.quantity} ${order.unit}\nDelivery: ${order.deliveryAddress}`,
@@ -1901,8 +1900,8 @@ export const OrderDetailsScreen: React.FC = () => {
             <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={() => refetch()}>
               <Icon name="refresh" size={18} color={colors.common.white} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={handleMenuToggle}>
-              <Icon name="dots-vertical" size={18} color={colors.common.white} />
+            <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={handleShare}>
+              <Icon name="share-variant" size={18} color={colors.common.white} />
             </TouchableOpacity>
           </View>
         </View>

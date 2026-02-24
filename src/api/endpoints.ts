@@ -33,4 +33,7 @@ export const API_ENDPOINTS = {
   TRUCKS: {
     LIST: '/trucks',
   },
+  NOTIFICATIONS: {
+    QUEUE: '/notification-queue',
+  },
 } as const;

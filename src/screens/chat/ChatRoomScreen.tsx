@@ -384,11 +384,13 @@ export const ChatRoomScreen: React.FC = () => {
 
   if (Platform.OS === 'ios') {
     return (
-      <View style={[styles.container, { backgroundColor: themeColors.background, paddingTop: insets.top }]}>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <StatusBar
-          backgroundColor={themeColors.background}
-          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor={colors.primary.main}
+          barStyle="light-content"
         />
+        {/* Status bar background for iOS */}
+        <View style={[styles.statusBarBackground, { height: insets.top, backgroundColor: colors.primary.main }]} />
         <ChatHeader
           title={roomName}
           onBack={() => navigation.goBack()}
@@ -405,11 +407,13 @@ export const ChatRoomScreen: React.FC = () => {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background, paddingTop: insets.top }]}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar
-        backgroundColor={themeColors.background}
-        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.primary.main}
+        barStyle="light-content"
       />
+      {/* Status bar background for iOS */}
+      <View style={[styles.statusBarBackground, { height: insets.top, backgroundColor: colors.primary.main }]} />
       <ChatHeader
         title={roomName}
         onBack={() => navigation.goBack()}
@@ -431,6 +435,9 @@ export const ChatRoomScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  statusBarBackground: {
+    width: '100%',
   },
   keyboardAvoidingView: {
     flex: 1,
