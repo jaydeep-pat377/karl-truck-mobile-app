@@ -289,13 +289,13 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
 
       {/* Horizontal Scroll Cards */}
       {(companies.length > 0 || regions.length > 0 || plants.length > 0) && (
-        <>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.summaryListContent}
-            style={styles.summaryList}
-          >
+        <ScrollView
+          key={selectedTab}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.summaryListContent}
+          style={styles.summaryList}
+        >
           {selectedTab === 'company' && companies.map((company) =>
             renderSummaryListItem(company, 'company', () => onCompanyPress?.(company))
           )}
@@ -305,8 +305,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
           {selectedTab === 'plant' && plants.map((plant) =>
             renderSummaryListItem(plant, 'plant', () => onPlantPress?.(plant))
           )}
-          </ScrollView>
-        </>
+        </ScrollView>
       )}
     </View>
   );
