@@ -29,6 +29,7 @@ import { useTypingIndicator } from '../../hooks/useTypingIndicator';
 import { RootStackParamList } from '../../navigation/types';
 import { Message } from '../../types/chat';
 import { useAuthStore } from '../../store/authStore';
+import { initMessageSound, playMessageSound, isSoundReady } from '../../utils/notificationSound';
 
 type RouteParams = RouteProp<RootStackParamList, 'ChatRoom'>;
 
@@ -103,6 +104,42 @@ export const ChatRoomScreen: React.FC = () => {
   const { typingUsers, setTyping } = useTypingIndicator(roomId);
 
   const themeColors = isDark ? colors.dark : colors.light;
+
+  // DEBUG: Initialize sound and test on mount
+  useEffect(() => {
+    console.log('[ChatRoom DEBUG] Initializing sound...');
+    initMessageSound().then((success) => {
+      console.log('[ChatRoom DEBUG] Sound init result:', success);
+      console.log('[ChatRoom DEBUG] Sound ready:', isSoundReady());
+    });
+  }, []);
+
+  // DEBUG: Log when messages change and test sound for new messages from others
+  const prevMessagesLengthRef = useRef(messages?.length || 0);
+  useEffect(() => {
+    if (!messages) return;
+
+    console.log('[ChatRoom DEBUG] Messages updated, count:', messages.length, 'previous:', prevMessagesLengthRef.current);
+
+    // Check for new messages from others
+    if (messages.length > prevMessagesLengthRef.current) {
+      const newMessages = messages.slice(prevMessagesLengthRef.current);
+      console.log('[ChatRoom DEBUG] New messages:', newMessages.length);
+
+      newMessages.forEach((msg) => {
+        console.log('[ChatRoom DEBUG] New msg from:', msg.sender_name, 'sender_id:', msg.sender_id, 'my_id:', user?.id);
+
+        // Play sound for messages from others (not own messages)
+        if (msg.sender_id !== user?.id && !msg.id.startsWith('temp-')) {
+          console.log('[ChatRoom DEBUG] Playing sound for message from:', msg.sender_name);
+          const played = playMessageSound();
+          console.log('[ChatRoom DEBUG] Sound played:', played);
+        }
+      });
+    }
+
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages, user?.id]);
 
   useEffect(() => {
     const keyboardWillShowEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';

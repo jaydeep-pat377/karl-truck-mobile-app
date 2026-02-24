@@ -15,12 +15,16 @@ import { OrderTrackingScreen } from '../screens/tracking/OrderTrackingScreen';
 import { ChatRoomScreen } from '../screens/chat/ChatRoomScreen';
 import { useAuthStore } from '../store/authStore';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { useGlobalChatListener } from '../hooks/useGlobalChatListener';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const RootNavigator: React.FC = () => {
   const theme = useAppTheme();
   const { isAuthenticated, isInitialized, isLoading, initialize } = useAuthStore();
+
+  // Global chat message listener for notification sounds
+  useGlobalChatListener();
 
   useEffect(() => {
     initialize();

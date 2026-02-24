@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { SettingsStackParamList } from '../../navigation/SettingsNavigator';
@@ -13,6 +13,7 @@ import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useLogout } from '../../hooks/useLogout';
 import { useProfile } from '../../hooks/useProfile';
 import { MainTabParamList } from '../../navigation/types';
+import { playMessageSound, initMessageSound, isSoundReady } from '../../utils/notificationSound';
 
 interface SettingsItemProps {
   icon: string;
@@ -122,6 +123,11 @@ export const SettingsScreen: React.FC = () => {
   const { profile, isLoading: isProfileLoading, refetch: refetchProfile } = useProfile();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Initialize sound on mount
+  useEffect(() => {
+    initMessageSound();
+  }, []);
 
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -336,6 +342,20 @@ export const SettingsScreen: React.FC = () => {
               title={t('settings.notifications')}
               subtitle="Manage notification preferences"
               onPress={handleNavigateToNotifications}
+            />
+            <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+            <SettingsItem
+              icon="volume-high"
+              title="Test Notification Sound"
+              subtitle={isSoundReady() ? "Tap to test if sound works" : "Loading sound..."}
+              onPress={() => {
+                const played = playMessageSound();
+                if (played) {
+                  Alert.alert('Sound Test', 'Notification sound played!');
+                } else {
+                  Alert.alert('Sound Test', 'Sound not ready or throttled. Try again.');
+                }
+              }}
             />
           </Card>
         </View>

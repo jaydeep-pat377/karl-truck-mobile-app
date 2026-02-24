@@ -3,9 +3,10 @@ import { useEffect, useCallback, useState, useRef } from 'react';
 import { AppState, AppStateStatus, Alert } from 'react-native';
 import { chatService, ImageAttachment } from '../api/services/chatService';
 import { useChatStore } from '../store/chatStore';
-import { supabase, isSupabaseConfigured, ensureAuthenticated } from '../services/supabase/supabaseClient';
+import { supabase, isSupabaseConfigured } from '../services/supabase/supabaseClient';
 import { Message } from '../types/chat';
 import { useAuthStore } from '../store/authStore';
+import { playMessageSound } from '../utils/notificationSound';
 
 interface UseChatMessagesProps {
   chatId?: number;
@@ -47,13 +48,11 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastMessageTimeRef = useRef<string | null>(null);
 
-
   useEffect(() => {
     if (user?.id) {
       setSupabaseUserId(user.id);
     }
   }, [user?.id]);
-
 
   useEffect(() => {
     if (!isConfigured) return;
@@ -67,7 +66,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     };
   }, [roomId, setCurrentRoom, markRoomAsRead, isConfigured]);
 
-
   const query = useQuery({
     queryKey: ['chatMessages', orderId],
     queryFn: () => chatService.getMessages(orderId),
@@ -76,7 +74,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
-
 
   useEffect(() => {
     if (query.data) {
@@ -89,7 +86,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     }
   }, [query.data, roomId, setMessages]);
 
-
   const mergedMessages = useCallback(() => {
     const messageMap = new Map<string, Message>();
 
@@ -101,7 +97,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     );
   }, [query.data, realtimeMessages]);
 
-
   const pollForNewMessages = useCallback(async () => {
     if (!orderId || !isConfigured) return;
 
@@ -110,10 +105,8 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       if (messages.length > 0) {
         const latestMessage = messages[messages.length - 1];
 
-
         if (lastMessageTimeRef.current && latestMessage.created_at > lastMessageTimeRef.current) {
           console.log('[Chat Poll] New messages detected');
-
 
           const newMessages = messages.filter(
             (msg) =>
@@ -123,6 +116,11 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
           if (newMessages.length > 0) {
             console.log(`[Chat Poll] Found ${newMessages.length} new message(s)`);
+
+            // Play sound if user is not viewing this chat room
+            if (currentRoomId !== roomId) {
+              playMessageSound();
+            }
 
             newMessages.forEach((msg) => {
               console.log(`[Chat Poll] Adding message from ${msg.sender_name}: ${msg.content.substring(0, 50)}`);
@@ -142,14 +140,12 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     } catch (err) {
       console.log('[Chat Poll] Error:', err);
     }
-  }, [orderId, roomId, supabaseUserId, addMessage, isConfigured]);
-
+  }, [orderId, roomId, supabaseUserId, addMessage, isConfigured, currentRoomId]);
 
   useEffect(() => {
     if (!orderId || !isConfigured || !supabase) return;
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
-    let realtimeWorking = false;
 
     const setupSubscription = () => {
       try {
@@ -168,7 +164,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
             (payload) => {
               try {
                 console.log('[Chat] Realtime event received:', payload.eventType);
-                realtimeWorking = true;
 
                 if (payload.eventType !== 'INSERT') {
                   return;
@@ -176,7 +171,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
                 const msg = payload.new as RawChatMessage;
 
-
+                // Ignore messages from the current user
                 if (supabaseUserId && msg.sender_id === supabaseUserId) {
                   return;
                 }
@@ -210,10 +205,11 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
                 addMessage(roomId, newMessage);
 
+                // Play sound and increment unread if user is NOT viewing this chat room
                 if (currentRoomId !== roomId) {
                   incrementUnreadCount(roomId);
+                  playMessageSound();
                 }
-
 
                 lastMessageTimeRef.current = msg.created_at;
               } catch (payloadError) {
@@ -226,7 +222,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
               console.log(`[Chat] Realtime connected for order ${orderId}`);
               setIsRealtimeConnected(true);
             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || err) {
-
               console.warn('[Chat] Realtime not available, using polling fallback');
               setIsRealtimeConnected(false);
 
@@ -239,7 +234,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
             }
           });
       } catch (error) {
-
         console.warn('[Chat] Failed to setup realtime, using polling:', error);
         setIsRealtimeConnected(false);
       }
@@ -247,13 +241,10 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
     setupSubscription();
 
-
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
         console.log('App became active, refreshing chat...');
-
         queryClient.invalidateQueries({ queryKey: ['chatMessages', orderId] });
-
 
         if (channel) {
           channel.subscribe();
@@ -262,7 +253,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
-
 
     console.log('[Chat] Starting polling for new messages');
     pollingIntervalRef.current = setInterval(pollForNewMessages, 2000);
@@ -277,9 +267,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       }
       subscription.remove();
     };
-
-  }, [orderId, roomId, supabaseUserId, addMessage, incrementUnreadCount, currentRoomId, isConfigured]);
-
+  }, [orderId, roomId, supabaseUserId, addMessage, incrementUnreadCount, currentRoomId, isConfigured, queryClient, pollForNewMessages]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, images }: { content: string; images?: ImageAttachment[] }) => {
@@ -310,17 +298,14 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       }
     },
     onMutate: async ({ content, images }) => {
-
       let senderName = 'Unknown';
       if (user?.fullName) {
         senderName = user.fullName;
       } else if (user?.firstName || user?.lastName) {
         senderName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
       } else if (user?.email) {
-
         senderName = user.email.split('@')[0];
       }
-
 
       let senderRole = 'contractor';
       const role = (user?.role || '').toLowerCase();
@@ -329,7 +314,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       } else if (role === 'producer' || role === 'concrete_producer' || role === 'plant') {
         senderRole = 'concrete_producer';
       }
-
 
       const optimisticAttachments = images
         ? images.map(img => ({ url: img.uri, type: img.type, name: img.name }))
@@ -367,7 +351,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       setRealtimeMessages((prev) => prev.filter((m) => !m.id.startsWith('temp-')));
       queryClient.invalidateQueries({ queryKey: ['chatMessages', orderId] });
 
-
       Alert.alert(
         'Failed to Send',
         error?.message || 'Could not send message. Please try again.',
@@ -383,14 +366,12 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     [sendMessageMutation]
   );
 
-
   const deleteMessageMutation = useMutation({
     mutationFn: (messageId: string) => chatService.deleteMessage(messageId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chatMessages', orderId] });
     },
   });
-
 
   const loadMore = useCallback(async () => {
     const messages = mergedMessages();
