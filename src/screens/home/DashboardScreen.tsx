@@ -26,6 +26,7 @@ import { useResponsive } from '../../hooks/useResponsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useDashboard } from '../../hooks/useDashboard';
 import { notificationService } from '../../services/notificationService';
+import { announcementService, Announcement as ApiAnnouncement } from '../../api/services';
 import { updateWidgetData } from '../../modules/TodayOverviewWidget';
 import { getProgressBarColor } from '../../utils/statusUtils';
 import { fontFamily } from '../../theme/typography';
@@ -78,6 +79,7 @@ const DashboardScreen: React.FC = () => {
   const [isFilterChanging, setIsFilterChanging] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [apiAnnouncements, setApiAnnouncements] = useState<ApiAnnouncement[]>([]);
 
   // Format date as YYYY-MM-DD for API
   const formatDateForApi = (date: Date): string => {
@@ -178,6 +180,23 @@ const DashboardScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const fetchAnnouncements = async () => {
+      try {
+        console.log('[Announcements] Fetching announcements...');
+        const response = await announcementService.getAnnouncements({ page: 1, limit: 10 });
+        console.log('[Announcements] API Response:', JSON.stringify(response, null, 2));
+        if (response.success && response.data?.announcements) {
+          console.log('[Announcements] Found', response.data.announcements.length, 'announcements');
+          setApiAnnouncements(response.data.announcements);
+        }
+      } catch (error) {
+        console.log('[Announcements] Error fetching:', error);
+      }
+    };
+    fetchAnnouncements();
+  }, []);
+
+  useEffect(() => {
     if (Platform.OS === 'android' && todayOverview) {
       const totalOrders = todayOverview.total_orders ?? 0;
       const normal = todayOverview.normal ?? 0;
@@ -228,29 +247,56 @@ const DashboardScreen: React.FC = () => {
 
 
 
+  // Helper to generate gradient colors from a base color
+  const generateGradientFromColor = (hexColor: string, isDarkMode: boolean): string[] => {
+    // Create lighter/darker variants for gradient
+    if (isDarkMode) {
+      return [hexColor, hexColor + 'DD', hexColor + 'BB'];
+    }
+    return [hexColor + '30', hexColor + '20', hexColor + '10'];
+  };
+
+  // Helper to determine illustration type from tile_type
+  const getIllustrationType = (tileType: string, hasImage: boolean): 'delivery' | 'weather' | 'promo' | 'custom' => {
+    // If there's a custom image, use 'custom' type to display it
+    if (hasImage) return 'custom';
+
+    const type = tileType?.toLowerCase() || '';
+    if (type.includes('delivery') || type.includes('truck')) return 'delivery';
+    if (type.includes('weather')) return 'weather';
+    return 'delivery'; // Default fallback
+  };
 
   const advertisements: Advertisement[] = useMemo(() => {
-    return [
-      {
-        id: '1',
-        badge: 'Sponsored',
-        headline: 'Track Deliveries',
-        description: 'Monitor your concrete deliveries in real-time with live tracking.',
-        ctaText: 'View Companies',
-        illustrationType: 'delivery',
-        onAction: () => navigation.navigate('Main', { screen: 'Orders' }),
-      },
-      {
-        id: '2',
-        badge: 'Sponsored',
-        headline: 'Weather Updates',
-        description: 'Check weather conditions for optimal concrete pouring.',
-        ctaText: 'View Companies',
-        illustrationType: 'weather',
-        onAction: () => navigation.navigate('Main', { screen: 'Today' }),
-      },
-    ];
-  }, [navigation]);
+    // Only show API announcements, no static fallback
+    return apiAnnouncements.map((announcement) => {
+      const hasImage = !!announcement.icon_or_percent;
+      return {
+        id: String(announcement.id),
+        badge: announcement.tagline || announcement.campaign || 'Announcement',
+        headline: announcement.title || announcement.name,
+        subheadline: announcement.subtitle,
+        description: announcement.message_details_code || announcement.subtitle || '',
+        ctaText: 'Learn More',
+        illustrationType: getIllustrationType(announcement.tile_type, hasImage),
+        image: hasImage ? { uri: announcement.icon_or_percent } : undefined,
+        gradientColors: announcement.color ? generateGradientFromColor(announcement.color, isDark) : undefined,
+        accentColor: announcement.color || undefined,
+        onAction: announcement.url ? () => {
+          // Open URL in WebView
+          const rawTitle = announcement.title || announcement.name || 'Announcement';
+          const capitalizedTitle = rawTitle
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+          navigation.navigate('WebView', {
+            url: announcement.url,
+            title: capitalizedTitle,
+          });
+        } : undefined,
+      };
+    });
+  }, [navigation, apiAnnouncements, isDark]);
 
 
   const quickLaunchActions = useMemo(() => {
@@ -707,6 +753,8 @@ const DashboardScreen: React.FC = () => {
                         item: deliveryItem,
                         onPress: () => {
                           const progressColor = getProgressBarColor(order.status, deliveryItem.progressPercent || 0);
+                          // Navigate to OrderDetailInTab within Orders, but with sourceTab='Home'
+                          // This keeps tab bar visible but the tab bar will detect this and not highlight any tab
                           navigation.navigate('Orders', {
                             screen: 'OrderDetailInTab',
                             params: {

@@ -5,6 +5,7 @@ import { useNotificationStore } from '../store/notificationStore';
 import { useAuthStore } from '../store/authStore';
 import { authService } from '../api/services/authService';
 import { AppNotification, NotificationType } from '../types/notification';
+import { navigateFromNotification, navigateToTab } from './navigationService';
 
 const CHANNEL_ID = 'truckast_default';
 
@@ -250,7 +251,19 @@ class NotificationService {
     remoteMessage: FirebaseMessagingTypes.RemoteMessage,
   ): void {
     const { data } = remoteMessage;
+
+    // If deepLink is provided, use it directly
     if (data?.deepLink) {
+      console.log('[Notifications] Deep link provided:', data.deepLink);
+      // Could add Linking.openURL support here for custom schemes
+    }
+
+    // If we have notification data, navigate based on event_code
+    if (data) {
+      navigateFromNotification(data as Record<string, string>);
+    } else {
+      // Default to notifications tab
+      navigateToTab('Notifications');
     }
   }
 

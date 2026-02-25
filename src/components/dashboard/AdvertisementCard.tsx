@@ -179,7 +179,7 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
         return <WeatherIllustration />;
       case 'custom':
         if (ad.image) {
-          return <Image source={ad.image} style={styles.customImage} resizeMode="contain" />;
+          return <Image source={ad.image} style={styles.customImage} resizeMode="cover" />;
         }
         return <DeliveryIllustration />;
       default:
@@ -243,13 +243,20 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
                 end={{ x: 1, y: 1 }}
                 style={styles.card}
               >
-                {/* Sponsored Badge */}
-                <View style={[styles.badge, { backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)' }]}>
-                  <Icon name="star-four-points" size={ms(10)} color={isDark ? '#FFD700' : '#FF9800'} />
-                  <Text style={[styles.badgeText, { color: isDark ? colors.common.white : colors.grey[70] }]}>
-                    {ad.badge || 'Sponsored'}
-                  </Text>
+                {/* Ad Label */}
+                <View style={[styles.adLabel, { backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.6)' }]}>
+                  <Text style={styles.adLabelText}>Ad</Text>
                 </View>
+
+                {/* Promotional Badge */}
+                {ad.badge && (
+                  <View style={[styles.promoBadge, { backgroundColor: accentColor }]}>
+                    <Icon name="tag" size={ms(10)} color={colors.common.white} />
+                    <Text style={styles.promoBadgeText}>
+                      {ad.badge}
+                    </Text>
+                  </View>
+                )}
 
                 {/* Close Button */}
                 <TouchableOpacity
@@ -315,8 +322,8 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
                 )}
 
                 {/* Decorative Elements */}
-                <View style={[styles.decorCircle1, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.4)' }]} />
-                <View style={[styles.decorCircle2, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.3)' }]} />
+                <View pointerEvents="none" style={[styles.decorCircle1, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.4)' }]} />
+                <View pointerEvents="none" style={[styles.decorCircle2, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.3)' }]} />
               </LinearGradient>
             </View>
           );
@@ -356,33 +363,44 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: ms(16),
     padding: ms(16),
-    minHeight: ms(165),
+    minHeight: ms(175),
     position: 'relative',
     overflow: 'hidden',
-    // Shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
   },
-  badge: {
+  adLabel: {
     position: 'absolute',
     top: ms(12),
     left: ms(12),
+    paddingHorizontal: ms(8),
+    paddingVertical: ms(3),
+    borderRadius: ms(4),
+    zIndex: 5,
+  },
+  adLabelText: {
+    fontSize: ms(9),
+    fontFamily: fontFamily.bold,
+    color: colors.common.white,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  promoBadge: {
+    position: 'absolute',
+    top: ms(12),
+    left: ms(42),
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: ms(8),
+    paddingHorizontal: ms(10),
     paddingVertical: ms(4),
     borderRadius: ms(12),
     gap: ms(4),
     zIndex: 5,
   },
-  badgeText: {
+  promoBadgeText: {
     fontSize: ms(10),
     fontFamily: fontFamily.semiBold,
+    color: colors.common.white,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   closeBtn: {
     position: 'absolute',
@@ -442,14 +460,17 @@ const styles = StyleSheet.create({
     color: colors.common.white,
   },
   illustrationContainer: {
-    width: ms(105),
-    height: ms(85),
+    width: ms(120),
+    height: ms(100),
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: ms(12),
+    overflow: 'hidden',
   },
   customImage: {
-    width: ms(95),
-    height: ms(80),
+    width: ms(120),
+    height: ms(100),
+    borderRadius: ms(12),
   },
   pageIndicator: {
     position: 'absolute',

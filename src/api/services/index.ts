@@ -8,3 +8,5 @@ export { ticketService } from './ticketService';
 export { orderService } from './orderService';
 export { weatherService } from './weatherService';
 export { truckService } from './truckService';
+export { announcementService } from './announcementService';
+export type { Announcement, AnnouncementsResponse, AnnouncementParams } from './announcementService';

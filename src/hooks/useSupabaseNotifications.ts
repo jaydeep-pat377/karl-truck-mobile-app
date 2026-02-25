@@ -3,25 +3,87 @@
  *
  * Fetches initial notifications from Supabase and subscribes to real-time updates.
  * No API calls - everything goes through Supabase directly.
+ *
+ * Features (matching web implementation):
+ * - Real-time INSERT/UPDATE subscription
+ * - Network reconnection via NetInfo
+ * - App state reconnection (foreground/background)
+ * - Exponential backoff reconnection
+ * - Periodic relative time updates
+ * - Event code to notification type mapping
+ * - Optimistic UI updates
  */
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { AppState } from 'react-native';
+import { AppState, AppStateStatus, Platform, PermissionsAndroid } from 'react-native';
 import { createClient, RealtimeChannel } from '@supabase/supabase-js';
+import notifee, { AndroidImportance, AuthorizationStatus } from '@notifee/react-native';
+import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import 'react-native-url-polyfill/auto';
 
-// Supabase credentials
+// Supabase credentials (Notification Supabase instance - separate from main app)
 const SUPABASE_URL = 'https://tabpplqpetdgruqmliix.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhYnBwbHFwZXRkZ3J1cW1saWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0NzMxNTgsImV4cCI6MjA4MjA0OTE1OH0.JqG84aRxD88qT1rlY_Rbe2r8QSX9U_ksP3IV9RqYSZg';
 
-// Create Supabase client
+// Create Supabase client for notifications
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
     detectSessionInUrl: false,
   },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
 });
 
+// ─── Event Code Mapping (same as web) ───────────────────────────
+const EVENT_CODE_MAP: Record<string, 'order' | 'truck' | 'alert' | 'info'> = {
+  ORDER_CREATED: 'order',
+  ORDER_UPDATED: 'order',
+  ORDER_CANCELLED: 'order',
+  ORDER_CONFIRMED: 'order',
+  ORDER_COMPLETED: 'order',
+  TRUCK_DISPATCHED: 'truck',
+  TRUCK_ARRIVED: 'truck',
+  TRUCK_DELAYED: 'truck',
+  TRUCK_EN_ROUTE: 'truck',
+  PSI_ALERT: 'alert',
+  WEATHER_ALERT: 'alert',
+  CAPACITY_ALERT: 'alert',
+  SYSTEM_ALERT: 'alert',
+};
+
+export type NotificationType = 'order' | 'truck' | 'alert' | 'info';
+
+/**
+ * Map event code to notification type for UI display
+ */
+export function mapEventCodeToType(eventCode: string | null): NotificationType {
+  if (!eventCode) return 'info';
+  const upperCode = eventCode.toUpperCase();
+  return EVENT_CODE_MAP[upperCode] ?? 'info';
+}
+
+/**
+ * Format timestamp to relative time string (same as web)
+ */
+export function formatRelativeTime(dateString: string): string {
+  const diffSeconds = Math.floor(
+    (Date.now() - new Date(dateString).getTime()) / 1000
+  );
+  if (diffSeconds < 0 || diffSeconds < 60) return 'just now';
+  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)} min ago`;
+  if (diffSeconds < 86400) {
+    const hours = Math.floor(diffSeconds / 3600);
+    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  }
+  const days = Math.floor(diffSeconds / 86400);
+  return `${days} day${days > 1 ? 's' : ''} ago`;
+}
+
+/** Raw row from notification_queue (database schema) */
 export interface Notification {
   id: string;
   queue_uuid: string;
@@ -38,33 +100,213 @@ export interface Notification {
   isNew?: boolean; // Flag for newly received notifications
 }
 
+/** UI display format (for components) */
+export interface NotificationItem {
+  id: string;
+  queueUuid: string;
+  title: string;
+  description: string;
+  time: string;
+  read: boolean;
+  type: NotificationType;
+  createdAt: string;
+  eventCode: string;
+  entityType: string;
+  entityId: number | null;
+  priority: number;
+  isNew?: boolean;
+}
+
+/**
+ * Convert raw notification row to UI display format
+ */
+export function mapRowToNotificationItem(row: Notification): NotificationItem {
+  return {
+    id: row.id,
+    queueUuid: row.queue_uuid,
+    title: row.subject ?? 'Notification',
+    description: row.body ?? '',
+    time: formatRelativeTime(row.created_at),
+    read: row.status === 'delivered' || row.status === 'read',
+    type: mapEventCodeToType(row.event_code),
+    createdAt: row.created_at,
+    eventCode: row.event_code,
+    entityType: row.entity_type,
+    entityId: row.entity_id,
+    priority: row.priority,
+    isNew: row.isNew,
+  };
+}
+
 interface UseSupabaseNotificationsProps {
   userId: string | null;
   tenantId: number | null;
   enabled?: boolean;
+  /** Callback when a new notification is received */
+  onNewNotification?: (notification: NotificationItem) => void;
 }
 
 interface UseSupabaseNotificationsReturn {
+  /** Raw notifications from database */
   notifications: Notification[];
+  /** Formatted notifications for UI display */
+  notificationItems: NotificationItem[];
   unreadCount: number;
   isLoading: boolean;
   isConnected: boolean;
   error: string | null;
   refetch: () => Promise<void>;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  /** Force reconnect to realtime channel */
+  reconnect: () => void;
 }
+
+// Max reconnect attempts with exponential backoff
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 export function useSupabaseNotifications({
   userId,
   tenantId,
   enabled = true,
+  onNewNotification,
 }: UseSupabaseNotificationsProps): UseSupabaseNotificationsReturn {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notificationItems, setNotificationItems] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const reconnectAttempts = useRef(0);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const subscribeRef = useRef<() => void>(() => {});
+  const fetchRef = useRef<() => Promise<void>>(async () => {});
+  const onNewNotificationRef = useRef(onNewNotification);
+
+  // Keep callback ref updated
+  useEffect(() => {
+    onNewNotificationRef.current = onNewNotification;
+  }, [onNewNotification]);
+
+  // Update notificationItems when notifications change
+  useEffect(() => {
+    setNotificationItems(notifications.map(mapRowToNotificationItem));
+  }, [notifications]);
+
+  // Periodic relative time update (every 60s, same as web)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNotificationItems((prev) =>
+        prev.map((item) => ({
+          ...item,
+          time: formatRelativeTime(item.createdAt),
+        }))
+      );
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Request notification permission (required for Android 13+ and iOS)
+  const requestNotificationPermission = useCallback(async (): Promise<boolean> => {
+    try {
+      if (Platform.OS === 'android') {
+        // Android < 13: notifications are enabled by default
+        if (Platform.Version < 33) {
+          console.log('[useSupabaseNotifications] Android < 13: notifications enabled by default');
+          return true;
+        }
+
+        // Android 13+: check if already granted
+        const alreadyGranted = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+        );
+
+        if (alreadyGranted) {
+          console.log('[useSupabaseNotifications] Android notification permission: already granted');
+          return true;
+        }
+
+        // Request permission if not granted
+        const permission = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+        );
+        const granted = permission === PermissionsAndroid.RESULTS.GRANTED;
+        console.log('[useSupabaseNotifications] Android notification permission:', granted ? 'granted' : 'denied');
+        return granted;
+      } else {
+        // iOS - check current settings first
+        const currentSettings = await notifee.getNotificationSettings();
+        if (currentSettings.authorizationStatus >= AuthorizationStatus.AUTHORIZED) {
+          console.log('[useSupabaseNotifications] iOS notification permission: already granted');
+          return true;
+        }
+
+        // Request permission if not granted
+        const settings = await notifee.requestPermission();
+        const granted = settings.authorizationStatus >= AuthorizationStatus.AUTHORIZED;
+        console.log('[useSupabaseNotifications] iOS notification permission:', granted ? 'granted' : 'denied');
+        return granted;
+      }
+    } catch (error) {
+      console.error('[useSupabaseNotifications] Error requesting notification permission:', error);
+      return false;
+    }
+  }, []);
+
+  // Request permission on mount
+  useEffect(() => {
+    requestNotificationPermission();
+  }, [requestNotificationPermission]);
+
+  // Show local notification when app is in foreground
+  const showLocalNotification = useCallback(async (notification: Notification) => {
+    console.log('[useSupabaseNotifications] 📱 Attempting to show local notification...');
+    console.log('[useSupabaseNotifications] App state:', appStateRef.current);
+
+    // Only show when app is in foreground
+    if (appStateRef.current !== 'active') {
+      console.log('[useSupabaseNotifications] ⚠️ App not active, skipping notification');
+      return;
+    }
+
+    try {
+      console.log('[useSupabaseNotifications] Creating notification channel...');
+      const channelId = await notifee.createChannel({
+        id: 'truckast_notifications',
+        name: 'Truckast Notifications',
+        importance: AndroidImportance.HIGH,
+        sound: 'default',
+      });
+      console.log('[useSupabaseNotifications] Channel created:', channelId);
+
+      console.log('[useSupabaseNotifications] Displaying notification:', {
+        title: notification.subject,
+        body: notification.body,
+      });
+
+      const notificationId = await notifee.displayNotification({
+        title: notification.subject || 'New Notification',
+        body: notification.body || '',
+        android: {
+          channelId,
+          smallIcon: 'ic_launcher',
+          pressAction: { id: 'default' },
+          sound: 'default',
+        },
+        ios: {
+          sound: 'default',
+        },
+        data: {
+          notification_id: String(notification.id),
+          event_code: notification.event_code || '',
+        },
+      });
+
+      console.log('[useSupabaseNotifications] ✅ Notification displayed with ID:', notificationId);
+    } catch (err) {
+      console.error('[useSupabaseNotifications] ❌ Failed to show local notification:', err);
+    }
+  }, []);
 
   // Fetch notifications from Supabase
   const fetchNotifications = useCallback(async () => {
@@ -82,7 +324,6 @@ export function useSupabaseNotifications({
         .from('notification_queue')
         .select('*')
         .eq('user_id', userId)
-        .eq('channel_code', 'in_app')
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -92,15 +333,43 @@ export function useSupabaseNotifications({
         return;
       }
 
-      console.log('[useSupabaseNotifications] Fetched', data?.length || 0, 'notifications');
-      setNotifications(data || []);
+      // Client-side tenant filter
+      let filteredData = data || [];
+      if (tenantId) {
+        filteredData = filteredData.filter(
+          (n) => n.tenant_id === null || n.tenant_id === tenantId
+        );
+      }
+
+      console.log('[useSupabaseNotifications] Fetched', filteredData.length, 'notifications');
+      setNotifications(filteredData);
     } catch (err: any) {
       console.error('[useSupabaseNotifications] Exception:', err);
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [userId, tenantId]);
+
+  // Handle reconnection with exponential backoff
+  const handleReconnect = useCallback(() => {
+    if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
+      console.warn('[useSupabaseNotifications] Max reconnect attempts reached');
+      return;
+    }
+
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+    reconnectAttempts.current++;
+
+    console.log(`[useSupabaseNotifications] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current})`);
+
+    setTimeout(() => {
+      if (userId && enabled) {
+        subscribeRef.current();
+        fetchRef.current();
+      }
+    }, delay);
+  }, [userId, enabled]);
 
   // Subscribe to real-time changes
   const subscribe = useCallback(() => {
@@ -115,10 +384,11 @@ export function useSupabaseNotifications({
       supabase.removeChannel(channelRef.current);
     }
 
-    console.log('[useSupabaseNotifications] Creating subscription for user:', userId);
+    const channelName = `notifications:${userId}:${tenantId ?? 'global'}`;
+    console.log('[useSupabaseNotifications] Creating subscription:', channelName);
 
     const channel = supabase
-      .channel(`notifications:${userId}:${Date.now()}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -131,17 +401,29 @@ export function useSupabaseNotifications({
           console.log('[useSupabaseNotifications] 🔔 NEW NOTIFICATION:', payload.new);
           const newNotification = {
             ...payload.new as Notification,
-            isNew: true, // Mark as new for highlighting
+            isNew: true,
           };
+
+          // Client-side tenant filter
+          if (tenantId && newNotification.tenant_id !== null && newNotification.tenant_id !== tenantId) {
+            return;
+          }
 
           // Add to the beginning of the list
           setNotifications((prev) => {
-            // Check if already exists
             if (prev.some((n) => n.id === newNotification.id)) {
               return prev;
             }
             return [newNotification, ...prev];
           });
+
+          // Show local notification in foreground
+          showLocalNotification(newNotification);
+
+          // Call the onNewNotification callback
+          if (onNewNotificationRef.current) {
+            onNewNotificationRef.current(mapRowToNotificationItem(newNotification));
+          }
 
           // Remove the "new" highlight after 5 seconds
           setTimeout(() => {
@@ -174,15 +456,41 @@ export function useSupabaseNotifications({
       )
       .subscribe((status, err) => {
         console.log('[useSupabaseNotifications] Subscription status:', status);
-        if (err) {
-          console.error('[useSupabaseNotifications] Subscription error:', err);
-          setError(String(err));
+
+        if (status === 'SUBSCRIBED') {
+          reconnectAttempts.current = 0; // Reset on successful connection
+          setIsConnected(true);
+          setError(null);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setIsConnected(false);
+          if (err) {
+            console.error('[useSupabaseNotifications] Subscription error:', err);
+            setError(String(err));
+          }
+          handleReconnect();
+        } else if (status === 'CLOSED') {
+          setIsConnected(false);
         }
-        setIsConnected(status === 'SUBSCRIBED');
       });
 
     channelRef.current = channel;
-  }, [userId, enabled]);
+  }, [userId, tenantId, enabled, showLocalNotification, handleReconnect]);
+
+  // Force reconnect function
+  const reconnect = useCallback(() => {
+    if (userId && enabled) {
+      console.log('[useSupabaseNotifications] Manual reconnect triggered');
+      reconnectAttempts.current = 0;
+      subscribe();
+      fetchNotifications();
+    }
+  }, [userId, enabled, subscribe, fetchNotifications]);
+
+  // Keep refs updated
+  useEffect(() => {
+    subscribeRef.current = subscribe;
+    fetchRef.current = fetchNotifications;
+  }, [subscribe, fetchNotifications]);
 
   // Initial fetch and subscribe
   useEffect(() => {
@@ -202,26 +510,89 @@ export function useSupabaseNotifications({
 
   // Reconnect when app becomes active
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state) => {
+    const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
+      appStateRef.current = state;
       if (state === 'active' && userId && enabled) {
-        console.log('[useSupabaseNotifications] App active, resubscribing...');
+        console.log('[useSupabaseNotifications] App active, refreshing...');
+        reconnectAttempts.current = 0;
+        fetchNotifications();
         subscribe();
       }
     });
     return () => subscription.remove();
-  }, [userId, enabled, subscribe]);
+  }, [userId, enabled, subscribe, fetchNotifications]);
 
-  // Mark single notification as read
-  const markAsRead = useCallback((id: string) => {
+  // Network reconnection listener
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
+      if (state.isConnected && userId && enabled) {
+        console.log('[useSupabaseNotifications] Network restored, reconnecting...');
+        reconnectAttempts.current = 0;
+        subscribe();
+        fetchNotifications();
+      }
+    });
+    return () => unsubscribe();
+  }, [userId, enabled, subscribe, fetchNotifications]);
+
+  // Mark single notification as read (optimistic update + persist to Supabase)
+  const markAsRead = useCallback(async (id: string) => {
+    // Find the notification
+    const notification = notifications.find((n) => n.id === id || n.queue_uuid === id);
+    if (!notification || notification.status === 'delivered' || notification.status === 'read') {
+      return;
+    }
+
+    // Optimistic update
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, status: 'read' } : n))
+      prev.map((n) => (n.id === id || n.queue_uuid === id ? { ...n, status: 'delivered' } : n))
     );
-  }, []);
 
-  // Mark all as read
-  const markAllAsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, status: 'read' })));
-  }, []);
+    try {
+      const { error: updateError } = await supabase
+        .from('notification_queue')
+        .update({ status: 'delivered' })
+        .eq('queue_uuid', notification.queue_uuid);
+
+      if (updateError) {
+        console.error('[useSupabaseNotifications] Failed to mark as read:', updateError);
+        // Revert on error
+        fetchNotifications();
+      }
+    } catch (err) {
+      console.error('[useSupabaseNotifications] Exception marking as read:', err);
+      fetchNotifications();
+    }
+  }, [notifications, fetchNotifications]);
+
+  // Mark all as read (optimistic update + persist to Supabase)
+  const markAllAsRead = useCallback(async () => {
+    if (!userId) return;
+
+    const unreadIds = notifications
+      .filter((n) => n.status !== 'delivered' && n.status !== 'read')
+      .map((n) => n.queue_uuid);
+
+    if (unreadIds.length === 0) return;
+
+    // Optimistic update
+    setNotifications((prev) => prev.map((n) => ({ ...n, status: 'delivered' })));
+
+    try {
+      const { error: updateError } = await supabase
+        .from('notification_queue')
+        .update({ status: 'delivered' })
+        .in('queue_uuid', unreadIds);
+
+      if (updateError) {
+        console.error('[useSupabaseNotifications] Failed to mark all as read:', updateError);
+        fetchNotifications();
+      }
+    } catch (err) {
+      console.error('[useSupabaseNotifications] Exception marking all as read:', err);
+      fetchNotifications();
+    }
+  }, [userId, notifications, fetchNotifications]);
 
   // Calculate unread count
   const unreadCount = notifications.filter(
@@ -230,6 +601,7 @@ export function useSupabaseNotifications({
 
   return {
     notifications,
+    notificationItems,
     unreadCount,
     isLoading,
     isConnected,
@@ -237,6 +609,7 @@ export function useSupabaseNotifications({
     refetch: fetchNotifications,
     markAsRead,
     markAllAsRead,
+    reconnect,
   };
 }
 

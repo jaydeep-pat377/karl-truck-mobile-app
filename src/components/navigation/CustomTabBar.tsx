@@ -14,17 +14,61 @@ import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
 import { useTheme } from '../../contexts/ThemeContext';
 
-// Helper to check if user is on a detail/nested screen (not the main tab screen)
-const isOnDetailScreen = (routes: any[]): boolean => {
-  for (const route of routes) {
-    if (route?.state && route.state.routes && route.state.routes.length > 0) {
-      const nestedIndex = route.state.index;
-      // If nested index > 0, user is on a detail screen (not the first/main screen)
-      if (typeof nestedIndex === 'number' && nestedIndex > 0) {
+// Detail screen names that should NOT highlight any tab
+const DETAIL_SCREEN_NAMES = [
+  'OrderDetail',
+  'OrderDetailInTab',
+  'TicketDetail',
+  'Ticket',
+  'Weather',
+  'ChatRoom',
+  'MapTracking',
+  'Tracking',
+  'ProductDetails',
+  'ProductCode',
+  'EvaporationList',
+  'OrderProductDetails',
+  'SettingsMain',
+  'Profile',
+  'Appearance',
+  'NotificationSettings',
+  'Security',
+  'Language',
+  'About',
+];
+
+// Helper to check if user is on a detail screen within the currently focused tab
+const isOnDetailScreen = (state: any): boolean => {
+  if (!state || !state.routes) return false;
+
+  // Get the currently focused tab
+  const focusedTabIndex = state.index;
+  const focusedTab = state.routes[focusedTabIndex];
+
+  if (!focusedTab) return false;
+
+  // Check if the focused tab has a nested navigator state
+  if (focusedTab.state && focusedTab.state.routes && focusedTab.state.routes.length > 0) {
+    const nestedRoutes = focusedTab.state.routes;
+    const nestedIndex = focusedTab.state.index;
+
+    // Get the current screen in the nested navigator
+    if (typeof nestedIndex === 'number' && nestedIndex >= 0) {
+      const currentNestedRoute = nestedRoutes[nestedIndex];
+      const screenName = currentNestedRoute?.name;
+
+      // Check if this is a detail screen by name
+      if (DETAIL_SCREEN_NAMES.includes(screenName)) {
+        return true;
+      }
+
+      // Also check if nested index > 0 (not on the first/main screen of the tab)
+      if (nestedIndex > 0) {
         return true;
       }
     }
   }
+
   return false;
 };
 
@@ -35,6 +79,18 @@ const getActualFocusedIndex = (state: any, routes: any[]): number => {
     return state.index;
   }
   return 0; // Default to Home
+};
+
+// Helper to get the initial screen name for each tab (for resetting when on detail screens)
+const getInitialScreenForTab = (tabName: string): string | undefined => {
+  switch (tabName) {
+    case 'Orders':
+      return 'OrderList';
+    case 'Settings':
+      return 'SettingsMain';
+    default:
+      return undefined; // Home, Notifications don't have nested navigators
+  }
 };
 
 const tabBarTheme = {
@@ -123,10 +179,12 @@ const TabItem: React.FC<TabItemProps> = ({
   const routes = state?.routes || [];
   const focusedIndex = getActualFocusedIndex(state || {}, routes);
 
-  // Check if user is on a detail screen - if so, no tab should be highlighted
-  const onDetailScreen = isOnDetailScreen(routes);
+  // Check if user is on a detail screen in the currently focused tab
+  const onDetailScreen = isOnDetailScreen(state);
 
-  // Tab is focused only if we're on a main tab screen (not detail) AND this is the focused tab
+  // Determine if this tab should be focused/highlighted:
+  // - If on ANY detail screen → NO tab highlighted
+  // - If on a main tab screen (first screen of each tab) → highlight that tab
   const isFocused = !onDetailScreen && focusedIndex === index;
 
   const themeColors = tabBarTheme[theme];
@@ -192,7 +250,18 @@ const TabItem: React.FC<TabItemProps> = ({
       canPreventDefault: true,
     });
 
-    if (!isFocused && !event.defaultPrevented) {
+    if (event.defaultPrevented) {
+      return;
+    }
+
+    // Check if we're on a detail screen - if so, always navigate to reset the tab
+    if (onDetailScreen) {
+      // Navigate to the tab and reset to its initial screen
+      navigation.navigate(route.name, {
+        screen: getInitialScreenForTab(route.name),
+      });
+    } else if (!isFocused) {
+      // Normal navigation when not focused
       navigation.navigate(route.name, route.params);
     }
   };

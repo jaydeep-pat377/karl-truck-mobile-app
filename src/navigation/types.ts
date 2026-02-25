@@ -212,6 +212,11 @@ export type OrderProductDetailsScreenParams = {
   progressColor?: string;
 };
 
+export type WebViewScreenParams = {
+  url: string;
+  title: string;
+};
+
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
@@ -228,6 +233,7 @@ export type RootStackParamList = {
   ChatRoom: ChatRoomScreenParams;
   Appointments: NavigatorScreenParams<AppointmentsStackParamList>;
   OrderProductDetails: OrderProductDetailsScreenParams;
+  WebView: WebViewScreenParams;
 };
 
 export type AuthStackScreenProps<T extends keyof AuthStackParamList> =

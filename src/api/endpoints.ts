@@ -36,4 +36,7 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: {
     QUEUE: '/notification-queue',
   },
+  ANNOUNCEMENTS: {
+    ME: '/announcements/me',
+  },
 } as const;

@@ -186,7 +186,7 @@ export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps
         },
         android: {
           channelId,
-          smallIcon: 'ic_notification', // Make sure this icon exists in android/app/src/main/res/drawable
+          smallIcon: 'ic_launcher', // Uses app launcher icon
           pressAction: {
             id: 'default',
           },

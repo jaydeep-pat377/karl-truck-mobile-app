@@ -13,6 +13,7 @@ import { useNotifications } from './src/hooks/useNotifications';
 import { useAuthStore } from './src/store/authStore';
 import { AnimatedSplashScreen } from './src/components/AnimatedSplashScreen';
 import { initSentry, ErrorBoundary } from './src/services/sentryService';
+import { navigationRef } from './src/services/navigationService';
 
 // Initialize Sentry (only runs in production)
 initSentry();
@@ -76,6 +77,7 @@ const AppContent: React.FC = () => {
         translucent={showAnimatedSplash}
       />
       <NavigationContainer
+        ref={navigationRef}
         onReady={handleNavigationReady}
         theme={{
           dark: isDark,
