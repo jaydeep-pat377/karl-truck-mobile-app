@@ -10,11 +10,13 @@ import {
   Modal,
   Platform,
   Text as AppText,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
+import QRCode from 'react-native-qrcode-svg';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, TruckLoader, AlertModal } from '../../components/common';
 import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
@@ -779,6 +781,7 @@ export const TicketDetailScreen: React.FC = () => {
   const { alertState, showWarning, hideAlert } = useAlert();
 
   const [showDirectionsMenu, setShowDirectionsMenu] = useState(false);
+  const [showQRCodeModal, setShowQRCodeModal] = useState(false);
 
   const { orderCode, orderDate, ticketCode, status: passedStatus, statusDisplay: passedStatusDisplay } = route.params;
 
@@ -924,7 +927,11 @@ export const TicketDetailScreen: React.FC = () => {
   }, [truckLatitude, truckLongitude, showWarning]);
 
   const handleShowQRCode = useCallback(() => {
-    // TODO: Implement QR code functionality
+    setShowQRCodeModal(true);
+  }, []);
+
+  const closeQRCodeModal = useCallback(() => {
+    setShowQRCodeModal(false);
   }, []);
 
   const closeDirectionsMenu = useCallback(() => {
@@ -1539,6 +1546,57 @@ export const TicketDetailScreen: React.FC = () => {
 
             <View style={{ height: insets.bottom }} />
           </View>
+        </View>
+      </Modal>
+
+      {/* QR Code Modal */}
+      <Modal
+        visible={showQRCodeModal}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={closeQRCodeModal}
+      >
+        <View style={styles.qrModalContainer}>
+          <TouchableOpacity
+            style={styles.qrModalBackdrop}
+            activeOpacity={1}
+            onPress={closeQRCodeModal}
+          />
+          <View style={[styles.qrModalContent, { backgroundColor: themeColors.card }]}>
+            <View style={styles.qrModalHeader}>
+              <Text style={[styles.qrModalTitle, { color: themeColors.text.primary }]}>
+                Ticket QR Code
+              </Text>
+              <TouchableOpacity
+                style={[styles.qrModalCloseBtn, { backgroundColor: isDark ? colors.grey[60] + '20' : colors.grey[10] }]}
+                onPress={closeQRCodeModal}
+                activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Icon name="close" size={ms(20)} color={themeColors.text.secondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.qrCodeWrapper, { backgroundColor: colors.common.white }]}>
+              <QRCode
+                value={apiTicketCode || ticketCode || 'N/A'}
+                size={Math.min(Dimensions.get('window').width * 0.45, ms(160))}
+                backgroundColor={colors.common.white}
+                color={colors.grey[85]}
+              />
+            </View>
+
+            <View style={styles.qrTicketInfo}>
+              <Text style={[styles.qrTicketLabel, { color: themeColors.text.secondary }]}>
+                Ticket Number
+              </Text>
+              <Text style={[styles.qrTicketCode, { color: themeColors.text.primary }]}>
+                {apiTicketCode || ticketCode || '---'}
+              </Text>
+            </View>
+
+                      </View>
         </View>
       </Modal>
     </View>
@@ -2458,6 +2516,75 @@ const styles = StyleSheet.create({
     fontSize: ms(10),
     textAlign: 'center',
   },
-});
+  qrModalContainer: {
+    flex: 1,
+    backgroundColor: colors.overlay.medium,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qrModalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  qrModalContent: {
+    borderRadius: RADIUS.xl,
+    padding: GRID.md,
+    marginHorizontal: GRID.xl,
+    maxWidth: ms(280),
+    width: '85%',
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.common.black,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 24,
+      },
+      android: {
+        elevation: 24,
+      },
+    }),
+  },
+  qrModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: GRID.md,
+    paddingLeft: GRID.xs,
+  },
+  qrModalTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(16),
+  },
+  qrModalCloseBtn: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(16),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qrCodeWrapper: {
+    alignSelf: 'center',
+    padding: GRID.md,
+    borderRadius: RADIUS.md,
+    marginBottom: GRID.md,
+  },
+  qrTicketInfo: {
+    alignItems: 'center',
+    marginBottom: GRID.sm,
+  },
+  qrTicketLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
+    marginBottom: GRID.xs,
+  },
+  qrTicketCode: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(20),
+    letterSpacing: 1,
+  },
+  });
 
 export default TicketDetailScreen;
