@@ -7,6 +7,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { NotificationProvider } from './providers/NotificationProvider';
+import { useAuthStore } from './store/authStore';
 
 import { SplashScreen } from './components/common';
 
@@ -36,6 +38,20 @@ interface AppContentProps {
 
 const AppContentWithSplash: React.FC<AppContentProps> = ({ onReady }) => {
   const { theme, isDark } = useTheme();
+  const { user } = useAuthStore();
+
+  // Get user and tenant info for notifications
+  const userId = user?.id ?? null;
+  const tenantId = user?.metadata?.tenant?.tenant_id ?? null;
+
+  // Debug log for notification setup
+  console.log('===========================================');
+  console.log('[App] 🔔 NOTIFICATION DEBUG');
+  console.log('[App] user object:', JSON.stringify(user, null, 2));
+  console.log('[App] userId:', userId);
+  console.log('[App] tenantId:', tenantId);
+  console.log('[App] enabled:', !!userId);
+  console.log('===========================================');
 
   return (
     <>
@@ -43,40 +59,46 @@ const AppContentWithSplash: React.FC<AppContentProps> = ({ onReady }) => {
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={theme.colors.background}
       />
-      <NavigationContainer
-        onReady={onReady}
-        theme={{
-          dark: isDark,
-          colors: {
-            primary: theme.colors.primary.main,
-            background: theme.colors.background,
-            card: theme.colors.card,
-            text: theme.colors.text,
-            border: theme.colors.border,
-            notification: theme.colors.error.main,
-          },
-          fonts: {
-            regular: {
-              fontFamily: 'System',
-              fontWeight: '400',
-            },
-            medium: {
-              fontFamily: 'System',
-              fontWeight: '500',
-            },
-            bold: {
-              fontFamily: 'System',
-              fontWeight: '700',
-            },
-            heavy: {
-              fontFamily: 'System',
-              fontWeight: '900',
-            },
-          },
-        }}
+      <NotificationProvider
+        userId={userId}
+        tenantId={tenantId}
+        enabled={!!userId}
       >
-        <RootNavigator isAuthenticated={true} />
-      </NavigationContainer>
+        <NavigationContainer
+          onReady={onReady}
+          theme={{
+            dark: isDark,
+            colors: {
+              primary: theme.colors.primary.main,
+              background: theme.colors.background,
+              card: theme.colors.card,
+              text: theme.colors.text,
+              border: theme.colors.border,
+              notification: theme.colors.error.main,
+            },
+            fonts: {
+              regular: {
+                fontFamily: 'System',
+                fontWeight: '400',
+              },
+              medium: {
+                fontFamily: 'System',
+                fontWeight: '500',
+              },
+              bold: {
+                fontFamily: 'System',
+                fontWeight: '700',
+              },
+              heavy: {
+                fontFamily: 'System',
+                fontWeight: '900',
+              },
+            },
+          }}
+        >
+          <RootNavigator isAuthenticated={true} />
+        </NavigationContainer>
+      </NotificationProvider>
     </>
   );
 };

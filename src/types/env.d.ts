@@ -7,4 +7,6 @@ declare module '@env' {
   export const SUPABASE_ANON_KEY: string;
   export const SUPABASE_SERVICE_ROLE_KEY: string;
   export const SENTRY_DSN: string;
+  export const NOTIFICATION_SUPABASE_URL: string;
+  export const NOTIFICATION_SUPABASE_ANON_KEY: string;
 }
