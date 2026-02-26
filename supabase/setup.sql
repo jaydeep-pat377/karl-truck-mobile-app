@@ -1,32 +1,34 @@
 -- =====================================================
 -- Supabase Setup for Push Notifications (Background/Killed State)
--- Run this SQL on the NOTIFICATION Supabase instance
--- (tabpplqpetdgruqmliix.supabase.co)
+-- Run on NOTIFICATION Supabase instance (tabpplqpetdgruqmliix.supabase.co)
 -- =====================================================
 
--- 1. Create user_devices table to store FCM tokens
-CREATE TABLE IF NOT EXISTS user_devices (
-  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  device_token TEXT NOT NULL,
-  platform TEXT NOT NULL CHECK (platform IN ('ios', 'android')),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, platform)
-);
+-- No new tables needed! We use the existing notification_queue table.
+--
+-- The mobile app syncs FCM device tokens to notification_queue.recipient_device_token
+-- The Edge Function reads this token when sending FCM push notifications.
+--
+-- Columns already present in notification_queue:
+--   recipient_device_token  → FCM device token (synced by mobile app)
+--   push_sent               → Whether push was sent
+--   push_sent_at            → When push was sent
+--   push_token_used         → Which token was used to send
 
--- 2. Enable Row Level Security
-ALTER TABLE user_devices ENABLE ROW LEVEL SECURITY;
+-- 1. Create Database Webhook (do this in Supabase Dashboard):
+--    - Go to Database → Webhooks
+--    - Table: notification_queue
+--    - Events: INSERT
+--    - Type: Supabase Edge Function
+--    - Function: send-push-notification
+--
+-- 2. Deploy the Edge Function:
+--    supabase functions deploy send-push-notification
+--
+-- 3. Set the FCM Server Key secret:
+--    supabase secrets set FCM_SERVER_KEY='your-firebase-server-key'
+--
+--    Get the FCM Server Key from:
+--    Firebase Console → Project Settings → Cloud Messaging → Server key
 
--- 3. Allow anonymous users to insert/update their own device tokens
-CREATE POLICY "Users can upsert their own device tokens"
-  ON user_devices
-  FOR ALL
-  USING (true)
-  WITH CHECK (true);
-
--- 4. Create index for fast lookups
-CREATE INDEX IF NOT EXISTS idx_user_devices_user_id ON user_devices(user_id);
-
--- 5. Enable Realtime for notification_queue (if not already enabled)
+-- Enable Realtime for notification_queue (if not already enabled)
 ALTER PUBLICATION supabase_realtime ADD TABLE notification_queue;

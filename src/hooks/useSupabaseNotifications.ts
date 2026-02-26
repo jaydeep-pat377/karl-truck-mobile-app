@@ -19,6 +19,8 @@ import { createClient, RealtimeChannel } from '@supabase/supabase-js';
 import notifee, { AndroidImportance, AuthorizationStatus } from '@notifee/react-native';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import 'react-native-url-polyfill/auto';
+import { updateNotificationDeviceToken } from '../lib/notification-client';
+import { useNotificationStore } from '../store/notificationStore';
 
 // Supabase credentials (Notification Supabase instance - separate from main app)
 const SUPABASE_URL = 'https://tabpplqpetdgruqmliix.supabase.co';
@@ -408,6 +410,12 @@ export function useSupabaseNotifications({
           // Client-side tenant filter
           if (tenantId && newNotification.tenant_id !== null && newNotification.tenant_id !== tenantId) {
             return;
+          }
+
+          // Sync FCM device token to this new record so Edge Function can use it
+          const fcmToken = useNotificationStore.getState().fcmToken;
+          if (fcmToken && newNotification.id) {
+            updateNotificationDeviceToken(String(newNotification.id), fcmToken);
           }
 
           // Add to the beginning of the list

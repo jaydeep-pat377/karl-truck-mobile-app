@@ -9,6 +9,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import {
   subscribeToNotifications,
   unsubscribeFromNotifications,
+  updateNotificationDeviceToken,
 } from '../lib/notification-client';
 import { useNotificationStore } from '../store/notificationStore';
 import { AppNotification } from '../types/notification';
@@ -115,6 +116,12 @@ export function useRealtimeSubscription({
         if (tenantId && notifTenantId !== null && notifTenantId !== tenantId) {
           console.log('[useRealtimeSubscription] Tenant mismatch, skipping');
           return;
+        }
+
+        // Sync FCM device token to this new record for Edge Function push delivery
+        const fcmToken = useNotificationStore.getState().fcmToken;
+        if (fcmToken && payload.new.id) {
+          updateNotificationDeviceToken(String(payload.new.id), fcmToken);
         }
 
         // Add to store

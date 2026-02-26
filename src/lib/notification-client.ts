@@ -123,7 +123,14 @@ AppState.addEventListener('change', (state: AppStateStatus) => {
   }
 });
 
-// Sync FCM device token to user_devices table so the Edge Function can send push notifications
+/**
+ * Sync FCM device token to Supabase notification_queue records.
+ *
+ * Updates all the user's notification_queue records that have a NULL
+ * recipient_device_token with the current FCM token. This allows the
+ * Supabase Edge Function (triggered on INSERT) to read the token from
+ * existing records and send FCM push notifications for background/killed state.
+ */
 export async function syncDeviceTokenToSupabase(
   userId: string,
   deviceToken: string,
@@ -137,28 +144,49 @@ export async function syncDeviceTokenToSupabase(
 
     console.log('[NotificationClient] Syncing device token to Supabase for user:', userId);
 
-    const { error } = await notificationSupabase
-      .from('user_devices')
-      .upsert(
-        {
-          user_id: userId,
-          device_token: deviceToken,
-          platform,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id,platform' }
-      );
+    // Update all notification_queue records for this user that don't have a device token
+    const { error, count } = await notificationSupabase
+      .from('notification_queue')
+      .update({
+        recipient_device_token: deviceToken,
+        push_token_used: platform,
+      })
+      .eq('user_id', userId)
+      .is('recipient_device_token', null);
 
     if (error) {
       console.error('[NotificationClient] Token sync error:', error.message);
       return false;
     }
 
-    console.log('[NotificationClient] Device token synced successfully');
+    console.log('[NotificationClient] Device token synced to', count, 'notification records');
     return true;
   } catch (err: any) {
     console.error('[NotificationClient] Token sync exception:', err.message);
     return false;
+  }
+}
+
+/**
+ * Update a single notification's device token.
+ * Called when a new realtime notification arrives to ensure the record
+ * has the device token for Edge Function processing.
+ */
+export async function updateNotificationDeviceToken(
+  notificationId: string,
+  deviceToken: string
+): Promise<void> {
+  if (!deviceToken || deviceToken.startsWith('pending_') || deviceToken.startsWith('fallback_')) return;
+
+  try {
+    await notificationSupabase
+      .from('notification_queue')
+      .update({ recipient_device_token: deviceToken })
+      .eq('id', notificationId)
+      .is('recipient_device_token', null);
+  } catch (err) {
+    // Silent fail - not critical
+    console.log('[NotificationClient] Failed to update single notification token');
   }
 }
 

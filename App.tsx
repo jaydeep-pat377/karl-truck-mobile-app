@@ -21,9 +21,7 @@ initSentry();
 
 // Note: Background message handlers are registered in index.js for killed state support
 
-LogBox.ignoreLogs([
-  'Non-serializable values were found in the navigation state',
-]);
+LogBox.ignoreAllLogs();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -136,11 +134,11 @@ const AppContent: React.FC = () => {
 };
 
 // Fallback component for Sentry error boundary
-const ErrorFallback = ({ error, resetError }: { error: Error; resetError: () => void }) => (
+const ErrorFallback = ({ error, resetError }: { error: unknown; resetError: () => void; componentStack?: string; eventId?: string }) => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
     <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Something went wrong</Text>
     <Text style={{ color: '#666', textAlign: 'center', marginBottom: 20 }}>
-      {error?.message || 'An unexpected error occurred'}
+      {error instanceof Error ? error.message : 'An unexpected error occurred'}
     </Text>
     <Text
       style={{ color: '#007AFF', fontSize: 16 }}

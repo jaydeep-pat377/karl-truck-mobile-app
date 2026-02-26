@@ -12,6 +12,11 @@
  * - android: priority "high" → ensures delivery even in Doze mode
  * - apns: apns-priority "10" + content-available → ensures iOS delivery
  *
+ * DEVICE TOKEN LOOKUP:
+ * 1. First checks `recipient_device_token` on the new record itself
+ * 2. Falls back to looking up from OTHER notification_queue records for the same user
+ *    (the mobile app syncs FCM tokens to existing records on login)
+ *
  * Setup:
  * 1. Deploy: supabase functions deploy send-push-notification
  * 2. Set secret: supabase secrets set FCM_SERVER_KEY='your-firebase-server-key'
@@ -61,6 +66,33 @@ function getAndroidChannelId(eventCode: string): string {
 }
 
 /**
+ * Look up device token from other notification_queue records for the same user.
+ * The mobile app syncs FCM tokens to existing records when it logs in.
+ */
+async function lookupDeviceToken(userId: string): Promise<string | null> {
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { data, error } = await supabase
+      .from('notification_queue')
+      .select('recipient_device_token')
+      .eq('user_id', userId)
+      .not('recipient_device_token', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error || !data) {
+      console.log('No device token found in notification_queue for user:', userId);
+      return null;
+    }
+
+    return data.recipient_device_token;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Send FCM push notification with proper notification + data payload
  *
  * IMPORTANT: The payload includes BOTH `notification` and `data`:
@@ -76,7 +108,6 @@ async function sendFCMNotification(
 ): Promise<boolean> {
   const channelId = getAndroidChannelId(notification.event_code);
 
-  // Build the FCM payload with BOTH notification and data
   const fcmPayload = {
     to: deviceToken,
     priority: 'high',
@@ -152,25 +183,17 @@ async function sendFCMNotification(
       return false;
     }
 
-    // Check FCM response for delivery success
     if (responseBody.success === 1) {
-      console.log('FCM notification sent successfully to:', deviceToken.substring(0, 20) + '...');
+      console.log('FCM notification sent successfully');
       return true;
     }
 
-    // Handle specific FCM errors
     if (responseBody.results?.[0]?.error) {
       const fcmError = responseBody.results[0].error;
       console.error('FCM delivery error:', fcmError);
-
-      // If token is invalid/expired, we could clean it up
-      if (fcmError === 'NotRegistered' || fcmError === 'InvalidRegistration') {
-        console.log('Device token is invalid, should be removed for user');
-      }
       return false;
     }
 
-    console.log('FCM response:', JSON.stringify(responseBody));
     return responseBody.success >= 1;
   } catch (error) {
     console.error('FCM send error:', error);
@@ -180,7 +203,6 @@ async function sendFCMNotification(
 
 serve(async (req) => {
   try {
-    // Handle CORS preflight
     if (req.method === 'OPTIONS') {
       return new Response('ok', {
         headers: {
@@ -194,7 +216,6 @@ serve(async (req) => {
     const record = payload.record as NotificationRecord;
 
     if (!record) {
-      console.error('No record in webhook payload');
       return new Response(JSON.stringify({ error: 'No record in payload' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -202,88 +223,43 @@ serve(async (req) => {
     }
 
     console.log('=== Processing notification ===');
-    console.log('ID:', record.id);
-    console.log('User:', record.user_id);
-    console.log('Event:', record.event_code);
-    console.log('Subject:', record.subject);
+    console.log('ID:', record.id, '| User:', record.user_id);
+    console.log('Event:', record.event_code, '| Subject:', record.subject);
 
-    // 1. Try to get device token from the notification record itself
+    // 1. Try device token from the record itself
     let deviceToken = record.recipient_device_token;
 
-    // 2. If no token in record, look up from user_devices table
+    // 2. If no token on record, look up from other records for same user
     if (!deviceToken) {
-      console.log('No token in record, looking up from user_devices...');
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      console.log('No token on record, looking up from other records...');
+      deviceToken = await lookupDeviceToken(record.user_id);
+    }
 
-      const { data: devices, error: lookupError } = await supabase
-        .from('user_devices')
-        .select('device_token, platform')
-        .eq('user_id', record.user_id)
-        .order('updated_at', { ascending: false });
-
-      if (lookupError) {
-        console.error('Device lookup error:', lookupError.message);
-      }
-
-      if (devices && devices.length > 0) {
-        console.log(`Found ${devices.length} device(s) for user`);
-
-        // Send to ALL user's devices (they might have both iOS and Android)
-        const results = await Promise.all(
-          devices
-            .filter(d => d.device_token && !d.device_token.startsWith('pending_') && !d.device_token.startsWith('fallback_'))
-            .map(async (device) => {
-              console.log(`Sending to ${device.platform} device...`);
-              return sendFCMNotification(device.device_token, record);
-            })
-        );
-
-        const anySent = results.some(r => r === true);
-
-        // Update notification status
-        if (anySent) {
-          const supabaseUpdate = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-          await supabaseUpdate
-            .from('notification_queue')
-            .update({ status: 'sent', sent_at: new Date().toISOString() })
-            .eq('id', record.id);
-        }
-
-        return new Response(JSON.stringify({
-          success: anySent,
-          devices_sent: results.filter(r => r).length,
-          devices_total: results.length,
-        }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-
-      console.log('No devices found for user:', record.user_id);
-      return new Response(JSON.stringify({ success: false, reason: 'no_device_found' }), {
+    // 3. Validate the token
+    if (!deviceToken || deviceToken.startsWith('pending_') || deviceToken.startsWith('fallback_')) {
+      console.log('No valid device token for user:', record.user_id);
+      return new Response(JSON.stringify({ success: false, reason: 'no_device_token' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // 3. Validate the device token
-    if (deviceToken.startsWith('pending_') || deviceToken.startsWith('fallback_')) {
-      console.log('Invalid device token (placeholder):', deviceToken.substring(0, 20));
-      return new Response(JSON.stringify({ success: false, reason: 'placeholder_token' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    // 4. Send FCM notification
+    // 4. Send FCM push notification
     const sent = await sendFCMNotification(deviceToken, record);
 
-    // 5. Update notification status in database
+    // 5. Update the record with push status and device token used
     if (sent) {
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       await supabase
         .from('notification_queue')
-        .update({ status: 'sent', sent_at: new Date().toISOString() })
+        .update({
+          push_sent: true,
+          push_sent_at: new Date().toISOString(),
+          push_token_used: deviceToken,
+          recipient_device_token: deviceToken,
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+        })
         .eq('id', record.id);
     }
 
