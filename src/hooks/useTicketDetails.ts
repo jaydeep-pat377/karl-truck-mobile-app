@@ -38,7 +38,7 @@ export const useTicketDetails = (params: TicketDetailsQueryParams) => {
 
     ticketId: ticket?.ticket_id,
     ticketCode: ticket?.ticket_code,
-    loadNumber: ticket?.load_number,
+    loadNumber: ticket?.load,
     orderId: ticket?.order_id,
     orderCode: ticket?.order_code,
     orderDate: ticket?.order_date,

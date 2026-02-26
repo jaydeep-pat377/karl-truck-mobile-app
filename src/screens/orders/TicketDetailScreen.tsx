@@ -1359,7 +1359,7 @@ export const TicketDetailScreen: React.FC = () => {
             </View>
 
             <View style={[styles.loadInfoRow, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
-              <View style={styles.loadInfoItem}>
+              <View style={[styles.loadInfoItem, { flex: 1 }]}>
                 <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
                   Load #
                 </Text>
@@ -1367,16 +1367,16 @@ export const TicketDetailScreen: React.FC = () => {
                   {loadNumber || '-'}
                 </Text>
               </View>
-              {loadQty !== undefined && loadQty !== null && (
-                <View style={[styles.loadInfoItem, { minWidth: ms(100) }]}>
-                  <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
-                    Amount
-                  </Text>
-                  <Text style={[styles.loadInfoValue, { color: isDark ? colors.common.white : colors.grey[85] }]}>
-                    {loadQty} CY
-                  </Text>
-                </View>
-              )}
+              <View style={[styles.loadInfoItem, { flex: 1 }]}>
+                <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
+                  Amount
+                </Text>
+                <Text
+                  style={[styles.loadInfoValue, { color: isDark ? colors.common.white : colors.grey[85] }]}
+                  numberOfLines={1}>
+                  {loadQty != null ? `${loadQty} CY` : '-'}
+                </Text>
+              </View>
             </View>
           </View>
 

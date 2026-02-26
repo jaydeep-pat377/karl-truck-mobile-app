@@ -494,7 +494,7 @@ export interface DeliveryMetrics {
 export interface TicketDetailsTicket {
   ticket_id: string;
   ticket_code: string;
-  load_number: string;
+  load: string;
   order_id: string;
   order_code: string;
   order_date: string;
