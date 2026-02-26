@@ -22,6 +22,7 @@ const createSoundChannel = async (): Promise<void> => {
       importance: AndroidImportance.HIGH,
       sound: 'default',
       vibration: true,
+      vibrationPattern: [300, 500],
     });
   }
 };

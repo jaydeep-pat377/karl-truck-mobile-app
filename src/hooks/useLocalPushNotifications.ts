@@ -54,7 +54,7 @@ async function createAndroidChannels(): Promise<void> {
       description: 'New orders, order updates, and order requests',
       importance: AndroidImportance.HIGH,
       vibration: true,
-      vibrationPattern: [0, 250, 250, 250],
+      vibrationPattern: [300, 250],
       sound: 'default',
     }),
     notifee.createChannel({
@@ -63,7 +63,7 @@ async function createAndroidChannels(): Promise<void> {
       description: 'Truck arrivals, late trucks, and truck updates',
       importance: AndroidImportance.HIGH,
       vibration: true,
-      vibrationPattern: [0, 250, 250, 250],
+      vibrationPattern: [300, 250],
       sound: 'default',
     }),
     notifee.createChannel({
@@ -72,7 +72,7 @@ async function createAndroidChannels(): Promise<void> {
       description: 'Critical alerts and quality notifications',
       importance: AndroidImportance.MAX,
       vibration: true,
-      vibrationPattern: [0, 500, 250, 500],
+      vibrationPattern: [300, 500],
       sound: 'default',
     }),
     notifee.createChannel({

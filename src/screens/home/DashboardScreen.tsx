@@ -688,10 +688,12 @@ const DashboardScreen: React.FC = () => {
           />
         </View>
 
-        <AdvertisementCard
-          advertisements={advertisements}
-          onActionPress={(ad) => ad.onAction?.()}
-        />
+        {advertisements.length > 0 && (
+          <AdvertisementCard
+            advertisements={advertisements}
+            onActionPress={(ad) => ad.onAction?.()}
+          />
+        )}
 
         {quickLaunchActions.length > 0 && (
           <>

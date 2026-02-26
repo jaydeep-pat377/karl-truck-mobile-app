@@ -22,6 +22,7 @@ class NotificationService {
         importance: AndroidImportance.HIGH,
         sound: 'default',
         vibration: true,
+        vibrationPattern: [300, 500],
       });
     }
   }
@@ -135,42 +136,10 @@ class NotificationService {
   }
 
 
-  async syncTokenToServer(token?: string): Promise<boolean> {
-    try {
-      const isAuthenticated = useAuthStore.getState().isAuthenticated;
-
-      if (!isAuthenticated) {
-        return false;
-      }
-
-      const fcmToken = token || await this.getToken();
-
-      if (!fcmToken) {
-        return false;
-      }
-
-      const platform = Platform.OS as 'ios' | 'android';
-
-      const response = await authService.updateDeviceToken({
-        device_token: fcmToken,
-        platform,
-      });
-
-      if (response.success) {
-        console.log('[Notifications] Device token synced successfully');
-        return true;
-      }
-      return false;
-    } catch (error: any) {
-
-      if (error?.response?.status === 404) {
-
-        return false;
-      }
-
-      console.error('[Notifications] Error syncing device token:', error?.message || error);
-      return false;
-    }
+  async syncTokenToServer(_token?: string): Promise<boolean> {
+    // Device token API is not available on the backend
+    // Skip the API call until backend implements this endpoint
+    return false;
   }
 
   setupListeners(): void {

@@ -84,8 +84,8 @@ const SILENT_ERROR_ENDPOINTS = [
   '/auth/register',
   '/auth/verify-otp',
   '/auth/me',
-  '/auth/device-token',
   '/auth/refresh',
+  '/announcements/me',
 ];
 
 const shouldShowGlobalAlert = (url: string | undefined, status: number | undefined): boolean => {
@@ -112,8 +112,11 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _silentError?: boolean };
+    const isSilentEndpoint = SILENT_ERROR_ENDPOINTS.some(endpoint => originalRequest.url?.includes(endpoint));
 
-    if (ENABLE_API_LOGGING) {
+    // Only log errors for non-silent endpoints in development
+    if (ENABLE_API_LOGGING && !isSilentEndpoint) {
       console.error('\n========== API ERROR ==========');
       console.error(`[${error.response?.status || 'NETWORK'}] ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
       console.error('Error Message:', error.message);
@@ -122,8 +125,6 @@ axiosInstance.interceptors.response.use(
       }
       console.error('================================\n');
     }
-
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _silentError?: boolean };
 
 
     if (

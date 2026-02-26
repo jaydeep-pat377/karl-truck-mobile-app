@@ -1361,7 +1361,7 @@ export const TicketDetailScreen: React.FC = () => {
             <View style={[styles.loadInfoRow, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
               <View style={[styles.loadInfoItem, { flex: 1 }]}>
                 <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
-                  Load #
+                  Load
                 </Text>
                 <Text style={[styles.loadInfoValue, { color: isDark ? colors.common.white : colors.grey[85] }]}>
                   {loadNumber || '-'}
