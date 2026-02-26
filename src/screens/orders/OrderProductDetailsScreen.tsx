@@ -984,13 +984,15 @@ export const OrderProductDetailsScreen: React.FC = () => {
                           </Text>
                         </View>
 
-                        {/* Slump */}
-                        <View style={styles.productListDetailItem}>
-                          <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Slump</Text>
-                          <Text style={[styles.productListDetailValue, { color: themeColors.text.primary }]}>
-                            {item.slump !== '-' ? `${item.slump}"` : '-'}
-                          </Text>
-                        </View>
+                        {/* Slump - only for concrete/mix products */}
+                        {item.isPrimary && (
+                          <View style={styles.productListDetailItem}>
+                            <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Slump</Text>
+                            <Text style={[styles.productListDetailValue, { color: themeColors.text.primary }]}>
+                              {item.slump !== '-' ? `${item.slump}"` : '-'}
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     </View>
                   ))}

