@@ -7,13 +7,17 @@ import { name as appName } from './app.json';
 messaging().setBackgroundMessageHandler(async remoteMessage => {
   const { notification, data, messageId, sentTime } = remoteMessage;
 
-  if (notification) {
+  const title = notification?.title || data?.title || '';
+  const body = notification?.body || data?.body || '';
+
+  if (title || body) {
+    // Add to store so it appears in notification list when app opens
     const { useNotificationStore: store } = require('./src/store/notificationStore');
     store.getState().addNotification({
       id: messageId || Date.now().toString(),
       type: (data?.type) || 'system',
-      title: notification.title || '',
-      body: notification.body || '',
+      title,
+      body,
       priority: (data?.priority) || 'medium',
       isRead: false,
       data: data,
@@ -24,6 +28,25 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
         ? new Date(sentTime).toISOString()
         : new Date().toISOString(),
     });
+
+    // Display notification via Notifee for data-only messages (no notification payload)
+    // Messages WITH a notification payload are displayed automatically by the OS
+    if (!notification) {
+      await notifee.displayNotification({
+        title,
+        body,
+        data: data || {},
+        android: {
+          channelId: 'truckast_default',
+          smallIcon: 'ic_launcher',
+          pressAction: { id: 'default' },
+          sound: 'default',
+        },
+        ios: {
+          sound: 'default',
+        },
+      });
+    }
   }
 });
 

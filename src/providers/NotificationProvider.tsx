@@ -116,23 +116,23 @@ export function NotificationProvider({
       // Always play sound (throttled internally)
       playMessageSound();
 
-      // Show local push notification when app is NOT in the foreground
-      if (appState !== 'active') {
-        await showLocalNotification({
-          id: notification.id,
-          title: notification.title,
-          description: notification.body,
-          type: notification.type === 'order_update' ? 'order' :
-                notification.type === 'delivery_update' ? 'truck' :
-                notification.type === 'weather_alert' ? 'alert' : 'info',
-          time: notification.createdAt,
-          read: notification.isRead,
-          eventCode: (notification.data as any)?.event_code || '',
-          tenantId: tenantId,
-          entityType: (notification.data as any)?.entity_type,
-          entityId: (notification.data as any)?.entity_id,
-        });
-      }
+      // Show local push notification in all app states (foreground, background, inactive)
+      // Supabase real-time notifications are not handled by FCM, so we must display them ourselves
+      await showLocalNotification({
+        id: notification.id,
+        dbId: notification.id,
+        title: notification.title,
+        description: notification.body,
+        type: notification.type === 'order_update' ? 'order' :
+              notification.type === 'delivery_update' ? 'truck' :
+              notification.type === 'weather_alert' ? 'alert' : 'info',
+        time: notification.createdAt,
+        read: notification.isRead,
+        eventCode: (notification.data as any)?.event_code || '',
+        tenantId: tenantId,
+        entityType: (notification.data as any)?.entity_type,
+        entityId: (notification.data as any)?.entity_id,
+      });
     },
     [showLocalNotification, tenantId]
   );
