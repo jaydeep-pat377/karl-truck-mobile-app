@@ -6,6 +6,7 @@ import { useAuthStore } from '../store/authStore';
 import { authService } from '../api/services/authService';
 import { AppNotification, NotificationType } from '../types/notification';
 import { navigateFromNotification, navigateToTab } from './navigationService';
+import { syncDeviceTokenToSupabase } from '../lib/notification-client';
 
 const CHANNEL_ID = 'truckast_default';
 
@@ -180,6 +181,13 @@ class NotificationService {
       async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
         console.log('[Notifications] Received foreground message:', JSON.stringify(remoteMessage, null, 2));
 
+        // Skip FCM messages from Supabase Edge Function in foreground
+        // because Supabase Realtime already handles display in foreground
+        if (remoteMessage.data?.source === 'supabase_edge_function') {
+          console.log('[Notifications] Skipping Edge Function FCM in foreground (Realtime handles it)');
+          return;
+        }
+
         const notification = this.parseRemoteMessage(remoteMessage);
 
         if (notification) {
@@ -211,8 +219,16 @@ class NotificationService {
         console.log('[Notifications] Token refreshed, syncing...');
         useNotificationStore.getState().setFcmToken(token);
 
-
         await this.syncTokenToServer(token);
+
+        // Also sync refreshed token to Supabase for Edge Function push delivery
+        const userId = useAuthStore.getState().user?.id;
+        if (userId) {
+          const platform = Platform.OS as 'ios' | 'android';
+          syncDeviceTokenToSupabase(userId, token, platform).then((synced) => {
+            console.log('[Notifications] Supabase token refresh sync:', synced ? 'success' : 'failed');
+          });
+        }
       },
     );
 

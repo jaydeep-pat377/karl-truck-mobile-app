@@ -107,7 +107,7 @@ export function NotificationProvider({
     }
   }, [userId, tenantId, enabled]);
 
-  // Handler for new real-time notifications
+  // Handler for new real-time notifications (only fires when WebSocket is connected = foreground)
   const handleNewNotification = useCallback(
     async (notification: AppNotification) => {
       const appState = AppState.currentState;
@@ -116,23 +116,25 @@ export function NotificationProvider({
       // Always play sound (throttled internally)
       playMessageSound();
 
-      // Show local push notification in all app states (foreground, background, inactive)
-      // Supabase real-time notifications are not handled by FCM, so we must display them ourselves
-      await showLocalNotification({
-        id: notification.id,
-        dbId: notification.id,
-        title: notification.title,
-        description: notification.body,
-        type: notification.type === 'order_update' ? 'order' :
-              notification.type === 'delivery_update' ? 'truck' :
-              notification.type === 'weather_alert' ? 'alert' : 'info',
-        time: notification.createdAt,
-        read: notification.isRead,
-        eventCode: (notification.data as any)?.event_code || '',
-        tenantId: tenantId,
-        entityType: (notification.data as any)?.entity_type,
-        entityId: (notification.data as any)?.entity_id,
-      });
+      // Only show local notification in foreground via Supabase Realtime
+      // In background/killed state, the Supabase Edge Function sends FCM push
+      if (appState === 'active') {
+        await showLocalNotification({
+          id: notification.id,
+          dbId: notification.id,
+          title: notification.title,
+          description: notification.body,
+          type: notification.type === 'order_update' ? 'order' :
+                notification.type === 'delivery_update' ? 'truck' :
+                notification.type === 'weather_alert' ? 'alert' : 'info',
+          time: notification.createdAt,
+          read: notification.isRead,
+          eventCode: (notification.data as any)?.event_code || '',
+          tenantId: tenantId,
+          entityType: (notification.data as any)?.entity_type,
+          entityId: (notification.data as any)?.entity_id,
+        });
+      }
     },
     [showLocalNotification, tenantId]
   );
@@ -150,15 +152,20 @@ export function NotificationProvider({
     setBadgeCount(store.unreadCount);
   }, [store.unreadCount, setBadgeCount]);
 
-  // Clear notification tray when app comes to foreground
+  // When app comes to foreground: clear tray and refetch missed notifications
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         clearAllNotifications();
+        // Refetch notifications that may have arrived via FCM while backgrounded
+        if (userId && tenantId) {
+          console.log('[NotificationProvider] App foregrounded, refetching missed notifications...');
+          store.fetchNotifications(userId, tenantId);
+        }
       }
     });
     return () => subscription.remove();
-  }, [clearAllNotifications]);
+  }, [clearAllNotifications, userId, tenantId, store]);
 
   // Refetch function
   const refetch = useCallback(async () => {

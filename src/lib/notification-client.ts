@@ -123,4 +123,43 @@ AppState.addEventListener('change', (state: AppStateStatus) => {
   }
 });
 
+// Sync FCM device token to user_devices table so the Edge Function can send push notifications
+export async function syncDeviceTokenToSupabase(
+  userId: string,
+  deviceToken: string,
+  platform: 'ios' | 'android'
+): Promise<boolean> {
+  try {
+    if (!deviceToken || deviceToken.startsWith('pending_') || deviceToken.startsWith('fallback_')) {
+      console.log('[NotificationClient] Skipping token sync - invalid token');
+      return false;
+    }
+
+    console.log('[NotificationClient] Syncing device token to Supabase for user:', userId);
+
+    const { error } = await notificationSupabase
+      .from('user_devices')
+      .upsert(
+        {
+          user_id: userId,
+          device_token: deviceToken,
+          platform,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,platform' }
+      );
+
+    if (error) {
+      console.error('[NotificationClient] Token sync error:', error.message);
+      return false;
+    }
+
+    console.log('[NotificationClient] Device token synced successfully');
+    return true;
+  } catch (err: any) {
+    console.error('[NotificationClient] Token sync exception:', err.message);
+    return false;
+  }
+}
+
 export { notificationSupabase };

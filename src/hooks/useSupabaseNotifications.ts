@@ -263,9 +263,10 @@ export function useSupabaseNotifications({
     console.log('[useSupabaseNotifications] 📱 Attempting to show local notification...');
     console.log('[useSupabaseNotifications] App state:', appStateRef.current);
 
-    // Only show when app is in foreground
+    // When app is NOT active, the Edge Function sends FCM push notifications
+    // so we don't need to show local notifications from Supabase Realtime
     if (appStateRef.current !== 'active') {
-      console.log('[useSupabaseNotifications] ⚠️ App not active, skipping notification');
+      console.log('[useSupabaseNotifications] App not active, FCM Edge Function handles push');
       return;
     }
 

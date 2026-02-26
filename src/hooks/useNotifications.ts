@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { notificationService } from '../services/notificationService';
 import { useNotificationStore } from '../store/notificationStore';
 import { useAuthStore } from '../store/authStore';
+import { syncDeviceTokenToSupabase } from '../lib/notification-client';
 
 export const useNotifications = () => {
   const { fcmToken, notifications, unreadCount } = useNotificationStore();
@@ -48,6 +49,17 @@ export const useNotifications = () => {
       if (success) {
         hasSyncedToken.current = true;
         console.log('[Notifications] Token sync successful');
+
+        // Also sync FCM token to Supabase so Edge Function can send push notifications
+        // in background/killed state
+        const token = await notificationService.getToken();
+        const userId = useAuthStore.getState().user?.id;
+        if (token && userId) {
+          const platform = Platform.OS as 'ios' | 'android';
+          syncDeviceTokenToSupabase(userId, token, platform).then((synced) => {
+            console.log('[Notifications] Supabase token sync:', synced ? 'success' : 'failed');
+          });
+        }
       } else {
         console.log('[Notifications] Token sync failed, will retry on next state change');
       }
