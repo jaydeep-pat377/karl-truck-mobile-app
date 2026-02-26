@@ -409,6 +409,7 @@ interface WeatherData {
 
 interface OrderHeaderProps {
   orderDate: string;
+  orderCode: string;
   deliveryAddress: string;
   customerName?: string;
   projectName?: string | null;
@@ -419,10 +420,12 @@ interface OrderHeaderProps {
   progressDisplay: string;
   isDark: boolean;
   weatherData?: WeatherData | null;
+  onWeatherPress?: () => void;
 }
 
 const OrderHeader: React.FC<OrderHeaderProps> = ({
   orderDate,
+  orderCode,
   deliveryAddress,
   customerName,
   projectName,
@@ -433,6 +436,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
   progressDisplay,
   isDark,
   weatherData,
+  onWeatherPress,
 }) => {
   const themeColors = isDark ? colors.dark : colors.light;
   const ticketUi = isDark ? colors.ticket.ui.dark : colors.ticket.ui.light;
@@ -505,6 +509,15 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
               {totalTickets}
             </Text>
           </View>
+          <View style={styles.loadsRow}>
+            <Icon name="clipboard-text-outline" size={ms(14)} color={colors.info.main} />
+            <Text style={[styles.loadsLabel, { color: themeColors.text.hint }]}>
+              Order:
+            </Text>
+            <Text style={[styles.loadsValue, { color: colors.info.main }]}>
+              {orderCode}
+            </Text>
+          </View>
         </View>
 
         <View
@@ -524,7 +537,10 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
 
       {/* Weather Info Row */}
       {weatherData && (
-        <View style={styles.headerWeatherRow}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={onWeatherPress}
+          style={styles.headerWeatherRow}>
           <Icon
             name="weather-partly-cloudy"
             size={ms(14)}
@@ -570,7 +586,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
               </Text>
             </View>
           )}
-        </View>
+        </TouchableOpacity>
       )}
 
       <View style={[styles.orderDivider, { backgroundColor: themeColors.border }]} />
@@ -1208,8 +1224,9 @@ export const TicketScreen: React.FC = () => {
       ticketCode: ticket.ticketNumber,
       status: ticket.status,
       statusDisplay: ticket.statusDisplay,
+      weatherData: weatherData,
     });
-  }, [navigation, orderCode, orderDate]);
+  }, [navigation, orderCode, orderDate, weatherData]);
 
   const handleSearch = useCallback(() => {
     setAppliedSearchQuery(searchQuery.trim());
@@ -1232,10 +1249,18 @@ export const TicketScreen: React.FC = () => {
     setAdvancedFilters(DEFAULT_FILTERS);
   }, []);
 
+  const handleWeatherPress = useCallback(() => {
+    navigation.navigate('Weather', {
+      orderCode: orderCode,
+      orderDate: orderDate,
+    });
+  }, [navigation, orderCode, orderDate]);
+
   const renderHeader = useCallback(() => (
     <View style={styles.listHeader}>
       <OrderHeader
         orderDate={displayDate}
+        orderCode={orderCode}
         deliveryAddress={deliveryAddress}
         customerName={customerName}
         projectName={projectName}
@@ -1246,6 +1271,7 @@ export const TicketScreen: React.FC = () => {
         progressDisplay={progressDisplay}
         isDark={isDark}
         weatherData={weatherData}
+        onWeatherPress={handleWeatherPress}
       />
       <View style={styles.listHeaderRow}>
         <Text style={[styles.listHeaderText, { color: themeColors.text.secondary }]}>
@@ -1299,17 +1325,6 @@ export const TicketScreen: React.FC = () => {
           <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>
             Delivery Tickets
           </Text>
-          <Text style={[styles.headerSubtitle, { color: themeColors.text.hint }]}>
-            Order {orderCode}
-          </Text>
-          {customerName && (
-            <Text
-              style={[styles.headerCustomerName, { color: themeColors.text.secondary }]}
-              numberOfLines={1}
-              ellipsizeMode="tail">
-              {customerName}
-            </Text>
-          )}
         </View>
 
         <TouchableOpacity
@@ -1454,7 +1469,9 @@ const styles = StyleSheet.create({
   },
   orderHeader: {
     borderRadius: ms(14),
-    padding: ms(14),
+    paddingHorizontal: ms(10),
+    paddingTop: ms(4),
+    paddingBottom: ms(0),
     shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -1519,7 +1536,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: ms(4),
-    marginTop: ms(4),
+    marginTop: ms(2),
   },
   loadsLabel: {
     fontFamily: fontFamily.regular,

@@ -519,6 +519,7 @@ export interface TicketDetailsTicket {
   status: TicketDetailsStatus;
   products: TicketDetailsProduct[];
   delivery_metrics?: DeliveryMetrics | null;
+  weather_data?: OrderDetailsWeatherData | null;
 }
 
 export interface TicketDetailsData {

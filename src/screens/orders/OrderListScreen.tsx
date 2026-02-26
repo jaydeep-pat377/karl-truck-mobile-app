@@ -177,7 +177,7 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
       temperatureUnit: 'F',
       description: apiOrder.weather_data.weather_description,
       humidity: apiOrder.weather_data.humidity,
-      windSpeed: apiOrder.weather_data.wind_speed,
+      windSpeed: apiOrder.weather_data.wind_speed_mph,
       evaporationRate: apiOrder.weather_data.evaporation_rate,
     } : undefined,
     canChat: apiOrder.can_chat,

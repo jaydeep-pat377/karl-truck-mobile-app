@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, TopGradientBackground, TruckLoader, Icon } from '../../components/common';
 import { ScheduledLoadsBottomSheet } from '../../components/orders';
@@ -120,7 +121,7 @@ interface ScheduledLoadItem {
 
 export const OrderProductDetailsScreen: React.FC = () => {
   const { isDark } = useTheme();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<OrderProductDetailsRouteProp>();
   const { showAlert } = useAlert();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -139,6 +140,39 @@ export const OrderProductDetailsScreen: React.FC = () => {
   } = useOrderDetails({ order_code: orderCode, order_date: orderDate });
 
   const statusColor = progressColor || colors.primary.main;
+
+  // Get evaporation rate background color
+  const getEvaporationBgColor = (rate: number | null) => {
+    if (rate === null || rate === undefined) return colors.grey[40];
+    if (rate < 0.10) return colors.success.main;
+    if (rate < 0.15) return colors.success.light;
+    if (rate < 0.20) return colors.warning.light;
+    if (rate < 0.25) return colors.warning.main;
+    return colors.error.main;
+  };
+
+  // Get evaporation rate text label
+  const getEvaporationText = (rate: number | null) => {
+    if (rate === null || rate === undefined) return '';
+    if (rate < 0.10) return 'Low';
+    if (rate < 0.20) return 'Moderate';
+    if (rate < 0.30) return 'High';
+    if (rate < 0.40) return 'Very High';
+    return 'Severe';
+  };
+
+  // Get weather icon name based on condition
+  const getWeatherIconName = (condition: string | null | undefined) => {
+    if (!condition) return 'weather-partly-cloudy';
+    const conditionLower = condition.toLowerCase();
+    if (conditionLower.includes('cloud')) return 'weather-cloudy';
+    if (conditionLower.includes('rain')) return 'weather-rainy';
+    if (conditionLower.includes('sun') || conditionLower.includes('clear')) return 'weather-sunny';
+    if (conditionLower.includes('storm') || conditionLower.includes('thunder')) return 'weather-lightning';
+    if (conditionLower.includes('snow')) return 'weather-snowy';
+    if (conditionLower.includes('fog') || conditionLower.includes('mist')) return 'weather-fog';
+    return 'weather-partly-cloudy';
+  };
 
   const jobData = useMemo(() => {
     if (!orderDetails) {
@@ -327,6 +361,15 @@ export const OrderProductDetailsScreen: React.FC = () => {
     navigation.goBack();
   }, [navigation]);
 
+  const handleWeatherPress = useCallback(() => {
+    navigation.navigate('Weather', {
+      orderCode: orderCode,
+      orderDate: orderDate,
+      orderStatus: status,
+      startTime: jobData.scheduleTime,
+    });
+  }, [navigation, orderCode, orderDate, status, jobData.scheduleTime]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     refetch().finally(() => setRefreshing(false));
@@ -347,27 +390,17 @@ export const OrderProductDetailsScreen: React.FC = () => {
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <TopGradientBackground
-          height="100%"
-          showWaves={true}
-          waveOpacity={0.12}
-          absolute={true}
-          customColors={isDark
-            ? colors.gradients.dark.orderDetails
-            : colors.gradients.light.orderDetails
-          }
-        />
         <SafeAreaView edges={['top']} style={styles.header}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity
-              style={[styles.headerBackBtn, { backgroundColor: colors.common.white + '15' }]}
+              style={[styles.headerBackBtn, { backgroundColor: themeColors.surface }]}
               onPress={handleBack}
               activeOpacity={0.7}
             >
-              <Icon name="arrow-left" size={22} color={colors.common.white} />
+              <Icon name="arrow-left" size={22} color={themeColors.text.primary} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
-              <Text style={[styles.headerTitle, { color: colors.common.white }]}>
+              <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>
                 Product & Schedule
               </Text>
             </View>
@@ -388,27 +421,17 @@ export const OrderProductDetailsScreen: React.FC = () => {
   if (isError) {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <TopGradientBackground
-          height="100%"
-          showWaves={true}
-          waveOpacity={0.12}
-          absolute={true}
-          customColors={isDark
-            ? colors.gradients.dark.orderDetails
-            : colors.gradients.light.orderDetails
-          }
-        />
         <SafeAreaView edges={['top']} style={styles.header}>
           <View style={styles.headerTopRow}>
             <TouchableOpacity
-              style={[styles.headerBackBtn, { backgroundColor: colors.common.white + '15' }]}
+              style={[styles.headerBackBtn, { backgroundColor: themeColors.surface }]}
               onPress={handleBack}
               activeOpacity={0.7}
             >
-              <Icon name="arrow-left" size={22} color={colors.common.white} />
+              <Icon name="arrow-left" size={22} color={themeColors.text.primary} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
-              <Text style={[styles.headerTitle, { color: colors.common.white }]}>
+              <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>
                 Product & Schedule
               </Text>
             </View>
@@ -446,45 +469,34 @@ export const OrderProductDetailsScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <TopGradientBackground
-        height="100%"
-        showWaves={true}
-        waveOpacity={0.12}
-        absolute={true}
-        customColors={isDark
-          ? colors.gradients.dark.orderDetails
-          : colors.gradients.light.orderDetails
-        }
-      />
-
       <SafeAreaView edges={['top']} style={styles.header}>
         <View style={styles.headerTopRow}>
           <TouchableOpacity
-            style={[styles.headerBackBtn, { backgroundColor: colors.common.white + '15' }]}
+            style={[styles.headerBackBtn, { backgroundColor: themeColors.surface }]}
             onPress={handleBack}
             activeOpacity={0.7}
           >
-            <Icon name="arrow-left" size={22} color={colors.common.white} />
+            <Icon name="arrow-left" size={22} color={themeColors.text.primary} />
           </TouchableOpacity>
 
           <View style={styles.headerTitleContainer}>
-            <Text style={[styles.headerTitle, { color: colors.common.white }]}>
+            <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>
               Product & Schedule
             </Text>
-            <View style={[styles.headerOrderBadge, { backgroundColor: colors.common.white + '20' }]}>
-              <Icon name="file-document-outline" size={12} color={colors.common.white} />
-              <Text style={[styles.headerOrderText, { color: colors.common.white }]}>
+            <View style={[styles.headerOrderBadge, { backgroundColor: colors.primary.main + '20' }]}>
+              <Icon name="file-document-outline" size={12} color={colors.primary.main} />
+              <Text style={[styles.headerOrderText, { color: colors.primary.main }]}>
                 {orderCode}
               </Text>
             </View>
           </View>
 
           <TouchableOpacity
-            style={[styles.headerActionBtn, { backgroundColor: colors.common.white + '15' }]}
+            style={[styles.headerActionBtn, { backgroundColor: themeColors.surface }]}
             onPress={() => refetch()}
             activeOpacity={0.7}
           >
-            <Icon name="refresh" size={18} color={colors.common.white} />
+            <Icon name="refresh" size={18} color={themeColors.text.primary} />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -497,7 +509,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.common.white}
+            tintColor={colors.primary.main}
             colors={[colors.primary.main]}
           />
         }
@@ -527,39 +539,49 @@ export const OrderProductDetailsScreen: React.FC = () => {
               </View>
             )}
 
-            {/* Weather & Evaporation Info - Compact Grid */}
+            {/* Weather Info Row - Same as Order List */}
             {jobData.weatherData && (
-              <View style={[
-                styles.weatherCompactContainer,
-                (jobData.customerName || jobData.projectName) && { borderTopWidth: 1, borderTopColor: isDark ? themeColors.border : colors.grey[10] }
-              ]}>
-                <View style={styles.weatherCompactGrid}>
-                  <View style={styles.weatherCompactItem}>
-                    <Icon name="thermometer" size={ms(14)} color={colors.error.main} />
-                    <Text style={[styles.weatherCompactValue, { color: themeColors.text.primary }]}>
-                      {jobData.weatherData.temperature_fahrenheit ?? '--'}°F
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={handleWeatherPress}
+                style={[
+                  styles.weatherInfoRow,
+                  (jobData.customerName || jobData.projectName) && { borderTopWidth: 1, borderTopColor: isDark ? themeColors.border : colors.grey[10], paddingTop: GRID.sm }
+                ]}>
+                <Icon name="weather-partly-cloudy" size={ms(14)} color={colors.info.main} />
+                <Text style={[styles.weatherDescText, { color: themeColors.text.secondary }]} numberOfLines={1}>
+                  Partly cloudy
+                </Text>
+                {jobData.weatherData.temperature_fahrenheit !== null && jobData.weatherData.temperature_fahrenheit !== undefined && (
+                  <>
+                    <View style={[styles.weatherDot, { backgroundColor: themeColors.text.hint }]} />
+                    <Text style={[styles.weatherValueText, { color: themeColors.text.secondary }]}>
+                      {jobData.weatherData.temperature_fahrenheit}°F
                     </Text>
-                  </View>
-                  <View style={styles.weatherCompactItem}>
-                    <Icon name="water-percent" size={ms(14)} color={colors.info.main} />
-                    <Text style={[styles.weatherCompactValue, { color: themeColors.text.primary }]}>
-                      {jobData.weatherData.humidity ?? '--'}%
+                  </>
+                )}
+                {jobData.weatherData.wind_speed_mph !== null && jobData.weatherData.wind_speed_mph !== undefined && (
+                  <>
+                    <View style={[styles.weatherDot, { backgroundColor: themeColors.text.hint }]} />
+                    <Text style={[styles.weatherValueText, { color: themeColors.text.secondary }]}>
+                      {jobData.weatherData.wind_speed_mph} mph wind
                     </Text>
-                  </View>
-                  <View style={styles.weatherCompactItem}>
-                    <Icon name="weather-windy" size={ms(14)} color={colors.success.main} />
-                    <Text style={[styles.weatherCompactValue, { color: themeColors.text.primary }]}>
-                      {jobData.weatherData.wind_speed_mph ?? '--'} mph
+                  </>
+                )}
+                {jobData.weatherData.humidity !== null && jobData.weatherData.humidity !== undefined && (
+                  <>
+                    <View style={[styles.weatherDot, { backgroundColor: themeColors.text.hint }]} />
+                    <Text style={[styles.weatherValueText, { color: themeColors.text.secondary }]}>
+                      {jobData.weatherData.humidity}% RH
                     </Text>
+                  </>
+                )}
+                {jobData.weatherData.evaporation_rate !== null && jobData.weatherData.evaporation_rate !== undefined && (
+                  <View style={[styles.evapRateBadge, { backgroundColor: getEvaporationBgColor(jobData.weatherData.evaporation_rate) }]}>
+                    <Text style={styles.evapRateText}>{getEvaporationText(jobData.weatherData.evaporation_rate)}</Text>
                   </View>
-                  <View style={styles.weatherCompactItem}>
-                    <Icon name="water-outline" size={ms(14)} color={colors.warning.main} />
-                    <Text style={[styles.weatherCompactValue, { color: themeColors.text.primary }]}>
-                      {jobData.weatherData.evaporation_rate ?? '--'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
+                )}
+              </TouchableOpacity>
             )}
           </View>
         )}
@@ -790,33 +812,29 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 borderColor: isDark ? themeColors.border : colors.grey[10],
               }
             ]}>
-              {/* Card Header with SKU Details Title */}
+              {/* Card Header with Delivery Schedule Title */}
               <View style={styles.skuCardHeader}>
                 <View style={styles.cardTitleRow}>
                   <View style={[styles.cardIconContainer, { backgroundColor: colors.secondary.main }]}>
-                    <Icon name="barcode" size={16} color={colors.common.white} />
+                    <Icon name="calendar-clock" size={16} color={colors.common.white} />
                   </View>
                   <Text style={[styles.cardTitle, { color: themeColors.text.primary }]}>
-                    SKU Details
-                  </Text>
-                </View>
-                <View style={[
-                  styles.skuTypeBadge,
-                  { backgroundColor: product.isMix ? colors.success.main : colors.info.main }
-                ]}>
-                  <Icon name={product.isMix ? 'water' : 'package-variant'} size={ms(12)} color={colors.common.white} />
-                  <Text style={styles.skuTypeBadgeText}>
-                    {product.isMix ? 'Mix' : 'Product'}
+                    Delivery Schedule
                   </Text>
                 </View>
               </View>
+              {schedule?.plant_description && (
+                <View style={[styles.plantInfoRow, { backgroundColor: isDark ? themeColors.surface : colors.grey[5] }]}>
+                  <Icon name="factory" size={ms(14)} color={isDark ? colors.grey[40] : themeColors.text.secondary} />
+                  <Text style={[styles.skuInfoChipText, { color: themeColors.text.primary }]}>
+                    {schedule.plant_description}
+                  </Text>
+                </View>
+              )}
 
               {/* Schedule Details Grid */}
               {schedule && (
                 <View style={[styles.skuScheduleSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
-                  <Text style={[styles.skuScheduleTitle, { color: themeColors.text.primary }]}>
-                    Schedule Information
-                  </Text>
 
                   {/* Row 1 - Loads & Quantity */}
                   <View style={styles.skuScheduleRow}>
@@ -898,18 +916,6 @@ export const OrderProductDetailsScreen: React.FC = () => {
                       <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>To Plant</Text>
                     </View>
                   </View>
-
-                  {/* Additional Info Row */}
-                  {schedule.plant_description && (
-                    <View style={styles.skuAdditionalInfo}>
-                      <View style={[styles.skuInfoChip, { backgroundColor: isDark ? themeColors.surface : colors.grey[5] }]}>
-                        <Icon name="factory" size={ms(14)} color={isDark ? colors.grey[40] : themeColors.text.secondary} />
-                        <Text style={[styles.skuInfoChipText, { color: themeColors.text.primary }]}>
-                          {schedule.plant_description}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
                 </View>
               )}
 
@@ -921,7 +927,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                       <Icon name="cube-outline" size={ms(16)} color={colors.primary.main} />
                     </View>
                     <Text style={[styles.associatedProductsTitle, { color: themeColors.text.primary }]}>
-                      Primary Products
+                      Products
                     </Text>
                     <View style={[styles.associatedProductsCountBadge, { backgroundColor: colors.primary.main }]}>
                       <Text style={styles.associatedProductsCountText}>{jobData.combinedProducts.length}</Text>
@@ -953,7 +959,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                             styles.productTypeLabelText,
                             { color: item.isPrimary ? colors.primary.main : colors.secondary.main }
                           ]}>
-                            {item.isPrimary ? 'Primary' : 'Associated'}
+                            {item.isPrimary ? 'Concrete' : 'Associated'}
                           </Text>
                         </View>
                         <Text style={[styles.productListItemCode, { color: colors.primary.main }]}>
@@ -985,24 +991,6 @@ export const OrderProductDetailsScreen: React.FC = () => {
                             {item.slump !== '-' ? `${item.slump}"` : '-'}
                           </Text>
                         </View>
-
-                        {/* Schedule # */}
-                        <View style={styles.productListDetailItem}>
-                          <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Schedule #</Text>
-                          <Text style={[styles.productListDetailValue, { color: themeColors.text.primary }]}>
-                            {item.scheduleNumber}
-                          </Text>
-                        </View>
-
-                        {/* Start Time */}
-                        {jobData.scheduleTime && (
-                          <View style={styles.productListDetailItem}>
-                            <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Start Time</Text>
-                            <Text style={[styles.productListDetailValue, { color: colors.info.main }]}>
-                              {jobData.scheduleTime}
-                            </Text>
-                          </View>
-                        )}
                       </View>
                     </View>
                   ))}
@@ -1335,6 +1323,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: GRID.md,
   },
+  plantInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: GRID.md,
+    marginBottom: GRID.sm,
+    paddingVertical: GRID.sm,
+    paddingHorizontal: GRID.md,
+    borderRadius: ms(8),
+    gap: GRID.xs,
+  },
   skuProductInfo: {
     marginHorizontal: GRID.md,
     marginBottom: GRID.md,
@@ -1606,22 +1604,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   // Weather Compact styles
-  weatherCompactContainer: {
-    paddingHorizontal: GRID.sm + 2,
-    paddingVertical: GRID.sm,
-  },
-  weatherCompactGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  weatherCompactItem: {
+  weatherInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    paddingHorizontal: GRID.sm + 2,
+    paddingVertical: GRID.sm,
     gap: ms(4),
   },
-  weatherCompactValue: {
-    fontSize: ms(11),
-    fontFamily: fontFamily.semiBold,
+  weatherDescText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+    maxWidth: ms(70),
+  },
+  weatherValueText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+  },
+  weatherDot: {
+    width: ms(2),
+    height: ms(2),
+    borderRadius: ms(1),
+  },
+  evapRateBadge: {
+    paddingHorizontal: ms(8),
+    borderRadius: ms(10),
+  },
+  evapRateText: {
+    fontSize: ms(8),
+    fontFamily: fontFamily.bold,
+    color: colors.common.white,
+    lineHeight: ms(13),
   },
   // Primary Product Grid styles
   primaryProductGrid: {
@@ -1660,15 +1673,16 @@ const styles = StyleSheet.create({
   // Product List styles
   productListItem: {
     borderRadius: ms(10),
-    padding: GRID.sm + 2,
-    marginBottom: GRID.sm,
+    paddingHorizontal: GRID.xs + 2,
+    paddingVertical: ms(6),
+    marginBottom: ms(6),
     borderWidth: 1,
   },
   productListHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: GRID.xs,
+    marginBottom: ms(1),
   },
   productTypeLabelRow: {
     flexDirection: 'row',
@@ -1692,12 +1706,12 @@ const styles = StyleSheet.create({
     fontSize: ms(11),
     fontFamily: fontFamily.regular,
     lineHeight: ms(15),
-    marginBottom: GRID.sm,
+    marginBottom: ms(4),
   },
   productListDetailsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: GRID.sm,
+    gap: ms(6),
   },
   productListDetailItem: {
     minWidth: '22%',

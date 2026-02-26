@@ -55,6 +55,25 @@ const RADIUS = {
   full: 999,
 } as const;
 
+// Weather helper functions
+const getEvaporationBgColor = (rate: number | null | undefined): string => {
+  if (rate === null || rate === undefined) return colors.grey[40];
+  if (rate < 0.10) return colors.success.main;
+  if (rate < 0.20) return colors.warning.main;
+  if (rate < 0.30) return '#FF6B6B';
+  if (rate < 0.40) return '#E53935';
+  return '#B71C1C';
+};
+
+const getEvaporationText = (rate: number | null | undefined): string => {
+  if (rate === null || rate === undefined) return '';
+  if (rate < 0.10) return 'Low';
+  if (rate < 0.20) return 'Moderate';
+  if (rate < 0.30) return 'High';
+  if (rate < 0.40) return 'Very High';
+  return 'Severe';
+};
+
 const SHADOWS = {
   sm: {
     shadowColor: colors.common.black,
@@ -1451,6 +1470,10 @@ export const OrderDetailsScreen: React.FC = () => {
       remainingVolume: orderDetails.remaining_qty ?? 0,
       estimatedFinish: orderDetails.estimated_finish_time || 'N/A',
       temperature: orderDetails.weather_data?.temperature_fahrenheit || 0,
+      windSpeed: orderDetails.weather_data?.wind_speed_mph || null,
+      humidity: orderDetails.weather_data?.humidity || null,
+      weatherDescription: orderDetails.weather_data?.weather_description || 'Partly cloudy',
+      evaporationRate: orderDetails.weather_data?.evaporation_rate || null,
       siteName: orderDetails.customer_name,
       plantName: orderDetails.plant_details?.description || orderDetails.products?.[0]?.plant_code || 'N/A',
       plantCode: orderDetails.plant_details?.code || orderDetails.products?.[0]?.plant_code || '',
@@ -1790,16 +1813,6 @@ export const OrderDetailsScreen: React.FC = () => {
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <TopGradientBackground
-          height="100%"
-          showWaves={true}
-          waveOpacity={0.12}
-          absolute={true}
-          customColors={isDark
-            ? colors.gradients.dark.orderDetails
-            : colors.gradients.light.orderDetails
-          }
-        />
         <SafeAreaView edges={['top']} style={styles.header}>
           <View style={styles.headerSafeArea}>
             <View style={styles.headerTopRow}>
@@ -1823,16 +1836,6 @@ export const OrderDetailsScreen: React.FC = () => {
   if (isError) {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <TopGradientBackground
-          height="100%"
-          showWaves={true}
-          waveOpacity={0.12}
-          absolute={true}
-          customColors={isDark
-            ? colors.gradients.dark.orderDetails
-            : colors.gradients.light.orderDetails
-          }
-        />
         <SafeAreaView edges={['top']} style={styles.header}>
           <View style={styles.headerSafeArea}>
             <View style={styles.headerTopRow}>
@@ -1862,31 +1865,24 @@ export const OrderDetailsScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <TopGradientBackground
-        height="100%"
-        showWaves={true}
-        waveOpacity={0.12}
-        absolute={true}
-        customColors={isDark
-          ? colors.gradients.dark.orderDetails
-          : colors.gradients.light.orderDetails
-        }
-      />
-
       {/* Fixed Header */}
       <View style={[styles.fixedHeader, { paddingTop: insets.top }]}>
         <Animated.View
           style={[
             styles.fixedHeaderBackground,
             {
-              backgroundColor: isDark ? '#1B5E20' : '#2E7D32',
               opacity: headerBackgroundOpacity
             }
           ]}
-        />
+        >
+          <LinearGradient
+            colors={isDark ? ['#3A3A3A', '#2A2A2A', '#1E1E1E'] : ['#FFFFFF', '#F8F8F8', '#F0F0F0']}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
         <View style={styles.headerTopRow}>
           <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
-            <Icon name="arrow-left" size={22} color={colors.common.white} />
+            <Icon name="arrow-left" size={22} color={themeColors.text.primary} />
           </TouchableOpacity>
 
           <View style={styles.headerActions}>
@@ -1894,14 +1890,14 @@ export const OrderDetailsScreen: React.FC = () => {
               <Icon
                 name={isFavorite ? 'star' : 'star-outline'}
                 size={18}
-                color={isFavorite ? colors.warning.main : colors.common.white}
+                color={isFavorite ? colors.warning.main : themeColors.text.primary}
               />
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={() => refetch()}>
-              <Icon name="refresh" size={18} color={colors.common.white} />
+              <Icon name="refresh" size={18} color={themeColors.text.primary} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={handleShare}>
-              <Icon name="share-variant" size={18} color={colors.common.white} />
+              <Icon name="share-variant" size={18} color={themeColors.text.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -1944,21 +1940,6 @@ export const OrderDetailsScreen: React.FC = () => {
                 <Icon name="file-document-outline" size={12} color={isDark ? colors.common.white : colors.grey[80]} />
                 <Text style={[styles.headerChipText, { color: isDark ? colors.common.white : colors.grey[80] }]}>Order: {order.orderCode}</Text>
               </View>
-
-              <TouchableOpacity
-                style={[styles.headerChip, { backgroundColor: isDark ? colors.common.white + '20' : colors.common.black + '15' }]}
-                onPress={handleWeatherPress}
-                activeOpacity={0.7}>
-                <Icon name="weather-partly-cloudy" size={12} color={isDark ? colors.common.white : colors.grey[80]} />
-                <Text style={[styles.headerChipText, { color: isDark ? colors.common.white : colors.grey[80] }]}>{jobData.temperature}°C</Text>
-              </TouchableOpacity>
-
-              {jobData.truckCount > 0 && (
-                <View style={[styles.headerChip, { backgroundColor: isDark ? colors.common.white + '20' : colors.common.black + '15' }]}>
-                  <Icon name="truck" size={12} color={isDark ? colors.common.white : colors.grey[80]} />
-                  <Text style={[styles.headerChipText, { color: isDark ? colors.common.white : colors.grey[80] }]}>{jobData.truckCount} Trucks</Text>
-                </View>
-              )}
             </View>
 
             <View style={styles.headerAddressRow}>
@@ -1967,6 +1948,54 @@ export const OrderDetailsScreen: React.FC = () => {
                 {order.deliveryAddress}
               </Text>
             </View>
+
+            {/* Weather Info Row */}
+            <TouchableOpacity
+              style={styles.headerWeatherRow}
+              onPress={handleWeatherPress}
+              activeOpacity={0.7}>
+              <Icon
+                name="weather-partly-cloudy"
+                size={ms(14)}
+                color={colors.info.main}
+              />
+              <Text
+                numberOfLines={1}
+                style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
+                Partly cloudy
+              </Text>
+              {jobData.temperature !== 0 && (
+                <>
+                  <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+                  <Text style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
+                    {jobData.temperature}°F
+                  </Text>
+                </>
+              )}
+              {jobData.windSpeed !== null && (
+                <>
+                  <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+                  <Text style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
+                    {jobData.windSpeed} mph wind
+                  </Text>
+                </>
+              )}
+              {jobData.humidity !== null && (
+                <>
+                  <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+                  <Text style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
+                    {jobData.humidity}% RH
+                  </Text>
+                </>
+              )}
+              {jobData.evaporationRate !== null && (
+                <View style={[styles.headerEvapBadge, { backgroundColor: getEvaporationBgColor(jobData.evaporationRate) }]}>
+                  <Text style={styles.headerEvapText}>
+                    {getEvaporationText(jobData.evaporationRate)}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -2542,6 +2571,35 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: ms(12),
     marginTop: ms(5),
+    color: colors.common.white,
+  },
+  headerWeatherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: GRID.xs,
+    marginBottom: -GRID.lg,
+    gap: ms(4),
+    flexWrap: 'wrap',
+  },
+  headerWeatherText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(11),
+  },
+  headerWeatherDot: {
+    width: ms(3),
+    height: ms(3),
+    borderRadius: ms(1.5),
+  },
+  headerEvapBadge: {
+    paddingHorizontal: ms(8),
+    paddingVertical: ms(0),
+    borderRadius: ms(10),
+    marginLeft: ms(4),
+  },
+  headerEvapText: {
+    fontSize: ms(9),
+    fontFamily: fontFamily.bold,
     color: colors.common.white,
   },
   scrollView: {

@@ -160,6 +160,13 @@ export type TicketDetailScreenParams = {
 
   status?: TicketStatusType;
   statusDisplay?: string;
+  weatherData?: {
+    temperature_fahrenheit?: number | null;
+    wind_speed_mph?: number | null;
+    humidity?: number | null;
+    evaporation_rate?: number | null;
+    weather_description?: string | null;
+  } | null;
 };
 
 export type ProductCodeScreenParams = {

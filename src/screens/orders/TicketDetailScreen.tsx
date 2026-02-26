@@ -32,8 +32,27 @@ type TicketDetailRouteProp = RouteProp<RootStackParamList, 'TicketDetail'>;
 const GRID = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 };
 const RADIUS = { sm: 8, md: 12, lg: 16, xl: 24 };
 
-const HEADER_GRADIENT_LIGHT = [colors.primary.dark, colors.primary.main, colors.primary.light];
-const HEADER_GRADIENT_DARK = [colors.primary.dark, colors.primary.main, colors.primary.light];
+const HEADER_GRADIENT_LIGHT = ['#FFFFFF', '#F8F8F8', '#F0F0F0'];
+const HEADER_GRADIENT_DARK = ['#3A3A3A', '#2A2A2A', '#1E1E1E'];
+
+// Weather helper functions
+const getEvaporationBgColor = (rate: number | null | undefined): string => {
+  if (rate === null || rate === undefined) return colors.grey[40];
+  if (rate < 0.10) return colors.success.main;
+  if (rate < 0.20) return colors.warning.main;
+  if (rate < 0.30) return '#FF6B6B';
+  if (rate < 0.40) return '#E53935';
+  return '#B71C1C';
+};
+
+const getEvaporationText = (rate: number | null | undefined): string => {
+  if (rate === null || rate === undefined) return '';
+  if (rate < 0.10) return 'Low';
+  if (rate < 0.20) return 'Moderate';
+  if (rate < 0.30) return 'High';
+  if (rate < 0.40) return 'Very High';
+  return 'Severe';
+};
 
 interface StatusConfig {
   label: string;
@@ -50,66 +69,29 @@ interface HeaderBadgeColors {
 }
 
 const getHeaderBadgeColors = (status: ApiTicketStatus, isDark: boolean): HeaderBadgeColors => {
+  const opacity = isDark ? '20' : '15';
 
-  const statusColors: Record<ApiTicketStatus, HeaderBadgeColors> = {
-    pending: {
-      bgColor: colors.ticketBadge.pending.bg,
-      textColor: colors.ticketBadge.pending.text,
-      iconColor: colors.ticketBadge.pending.icon,
-    },
-    ticketed: {
-      bgColor: colors.ticketBadge.ticketed.bg,
-      textColor: colors.ticketBadge.ticketed.text,
-      iconColor: colors.ticketBadge.ticketed.icon,
-    },
-    loading: {
-      bgColor: colors.ticketBadge.loading.bg,
-      textColor: colors.ticketBadge.loading.text,
-      iconColor: colors.ticketBadge.loading.icon,
-    },
-    loaded: {
-      bgColor: colors.ticketBadge.loaded.bg,
-      textColor: colors.ticketBadge.loaded.text,
-      iconColor: colors.ticketBadge.loaded.icon,
-    },
-    to_job: {
-      bgColor: colors.ticketBadge.toJob.bg,
-      textColor: colors.ticketBadge.toJob.text,
-      iconColor: colors.ticketBadge.toJob.icon,
-    },
-    at_job: {
-      bgColor: colors.ticketBadge.atJob.bg,
-      textColor: colors.ticketBadge.atJob.text,
-      iconColor: colors.ticketBadge.atJob.icon,
-    },
-    pouring: {
-      bgColor: colors.ticketBadge.pouring.bg,
-      textColor: colors.ticketBadge.pouring.text,
-      iconColor: colors.ticketBadge.pouring.icon,
-    },
-    washing: {
-      bgColor: colors.ticketBadge.washing.bg,
-      textColor: colors.ticketBadge.washing.text,
-      iconColor: colors.ticketBadge.washing.icon,
-    },
-    to_plant: {
-      bgColor: colors.ticketBadge.toPlant.bg,
-      textColor: colors.ticketBadge.toPlant.text,
-      iconColor: colors.ticketBadge.toPlant.icon,
-    },
-    at_plant: {
-      bgColor: colors.ticketBadge.atPlant.bg,
-      textColor: colors.ticketBadge.atPlant.text,
-      iconColor: colors.ticketBadge.atPlant.icon,
-    },
-    cancelled: {
-      bgColor: colors.ticketBadge.cancelled.bg,
-      textColor: colors.ticketBadge.cancelled.text,
-      iconColor: colors.ticketBadge.cancelled.icon,
-    },
+  const statusColorMap: Record<ApiTicketStatus, string> = {
+    pending: colors.trackingStatus.ticketed,
+    ticketed: colors.trackingStatus.ticketed,
+    loading: colors.trackingStatus.loading,
+    loaded: colors.trackingStatus.loaded,
+    to_job: colors.trackingStatus.toJob,
+    at_job: colors.trackingStatus.atJob,
+    pouring: colors.trackingStatus.pouring,
+    washing: colors.trackingStatus.washing,
+    to_plant: colors.trackingStatus.toPlant,
+    at_plant: colors.trackingStatus.atPlant,
+    cancelled: colors.trackingStatus.cancelled,
   };
 
-  return statusColors[status] || statusColors.pending;
+  const color = statusColorMap[status] || statusColorMap.pending;
+
+  return {
+    bgColor: `${color}${opacity}`,
+    textColor: color,
+    iconColor: color,
+  };
 };
 
 const STATUS_CONFIG_LIGHT: Record<ApiTicketStatus, StatusConfig> = {
@@ -819,6 +801,7 @@ export const TicketDetailScreen: React.FC = () => {
     durations,
     products,
     deliveryMetrics,
+    weatherData,
     isLoading,
     isRefetching,
     refetch,
@@ -1031,7 +1014,7 @@ export const TicketDetailScreen: React.FC = () => {
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <StatusBar barStyle="light-content" backgroundColor={headerGradient[0]} />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={headerGradient[0]} />
         <View style={[styles.headerContainer, styles.headerContainerLoading, { paddingTop: insets.top }]}>
           <LinearGradient colors={headerGradient} style={StyleSheet.absoluteFill} />
           <View style={styles.headerBar}>
@@ -1040,10 +1023,10 @@ export const TicketDetailScreen: React.FC = () => {
               onPress={handleBack}
               activeOpacity={0.7}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
+              <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
             </TouchableOpacity>
             <View style={styles.headerTitleSection}>
-              <Text style={styles.headerTitle}>Ticket</Text>
+              <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>Ticket</Text>
             </View>
             <View style={styles.headerBtnPlaceholder} />
           </View>
@@ -1068,7 +1051,7 @@ export const TicketDetailScreen: React.FC = () => {
 
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <StatusBar barStyle="light-content" backgroundColor={headerGradient[0]} />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={headerGradient[0]} />
         <View style={[styles.headerContainer, styles.headerContainerLoading, { paddingTop: insets.top }]}>
           <LinearGradient colors={headerGradient} style={StyleSheet.absoluteFill} />
           <View style={styles.headerBar}>
@@ -1077,10 +1060,10 @@ export const TicketDetailScreen: React.FC = () => {
               onPress={handleBack}
               activeOpacity={0.7}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
+              <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
             </TouchableOpacity>
             <View style={styles.headerTitleSection}>
-              <Text style={styles.headerTitle}>Ticket</Text>
+              <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>Ticket</Text>
             </View>
             <View style={styles.headerBtnPlaceholder} />
           </View>
@@ -1135,7 +1118,7 @@ export const TicketDetailScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor={headerGradient[0]} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={headerGradient[0]} />
 
       {/* Static Header Bar */}
       <View style={[styles.staticHeaderBar, { paddingTop: insets.top, backgroundColor: headerGradient[0] }]}>
@@ -1145,133 +1128,181 @@ export const TicketDetailScreen: React.FC = () => {
             onPress={handleBack}
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Icon name="arrow-left" size={ms(22)} color={colors.common.white} />
+            <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
           </TouchableOpacity>
           <View style={styles.headerTitleSection}>
-            <Text style={styles.headerTitle}>Ticket</Text>
+            <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>Ticket</Text>
           </View>
           <View style={styles.headerIconRight}>
-            <ConcreteTruck width={ms(40)} height={ms(40)} color={colors.common.white} />
+            <ConcreteTruck width={ms(40)} height={ms(40)} color={themeColors.text.primary} />
           </View>
         </View>
+      </View>
+
+      {/* Fixed Header Section - Card Style */}
+      <View style={[
+        styles.headerCard,
+        { backgroundColor: themeColors.card }
+      ]}>
+        {/* Top Row: Order Info */}
+        <View style={styles.headerCardTopRow}>
+          <View style={styles.headerCardOrderInfo}>
+            {apiOrderCode && (
+              <Text style={[styles.headerCardOrderCode, { color: themeColors.text.secondary }]}>
+                Order {apiOrderCode}
+              </Text>
+            )}
+            {(customerName || projectName) && (
+              <Text style={[styles.headerCardSubInfo, { color: themeColors.text.tertiary }]} numberOfLines={1}>
+                {customerName}{customerName && projectName ? ' • ' : ''}{projectName}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        {/* Main Row: Ticket Number & Status */}
+        <View style={styles.headerCardMainRow}>
+          <Text
+            style={[styles.headerCardTicketNumber, { color: themeColors.text.primary }]}
+            numberOfLines={1}
+            ellipsizeMode="tail">
+            {apiTicketCode || '---'}
+          </Text>
+          <View style={[styles.headerCardStatusBadge, { backgroundColor: headerBadgeColors.bgColor }]}>
+            <Icon name={statusInfo.icon} size={ms(9)} color={headerBadgeColors.iconColor} />
+            <AppText
+              numberOfLines={1}
+              style={[styles.headerCardStatusText, { color: headerBadgeColors.textColor }]}>
+              {statusInfo.label}
+            </AppText>
+          </View>
+        </View>
+
+        {/* Additional Info Row */}
+        {(isCancelled && removeReasonCode) || (isAtPlant && timestamps.atPlant) ? (
+          <View style={styles.headerCardInfoRow}>
+            {isCancelled && removeReasonCode && (
+              <Text style={[styles.headerCardInfoText, { color: themeColors.text.secondary }]}>
+                Code: {removeReasonCode}
+              </Text>
+            )}
+            {isAtPlant && timestamps.atPlant && (
+              <Text style={[styles.headerCardInfoText, { color: themeColors.text.secondary }]}>
+                {timestamps.atPlant}
+              </Text>
+            )}
+          </View>
+        ) : null}
+
+        {/* Weather Info Row */}
+        {weatherData && (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              navigation.navigate('Weather', {
+                orderCode: apiOrderCode || orderCode,
+                orderDate: orderDate,
+                orderStatus: currentStatus,
+                startTime: timestamps?.ticketed || undefined,
+              });
+            }}
+            style={styles.headerCardWeatherRow}>
+            <Icon
+              name="weather-partly-cloudy"
+              size={ms(14)}
+              color={colors.info.main}
+            />
+            <Text
+              style={[styles.headerCardWeatherDescText, { color: themeColors.text.secondary }]}
+              numberOfLines={1}>
+              Partly cloudy
+            </Text>
+            {weatherData.temperature_fahrenheit !== null && weatherData.temperature_fahrenheit !== undefined && (
+              <>
+                <View style={[styles.headerCardWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+                <Text style={[styles.headerCardWeatherInfoText, { color: themeColors.text.secondary }]}>
+                  {weatherData.temperature_fahrenheit}°F
+                </Text>
+              </>
+            )}
+            {weatherData.wind_speed_mph !== null && weatherData.wind_speed_mph !== undefined && (
+              <>
+                <View style={[styles.headerCardWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+                <Text style={[styles.headerCardWeatherInfoText, { color: themeColors.text.secondary }]}>
+                  {weatherData.wind_speed_mph} mph wind
+                </Text>
+              </>
+            )}
+            {weatherData.humidity !== null && weatherData.humidity !== undefined && (
+              <>
+                <View style={[styles.headerCardWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+                <Text style={[styles.headerCardWeatherInfoText, { color: themeColors.text.secondary }]}>
+                  {weatherData.humidity}% RH
+                </Text>
+              </>
+            )}
+            {weatherData.evaporation_rate !== null && weatherData.evaporation_rate !== undefined && (
+              <View
+                style={[
+                  styles.headerCardEvapRateBadge,
+                  { backgroundColor: getEvaporationBgColor(weatherData.evaporation_rate) }
+                ]}>
+                <Text style={styles.headerCardEvapRateText}>
+                  {getEvaporationText(weatherData.evaporation_rate)}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Fixed Quick Actions Menu */}
+      <View style={[styles.quickActionsRow, styles.quickActionsFixed, { backgroundColor: themeColors.background }]}>
+        <QuickAction
+          icon="map-marker-radius"
+          label="Track"
+          color={accentColor}
+          onPress={handleGetDirections}
+          isDark={isDark}
+          disabled={isAtPlant || isCancelled}
+        />
+        <QuickAction
+          icon="qrcode"
+          label="QR Code"
+          color={isDark ? colors.success.light : colors.success.main}
+          onPress={handleShowQRCode}
+          isDark={isDark}
+        />
+        <QuickAction
+          icon="refresh"
+          label="Refresh"
+          color={isDark ? colors.secondary.light : colors.secondary.main}
+          onPress={() => refetch()}
+          isDark={isDark}
+        />
       </View>
 
       {/* Scrollable Content */}
       <ScrollView
         style={styles.fullScreenScrollView}
         contentContainerStyle={[
-          styles.fullScreenScrollContent,
+          styles.scrollContentWrapper,
           { paddingBottom: Math.max(vs(20), insets.bottom + GRID.md) },
         ]}
         showsVerticalScrollIndicator={false}
         bounces={true}
         overScrollMode="always"
         keyboardShouldPersistTaps="handled"
-        contentInsetAdjustmentBehavior="never"
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor={colors.common.white}
-            colors={[colors.common.white, colors.secondary.light]}
-            progressBackgroundColor={colors.primary.main}
+            tintColor={themeColors.text.primary}
+            colors={[colors.primary.main, colors.secondary.light]}
+            progressBackgroundColor={themeColors.card}
           />
         }>
-        <View style={styles.headerContainer}>
-          <LinearGradient
-            colors={headerGradient}
-            style={StyleSheet.absoluteFill}
-          />
-          {(apiOrderCode || customerName || projectName) && (
-            <View style={styles.headerSubtitleSection}>
-              {apiOrderCode && (
-                <Text style={styles.headerSubtitle}>Order {apiOrderCode}</Text>
-              )}
-              {customerName && (
-                <View style={styles.headerSubtitleRow}>
-                  <Icon name="account" size={ms(12)} color={colors.headerOverlay.text} />
-                  <Text style={styles.headerSubtitleWithIcon} numberOfLines={1}>{customerName}</Text>
-                </View>
-              )}
-              {projectName && (
-                <View style={styles.headerSubtitleRow}>
-                  <Icon name="domain" size={ms(12)} color={colors.headerOverlay.text} />
-                  <Text style={styles.headerSubtitleWithIcon} numberOfLines={1}>{projectName}</Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          <View style={styles.heroSection}>
-            <View style={styles.heroLeft}>
-              <Text
-                style={styles.ticketNumber}
-                numberOfLines={1}
-                ellipsizeMode="tail">
-                {apiTicketCode || '---'}
-              </Text>
-              <View style={[styles.statusBadgeInline, { backgroundColor: headerBadgeColors.bgColor }]}>
-                <Icon name={statusInfo.icon} size={ms(14)} color={headerBadgeColors.iconColor} />
-                <AppText
-                  numberOfLines={1}
-                  style={[styles.statusBadgeText, { color: headerBadgeColors.textColor }]}>
-                  {statusInfo.label}
-                </AppText>
-              </View>
-              {isCancelled && removeReasonCode && (
-                <View style={styles.voidedReasonRow}>
-                  <Text style={styles.voidedReasonText}>
-                    Code: {removeReasonCode}
-                  </Text>
-                </View>
-              )}
-              {isAtPlant && timestamps.atPlant && (
-                <View style={styles.voidedReasonRow}>
-                  <Text style={styles.voidedReasonText}>
-                    {timestamps.atPlant}
-                  </Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.heroRight}>
-              {formattedEta && currentStatus !== 'at_plant' && (
-                <View style={styles.etaBadge}>
-                  <Text style={styles.etaLabel}>ETA</Text>
-                  <Text style={styles.etaValue}>{formattedEta}</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.scrollContentWrapper}>
-
-          <View style={styles.quickActionsRow}>
-            <QuickAction
-              icon="map-marker-radius"
-              label="Track"
-              color={accentColor}
-              onPress={handleGetDirections}
-              isDark={isDark}
-              disabled={isAtPlant || isCancelled}
-            />
-            <QuickAction
-              icon="qrcode"
-              label="QR Code"
-              color={isDark ? colors.success.light : colors.success.main}
-              onPress={handleShowQRCode}
-              isDark={isDark}
-            />
-            <QuickAction
-              icon="refresh"
-              label="Refresh"
-              color={isDark ? colors.secondary.light : colors.secondary.main}
-              onPress={() => refetch()}
-              isDark={isDark}
-            />
-          </View>
-
-          <View
+        <View
             style={[
               styles.progressCard,
               {
@@ -1433,7 +1464,6 @@ export const TicketDetailScreen: React.FC = () => {
               isDark={isDark}
             />
           </SectionCard>
-        </View>
       </ScrollView>
 
       <AlertModal
@@ -1694,6 +1724,116 @@ const styles = StyleSheet.create({
   headerContainerLoading: {
     paddingBottom: GRID.md,
   },
+  // Card-style header
+  headerCard: {
+    marginHorizontal: GRID.md,
+    marginTop: GRID.sm,
+    marginBottom: GRID.xs,
+    paddingHorizontal: GRID.md,
+    paddingVertical: GRID.sm + 2,
+    borderRadius: RADIUS.lg,
+  },
+  headerCardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: GRID.xs,
+  },
+  headerCardOrderInfo: {
+    flex: 1,
+    marginRight: GRID.sm,
+  },
+  headerCardOrderCode: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(11),
+  },
+  headerCardSubInfo: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(10),
+    marginTop: ms(1),
+  },
+  headerCardEtaBadge: {
+    paddingHorizontal: GRID.sm,
+    paddingVertical: GRID.xs,
+    borderRadius: RADIUS.sm,
+    alignItems: 'center',
+  },
+  headerCardEtaLabel: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(8),
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  headerCardEtaValue: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(13),
+    marginTop: ms(-1),
+  },
+  headerCardMainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerCardTicketNumber: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(22),
+    flex: 1,
+  },
+  headerCardStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: ms(3),
+    paddingHorizontal: ms(7),
+    borderRadius: ms(9),
+    marginLeft: GRID.sm,
+  },
+  headerCardStatusText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(9),
+    marginLeft: ms(3),
+  },
+  headerCardInfoRow: {
+    marginTop: GRID.xs,
+  },
+  headerCardInfoText: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+  },
+  headerCardWeatherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: ms(8),
+    paddingTop: ms(8),
+    gap: ms(4),
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.semiTransparent.black08,
+  },
+  headerCardWeatherDescText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+    maxWidth: ms(80),
+  },
+  headerCardWeatherDot: {
+    width: ms(2),
+    height: ms(2),
+    borderRadius: ms(1),
+  },
+  headerCardWeatherInfoText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(10),
+  },
+  headerCardEvapRateBadge: {
+    paddingHorizontal: ms(8),
+    borderRadius: ms(10),
+    marginLeft: ms(4),
+  },
+  headerCardEvapRateText: {
+    fontSize: ms(8),
+    fontFamily: fontFamily.bold,
+    color: colors.common.white,
+    lineHeight: ms(13),
+  },
   headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1929,6 +2069,11 @@ const styles = StyleSheet.create({
       ios: {},
       android: { gap: GRID.sm },
     }),
+  },
+  quickActionsFixed: {
+    paddingHorizontal: GRID.md,
+    paddingTop: GRID.sm,
+    marginBottom: GRID.sm,
   },
   quickAction: {
     flex: 1,

@@ -157,7 +157,7 @@ export const OrderTrackingScreen: React.FC = () => {
   const { orderId } = route.params;
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
-  const [isLegendExpanded, setIsLegendExpanded] = useState(false);
+  const [isLegendExpanded, setIsLegendExpanded] = useState(true);
 
   const SHEET_MIN_HEIGHT = useMemo(() => screenHeight * 0.38, [screenHeight]);
   const SHEET_MAX_HEIGHT = useMemo(() => screenHeight * 0.78, [screenHeight]);
