@@ -81,28 +81,44 @@ class NotificationService {
     }
   }
 
+  private async waitForApnsToken(maxRetries = 5, delayMs = 1500): Promise<string | null> {
+    for (let i = 0; i < maxRetries; i++) {
+      const apnsToken = await messaging().getAPNSToken();
+      if (apnsToken) {
+        console.log(`[Notifications] APNS Token obtained on attempt ${i + 1}:`, apnsToken);
+        return apnsToken;
+      }
+      console.log(`[Notifications] APNS Token not ready, retrying (${i + 1}/${maxRetries})...`);
+      await new Promise<void>(resolve => setTimeout(() => resolve(), delayMs));
+    }
+    return null;
+  }
+
   async getToken(): Promise<string | null> {
     try {
+      // Return cached token if available
+      const cachedToken = useNotificationStore.getState().fcmToken;
+      if (cachedToken) {
+        console.log('[Notifications] Using cached FCM token');
+        return cachedToken;
+      }
+
       console.log('[Notifications] Getting token for platform:', Platform.OS);
 
       if (Platform.OS === 'ios') {
         try {
-
           console.log('[Notifications] Registering for remote messages...');
           await messaging().registerDeviceForRemoteMessages();
           console.log('[Notifications] Registered for remote messages');
 
-
-          const apnsToken = await messaging().getAPNSToken();
+          const apnsToken = await this.waitForApnsToken();
           console.log('[Notifications] APNS Token:', apnsToken);
 
           if (!apnsToken) {
-
-            console.log('[Notifications] No APNS token - running on simulator or permissions denied');
+            console.log('[Notifications] No APNS token after retries - likely running on simulator');
             return null;
           }
         } catch (error) {
-
           console.log('[Notifications] iOS registration error:', error);
           return null;
         }
@@ -113,7 +129,6 @@ class NotificationService {
       useNotificationStore.getState().setFcmToken(token);
       return token;
     } catch (error) {
-
       console.log('[Notifications] Error getting token:', error);
       return null;
     }
@@ -178,7 +193,7 @@ class NotificationService {
           );
         } else {
           console.log('[Notifications] Using data-only message');
-          const { data } = remoteMessage;
+          const { data } : any = remoteMessage;
           if (data?.title && data?.body) {
             await this.displayNotification(
               data.title,

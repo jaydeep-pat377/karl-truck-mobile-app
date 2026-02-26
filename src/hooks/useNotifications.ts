@@ -44,8 +44,13 @@ export const useNotifications = () => {
 
     if (isAuthenticated && isInitialized) {
       console.log('[Notifications] User authenticated on app launch, syncing token...');
-      hasSyncedToken.current = true;
-      await notificationService.syncTokenToServer();
+      const success = await notificationService.syncTokenToServer();
+      if (success) {
+        hasSyncedToken.current = true;
+        console.log('[Notifications] Token sync successful');
+      } else {
+        console.log('[Notifications] Token sync failed, will retry on next state change');
+      }
     }
   }, [isAuthenticated, isInitialized]);
 

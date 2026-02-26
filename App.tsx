@@ -13,7 +13,8 @@ import { useNotifications } from './src/hooks/useNotifications';
 import { useAuthStore } from './src/store/authStore';
 import { AnimatedSplashScreen } from './src/components/AnimatedSplashScreen';
 import { initSentry, ErrorBoundary } from './src/services/sentryService';
-import { navigationRef } from './src/services/navigationService';
+import { navigationRef, navigateFromNotification } from './src/services/navigationService';
+import { NotificationProvider } from './src/providers/NotificationProvider';
 
 // Initialize Sentry (only runs in production)
 initSentry();
@@ -39,8 +40,17 @@ const AppContent: React.FC = () => {
   const [showAnimatedSplash, setShowAnimatedSplash] = useState(true);
   const [animationCompleted, setAnimationCompleted] = useState(false);
   const [navigationReady, setNavigationReady] = useState(false);
-  const { isInitialized } = useAuthStore();
+  const { isInitialized, user, isAuthenticated } = useAuthStore();
   useNotifications();
+
+  const userId = user?.id || null;
+  const tenantId = user?.metadata?.tenant?.tenant_id ?? null;
+
+  const handleNotificationTap = useCallback((data: any) => {
+    if (data?.eventCode || data?.event_code) {
+      navigateFromNotification(data);
+    }
+  }, []);
 
   useEffect(() => {
     // Hide native splash immediately to show our animated splash
@@ -108,7 +118,13 @@ const AppContent: React.FC = () => {
             },
           },
         }}>
-        <RootNavigator />
+        <NotificationProvider
+          userId={userId}
+          tenantId={tenantId}
+          onNotificationTap={handleNotificationTap}
+          enabled={isAuthenticated}>
+          <RootNavigator />
+        </NotificationProvider>
       </NavigationContainer>
 
       {/* Animated Splash Screen - renders on top of everything */}

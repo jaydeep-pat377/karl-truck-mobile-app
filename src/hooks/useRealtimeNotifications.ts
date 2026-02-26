@@ -14,7 +14,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 // ---------------------
 export interface RealtimeNotificationItem {
   id: string;           // queue_uuid (stable unique ID)
-  dbId: number;         // auto-increment id from DB
+  dbId: number | string;         // auto-increment id from DB
   title: string;        // subject field
   description: string;  // body field
   type: 'order' | 'truck' | 'alert' | 'info';
