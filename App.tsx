@@ -16,7 +16,7 @@ import { initSentry, ErrorBoundary } from './src/services/sentryService';
 import { navigationRef, navigateFromNotification } from './src/services/navigationService';
 import { NotificationProvider } from './src/providers/NotificationProvider';
 
-// Initialize Sentry (only runs in production)
+// Initialize Sentry
 initSentry();
 
 // Note: Background message handlers are registered in index.js for killed state support
