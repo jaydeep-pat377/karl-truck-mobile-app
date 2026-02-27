@@ -15,6 +15,7 @@ import { AnimatedSplashScreen } from './src/components/AnimatedSplashScreen';
 import { initSentry, ErrorBoundary } from './src/services/sentryService';
 import { navigationRef, navigateFromNotification } from './src/services/navigationService';
 import { NotificationProvider } from './src/providers/NotificationProvider';
+import { API_BASE_URL } from '@env';
 
 // Initialize Sentry
 initSentry();

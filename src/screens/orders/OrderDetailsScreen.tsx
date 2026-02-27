@@ -30,7 +30,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useOrderDetails, useAlert } from '../../hooks';
 import { orderService } from '../../api/services/orderService';
 import { PerformanceCharts } from '../../components/charts';
-import { ScheduledLoadsBottomSheet } from '../../components/orders';
+import { ScheduledLoadsBottomSheet, DelayDetailsTable } from '../../components/orders';
 
 type OrderDetailsRouteProp = RouteProp<OrdersStackParamList, 'OrderDetailInTab'>;
 
@@ -2326,6 +2326,15 @@ export const OrderDetailsScreen: React.FC = () => {
               </View>
             );
           })()}
+
+          {/* Delay Details Table */}
+          <DelayDetailsTable
+            isDark={isDark}
+            onTicketPress={(ticketCode) => {
+              // Navigate to ticket details when API is ready
+              console.log('Ticket pressed:', ticketCode);
+            }}
+          />
 
           {/* Bottom spacing for tab bar */}
           <View style={{ height: ms(100) }} />

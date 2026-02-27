@@ -10,6 +10,8 @@ const FALLBACK_URL = 'http://10.0.2.2:5000/api';
 const BASE_URL = API_BASE_URL || FALLBACK_URL;
 const TIMEOUT = Number(API_TIMEOUT) || 15000;
 
+console.log('API_BASE_URL from @env:', API_BASE_URL);
+
 const ENABLE_API_LOGGING = __DEV__;
 
 const PUBLIC_ENDPOINTS = [
@@ -52,8 +54,6 @@ axiosInstance.interceptors.request.use(
 
 
     if (ENABLE_API_LOGGING) {
-      console.log('\n========== API REQUEST ==========');
-      console.log(`[${config.method?.toUpperCase()}] ${config.baseURL}${config.url}`);
       console.log('Headers:', JSON.stringify(config.headers, null, 2));
       if (token) {
         console.log('Token:', `${token.substring(0, 20)}...${token.substring(token.length - 10)}`);
@@ -160,9 +160,7 @@ axiosInstance.interceptors.response.use(
           (originalRequest.headers as any)['Authorization'] = `Bearer ${accessToken}`;
 
           if (ENABLE_API_LOGGING) {
-            console.log('Token refreshed successfully!');
             console.log('New Token:', `${accessToken.substring(0, 20)}...${accessToken.substring(accessToken.length - 10)}`);
-            console.log('===================================\n');
           }
 
           return axiosInstance(originalRequest);
@@ -170,7 +168,6 @@ axiosInstance.interceptors.response.use(
       } catch (refreshError) {
         if (ENABLE_API_LOGGING) {
           console.error('Token refresh failed:', refreshError);
-          console.log('===================================\n');
         }
 
         await AsyncStorage.multiRemove([
