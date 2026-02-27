@@ -101,10 +101,11 @@ export function NotificationProvider({
       console.log('[NotificationProvider] ⚠️ Not enabling - userId:', userId, 'enabled:', enabled);
     }
 
-    if (userId && tenantId && enabled) {
-      console.log('[NotificationProvider] Fetching initial notifications via API for user:', userId);
-      store.fetchNotifications(userId, tenantId);
-    }
+    // Temporarily disabled - backend missing NOTIFICATION_SUPABASE env vars
+    // if (userId && tenantId && enabled) {
+    //   console.log('[NotificationProvider] Fetching initial notifications via API for user:', userId);
+    //   store.fetchNotifications(userId, tenantId);
+    // }
   }, [userId, tenantId, enabled]);
 
   // Handler for new real-time notifications
@@ -160,11 +161,12 @@ export function NotificationProvider({
     return () => subscription.remove();
   }, [clearAllNotifications]);
 
-  // Refetch function
+  // Refetch function - temporarily disabled
   const refetch = useCallback(async () => {
-    if (userId && tenantId) {
-      await store.fetchNotifications(userId, tenantId);
-    }
+    // Temporarily disabled - backend missing NOTIFICATION_SUPABASE env vars
+    // if (userId && tenantId) {
+    //   await store.fetchNotifications(userId, tenantId);
+    // }
   }, [userId, tenantId, store]);
 
   // Memoize context value

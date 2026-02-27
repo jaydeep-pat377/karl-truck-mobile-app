@@ -117,10 +117,6 @@ export const isAuthenticated = (): boolean => {
 
 AppState.addEventListener('change', (state: AppStateStatus) => {
   if (state === 'active' && isInitialized) {
-
-    console.log('App active, reconnecting Supabase realtime...');
-
-
     supabase.realtime.connect();
   } else if (state === 'background') {
     console.log('App going to background');

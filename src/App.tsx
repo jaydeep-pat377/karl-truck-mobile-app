@@ -44,15 +44,6 @@ const AppContentWithSplash: React.FC<AppContentProps> = ({ onReady }) => {
   const userId = user?.id ?? null;
   const tenantId = user?.metadata?.tenant?.tenant_id ?? null;
 
-  // Debug log for notification setup
-  console.log('===========================================');
-  console.log('[App] 🔔 NOTIFICATION DEBUG');
-  console.log('[App] user object:', JSON.stringify(user, null, 2));
-  console.log('[App] userId:', userId);
-  console.log('[App] tenantId:', tenantId);
-  console.log('[App] enabled:', !!userId);
-  console.log('===========================================');
-
   return (
     <>
       <StatusBar

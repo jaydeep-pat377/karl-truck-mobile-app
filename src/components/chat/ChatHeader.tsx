@@ -55,7 +55,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           activeOpacity={onInfo ? 0.7 : 1}
           disabled={!onInfo}>
           <Text style={styles.title} numberOfLines={1}>
-            Order #{displayTitle}
+            Order {displayTitle}
           </Text>
         </TouchableOpacity>
 

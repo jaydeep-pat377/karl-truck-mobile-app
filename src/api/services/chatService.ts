@@ -117,9 +117,6 @@ export const chatService = {
       };
     }
 
-    console.log('RPC ensure_chat_exists failed or not available:', rpcError?.message);
-
-
     const { data: existingChat, error: findError } = await sb
       .from('order_chats')
       .select('*')
