@@ -52,8 +52,10 @@ export const authService = {
     return apiClient.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
   },
 
-  logout: async (): Promise<{ success: boolean; message: string }> => {
-    return apiClient.post(API_ENDPOINTS.AUTH.LOGOUT);
+  logout: async (deviceToken?: string): Promise<{ success: boolean; message: string }> => {
+    return apiClient.post(API_ENDPOINTS.AUTH.LOGOUT, {
+      device_token: deviceToken,
+    });
   },
 
   refreshToken: async (refreshToken: string): Promise<ApiResponse<{ accessToken: string }>> => {

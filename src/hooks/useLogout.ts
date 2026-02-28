@@ -3,6 +3,7 @@ import { useAuthStore } from '../store/authStore';
 import { authService } from '../api/services/authService';
 import { AxiosError } from 'axios';
 import { clearWidgetData } from '../modules/TodayOverviewWidget';
+import { useNotificationStore } from '../store/notificationStore';
 
 interface LogoutResponse {
   success: boolean;
@@ -16,10 +17,11 @@ interface ApiErrorResponse {
 
 export const useLogout = () => {
   const { logout: clearAuth } = useAuthStore();
+  const { fcmToken } = useNotificationStore();
 
   const mutation = useMutation<LogoutResponse, AxiosError<ApiErrorResponse>, void>({
     mutationFn: async () => {
-      return authService.logout();
+      return authService.logout(fcmToken ?? undefined);
     },
     onSettled: async () => {
       await clearAuth();
