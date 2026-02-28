@@ -147,18 +147,33 @@ export interface TicketTimestamps {
   at_plant?: string | null;
 }
 
+export interface TicketByOrderTruck {
+  truck_code: string;
+  truck_description: string;
+  latitude: string;
+  longitude: string;
+}
+
+export interface TicketByOrderLocation {
+  latitude: string;
+  longitude: string;
+}
+
 export interface TicketByOrderItem {
   load: string;
   ticket_code: string;
-  truck: string;
+  truck: string | TicketByOrderTruck;
   load_qty: string;
   run_qty_ord_qty: string;
   running_qty: number;
   ordered_qty: number;
   status: ApiTicketStatus;
   status_display: string;
+  remove_reason_code: string | null;
   product: string;
   timestamps: TicketTimestamps;
+  plant_location?: TicketByOrderLocation | null;
+  order_location?: TicketByOrderLocation | null;
 }
 
 export interface TicketsByOrderWeatherData {
@@ -396,6 +411,9 @@ export interface OrderDetailsOrder {
   delivered_qty: number;
   remaining_qty: number;
   remaining_display: string;
+  ticket_delivered_qty?: number;
+  ticket_poured_qty?: number;
+  poured_percentage?: number;
   current_status?: number;
   removed?: boolean;
   remove_reason_code?: string;

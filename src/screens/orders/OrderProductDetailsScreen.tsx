@@ -30,6 +30,12 @@ const GRID = {
   lg: 24,
 } as const;
 
+// Format quantity - removes trailing zeros after decimal point
+const formatQty = (num: number): string => {
+  if (num === null || num === undefined) return '0';
+  return parseFloat(num.toFixed(2)).toString();
+};
+
 interface ProductCardItem {
   productId: string;
   itemCode: string;
@@ -300,12 +306,14 @@ export const OrderProductDetailsScreen: React.FC = () => {
       plantAddress2: orderDetails.plant_details?.address2 || '',
       scheduleRate: orderDetails.graphs?.pour_speed?.schedule_rate || 0,
       orderedVolume: orderDetails.ordered_qty || 0,
-      deliveredVolume: orderDetails.delivered_qty || 0,
+      deliveredVolume: orderDetails.ticket_delivered_qty ?? orderDetails.delivered_qty ?? 0,
       slump: (orderDetails as any).product_schedule_details?.[0]?.slump || '',
-      scheduledDelvQty: (orderDetails as any).product_schedule_details?.[0]?.schedule_delv_qty || 0,
-      pouredPercent: orderDetails.ordered_qty
-        ? Math.round(((orderDetails.delivered_qty ?? 0) / orderDetails.ordered_qty) * 100)
-        : 0,
+      scheduledDelvQty: orderDetails.ticket_delivered_qty ?? (orderDetails as any).product_schedule_details?.[0]?.schedule_delv_qty ?? 0,
+      pouredPercent: orderDetails.poured_percentage ?? (
+        orderDetails.ordered_qty
+          ? Math.round(((orderDetails.delivered_qty ?? 0) / orderDetails.ordered_qty) * 100)
+          : 0
+      ),
       numberOfLoads: orderDetails.tickets_count || (orderDetails as any).scheduled_loads?.count || 0,
       totalLoads: (orderDetails as any).product_schedule_details?.[0]?.number_of_loads || orderDetails.tickets_count || 0,
       avgWaitingMinutes: orderDetails.graphs?.trucks_on_job?.averages?.avg_waiting_minutes || 0,
@@ -655,7 +663,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                   <Text style={[styles.infoItemLabel, { color: themeColors.text.hint }]}>Delivered Qty</Text>
                 </View>
                 <Text style={[styles.infoItemValue, { color: colors.success.main }]}>
-                  {(jobData.scheduledDelvQty ?? 0).toFixed(1)} CY
+                  {formatQty(jobData.scheduledDelvQty ?? 0)} CY
                 </Text>
                 <Text style={[styles.infoItemSubValue, { color: themeColors.text.secondary }]}>
                   Poured {jobData.pouredPercent}%

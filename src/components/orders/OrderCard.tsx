@@ -22,17 +22,21 @@ interface OrderCardProps {
   onOrderDetails?: () => void;
   onTicket?: () => void;
   onWeatherPress?: () => void;
+  onMap?: () => void;
   onChat?: () => void;
   onFavoritePress?: () => void;
   orderDetailsDisabled?: boolean;
   ticketDisabled?: boolean;
+  mapDisabled?: boolean;
   chatDisabled?: boolean;
   isLoading?: boolean;
   isWeatherLoading?: boolean;
+  isMapLoading?: boolean;
   isChatLoading?: boolean;
   isFavorite?: boolean;
   showOrderDetailsButton?: boolean;
   showTicketButton?: boolean;
+  showMapButton?: boolean;
   showChatButton?: boolean;
 }
 
@@ -93,17 +97,21 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   onOrderDetails,
   onTicket,
   onWeatherPress,
+  onMap,
   onChat,
   onFavoritePress,
   orderDetailsDisabled = false,
   ticketDisabled = false,
+  mapDisabled = false,
   chatDisabled = false,
   isLoading = false,
   isWeatherLoading = false,
+  isMapLoading = false,
   isChatLoading = false,
   isFavorite = false,
   showOrderDetailsButton = true,
   showTicketButton = true,
+  showMapButton = true,
   showChatButton = true,
 }) => {
   const { isDark } = useTheme();
@@ -388,33 +396,51 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
         </View>
       </View>
 
-      {(showOrderDetailsButton || (showTicketButton && order.canTicketed) || (showChatButton && order.canChat)) && (
-        <View style={[styles.actionRow, { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }]}>
-          {showOrderDetailsButton && (
-            <ActionButton
-              icon="clipboard-text-outline"
-              label="Order Details"
-              onPress={onOrderDetails}
-              disabled={orderDetailsDisabled}
-              isLoading={isLoading}
-            />
-          )}
-          {showOrderDetailsButton && showTicketButton && order.canTicketed && (
-            <View style={[styles.actionDivider, { backgroundColor: isDark ? colors.dark.border : colors.grey[25] }]} />
-          )}
-          {showTicketButton && order.canTicketed && (
-            <ActionButton
-              icon="ticket-outline"
-              label="Ticket"
-              onPress={onTicket}
-              disabled={ticketDisabled}
-            />
-          )}
-          {showChatButton && order.canChat && (
-            <>
-              {(showOrderDetailsButton || (showTicketButton && order.canTicketed)) && (
-                <View style={[styles.actionDivider, { backgroundColor: isDark ? colors.dark.border : colors.grey[25] }]} />
-              )}
+      {(showOrderDetailsButton || (showTicketButton && order.canTicketed) || showMapButton || (showChatButton && order.canChat)) && (() => {
+        const showDetails = showOrderDetailsButton;
+        const showTicket = showTicketButton && order.canTicketed;
+        const showMap = showMapButton;
+        const showChat = showChatButton && order.canChat;
+        const dividerStyle = [styles.actionDivider, { backgroundColor: isDark ? colors.dark.border : colors.grey[25] }];
+
+        return (
+          <View style={[styles.actionRow, { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }]}>
+            {showDetails && (
+              <ActionButton
+                icon="clipboard-text-outline"
+                label="Details"
+                onPress={onOrderDetails}
+                disabled={orderDetailsDisabled}
+                isLoading={isLoading}
+              />
+            )}
+            {showDetails && (showTicket || showMap || showChat) && (
+              <View style={dividerStyle} />
+            )}
+            {showTicket && (
+              <ActionButton
+                icon="ticket-outline"
+                label="Ticket"
+                onPress={onTicket}
+                disabled={ticketDisabled}
+              />
+            )}
+            {showTicket && (showMap || showChat) && (
+              <View style={dividerStyle} />
+            )}
+            {showMap && (
+              <ActionButton
+                icon="map-marker-radius-outline"
+                label="Map"
+                onPress={onMap}
+                disabled={mapDisabled}
+                isLoading={isMapLoading}
+              />
+            )}
+            {showMap && showChat && (
+              <View style={dividerStyle} />
+            )}
+            {showChat && (
               <ActionButton
                 icon="chat-outline"
                 label="Chat"
@@ -422,10 +448,10 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
                 disabled={chatDisabled}
                 isLoading={isChatLoading}
               />
-            </>
-          )}
-        </View>
-      )}
+            )}
+          </View>
+        );
+      })()}
       </View>
     </Card>
   );

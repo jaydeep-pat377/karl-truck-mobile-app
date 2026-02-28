@@ -74,6 +74,13 @@ const getEvaporationText = (rate: number | null | undefined): string => {
   return 'Severe';
 };
 
+// Format quantity - removes trailing zeros after decimal point
+const formatQty = (num: number): string => {
+  if (num === null || num === undefined) return '0';
+  // toFixed(2) then parseFloat removes unnecessary trailing zeros
+  return parseFloat(num.toFixed(2)).toString();
+};
+
 const SHADOWS = {
   sm: {
     shadowColor: colors.common.black,
@@ -1420,9 +1427,12 @@ export const OrderDetailsScreen: React.FC = () => {
       return getMockOrder(orderId);
     }
 
-    const progress = (orderDetails.ordered_qty ?? 0) > 0
-      ? Math.round(((orderDetails.delivered_qty ?? 0) / (orderDetails.ordered_qty ?? 1)) * 100)
-      : 0;
+    // Use poured_percentage from API if available, otherwise calculate
+    const progress = orderDetails.poured_percentage ?? (
+      (orderDetails.ordered_qty ?? 0) > 0
+        ? Math.round(((orderDetails.delivered_qty ?? 0) / (orderDetails.ordered_qty ?? 1)) * 100)
+        : 0
+    );
 
     return {
       id: orderDetails.order_id,
@@ -1435,11 +1445,11 @@ export const OrderDetailsScreen: React.FC = () => {
       status: orderDetails.status as Order['status'],
       productType: orderDetails.products?.[0]?.item_code || 'N/A',
       productMix: orderDetails.products?.length > 0
-        ? `${(orderDetails.delivered_qty ?? 0).toFixed(2)}/${(orderDetails.ordered_qty ?? 0).toFixed(2)} CY`
+        ? `${formatQty(orderDetails.ticket_delivered_qty ?? orderDetails.delivered_qty ?? 0)}/${formatQty(orderDetails.ordered_qty ?? 0)} CY`
         : '',
       quantity: orderDetails.ordered_qty,
       unit: 'CY',
-      deliveredQuantity: orderDetails.delivered_qty,
+      deliveredQuantity: orderDetails.ticket_delivered_qty ?? orderDetails.delivered_qty,
       remainingQuantity: orderDetails.remaining_qty,
       totalLoads: orderDetails.tickets?.length || 0,
       completedLoads: orderDetails.tickets?.length || 0,
@@ -1458,14 +1468,17 @@ export const OrderDetailsScreen: React.FC = () => {
       return mockJobData;
     }
 
-    const progress = (orderDetails.ordered_qty ?? 0) > 0
-      ? Math.round(((orderDetails.delivered_qty ?? 0) / (orderDetails.ordered_qty ?? 1)) * 100)
-      : 0;
+    // Use poured_percentage from API if available, otherwise calculate
+    const pouredPercentage = orderDetails.poured_percentage ?? (
+      (orderDetails.ordered_qty ?? 0) > 0
+        ? Math.round(((orderDetails.delivered_qty ?? 0) / (orderDetails.ordered_qty ?? 1)) * 100)
+        : 0
+    );
 
     return {
-      elapsedTime: `${progress}%`,
-      deliveredVolume: orderDetails.delivered_qty ?? 0,
-      pouredVolume: orderDetails.delivered_qty ?? 0,
+      elapsedTime: `${pouredPercentage}%`,
+      deliveredVolume: orderDetails.ticket_delivered_qty ?? orderDetails.delivered_qty ?? 0,
+      pouredVolume: orderDetails.ticket_poured_qty ?? orderDetails.delivered_qty ?? 0,
       orderedVolume: orderDetails.ordered_qty ?? 0,
       remainingVolume: orderDetails.remaining_qty ?? 0,
       estimatedFinish: orderDetails.estimated_finish_time || 'N/A',
@@ -2013,7 +2026,7 @@ export const OrderDetailsScreen: React.FC = () => {
                 <View style={styles.metricItem}>
                   <View style={styles.metricValueRow}>
                     <Text style={[styles.metricValue, { color: themeColors.text.primary }]} numberOfLines={1} adjustsFontSizeToFit>
-                      {jobData.deliveredVolume.toFixed(2)}
+                      {formatQty(jobData.deliveredVolume)}
                     </Text>
                     <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>cy</Text>
                   </View>
@@ -2030,7 +2043,7 @@ export const OrderDetailsScreen: React.FC = () => {
                 <View style={styles.metricItem}>
                   <View style={styles.metricValueRow}>
                     <Text style={[styles.metricValue, { color: themeColors.text.primary }]} numberOfLines={1} adjustsFontSizeToFit>
-                      {jobData.orderedVolume.toFixed(2)}
+                      {formatQty(jobData.orderedVolume)}
                     </Text>
                     <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>cy</Text>
                   </View>
@@ -2189,52 +2202,7 @@ export const OrderDetailsScreen: React.FC = () => {
                   </View>
                 </View>
 
-                {/* Order Updates Timeline */}
-                {updateItems.length > 0 && (
-                  <>
-                    <View style={styles.orderUpdatesTimeline}>
-                      {(showAllUpdates ? updateItems : updateItems.slice(0, 1)).map((update) => (
-                        <View key={update.id} style={[
-                          styles.orderUpdateItem,
-                          { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }
-                        ]}>
-                          <View style={[styles.orderUpdateIconBox, { backgroundColor: colors.info.main + '15' }]}>
-                            <Icon name="information-outline" size={ms(18)} color={colors.info.main} />
-                          </View>
-                          <View style={styles.orderUpdateContent}>
-                            <Text style={[styles.orderUpdateMessage, { color: themeColors.text.primary }]}>
-                              {update.change_message}
-                            </Text>
-                            <View style={styles.orderUpdateMeta}>
-                              <Icon name="clock-outline" size={ms(12)} color={themeColors.text.hint} />
-                              <Text style={[styles.orderUpdateTime, { color: themeColors.text.hint }]}>
-                                {update.changed_at}
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                    {updateItems.length > 1 && (
-                      <TouchableOpacity
-                        style={styles.seeMoreButton}
-                        onPress={() => setShowAllUpdates(!showAllUpdates)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.seeMoreText, { color: colors.primary.main }]}>
-                          {showAllUpdates ? 'See Less' : `See More (${updateItems.length - 1} more)`}
-                        </Text>
-                        <Icon
-                          name={showAllUpdates ? 'chevron-up' : 'chevron-down'}
-                          size={ms(16)}
-                          color={colors.primary.main}
-                        />
-                      </TouchableOpacity>
-                    )}
-                  </>
-                )}
-
-                {/* Order Created Section */}
+                {/* Order Created Section - Shown first after header */}
                 {orderCreatedItem && (
                   <View style={[styles.orderCreatedInCard, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
                     <View style={styles.orderCreatedHeader}>
@@ -2322,6 +2290,51 @@ export const OrderDetailsScreen: React.FC = () => {
                       </View>
                     )}
                   </View>
+                )}
+
+                {/* Order Updates Timeline */}
+                {updateItems.length > 0 && (
+                  <>
+                    <View style={styles.orderUpdatesTimeline}>
+                      {(showAllUpdates ? updateItems : updateItems.slice(0, 1)).map((update) => (
+                        <View key={update.id} style={[
+                          styles.orderUpdateItem,
+                          { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }
+                        ]}>
+                          <View style={[styles.orderUpdateIconBox, { backgroundColor: colors.info.main + '15' }]}>
+                            <Icon name="information-outline" size={ms(18)} color={colors.info.main} />
+                          </View>
+                          <View style={styles.orderUpdateContent}>
+                            <Text style={[styles.orderUpdateMessage, { color: themeColors.text.primary }]}>
+                              {update.change_message}
+                            </Text>
+                            <View style={styles.orderUpdateMeta}>
+                              <Icon name="clock-outline" size={ms(12)} color={themeColors.text.hint} />
+                              <Text style={[styles.orderUpdateTime, { color: themeColors.text.hint }]}>
+                                {update.changed_at}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                    {updateItems.length > 1 && (
+                      <TouchableOpacity
+                        style={styles.seeMoreButton}
+                        onPress={() => setShowAllUpdates(!showAllUpdates)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.seeMoreText, { color: colors.primary.main }]}>
+                          {showAllUpdates ? 'See Less' : `See More (${updateItems.length - 1} more)`}
+                        </Text>
+                        <Icon
+                          name={showAllUpdates ? 'chevron-up' : 'chevron-down'}
+                          size={ms(16)}
+                          color={colors.primary.main}
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </>
                 )}
               </View>
             );
@@ -3991,6 +4004,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     marginTop: GRID.md,
     paddingTop: GRID.md,
+    marginBottom: GRID.md,
   },
   orderCreatedHeader: {
     flexDirection: 'row',
@@ -4039,7 +4053,7 @@ const styles = StyleSheet.create({
     marginTop: GRID.md,
     paddingTop: GRID.md,
     borderTopWidth: 1,
-    gap: GRID.sm,
+    gap: GRID.md,
   },
   orderCreatedProductsTitle: {
     fontFamily: fontFamily.semiBold,
@@ -4085,7 +4099,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: GRID.md,
+    marginBottom: GRID.xs,
   },
   orderUpdatesTitleRow: {
     flexDirection: 'row',

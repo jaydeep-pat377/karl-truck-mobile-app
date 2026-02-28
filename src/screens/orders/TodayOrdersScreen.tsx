@@ -100,6 +100,17 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     progress,
     estimatedFinishTime: apiOrder.estimated_finish_time,
     hasAlert: apiOrder.has_notes,
+    jobLatitude: apiOrder.order_location?.latitude,
+    jobLongitude: apiOrder.order_location?.longitude,
+    plantDetails: apiOrder.plant_details ? {
+      code: apiOrder.plant_details.code,
+      name: apiOrder.plant_details.description,
+      shortName: apiOrder.plant_details.short_description,
+      address: `${apiOrder.plant_details.address1}, ${apiOrder.plant_details.address2}`,
+      phone: apiOrder.plant_details.phone,
+      latitude: apiOrder.plant_details.latitude,
+      longitude: apiOrder.plant_details.longitude,
+    } : undefined,
     weather: apiOrder.weather_data ? {
       condition: mapWeatherCondition(apiOrder.weather_data.weather_condition),
       temperature: apiOrder.weather_data.temperature_fahrenheit,
@@ -264,6 +275,29 @@ export const TodayOrdersScreen: React.FC = () => {
     });
   }, [navigation]);
 
+  const handleMap = useCallback((order: Order) => {
+    const status = order.status?.toLowerCase() || '';
+    const isInProgress = status === 'in_process' || status === 'in progress' || status === 'in_progress' || status === 'inprogress';
+
+    if (isInProgress) {
+      navigation.navigate('Tracking', {
+        orderId: order.id,
+      });
+    } else {
+      navigation.navigate('MapTracking', {
+        orderCode: order.orderCode || undefined,
+        customerName: order.customerName || undefined,
+        destination: order.deliveryAddress || undefined,
+        jobLatitude: order.jobLatitude ? String(order.jobLatitude) : undefined,
+        jobLongitude: order.jobLongitude ? String(order.jobLongitude) : undefined,
+        plantName: order.plantDetails?.name || undefined,
+        plantCode: order.plantDetails?.code || undefined,
+        plantLatitude: order.plantDetails?.latitude ? String(order.plantDetails.latitude) : undefined,
+        plantLongitude: order.plantDetails?.longitude ? String(order.plantDetails.longitude) : undefined,
+      });
+    }
+  }, [navigation]);
+
   const handleToggleFavorite = useCallback((orderId: string) => {
 
     const hasOverride = favoriteOverrides[orderId] !== undefined;
@@ -329,13 +363,14 @@ export const TodayOrdersScreen: React.FC = () => {
         onOrderDetails={() => handleOrderDetails(item)}
         onTicket={() => handleTicket(item)}
         onWeatherPress={() => handleWeatherPress(item)}
+        onMap={() => handleMap(item)}
         onChat={() => handleChat(item)}
         onFavoritePress={() => handleToggleFavorite(item.id)}
         isChatLoading={chatLoadingOrderId === item.id}
         isFavorite={item.isFavorite}
       />
     ),
-    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleChat, handleToggleFavorite, chatLoadingOrderId]
+    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleMap, handleChat, handleToggleFavorite, chatLoadingOrderId]
   );
 
   const renderHeader = () => (

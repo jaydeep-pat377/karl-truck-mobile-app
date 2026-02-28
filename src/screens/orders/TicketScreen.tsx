@@ -30,6 +30,11 @@ type TicketScreenRouteProp = RouteProp<RootStackParamList, 'Ticket'>;
 
 type TicketStatus = ApiTicketStatus;
 
+interface TicketLocation {
+  latitude: string;
+  longitude: string;
+}
+
 interface DeliveryTicket {
   id: string;
   ticketNumber: string;
@@ -45,6 +50,9 @@ interface DeliveryTicket {
   load: string;
   loadQty: string;
   runQtyOrdQty: string;
+  truckLocation?: TicketLocation | null;
+  plantLocation?: TicketLocation | null;
+  orderLocation?: TicketLocation | null;
 }
 
 interface StatusConfig {
@@ -313,88 +321,121 @@ const TruckVisual: React.FC<TruckVisualProps> = ({ isDark }) => {
 interface TicketItemProps {
   ticket: DeliveryTicket;
   onPress: () => void;
+  onMapPress: () => void;
   isDark: boolean;
+  isMapDisabled?: boolean;
 }
 
-const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, isDark }) => {
+const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, onMapPress, isDark, isMapDisabled = false }) => {
   const themeColors = isDark ? colors.dark : colors.light;
   const statusConfigMap = isDark ? STATUS_CONFIG_DARK : STATUS_CONFIG;
   const status = statusConfigMap[ticket.status] || statusConfigMap.pending;
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.ticketItem,
         {
           backgroundColor: themeColors.card,
           borderWidth: isDark ? 0 : 1,
           borderColor: isDark ? 'transparent' : colors.grey[10],
         },
-        pressed && styles.ticketItemPressed,
       ]}>
-      <TruckVisual isDark={isDark} />
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.ticketPressableContent,
+          pressed && styles.ticketItemPressed,
+        ]}>
+        <TruckVisual isDark={isDark} />
 
-      <View style={styles.ticketContent}>
-        <View style={styles.ticketTopRow}>
-          <Text
-            style={[styles.truckName, { color: themeColors.text.secondary }]}
-            numberOfLines={1}>
-            {ticket.truckName}
-          </Text>
-          {ticket.load ? (
-            <View style={[styles.loadBadge, { backgroundColor: isDark ? colors.ticket.ui.dark.badgeBg : colors.primary.main + '12' }]}>
-              <Text style={[styles.loadText, { color: isDark ? colors.ticket.ui.dark.accentBlue : colors.primary.main }]}>
-                Load: {ticket.load}
+        <View style={styles.ticketContent}>
+          <View style={styles.ticketTopRow}>
+            <Text
+              style={[styles.truckName, { color: themeColors.text.secondary }]}
+              numberOfLines={1}>
+              {ticket.truckName}
+            </Text>
+            {ticket.load ? (
+              <View style={[styles.loadBadge, { backgroundColor: isDark ? colors.ticket.ui.dark.badgeBg : colors.primary.main + '12' }]}>
+                <Text style={[styles.loadText, { color: isDark ? colors.ticket.ui.dark.accentBlue : colors.primary.main }]}>
+                  Load: {ticket.load}
+                </Text>
+              </View>
+            ) : null}
+            <View style={styles.timeContainer}>
+              <Icon
+                name="clock-outline"
+                size={ms(11)}
+                color={isDark ? colors.ticket.ui.dark.timeText : colors.ticket.ui.light.timeText}
+              />
+              <Text
+                style={[
+                  styles.timeText,
+                  { color: isDark ? colors.ticket.ui.dark.timeText : colors.ticket.ui.light.timeText },
+                ]}>
+                {ticket.scheduledTime}
               </Text>
             </View>
-          ) : null}
-          <View style={styles.timeContainer}>
-            <Icon
-              name="clock-outline"
-              size={ms(11)}
-              color={isDark ? colors.ticket.ui.dark.timeText : colors.ticket.ui.light.timeText}
-            />
-            <Text
-              style={[
-                styles.timeText,
-                { color: isDark ? colors.ticket.ui.dark.timeText : colors.ticket.ui.light.timeText },
-              ]}>
-              {ticket.scheduledTime}
+          </View>
+
+          <View style={styles.ticketMainRow}>
+            <Text style={[styles.ticketNumber, { color: themeColors.text.primary }]}>
+              {ticket.ticketNumber}
+            </Text>
+            <Text style={[styles.ticketSeparator, { color: themeColors.text.primary }]}>:</Text>
+            <Text style={[styles.ticketQuantityInline, { color: themeColors.text.primary }]}>
+              {ticket.loadQty}
             </Text>
           </View>
-        </View>
 
-        <View style={styles.ticketMainRow}>
-          <Text style={[styles.ticketNumber, { color: themeColors.text.primary }]}>
-            {ticket.ticketNumber}
-          </Text>
-          <Text style={[styles.ticketSeparator, { color: themeColors.text.primary }]}>:</Text>
-          <Text style={[styles.ticketQuantityInline, { color: themeColors.text.primary }]}>
-            {ticket.loadQty}
-          </Text>
+          <View style={styles.ticketBottomRow}>
+            <Text
+              style={[styles.totalText, { color: themeColors.text.hint }]}
+              numberOfLines={1}
+              ellipsizeMode="tail">
+              {ticket.runQtyOrdQty}
+            </Text>
+            <StatusBadge status={status}
+              displayLabel={ticket.statusDisplay} />
+          </View>
         </View>
+      </Pressable>
 
-        <View style={styles.ticketBottomRow}>
-          <Text
-            style={[styles.totalText, { color: themeColors.text.hint }]}
-            numberOfLines={1}
-            ellipsizeMode="tail">
-            {ticket.runQtyOrdQty}
-          </Text>
-          <StatusBadge status={status}
-            displayLabel={ticket.statusDisplay} />
-        </View>
+      <View style={styles.ticketActionsContainer}>
+        <TouchableOpacity
+          style={[
+            styles.mapIconButton,
+            {
+              backgroundColor: isMapDisabled
+                ? (isDark ? colors.grey[70] : colors.grey[20])
+                : (isDark ? colors.info.main + '20' : colors.info.main + '15')
+            },
+            isMapDisabled && styles.mapIconButtonDisabled,
+          ]}
+          onPress={onMapPress}
+          activeOpacity={0.7}
+          disabled={isMapDisabled}
+        >
+          <Icon
+            name="map-marker-radius-outline"
+            size={ms(18)}
+            color={isMapDisabled ? (isDark ? colors.grey[50] : colors.grey[40]) : colors.info.main}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.chevronContainer}
+          onPress={onPress}
+          activeOpacity={0.7}
+        >
+          <Icon
+            name="chevron-right"
+            size={ms(22)}
+            color={isDark ? colors.ticket.ui.dark.chevron : colors.ticket.ui.light.chevron}
+          />
+        </TouchableOpacity>
       </View>
-
-      <View style={styles.chevronContainer}>
-        <Icon
-          name="chevron-right"
-          size={ms(22)}
-          color={isDark ? colors.ticket.ui.dark.chevron : colors.ticket.ui.light.chevron}
-        />
-      </View>
-    </Pressable>
+    </View>
   );
 };
 
@@ -1146,22 +1187,37 @@ export const TicketScreen: React.FC = () => {
   }, []);
 
   const allTickets = useMemo(
-    () => (apiTickets || []).map((ticket: TicketByOrderItem): DeliveryTicket => ({
-      id: ticket.ticket_code || '',
-      ticketNumber: ticket.ticket_code || '',
-      truckId: ticket.truck || '',
-      truckName: `Truck ${ticket.truck || 'N/A'}`,
-      loadQuantity: ticket.running_qty ?? 0,
-      totalOrderQuantity: ticket.ordered_qty ?? 0,
-      unit: 'CY',
-      status: ticket.status || 'ticketed',
-      statusDisplay: getDisplayStatus(ticket.status, ticket.status_display),
-      scheduledTime: getTimestampForStatus(ticket.status, ticket.timestamps),
-      product: ticket.product || '',
-      load: ticket.load || '',
-      loadQty: ticket.load_qty || '',
-      runQtyOrdQty: ticket.run_qty_ord_qty || '',
-    })),
+    () => (apiTickets || []).map((ticket: TicketByOrderItem): DeliveryTicket => {
+      // Extract truck code - handle both string and object formats
+      const truckCode = typeof ticket.truck === 'string'
+        ? ticket.truck
+        : ticket.truck?.truck_code || '';
+
+      // Extract truck location if truck is an object
+      const truckLocation = typeof ticket.truck === 'object' && ticket.truck
+        ? { latitude: ticket.truck.latitude, longitude: ticket.truck.longitude }
+        : null;
+
+      return {
+        id: ticket.ticket_code || '',
+        ticketNumber: ticket.ticket_code || '',
+        truckId: truckCode,
+        truckName: `Truck ${truckCode || 'N/A'}`,
+        loadQuantity: ticket.running_qty ?? 0,
+        totalOrderQuantity: ticket.ordered_qty ?? 0,
+        unit: 'CY',
+        status: ticket.status || 'ticketed',
+        statusDisplay: getDisplayStatus(ticket.status, ticket.status_display),
+        scheduledTime: getTimestampForStatus(ticket.status, ticket.timestamps),
+        product: ticket.product || '',
+        load: ticket.load || '',
+        loadQty: ticket.load_qty || '',
+        runQtyOrdQty: ticket.run_qty_ord_qty || '',
+        truckLocation,
+        plantLocation: ticket.plant_location || null,
+        orderLocation: ticket.order_location || null,
+      };
+    }),
     [apiTickets, getDisplayStatus, getTimestampForStatus]
   );
 
@@ -1227,6 +1283,22 @@ export const TicketScreen: React.FC = () => {
       weatherData: weatherData,
     });
   }, [navigation, orderCode, orderDate, weatherData]);
+
+  const handleMapPress = useCallback((ticket: DeliveryTicket) => {
+    navigation.navigate('MapTracking', {
+      orderCode: orderCode || undefined,
+      customerName: customerName || undefined,
+      destination: deliveryAddress || undefined,
+      jobLatitude: ticket.orderLocation?.latitude || undefined,
+      jobLongitude: ticket.orderLocation?.longitude || undefined,
+      plantLatitude: ticket.plantLocation?.latitude || undefined,
+      plantLongitude: ticket.plantLocation?.longitude || undefined,
+      latitude: ticket.truckLocation?.latitude || undefined,
+      longitude: ticket.truckLocation?.longitude || undefined,
+      truckCode: ticket.truckId || undefined,
+      ticketCode: ticket.ticketNumber || undefined,
+    });
+  }, [navigation, orderCode, customerName, deliveryAddress]);
 
   const handleSearch = useCallback(() => {
     setAppliedSearchQuery(searchQuery.trim());
@@ -1297,14 +1369,22 @@ export const TicketScreen: React.FC = () => {
   ]);
 
   const renderTicket = useCallback(
-    ({ item }: { item: DeliveryTicket }) => (
-      <TicketItem
-        ticket={item}
-        onPress={() => handleTicketPress(item)}
-        isDark={isDark}
-      />
-    ),
-    [isDark, handleTicketPress]
+    ({ item }: { item: DeliveryTicket }) => {
+      const isAtPlant = item.status === 'at_plant';
+      const isCancelled = item.status === 'cancelled' || item.status?.toLowerCase().includes('cancel');
+      const isMapDisabled = isAtPlant || isCancelled;
+
+      return (
+        <TicketItem
+          ticket={item}
+          onPress={() => handleTicketPress(item)}
+          onMapPress={() => handleMapPress(item)}
+          isDark={isDark}
+          isMapDisabled={isMapDisabled}
+        />
+      );
+    },
+    [isDark, handleTicketPress, handleMapPress]
   );
 
   const keyExtractor = useCallback((item: DeliveryTicket) => item.id, []);
@@ -1672,10 +1752,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
+    alignItems: 'center',
+  },
+  ticketPressableContent: {
+    flex: 1,
+    flexDirection: 'row',
   },
   ticketItemPressed: {
     opacity: 0.95,
-    transform: [{ scale: 0.99 }],
+  },
+  ticketActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(4),
+    paddingLeft: ms(4),
+  },
+  mapIconButton: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapIconButtonDisabled: {
+    opacity: 0.5,
   },
   truckVisualContainer: {
     width: ms(50),

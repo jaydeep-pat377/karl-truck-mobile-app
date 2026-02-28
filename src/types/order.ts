@@ -14,6 +14,16 @@ export type OrderStatus =
 
 export type TruckStatus = 'ENRT' | 'ONSIT' | 'LOADING' | 'DISPATCHED' | 'RETURNING';
 
+export interface PlantDetails {
+  code: string;
+  name: string;
+  shortName?: string;
+  address?: string;
+  phone?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
 export interface Order {
   id: string;
   orderCode: string;
@@ -27,6 +37,9 @@ export interface Order {
   pickupAddress?: string;
   latitude?: number;
   longitude?: number;
+  jobLatitude?: number | null;
+  jobLongitude?: number | null;
+  plantDetails?: PlantDetails;
   scheduledDate: string;
   scheduledTime: string;
   status: OrderStatus;
@@ -141,6 +154,22 @@ export interface ApiOrderWeatherData {
   concrete_temperature_fahrenheit: number | null;
 }
 
+export interface ApiPlantDetails {
+  code: string;
+  description: string;
+  short_description: string;
+  address1: string;
+  address2: string;
+  phone: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface ApiOrderLocation {
+  latitude: number | null;
+  longitude: number | null;
+}
+
 export interface ApiOrder {
   order_id: string;
   order_code: string;
@@ -151,6 +180,10 @@ export interface ApiOrder {
   customer_name: string;
   project_name: string;
   delivery_address: string;
+  plant_codes?: string;
+  plant_name?: string;
+  plant_details?: ApiPlantDetails;
+  order_location?: ApiOrderLocation;
   ordered_qty: number;
   delivered_qty: number;
   remaining_qty: number;

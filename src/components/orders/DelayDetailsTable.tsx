@@ -1,9 +1,9 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Text } from '../common';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { Text, Icon } from '../common';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
-import { ms } from '../../utils/responsive';
+import { ms, spacing } from '../../utils/responsive';
 
 interface DelayDetailsItem {
   loadOrder: number;
@@ -42,214 +42,308 @@ const MOCK_DATA: DelayDetailsItem[] = [
   { loadOrder: 11, ticket: '23383402', truck: '205425', plannedOnJob: '05:40:00', actualOnJob: '05:26:02', producerDelay: 0, beginPour: '05:37:14', endPour: '05:51:31', scheduledEndPour: '05:50:00', spacing: 10, waitingToPour: 0, pourMinOver: 4, contractorDelay: 4, plusLoad: 0 },
 ];
 
-const COLUMNS = [
-  { key: 'loadOrder', label: 'Load Order', width: 80 },
-  { key: 'ticket', label: 'Ticket', width: 90 },
-  { key: 'truck', label: 'Truck', width: 70 },
-  { key: 'plannedOnJob', label: 'Planned On Job', width: 110 },
-  { key: 'actualOnJob', label: 'Actual On Job', width: 110 },
-  { key: 'producerDelay', label: 'Producer Delay', width: 110 },
-  { key: 'beginPour', label: 'Begin Pour', width: 90 },
-  { key: 'endPour', label: 'End Pour', width: 90 },
-  { key: 'scheduledEndPour', label: 'Scheduled End Pour', width: 130 },
-  { key: 'spacing', label: 'Spacing', width: 70 },
-  { key: 'waitingToPour', label: 'Waiting To Pour', width: 120 },
-  { key: 'pourMinOver', label: 'Pour Min Over', width: 110 },
-  { key: 'contractorDelay', label: 'Contractor Delay', width: 120 },
-  { key: 'plusLoad', label: 'Plus Load', width: 80 },
-];
-
-const getValueColor = (value: number): string => {
+const getDelayColor = (value: number): string => {
   if (value > 0) return colors.error.main;
   if (value < 0) return colors.success.main;
   return colors.grey[60];
+};
+
+const getDelayBgColor = (value: number, isDark: boolean): string => {
+  if (value > 0) return isDark ? colors.error.main + '20' : colors.error.main + '10';
+  if (value < 0) return isDark ? colors.success.main + '20' : colors.success.main + '10';
+  return isDark ? colors.grey[80] : colors.grey[10];
+};
+
+const formatTime = (time: string): string => {
+  const parts = time.split(':');
+  if (parts.length >= 2) {
+    return `${parts[0]}:${parts[1]}`;
+  }
+  return time;
 };
 
 export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
   isDark = false,
   onTicketPress,
 }) => {
+  const [showAll, setShowAll] = useState(false);
+
   const themeColors = {
     card: isDark ? colors.dark.card : colors.common.white,
+    cardElevated: isDark ? colors.dark.cardElevated : colors.grey[5],
     text: isDark ? colors.common.white : colors.grey[90],
     textSecondary: isDark ? colors.grey[40] : colors.grey[60],
-    border: isDark ? colors.grey[80] : colors.grey[20],
-    headerBg: isDark ? colors.dark.cardElevated : colors.grey[10],
-    rowBg: isDark ? colors.dark.card : colors.common.white,
-    rowAltBg: isDark ? colors.dark.cardElevated : colors.grey[5],
+    textHint: isDark ? colors.grey[50] : colors.grey[50],
+    border: isDark ? colors.grey[70] : colors.grey[15],
   };
 
-  const renderCell = (item: DelayDetailsItem, columnKey: string, index: number) => {
-    const value = item[columnKey as keyof DelayDetailsItem];
+  const displayData = showAll ? MOCK_DATA : MOCK_DATA.slice(0, 1);
 
-    if (columnKey === 'ticket') {
-      return (
-        <TouchableOpacity
-          onPress={() => onTicketPress?.(String(value))}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.cellText, styles.ticketText]}>
-            {value}
-          </Text>
-        </TouchableOpacity>
-      );
-    }
-
-    if (['pourMinOver', 'contractorDelay', 'plusLoad'].includes(columnKey)) {
-      const numValue = Number(value);
-      return (
-        <Text style={[styles.cellText, { color: getValueColor(numValue) }]}>
-          {numValue}
-        </Text>
-      );
-    }
+  const renderCard = ({ item, index }: { item: DelayDetailsItem; index: number }) => {
+    const hasDelay = item.contractorDelay > 0 || item.producerDelay > 0;
+    const isEarly = item.contractorDelay < 0;
 
     return (
-      <Text style={[styles.cellText, { color: themeColors.text }]}>
-        {value}
-      </Text>
+      <View style={[
+        styles.card,
+        {
+          backgroundColor: themeColors.cardElevated,
+          borderLeftColor: hasDelay ? colors.error.main : isEarly ? colors.success.main : colors.primary.main,
+        }
+      ]}>
+        {/* Card Header */}
+        <View style={styles.cardHeader}>
+          <View style={styles.cardHeaderLeft}>
+            <View style={[styles.loadBadge, { backgroundColor: colors.primary.main + '15' }]}>
+              <Text style={[styles.loadBadgeText, { color: colors.primary.main }]}>
+                Load {item.loadOrder}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => onTicketPress?.(item.ticket)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.ticketText, { color: colors.info.main }]}>
+                #{item.ticket}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.cardHeaderRight}>
+            <Icon name="truck-outline" size={ms(14)} color={themeColors.textSecondary} />
+            <Text style={[styles.truckText, { color: themeColors.text }]}>
+              {item.truck}
+            </Text>
+          </View>
+        </View>
+
+        {/* Time Details */}
+        <View style={[styles.timeSection, { borderColor: themeColors.border }]}>
+          <View style={styles.timeRow}>
+            <View style={styles.timeItem}>
+              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>Planned</Text>
+              <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.plannedOnJob)}</Text>
+            </View>
+            <View style={styles.timeItem}>
+              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>Actual</Text>
+              <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.actualOnJob)}</Text>
+            </View>
+            <View style={styles.timeItem}>
+              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>Begin Pour</Text>
+              <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.beginPour)}</Text>
+            </View>
+            <View style={styles.timeItem}>
+              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>End Pour</Text>
+              <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.endPour)}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Delay Metrics */}
+        <View style={styles.metricsSection}>
+          <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.producerDelay, isDark) }]}>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Producer</Text>
+            <Text style={[styles.metricValue, { color: getDelayColor(item.producerDelay) }]}>
+              {item.producerDelay > 0 ? '+' : ''}{item.producerDelay} min
+            </Text>
+          </View>
+          <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.contractorDelay, isDark) }]}>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Contractor</Text>
+            <Text style={[styles.metricValue, { color: getDelayColor(item.contractorDelay) }]}>
+              {item.contractorDelay > 0 ? '+' : ''}{item.contractorDelay} min
+            </Text>
+          </View>
+          <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.waitingToPour, isDark) }]}>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Waiting</Text>
+            <Text style={[styles.metricValue, { color: getDelayColor(item.waitingToPour) }]}>
+              {item.waitingToPour} min
+            </Text>
+          </View>
+          <View style={[styles.metricItem, { backgroundColor: isDark ? colors.grey[80] : colors.grey[10] }]}>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Spacing</Text>
+            <Text style={[styles.metricValue, { color: themeColors.text }]}>
+              {item.spacing} min
+            </Text>
+          </View>
+        </View>
+      </View>
     );
   };
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.card }]}>
-      <Text style={[styles.title, { color: themeColors.text }]}>Delay Details</Text>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={true}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View>
-          {/* Header Row */}
-          <View style={[styles.headerRow, { backgroundColor: themeColors.headerBg }]}>
-            {COLUMNS.map((column, index) => (
-              <View
-                key={column.key}
-                style={[
-                  styles.headerCell,
-                  index === 0 && styles.headerCellFirst,
-                  index === COLUMNS.length - 1 && styles.headerCellLast,
-                  { width: column.width, borderColor: themeColors.border }
-                ]}
-              >
-                <Text style={[styles.headerText, { color: themeColors.textSecondary }]}>
-                  {column.label}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Data Rows */}
-          {MOCK_DATA.map((item, rowIndex) => {
-            const isLastRow = rowIndex === MOCK_DATA.length - 1;
-            return (
-              <View
-                key={item.loadOrder}
-                style={[
-                  styles.dataRow,
-                  {
-                    backgroundColor: rowIndex % 2 === 0 ? themeColors.rowBg : themeColors.rowAltBg,
-                    borderColor: themeColors.border,
-                  }
-                ]}
-              >
-                {COLUMNS.map((column, colIndex) => (
-                  <View
-                    key={column.key}
-                    style={[
-                      styles.dataCell,
-                      colIndex === 0 && !isLastRow && styles.dataCellFirst,
-                      colIndex === 0 && isLastRow && styles.dataCellFirstLastRow,
-                      colIndex === COLUMNS.length - 1 && isLastRow && styles.dataCellLastLastRow,
-                      { width: column.width, borderColor: themeColors.border }
-                    ]}
-                  >
-                    {renderCell(item, column.key, rowIndex)}
-                  </View>
-                ))}
-              </View>
-            );
-          })}
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerTitleRow}>
+          <Icon name="clock-alert-outline" size={ms(20)} color={colors.primary.main} />
+          <Text style={[styles.title, { color: themeColors.text }]}>Delay Details</Text>
         </View>
-      </ScrollView>
+        <View style={[styles.countBadge, { backgroundColor: colors.primary.main + '15' }]}>
+          <Text style={[styles.countText, { color: colors.primary.main }]}>
+            {MOCK_DATA.length}
+          </Text>
+        </View>
+      </View>
+
+      {/* Cards */}
+      <View style={styles.cardsContainer}>
+        {displayData.map((item, index) => (
+          <React.Fragment key={item.loadOrder}>
+            {renderCard({ item, index })}
+          </React.Fragment>
+        ))}
+      </View>
+
+      {/* See More Button */}
+      {MOCK_DATA.length > 1 && (
+        <TouchableOpacity
+          style={styles.seeMoreButton}
+          onPress={() => setShowAll(!showAll)}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.seeMoreText, { color: colors.primary.main }]}>
+            {showAll ? 'See Less' : `See More (${MOCK_DATA.length - 1} more)`}
+          </Text>
+          <Icon
+            name={showAll ? 'chevron-up' : 'chevron-down'}
+            size={ms(16)}
+            color={colors.primary.main}
+          />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 0,
+    borderRadius: ms(16),
+    padding: spacing.md,
+    marginBottom: spacing.md,
     shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 4,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   title: {
     fontSize: ms(16),
     fontFamily: fontFamily.semiBold,
-    marginBottom: 12,
   },
-  scrollContent: {
-    paddingBottom: 0,
+  countBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: ms(20),
   },
-  headerRow: {
-    flexDirection: 'row',
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-  },
-  headerCell: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRightWidth: 1,
-    borderTopWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerCellFirst: {
-    borderLeftWidth: 1,
-    borderTopLeftRadius: 8,
-  },
-  headerCellLast: {
-    borderTopRightRadius: 8,
-  },
-  headerText: {
-    fontSize: ms(11),
+  countText: {
     fontFamily: fontFamily.semiBold,
-    textAlign: 'center',
-  },
-  dataRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-  },
-  dataCell: {
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRightWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dataCellFirst: {
-    borderLeftWidth: 1,
-  },
-  dataCellFirstLastRow: {
-    borderLeftWidth: 1,
-    borderBottomLeftRadius: 8,
-  },
-  dataCellLastLastRow: {
-    borderBottomRightRadius: 8,
-  },
-  cellText: {
     fontSize: ms(12),
-    fontFamily: fontFamily.regular,
-    textAlign: 'center',
+  },
+  cardsContainer: {
+    gap: spacing.sm,
+  },
+  card: {
+    borderRadius: ms(12),
+    padding: spacing.md,
+    borderLeftWidth: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  cardHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  loadBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: ms(6),
+  },
+  loadBadgeText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(11),
   },
   ticketText: {
-    color: colors.info.main,
     fontFamily: fontFamily.medium,
+    fontSize: ms(13),
+  },
+  truckText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(12),
+  },
+  timeSection: {
+    paddingVertical: spacing.sm,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    marginBottom: spacing.sm,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  timeItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  timeLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(10),
+    marginBottom: spacing.xs / 2,
+  },
+  timeValue: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+  },
+  metricsSection: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  metricItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    borderRadius: ms(8),
+  },
+  metricLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(9),
+    marginBottom: spacing.xs / 2,
+  },
+  metricValue: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(11),
+  },
+  seeMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    marginTop: spacing.sm,
+    gap: spacing.xs,
+  },
+  seeMoreText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(13),
   },
 });
 
