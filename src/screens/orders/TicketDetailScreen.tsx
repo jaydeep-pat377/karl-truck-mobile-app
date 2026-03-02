@@ -111,7 +111,7 @@ const STATUS_CONFIG_LIGHT: Record<ApiTicketStatus, StatusConfig> = {
   },
   loading: {
     label: 'LOADING',
-    icon: 'truck-loading',
+    icon: 'dump-truck',
     color: colors.trackingStatus.loading,
     bgColor: `${colors.trackingStatus.loading}15`,
     progressStep: 2,
@@ -191,7 +191,7 @@ const STATUS_CONFIG_DARK: Record<ApiTicketStatus, StatusConfig> = {
   },
   loading: {
     label: 'LOADING',
-    icon: 'truck-loading',
+    icon: 'dump-truck',
     color: colors.trackingStatus.loading,
     bgColor: `${colors.trackingStatus.loading}20`,
     progressStep: 2,
@@ -765,7 +765,7 @@ export const TicketDetailScreen: React.FC = () => {
   const [showDirectionsMenu, setShowDirectionsMenu] = useState(false);
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
 
-  const { orderCode, orderDate, ticketCode, status: passedStatus, statusDisplay: passedStatusDisplay } = route.params;
+  const { orderCode, orderDate, ticketCode, status: passedStatus, statusDisplay: passedStatusDisplay, statusColor: passedStatusColor } = route.params;
 
   const {
     ticket,
@@ -838,7 +838,15 @@ export const TicketDetailScreen: React.FC = () => {
   const isAtPlant = currentStatus === 'at_plant';
   const isCancelled = currentStatus === 'cancelled' || currentStatus?.toLowerCase().includes('cancel');
 
-  const headerBadgeColors = getHeaderBadgeColors(currentStatus, isDark);
+  // Use passed status color from navigation or calculate from status
+  const currentStatusColor = passedStatusColor || getHeaderBadgeColors(currentStatus, isDark).textColor;
+  const headerBadgeColors = passedStatusColor
+    ? {
+        bgColor: `${passedStatusColor}${isDark ? '20' : '15'}`,
+        textColor: passedStatusColor,
+        iconColor: passedStatusColor,
+      }
+    : getHeaderBadgeColors(currentStatus, isDark);
 
   const percentage = useMemo(() => {
     if (!orderedQty || orderedQty === 0) return 0;
@@ -1318,8 +1326,8 @@ export const TicketDetailScreen: React.FC = () => {
                   Load Details
                 </Text>
               </View>
-              <View style={[styles.progressBadge, { backgroundColor: isDark ? accentColor + '25' : colors.primary.main + '18' }]}>
-                <Text style={[styles.progressBadgeText, { color: isDark ? accentColor : colors.primary.dark }]}>{percentage.toFixed(1)}%</Text>
+              <View style={[styles.progressBadge, { backgroundColor: `${currentStatusColor}20` }]}>
+                <Text style={[styles.progressBadgeText, { color: currentStatusColor }]}>{percentage.toFixed(1)}%</Text>
               </View>
             </View>
 
@@ -1353,8 +1361,8 @@ export const TicketDetailScreen: React.FC = () => {
             </View>
 
             <View style={styles.progressBarContainer}>
-              <View style={[styles.progressBarBg, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}>
-                <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: accentColor }]} />
+              <View style={[styles.progressBarBg, { backgroundColor: `${currentStatusColor}20` }]}>
+                <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: currentStatusColor }]} />
               </View>
             </View>
 

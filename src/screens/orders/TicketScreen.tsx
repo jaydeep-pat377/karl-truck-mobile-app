@@ -68,9 +68,9 @@ const STATUS_CONFIG: Record<TicketStatus, StatusConfig> = {
   pending: {
     label: 'PENDING',
     icon: 'clock-outline',
-    bgColor: `${colors.trackingStatus.ticketed}15`,
-    textColor: colors.trackingStatus.ticketed,
-    iconBg: `${colors.trackingStatus.ticketed}15`,
+    bgColor: `${colors.trackingStatus.pending}15`,
+    textColor: colors.trackingStatus.pending,
+    iconBg: `${colors.trackingStatus.pending}15`,
     progressStep: 0,
   },
   ticketed: {
@@ -83,7 +83,7 @@ const STATUS_CONFIG: Record<TicketStatus, StatusConfig> = {
   },
   loading: {
     label: 'LOADING',
-    icon: 'truck-loading',
+    icon: 'dump-truck',
     bgColor: `${colors.trackingStatus.loading}15`,
     textColor: colors.trackingStatus.loading,
     iconBg: `${colors.trackingStatus.loading}15`,
@@ -121,13 +121,21 @@ const STATUS_CONFIG: Record<TicketStatus, StatusConfig> = {
     iconBg: `${colors.trackingStatus.pouring}15`,
     progressStep: 6,
   },
+  poured: {
+    label: 'POURED',
+    icon: 'water-check',
+    bgColor: `${colors.trackingStatus.poured}15`,
+    textColor: colors.trackingStatus.poured,
+    iconBg: `${colors.trackingStatus.poured}15`,
+    progressStep: 7,
+  },
   washing: {
     label: 'WASHING',
     icon: 'water-pump',
     bgColor: `${colors.trackingStatus.washing}15`,
     textColor: colors.trackingStatus.washing,
     iconBg: `${colors.trackingStatus.washing}15`,
-    progressStep: 7,
+    progressStep: 8,
   },
   to_plant: {
     label: 'TO PLANT',
@@ -135,7 +143,7 @@ const STATUS_CONFIG: Record<TicketStatus, StatusConfig> = {
     bgColor: `${colors.trackingStatus.toPlant}15`,
     textColor: colors.trackingStatus.toPlant,
     iconBg: `${colors.trackingStatus.toPlant}15`,
-    progressStep: 8,
+    progressStep: 9,
   },
   at_plant: {
     label: 'AT PLANT',
@@ -143,14 +151,22 @@ const STATUS_CONFIG: Record<TicketStatus, StatusConfig> = {
     bgColor: `${colors.trackingStatus.atPlant}15`,
     textColor: colors.trackingStatus.atPlant,
     iconBg: `${colors.trackingStatus.atPlant}15`,
-    progressStep: 9,
+    progressStep: 10,
   },
   cancelled: {
-    label: 'VOIDED',
+    label: 'CANCELLED',
     icon: 'close-circle',
     bgColor: `${colors.trackingStatus.cancelled}15`,
     textColor: colors.trackingStatus.cancelled,
     iconBg: `${colors.trackingStatus.cancelled}15`,
+    progressStep: -1,
+  },
+  voided: {
+    label: 'VOIDED',
+    icon: 'close-circle',
+    bgColor: `${colors.trackingStatus.voided}15`,
+    textColor: colors.trackingStatus.voided,
+    iconBg: `${colors.trackingStatus.voided}15`,
     progressStep: -1,
   },
 };
@@ -178,9 +194,9 @@ const STATUS_CONFIG_DARK: Record<TicketStatus, StatusConfig> = {
   pending: {
     label: 'PENDING',
     icon: 'clock-outline',
-    bgColor: `${colors.trackingStatus.ticketed}20`,
-    textColor: colors.trackingStatus.ticketed,
-    iconBg: `${colors.trackingStatus.ticketed}20`,
+    bgColor: `${colors.trackingStatus.pending}20`,
+    textColor: colors.trackingStatus.pending,
+    iconBg: `${colors.trackingStatus.pending}20`,
     progressStep: 0,
   },
   ticketed: {
@@ -193,7 +209,7 @@ const STATUS_CONFIG_DARK: Record<TicketStatus, StatusConfig> = {
   },
   loading: {
     label: 'LOADING',
-    icon: 'truck-loading',
+    icon: 'dump-truck',
     bgColor: `${colors.trackingStatus.loading}20`,
     textColor: colors.trackingStatus.loading,
     iconBg: `${colors.trackingStatus.loading}20`,
@@ -231,13 +247,21 @@ const STATUS_CONFIG_DARK: Record<TicketStatus, StatusConfig> = {
     iconBg: `${colors.trackingStatus.pouring}20`,
     progressStep: 6,
   },
+  poured: {
+    label: 'POURED',
+    icon: 'water-check',
+    bgColor: `${colors.trackingStatus.poured}20`,
+    textColor: colors.trackingStatus.poured,
+    iconBg: `${colors.trackingStatus.poured}20`,
+    progressStep: 7,
+  },
   washing: {
     label: 'WASHING',
     icon: 'water-pump',
     bgColor: `${colors.trackingStatus.washing}20`,
     textColor: colors.trackingStatus.washing,
     iconBg: `${colors.trackingStatus.washing}20`,
-    progressStep: 7,
+    progressStep: 8,
   },
   to_plant: {
     label: 'TO PLANT',
@@ -245,7 +269,7 @@ const STATUS_CONFIG_DARK: Record<TicketStatus, StatusConfig> = {
     bgColor: `${colors.trackingStatus.toPlant}20`,
     textColor: colors.trackingStatus.toPlant,
     iconBg: `${colors.trackingStatus.toPlant}20`,
-    progressStep: 8,
+    progressStep: 9,
   },
   at_plant: {
     label: 'AT PLANT',
@@ -253,14 +277,22 @@ const STATUS_CONFIG_DARK: Record<TicketStatus, StatusConfig> = {
     bgColor: `${colors.trackingStatus.atPlant}20`,
     textColor: colors.trackingStatus.atPlant,
     iconBg: `${colors.trackingStatus.atPlant}20`,
-    progressStep: 9,
+    progressStep: 10,
   },
   cancelled: {
-    label: 'VOIDED',
+    label: 'CANCELLED',
     icon: 'close-circle',
     bgColor: `${colors.trackingStatus.cancelled}20`,
     textColor: colors.trackingStatus.cancelled,
     iconBg: `${colors.trackingStatus.cancelled}20`,
+    progressStep: -1,
+  },
+  voided: {
+    label: 'VOIDED',
+    icon: 'close-circle',
+    bgColor: `${colors.trackingStatus.voided}20`,
+    textColor: colors.trackingStatus.voided,
+    iconBg: `${colors.trackingStatus.voided}20`,
     progressStep: -1,
   },
 };
@@ -409,7 +441,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, onMapPress, is
             {
               backgroundColor: isMapDisabled
                 ? (isDark ? colors.grey[70] : colors.grey[20])
-                : (isDark ? colors.info.main + '20' : colors.info.main + '15')
+                : (isDark ? colors.grey[60] : colors.grey[15])
             },
             isMapDisabled && styles.mapIconButtonDisabled,
           ]}
@@ -420,7 +452,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, onMapPress, is
           <Icon
             name="map-marker-radius-outline"
             size={ms(18)}
-            color={isMapDisabled ? (isDark ? colors.grey[50] : colors.grey[40]) : colors.info.main}
+            color={isMapDisabled ? (isDark ? colors.grey[50] : colors.grey[40]) : (isDark ? colors.common.white : colors.common.black)}
           />
         </TouchableOpacity>
         <TouchableOpacity
@@ -462,6 +494,7 @@ interface OrderHeaderProps {
   isDark: boolean;
   weatherData?: WeatherData | null;
   onWeatherPress?: () => void;
+  lastTicketStatusColor?: string;
 }
 
 const OrderHeader: React.FC<OrderHeaderProps> = ({
@@ -478,11 +511,13 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
   isDark,
   weatherData,
   onWeatherPress,
+  lastTicketStatusColor,
 }) => {
   const themeColors = isDark ? colors.dark : colors.light;
   const ticketUi = isDark ? colors.ticket.ui.dark : colors.ticket.ui.light;
   const accentColor = isDark ? colors.ticket.ui.dark.accentBlue : colors.primary.main;
   const accentColorLight = isDark ? colors.ticket.ui.dark.accentBlueLight : colors.primary.main;
+  const progressBarColor = lastTicketStatusColor || accentColor;
 
   const progressData = useMemo(() => {
     const rawPercentage = orderedQty > 0 ? (totalDeliveredQty / orderedQty) * 100 : 0;
@@ -551,11 +586,11 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
             </Text>
           </View>
           <View style={styles.loadsRow}>
-            <Icon name="clipboard-text-outline" size={ms(14)} color={colors.info.main} />
+            <Icon name="clipboard-text-outline" size={ms(14)} color={isDark ? colors.common.white : colors.common.black} />
             <Text style={[styles.loadsLabel, { color: themeColors.text.hint }]}>
               Order:
             </Text>
-            <Text style={[styles.loadsValue, { color: colors.info.main }]}>
+            <Text style={[styles.loadsValue, { color: isDark ? colors.common.white : colors.common.black }]}>
               {orderCode}
             </Text>
           </View>
@@ -637,17 +672,17 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
           <Text style={[styles.progressTitle, { color: themeColors.text.secondary }]}>
             Delivery Progress
           </Text>
-          <Text style={[styles.progressPercentage, { color: accentColor }]}>
+          <Text style={[styles.progressPercentage, { color: progressBarColor }]}>
             {progressData.displayPercentage >= 100 ? '100%' : `${progressData.displayPercentage}%`}
           </Text>
         </View>
-        <View style={[styles.progressBarContainer, { backgroundColor: ticketUi.progressBg }]}>
+        <View style={[styles.progressBarContainer, { backgroundColor: `${progressBarColor}20` }]}>
           <View
             style={[
               styles.progressBarFill,
               {
                 width: `${progressData.percentage}%`,
-                backgroundColor: accentColor,
+                backgroundColor: progressBarColor,
               },
             ]}
           />
@@ -1248,6 +1283,31 @@ export const TicketScreen: React.FC = () => {
     return tickets;
   }, [allTickets, advancedFilters.statuses, appliedSearchQuery]);
 
+  const getStatusColor = useCallback((status: TicketStatus): string => {
+    const statusColorMap: Record<string, string> = {
+      pending: colors.trackingStatus.pending,
+      ticketed: colors.trackingStatus.ticketed,
+      loading: colors.trackingStatus.loading,
+      loaded: colors.trackingStatus.loaded,
+      to_job: colors.trackingStatus.toJob,
+      at_job: colors.trackingStatus.atJob,
+      pouring: colors.trackingStatus.pouring,
+      poured: colors.trackingStatus.poured,
+      washing: colors.trackingStatus.washing,
+      to_plant: colors.trackingStatus.toPlant,
+      at_plant: colors.trackingStatus.atPlant,
+      cancelled: colors.trackingStatus.cancelled,
+      voided: colors.trackingStatus.voided,
+    };
+    return statusColorMap[status] || colors.trackingStatus.pending;
+  }, []);
+
+  const lastTicketStatusColor = useMemo(() => {
+    if (allTickets.length === 0) return undefined;
+    const firstTicket = allTickets[0];
+    return getStatusColor(firstTicket.status);
+  }, [allTickets, getStatusColor]);
+
   React.useEffect(() => {
     setDisplayedCount(ITEMS_PER_PAGE);
   }, [appliedSearchQuery, advancedFilters]);
@@ -1274,6 +1334,7 @@ export const TicketScreen: React.FC = () => {
   }, [hasNextPage]);
 
   const handleTicketPress = useCallback((ticket: DeliveryTicket) => {
+    const statusColor = getStatusColor(ticket.status);
     navigation.navigate('TicketDetail', {
       orderCode: orderCode,
       orderDate: orderDate,
@@ -1281,8 +1342,9 @@ export const TicketScreen: React.FC = () => {
       status: ticket.status,
       statusDisplay: ticket.statusDisplay,
       weatherData: weatherData,
+      statusColor: statusColor,
     });
-  }, [navigation, orderCode, orderDate, weatherData]);
+  }, [navigation, orderCode, orderDate, weatherData, getStatusColor]);
 
   const handleMapPress = useCallback((ticket: DeliveryTicket) => {
     navigation.navigate('MapTracking', {
@@ -1344,6 +1406,7 @@ export const TicketScreen: React.FC = () => {
         isDark={isDark}
         weatherData={weatherData}
         onWeatherPress={handleWeatherPress}
+        lastTicketStatusColor={lastTicketStatusColor}
       />
       <View style={styles.listHeaderRow}>
         <Text style={[styles.listHeaderText, { color: themeColors.text.secondary }]}>
@@ -1366,6 +1429,7 @@ export const TicketScreen: React.FC = () => {
     isDark,
     themeColors,
     weatherData,
+    lastTicketStatusColor,
   ]);
 
   const renderTicket = useCallback(

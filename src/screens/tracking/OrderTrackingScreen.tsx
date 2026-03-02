@@ -135,18 +135,21 @@ const MAP_STYLES = {
 };
 
 const STATUS_CONFIG: Record<string, { color: string; icon: string; label: string }> = {
+  pending: { color: colors.trackingStatus.pending, icon: 'clock-outline', label: 'Pending' },
   ticketed: { color: colors.trackingStatus.ticketed, icon: 'ticket-outline', label: 'Ticketed' },
   loading: { color: colors.trackingStatus.loading, icon: 'package-variant', label: 'Loading' },
   loaded: { color: colors.trackingStatus.loaded, icon: 'package-variant-closed', label: 'Loaded' },
   to_job: { color: colors.trackingStatus.toJob, icon: 'truck-fast', label: 'To Job' },
   at_job: { color: colors.trackingStatus.atJob, icon: 'map-marker-check', label: 'At Job' },
-  pouring: { color: colors.trackingStatus.pouring, icon: 'water', label: 'Begin Pour' },
+  pouring: { color: colors.trackingStatus.pouring, icon: 'water', label: 'Pouring' },
   begin_pour: { color: colors.trackingStatus.pouring, icon: 'water', label: 'Begin Pour' },
   begin_pouring: { color: colors.trackingStatus.pouring, icon: 'water', label: 'Begin Pour' },
+  poured: { color: colors.trackingStatus.poured, icon: 'water-check', label: 'Poured' },
   washing: { color: colors.trackingStatus.washing, icon: 'water-pump', label: 'Washing' },
-  to_plant: { color: colors.trackingStatus.toPlant, icon: 'arrow-u-left-top', label: 'Returning' },
+  to_plant: { color: colors.trackingStatus.toPlant, icon: 'arrow-u-left-top', label: 'To Plant' },
   at_plant: { color: colors.trackingStatus.atPlant, icon: 'home-circle', label: 'At Plant' },
   cancelled: { color: colors.trackingStatus.cancelled, icon: 'close-circle', label: 'Cancelled' },
+  voided: { color: colors.trackingStatus.voided, icon: 'close-circle', label: 'Voided' },
 };
 
 type OrderTrackingRouteProp = RouteProp<RootStackParamList, 'Tracking'>;
@@ -383,13 +386,15 @@ export const OrderTrackingScreen: React.FC = () => {
 
   const fmtQty = (qty: number) => (qty % 1 === 0 ? qty.toString() : qty.toFixed(1));
 
-  const getProgressColor = (percent: number) => {
-    if (percent >= 80) return colors.success.main;
-    if (percent >= 50) return colors.warning.main;
-    return colors.info.main;
-  };
+  // Get first ticket's status color for progress bar
+  const firstTicketStatusColor = useMemo(() => {
+    if (tickets.length === 0) return colors.primary.main;
+    const firstTicket = tickets[0];
+    const config = STATUS_CONFIG[firstTicket.status] || STATUS_CONFIG.ticketed;
+    return config.color;
+  }, [tickets]);
 
-  const renderTicketCard = useCallback((ticket: TrackingTicket, index: number) => {
+  const renderTicketCard = useCallback((ticket: TrackingTicket) => {
     const isSelected = selectedTicketId === ticket.ticket_id;
     const config = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.ticketed;
 
@@ -429,7 +434,7 @@ export const OrderTrackingScreen: React.FC = () => {
               <View style={[styles.statusChip, { backgroundColor: `${config.color}15` }]}>
                 <Icon name={config.icon} size={ms(9)} color={config.color} />
                 <Text style={[styles.statusChipText, { color: config.color }]} numberOfLines={1}>
-                  {ticket.status_display || config.label}
+                  {ticket.status?.toLowerCase().includes('cancel') || ticket.status_display?.toLowerCase().includes('cancel') ? 'Voided' : (ticket.status_display || config.label)}
                 </Text>
               </View>
             </View>
@@ -453,32 +458,32 @@ export const OrderTrackingScreen: React.FC = () => {
 
           <View style={styles.ticketRow3}>
             {ticket.product?.item_code && (
-              <View style={styles.productChip}>
-                <Icon name="cube-outline" size={ms(10)} color={colors.secondary.main} />
-                <Text style={styles.productText} numberOfLines={1}>
+              <View style={[styles.productChip, { backgroundColor: isDark ? `${colors.common.white}15` : `${colors.common.black}10` }]}>
+                <Icon name="cube-outline" size={ms(10)} color={isDark ? colors.common.white : colors.common.black} />
+                <Text style={[styles.productText, { color: isDark ? colors.common.white : colors.common.black }]} numberOfLines={1}>
                   {ticket.product.item_code}
                 </Text>
               </View>
             )}
-            <View style={styles.qtyChip}>
-              <Icon name="package-variant-closed" size={ms(11)} color={colors.primary.main} />
-              <Text style={styles.qtyText} numberOfLines={1}>
+            <View style={[styles.qtyChip, { backgroundColor: isDark ? `${colors.common.white}15` : `${colors.common.black}10` }]}>
+              <Icon name="package-variant-closed" size={ms(11)} color={isDark ? colors.common.white : colors.common.black} />
+              <Text style={[styles.qtyText, { color: isDark ? colors.common.white : colors.common.black }]} numberOfLines={1}>
                 {fmtQty(ticket.load_qty)}
               </Text>
-              <Text style={styles.qtyUnit}>CY</Text>
+              <Text style={[styles.qtyUnit, { color: isDark ? colors.common.white : colors.common.black }]}>CY</Text>
             </View>
             {ticket.timestamps?.eta_at_job && (
-              <View style={styles.etaChip}>
-                <Icon name="clock-fast" size={ms(9)} color={colors.info.main} />
-                <Text style={styles.etaText} numberOfLines={1}>
+              <View style={[styles.etaChip, { backgroundColor: isDark ? `${colors.common.white}15` : `${colors.common.black}10` }]}>
+                <Icon name="clock-fast" size={ms(9)} color={isDark ? colors.common.white : colors.common.black} />
+                <Text style={[styles.etaText, { color: isDark ? colors.common.white : colors.common.black }]} numberOfLines={1}>
                   ETA {ticket.timestamps.eta_at_job}
                 </Text>
               </View>
             )}
             {ticket.timestamps?.pouring && (
-              <View style={styles.timeChip}>
-                <Icon name="water" size={ms(9)} color={colors.success.main} />
-                <Text style={styles.timeText} numberOfLines={1}>
+              <View style={[styles.timeChip, { backgroundColor: isDark ? `${colors.common.white}15` : `${colors.common.black}10` }]}>
+                <Icon name="water" size={ms(9)} color={isDark ? colors.common.white : colors.common.black} />
+                <Text style={[styles.timeText, { color: isDark ? colors.common.white : colors.common.black }]} numberOfLines={1}>
                   {ticket.timestamps.pouring}
                 </Text>
               </View>
@@ -525,7 +530,6 @@ export const OrderTrackingScreen: React.FC = () => {
   }
 
   const progressPercent = trackingData?.progress_percent || 0;
-  const progressColor = getProgressColor(progressPercent);
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -641,12 +645,12 @@ export const OrderTrackingScreen: React.FC = () => {
           {isLegendExpanded && (
             <View style={styles.legendContent}>
               {[
+                { key: 'ticketed', color: colors.trackingStatus.ticketed, label: 'Ticketed' },
                 { key: 'loading', color: colors.trackingStatus.loading, label: 'Loading' },
                 { key: 'to_job', color: colors.trackingStatus.toJob, label: 'To Job' },
                 { key: 'at_job', color: colors.trackingStatus.atJob, label: 'At Job' },
-                { key: 'pouring', color: colors.trackingStatus.pouring, label: 'Pour' },
+                { key: 'pouring', color: colors.trackingStatus.poured, label: 'Pour' },
                 { key: 'washing', color: colors.trackingStatus.washing, label: 'Wash' },
-                { key: 'to_plant', color: colors.trackingStatus.toPlant, label: 'Return' },
               ].map((status) => (
                 <View key={status.key} style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: status.color }]} />
@@ -768,13 +772,13 @@ export const OrderTrackingScreen: React.FC = () => {
                 </Text>
               </View>
             </View>
-            <View style={[styles.percentBadge, { backgroundColor: `${progressColor}15` }]}>
-              <Text style={[styles.percentText, { color: progressColor }]}>{progressPercent}%</Text>
+            <View style={[styles.percentBadge, { backgroundColor: `${firstTicketStatusColor}20` }]}>
+              <Text style={[styles.percentText, { color: firstTicketStatusColor }]}>{progressPercent}%</Text>
             </View>
           </View>
 
-          <View style={[styles.progressTrack, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black05 }]}>
-            <View style={[styles.progressFill, { width: `${Math.min(progressPercent, 100)}%`, backgroundColor: progressColor }]} />
+          <View style={[styles.progressTrack, { backgroundColor: `${firstTicketStatusColor}20` }]}>
+            <View style={[styles.progressFill, { width: `${Math.min(progressPercent, 100)}%`, backgroundColor: firstTicketStatusColor }]} />
           </View>
         </View>
 
@@ -795,7 +799,7 @@ export const OrderTrackingScreen: React.FC = () => {
 
           <FlatList
             data={tickets}
-            renderItem={({ item, index }) => renderTicketCard(item, index)}
+            renderItem={({ item }) => renderTicketCard(item)}
             keyExtractor={(item) => item.ticket_id}
             style={styles.ticketsList}
             contentContainerStyle={{ paddingBottom: insets.bottom + ms(16), flexGrow: 1 }}

@@ -1,17 +1,19 @@
 import { RealtimeOrderUpdates } from './order';
 
 export type ApiTicketStatus =
-  | 'cancelled'
-  | 'at_plant'
-  | 'to_plant'
-  | 'washing'
-  | 'pouring'
-  | 'at_job'
-  | 'to_job'
-  | 'loaded'
-  | 'loading'
+  | 'pending'
   | 'ticketed'
-  | 'pending';
+  | 'loading'
+  | 'loaded'
+  | 'to_job'
+  | 'at_job'
+  | 'pouring'
+  | 'poured'
+  | 'washing'
+  | 'to_plant'
+  | 'at_plant'
+  | 'cancelled'
+  | 'voided';
 
 export interface ApiTicket {
   ticket_id: string;

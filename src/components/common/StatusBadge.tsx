@@ -33,9 +33,9 @@ const statusLabels: Record<string, string> = {
   PRE_POUR: 'Pre-Pour',
   IN_PROCESS: 'In Progress',
   'In Progress': 'In Progress',
-  CANCELLED: 'Cancelled',
-  Canceled: 'Cancelled',
-  Cancelled: 'Cancelled',
+  CANCELLED: 'Voided',
+  Canceled: 'Voided',
+  Cancelled: 'Voided',
   DELAYED: 'Delayed',
   Delayed: 'Delayed',
   ENRT: 'En Route',
@@ -222,8 +222,13 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 }) => {
   const { isDark } = useTheme();
 
-  const colorConfig = statusColors[status] || defaultColorConfig;
-  const displayLabel = label || statusLabels[status] || status;
+  // Check if status contains "cancel" (case insensitive) for cancelled-199 type statuses
+  const isCancelledStatus = status?.toLowerCase().includes('cancel');
+
+  const colorConfig = isCancelledStatus
+    ? statusColors['CANCELLED']
+    : (statusColors[status] || defaultColorConfig);
+  const displayLabel = label || (isCancelledStatus ? 'Voided' : (statusLabels[status] || status));
 
   // Use customColor if provided, otherwise use default status color
   const textColor = customColor || (isDark ? colorConfig.textDark : colorConfig.text);
@@ -263,7 +268,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   };
 
   const config = sizeConfig[size];
-  const iconName = statusIcons[status] || 'help-circle-outline';
+  const iconName = isCancelledStatus ? 'close-circle-outline' : (statusIcons[status] || 'help-circle-outline');
   const iconSize = size === 'xsmall' ? ms(10) : size === 'small' ? ms(16) : size === 'medium' ? ms(18) : ms(20);
 
   return (

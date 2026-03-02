@@ -160,6 +160,7 @@ export type TicketDetailScreenParams = {
 
   status?: TicketStatusType;
   statusDisplay?: string;
+  statusColor?: string;
   weatherData?: {
     temperature_fahrenheit?: number | null;
     wind_speed_mph?: number | null;
