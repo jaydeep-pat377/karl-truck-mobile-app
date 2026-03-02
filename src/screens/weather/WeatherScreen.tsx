@@ -655,7 +655,7 @@ export const WeatherScreen: React.FC = () => {
       {/* Scrollable Content */}
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + GRID.lg }]}
         showsVerticalScrollIndicator={false}
         bounces={true}
         refreshControl={

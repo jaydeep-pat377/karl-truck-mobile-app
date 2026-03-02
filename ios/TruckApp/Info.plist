@@ -87,6 +87,8 @@
 	<string>This app needs access to your location for tracking deliveries.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photo library to select a profile photo.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Use Face ID to unlock the app securely</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>

@@ -7,6 +7,8 @@ export const STORAGE_KEYS = {
   THEME: 'theme',
   LANGUAGE: 'language',
   REMEMBER_ME: 'rememberMe',
+  BIOMETRIC_ENABLED: 'biometricEnabled',
+  APP_LAST_BACKGROUND_TIME: 'appLastBackgroundTime',
 } as const;
 
 export const storageUtils = {

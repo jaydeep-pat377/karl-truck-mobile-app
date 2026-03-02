@@ -650,7 +650,7 @@ export const OrderTrackingScreen: React.FC = () => {
                 { key: 'to_job', color: colors.trackingStatus.toJob, label: 'To Job' },
                 { key: 'at_job', color: colors.trackingStatus.atJob, label: 'At Job' },
                 { key: 'pouring', color: colors.trackingStatus.poured, label: 'Pour' },
-                { key: 'washing', color: colors.trackingStatus.washing, label: 'Wash' },
+                { key: 'ticketed_end', color: '#E91E63', label: 'Ticketed' },
               ].map((status) => (
                 <View key={status.key} style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: status.color }]} />
@@ -872,6 +872,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: ms(16),
     left: ms(12),
+    right: ms(70),
     backgroundColor: colors.semiTransparent.darkGray90,
     borderRadius: ms(10),
     paddingHorizontal: ms(10),

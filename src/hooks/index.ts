@@ -49,5 +49,7 @@ export * from './useRealtimeSubscription';
 export { default as useRealtimeSubscription } from './useRealtimeSubscription';
 export * from './useSupabaseNotifications';
 export { default as useSupabaseNotifications } from './useSupabaseNotifications';
+export * from './useBiometrics';
+export { default as useBiometrics } from './useBiometrics';
 
 export { useGlobalAlert } from '../contexts/GlobalAlertContext';

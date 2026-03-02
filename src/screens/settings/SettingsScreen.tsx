@@ -14,6 +14,7 @@ import { useLogout } from '../../hooks/useLogout';
 import { useProfile } from '../../hooks/useProfile';
 import { MainTabParamList } from '../../navigation/types';
 import { playMessageSound, initMessageSound, isSoundReady } from '../../utils/notificationSound';
+import { BiometricToggleItem } from '../../components/settings/BiometricToggleItem';
 
 interface SettingsItemProps {
   icon: string;
@@ -305,6 +306,11 @@ export const SettingsScreen: React.FC = () => {
               icon="account-outline"
               title={t('profile.editProfile')}
               onPress={handleNavigateToEditProfile}
+            />
+            <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+            <BiometricToggleItem
+              onSuccess={() => {}}
+              onError={(msg) => Alert.alert('Error', msg)}
             />
             <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
             <SettingsItem

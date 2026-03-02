@@ -15,6 +15,8 @@ import { AnimatedSplashScreen } from './src/components/AnimatedSplashScreen';
 import { initSentry, ErrorBoundary } from './src/services/sentryService';
 import { navigationRef, navigateFromNotification } from './src/services/navigationService';
 import { NotificationProvider } from './src/providers/NotificationProvider';
+import { AppLockProvider } from './src/contexts/AppLockContext';
+import { LockScreen } from './src/components/LockScreen';
 import { API_BASE_URL } from '@env';
 
 // Initialize Sentry
@@ -81,58 +83,63 @@ const AppContent: React.FC = () => {
   }, []);
 
   return (
-    <>
-      <StatusBar
-        barStyle={showAnimatedSplash || isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={showAnimatedSplash ? 'transparent' : theme.colors.background}
-        translucent={showAnimatedSplash}
-      />
-      <NavigationContainer
-        ref={navigationRef}
-        onReady={handleNavigationReady}
-        theme={{
-          dark: isDark,
-          colors: {
-            primary: theme.colors.primary.main,
-            background: theme.colors.background,
-            card: theme.colors.card,
-            text: theme.colors.text,
-            border: theme.colors.border,
-            notification: theme.colors.error.main,
-          },
-          fonts: {
-            regular: {
-              fontFamily: 'System',
-              fontWeight: '400',
+    <AppLockProvider>
+      <>
+        <StatusBar
+          barStyle={showAnimatedSplash || isDark ? 'light-content' : 'dark-content'}
+          backgroundColor={showAnimatedSplash ? 'transparent' : theme.colors.background}
+          translucent={showAnimatedSplash}
+        />
+        <NavigationContainer
+          ref={navigationRef}
+          onReady={handleNavigationReady}
+          theme={{
+            dark: isDark,
+            colors: {
+              primary: theme.colors.primary.main,
+              background: theme.colors.background,
+              card: theme.colors.card,
+              text: theme.colors.text,
+              border: theme.colors.border,
+              notification: theme.colors.error.main,
             },
-            medium: {
-              fontFamily: 'System',
-              fontWeight: '500',
+            fonts: {
+              regular: {
+                fontFamily: 'System',
+                fontWeight: '400',
+              },
+              medium: {
+                fontFamily: 'System',
+                fontWeight: '500',
+              },
+              bold: {
+                fontFamily: 'System',
+                fontWeight: '700',
+              },
+              heavy: {
+                fontFamily: 'System',
+                fontWeight: '900',
+              },
             },
-            bold: {
-              fontFamily: 'System',
-              fontWeight: '700',
-            },
-            heavy: {
-              fontFamily: 'System',
-              fontWeight: '900',
-            },
-          },
-        }}>
-        <NotificationProvider
-          userId={userId}
-          tenantId={tenantId}
-          onNotificationTap={handleNotificationTap}
-          enabled={isAuthenticated}>
-          <RootNavigator />
-        </NotificationProvider>
-      </NavigationContainer>
+          }}>
+          <NotificationProvider
+            userId={userId}
+            tenantId={tenantId}
+            onNotificationTap={handleNotificationTap}
+            enabled={isAuthenticated}>
+            <RootNavigator />
+          </NotificationProvider>
+        </NavigationContainer>
 
-      {/* Animated Splash Screen - renders on top of everything */}
-      {showAnimatedSplash && (
-        <AnimatedSplashScreen onAnimationComplete={handleSplashComplete} />
-      )}
-    </>
+        {/* Lock Screen - renders on top of app content */}
+        <LockScreen />
+
+        {/* Animated Splash Screen - renders on top of everything */}
+        {showAnimatedSplash && (
+          <AnimatedSplashScreen onAnimationComplete={handleSplashComplete} />
+        )}
+      </>
+    </AppLockProvider>
   );
 };
 
