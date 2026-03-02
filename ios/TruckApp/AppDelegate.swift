@@ -70,6 +70,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
   func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
     print("FCM Token: \(fcmToken ?? "nil")")
   }
+
+  // CRITICAL: Required for background/killed state notifications on iOS
+  // This method is called when a notification arrives while app is in background or killed
+  func application(
+    _ application: UIApplication,
+    didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+    fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+  ) {
+    print("Received remote notification: \(userInfo)")
+
+    // Let Firebase handle the notification
+    Messaging.messaging().appDidReceiveMessage(userInfo)
+
+    // Must call completion handler
+    completionHandler(.newData)
+  }
 }
 
 class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {

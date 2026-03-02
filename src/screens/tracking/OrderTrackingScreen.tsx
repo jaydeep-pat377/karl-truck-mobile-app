@@ -121,7 +121,13 @@ const truckMarkerStyles = StyleSheet.create({
   },
 });
 
-Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN);
+// Initialize Mapbox with token
+console.log('[Mapbox] Token:', MAPBOX_ACCESS_TOKEN ? 'Present' : 'MISSING');
+if (MAPBOX_ACCESS_TOKEN) {
+  Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN);
+} else {
+  console.error('[Mapbox] Access token is missing! Map tiles will not load.');
+}
 
 const MAP_STYLES = {
   light: Mapbox.StyleURL.Street,
@@ -153,6 +159,7 @@ export const OrderTrackingScreen: React.FC = () => {
   const { height: screenHeight } = useWindowDimensions();
   const themeColors = isDark ? colors.dark : colors.light;
   const cameraRef = useRef<Mapbox.Camera>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
 
   const { orderId } = route.params;
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
@@ -313,13 +320,13 @@ export const OrderTrackingScreen: React.FC = () => {
   }, [plantLocation, jobLocation, tickets]);
 
   useEffect(() => {
-    if (mapBounds && cameraRef.current) {
+    if (mapBounds && cameraRef.current && isMapReady) {
       const timer = setTimeout(() => {
         cameraRef.current?.fitBounds(mapBounds.ne, mapBounds.sw, [50, 50, 80, 50], 1000);
-      }, 500);
+      }, 300);
       return () => clearTimeout(timer);
     }
-  }, [mapBounds]);
+  }, [mapBounds, isMapReady]);
 
   const handleTicketPress = useCallback((ticket: TrackingTicket) => {
     setSelectedTicketId(ticket.ticket_id);
@@ -530,6 +537,19 @@ export const OrderTrackingScreen: React.FC = () => {
           styleURL={isDark ? MAP_STYLES.dark : MAP_STYLES.light}
           logoEnabled={false}
           attributionEnabled={false}
+          onDidFinishLoadingMap={() => {
+            console.log('[Mapbox] Map finished loading');
+            setIsMapReady(true);
+            // Trigger camera update once map is ready
+            if (cameraRef.current && mapBounds) {
+              setTimeout(() => {
+                cameraRef.current?.fitBounds(mapBounds.ne, mapBounds.sw, [50, 50, 80, 50], 500);
+              }, 100);
+            }
+          }}
+          onMapIdle={() => {
+            console.log('[Mapbox] Map idle - tiles loaded');
+          }}
         >
           <Mapbox.Camera
             ref={cameraRef}
@@ -539,7 +559,7 @@ export const OrderTrackingScreen: React.FC = () => {
             }}
           />
 
-          {tickets.map(ticket => {
+          {isMapReady && tickets.map(ticket => {
             // Don't show trucks that are at plant on the map
             if (!ticket.truck?.latitude || !ticket.truck?.longitude || ticket.status === 'at_plant') return null;
             const isSelected = selectedTicketId === ticket.ticket_id;
@@ -559,7 +579,7 @@ export const OrderTrackingScreen: React.FC = () => {
             );
           })}
 
-          {plantLocation && (
+          {isMapReady && plantLocation && (
             <Mapbox.MarkerView coordinate={[plantLocation.longitude, plantLocation.latitude]} anchor={{ x: 0.5, y: 1 }} allowOverlap={true}>
               <View style={styles.markerWrap}>
                 <View style={styles.markerLabelContainer}>
@@ -578,7 +598,7 @@ export const OrderTrackingScreen: React.FC = () => {
             </Mapbox.MarkerView>
           )}
 
-          {jobLocation && (
+          {isMapReady && jobLocation && (
             <Mapbox.MarkerView coordinate={[jobLocation.longitude, jobLocation.latitude]} anchor={{ x: 0.5, y: 1 }} allowOverlap={true}>
               <View style={styles.markerWrap}>
                 <View style={styles.markerLabelContainer}>
@@ -645,6 +665,13 @@ export const OrderTrackingScreen: React.FC = () => {
             <Icon name="directions" size={ms(18)} color={colors.primary.main} />
           </TouchableOpacity>
         </View>
+
+        {!isMapReady && (
+          <View style={styles.mapLoadingOverlay}>
+            <ActivityIndicator size="large" color={colors.primary.main} />
+            <Text style={styles.mapLoadingText}>Loading map...</Text>
+          </View>
+        )}
 
       </Animated.View>
 
@@ -824,6 +851,8 @@ const styles = StyleSheet.create({
 
   mapWrap: { overflow: 'hidden' },
   map: { flex: 1 },
+  mapLoadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center' },
+  mapLoadingText: { marginTop: ms(10), fontSize: ms(14), fontFamily: fontFamily.medium, color: '#757575' },
 
   header: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: ms(12), gap: ms(10) },
   backBtn: { width: ms(42), height: ms(42), borderRadius: ms(21), backgroundColor: colors.semiTransparent.black40, justifyContent: 'center', alignItems: 'center' },

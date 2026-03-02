@@ -15,7 +15,9 @@ import { ms, spacing } from '../../utils/responsive';
 import { useTheme } from '../../contexts/ThemeContext';
 
 // Detail screen names that should NOT highlight any tab
+// Note: Do NOT include initial/main screens of each tab here (OrderList, SettingsMain, etc.)
 const DETAIL_SCREEN_NAMES = [
+  // Order detail screens
   'OrderDetail',
   'OrderDetailInTab',
   'TicketDetail',
@@ -28,8 +30,12 @@ const DETAIL_SCREEN_NAMES = [
   'ProductCode',
   'EvaporationList',
   'OrderProductDetails',
-  'SettingsMain',
+  // Settings sub-screens
   'Profile',
+  'EditProfile',
+  'ChangePassword',
+  'ChangePIN',
+  'WebView',
   'Appearance',
   'NotificationSettings',
   'Security',
@@ -254,15 +260,32 @@ const TabItem: React.FC<TabItemProps> = ({
       return;
     }
 
+    const initialScreen = getInitialScreenForTab(route.name);
+
     // Check if we're on a detail screen - if so, always navigate to reset the tab
     if (onDetailScreen) {
       // Navigate to the tab and reset to its initial screen
-      navigation.navigate(route.name, {
-        screen: getInitialScreenForTab(route.name),
-      });
+      if (initialScreen) {
+        navigation.navigate(route.name, { screen: initialScreen });
+      } else {
+        // For tabs without nested navigators (Home, Notifications)
+        navigation.navigate(route.name);
+      }
     } else if (!isFocused) {
-      // Normal navigation when not focused
-      navigation.navigate(route.name, route.params);
+      // Normal navigation when switching tabs
+      if (initialScreen) {
+        navigation.navigate(route.name, { screen: initialScreen });
+      } else {
+        navigation.navigate(route.name);
+      }
+    } else {
+      // Already on this tab's main screen - still navigate to ensure responsiveness
+      // This handles cases where navigation state might be stale
+      if (initialScreen) {
+        navigation.navigate(route.name, { screen: initialScreen });
+      } else {
+        navigation.navigate(route.name);
+      }
     }
   };
 

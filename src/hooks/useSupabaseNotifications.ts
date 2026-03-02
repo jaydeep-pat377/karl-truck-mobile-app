@@ -16,9 +16,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { AppState, AppStateStatus, Platform, PermissionsAndroid } from 'react-native';
 import { createClient, RealtimeChannel } from '@supabase/supabase-js';
-import notifee, { AndroidImportance, AuthorizationStatus } from '@notifee/react-native';
+import notifee, { AndroidImportance, AndroidVisibility } from '@notifee/react-native';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import 'react-native-url-polyfill/auto';
+
+const CHANNEL_ID = 'truckast_heads_up';
 
 // Supabase credentials (Notification Supabase instance - separate from main app)
 const SUPABASE_URL = 'https://tabpplqpetdgruqmliix.supabase.co';
@@ -206,47 +208,13 @@ export function useSupabaseNotifications({
     return () => clearInterval(interval);
   }, []);
 
-  // Request notification permission (required for Android 13+ and iOS)
+  // Request notification permission using Notifee (works for both Android and iOS)
   const requestNotificationPermission = useCallback(async (): Promise<boolean> => {
     try {
-      if (Platform.OS === 'android') {
-        // Android < 13: notifications are enabled by default
-        if (Platform.Version < 33) {
-          console.log('[useSupabaseNotifications] Android < 13: notifications enabled by default');
-          return true;
-        }
-
-        // Android 13+: check if already granted
-        const alreadyGranted = await PermissionsAndroid.check(
-          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-        );
-
-        if (alreadyGranted) {
-          console.log('[useSupabaseNotifications] Android notification permission: already granted');
-          return true;
-        }
-
-        // Request permission if not granted
-        const permission = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-        );
-        const granted = permission === PermissionsAndroid.RESULTS.GRANTED;
-        console.log('[useSupabaseNotifications] Android notification permission:', granted ? 'granted' : 'denied');
-        return granted;
-      } else {
-        // iOS - check current settings first
-        const currentSettings = await notifee.getNotificationSettings();
-        if (currentSettings.authorizationStatus >= AuthorizationStatus.AUTHORIZED) {
-          console.log('[useSupabaseNotifications] iOS notification permission: already granted');
-          return true;
-        }
-
-        // Request permission if not granted
-        const settings = await notifee.requestPermission();
-        const granted = settings.authorizationStatus >= AuthorizationStatus.AUTHORIZED;
-        console.log('[useSupabaseNotifications] iOS notification permission:', granted ? 'granted' : 'denied');
-        return granted;
-      }
+      const settings = await notifee.requestPermission();
+      const authorized = settings.authorizationStatus >= 1;
+      console.log('[useSupabaseNotifications] Notification permission:', authorized ? 'granted' : 'denied');
+      return authorized;
     } catch (error) {
       console.error('[useSupabaseNotifications] Error requesting notification permission:', error);
       return false;
@@ -258,7 +226,7 @@ export function useSupabaseNotifications({
     requestNotificationPermission();
   }, [requestNotificationPermission]);
 
-  // Show local notification when app is in foreground
+  // Show local notification when app is in foreground using Notifee
   const showLocalNotification = useCallback(async (notification: Notification) => {
     console.log('[useSupabaseNotifications] 📱 Attempting to show local notification...');
     console.log('[useSupabaseNotifications] App state:', appStateRef.current);
@@ -270,39 +238,50 @@ export function useSupabaseNotifications({
     }
 
     try {
-      console.log('[useSupabaseNotifications] Creating notification channel...');
-      const channelId = await notifee.createChannel({
-        id: 'truckast_notifications',
-        name: 'Truckast Notifications',
-        importance: AndroidImportance.HIGH,
-        sound: 'default',
-      });
-      console.log('[useSupabaseNotifications] Channel created:', channelId);
+      // Create channel for Android with HIGH importance for heads-up
+      if (Platform.OS === 'android') {
+        await notifee.createChannel({
+          id: CHANNEL_ID,
+          name: 'TruckAst Alerts',
+          importance: AndroidImportance.HIGH,
+          visibility: AndroidVisibility.PUBLIC,
+          sound: 'default',
+          vibration: true,
+        });
+      }
 
       console.log('[useSupabaseNotifications] Displaying notification:', {
         title: notification.subject,
         body: notification.body,
       });
 
-      const notificationId = await notifee.displayNotification({
+      await notifee.displayNotification({
         title: notification.subject || 'New Notification',
         body: notification.body || '',
-        android: {
-          channelId,
-          smallIcon: 'ic_launcher',
-          pressAction: { id: 'default' },
-          sound: 'default',
-        },
-        ios: {
-          sound: 'default',
-        },
         data: {
           notification_id: String(notification.id),
           event_code: notification.event_code || '',
         },
+        android: {
+          channelId: CHANNEL_ID,
+          importance: AndroidImportance.HIGH,
+          visibility: AndroidVisibility.PUBLIC,
+          pressAction: { id: 'default' },
+          smallIcon: 'ic_launcher',
+          sound: 'default',
+        },
+        ios: {
+          sound: 'default',
+          foregroundPresentationOptions: {
+            badge: true,
+            sound: true,
+            banner: true,
+            list: true,
+          },
+        },
       });
 
-      console.log('[useSupabaseNotifications] ✅ Notification displayed with ID:', notificationId);
+      console.log('[useSupabaseNotifications] ✅ Notification displayed');
     } catch (err) {
       console.error('[useSupabaseNotifications] ❌ Failed to show local notification:', err);
     }

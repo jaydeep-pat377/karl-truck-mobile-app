@@ -1,29 +1,34 @@
 import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
-import notifee, { AndroidImportance } from '@notifee/react-native';
+import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 import { Platform } from 'react-native';
 import { useNotificationStore } from '../store/notificationStore';
-import { useAuthStore } from '../store/authStore';
-import { authService } from '../api/services/authService';
 import { AppNotification, NotificationType } from '../types/notification';
 import { navigateFromNotification, navigateToTab } from './navigationService';
 
-const CHANNEL_ID = 'truckast_default';
+const CHANNEL_ID = 'truckast_heads_up';
 
 class NotificationService {
   private unsubscribeOnMessage: (() => void) | null = null;
   private unsubscribeOnTokenRefresh: (() => void) | null = null;
   private unsubscribeOnNotificationOpened: (() => void) | null = null;
+  private channelCreated = false;
 
   async createNotificationChannel(): Promise<void> {
-    if (Platform.OS === 'android') {
-      await notifee.createChannel({
-        id: CHANNEL_ID,
-        name: 'TruckAst Notifications',
-        importance: AndroidImportance.HIGH,
-        sound: 'default',
-        vibration: true,
-        vibrationPattern: [300, 500],
-      });
+    if (Platform.OS === 'android' && !this.channelCreated) {
+      try {
+        await notifee.createChannel({
+          id: CHANNEL_ID,
+          name: 'TruckAst Notifications',
+          description: 'Important notifications from TruckAst',
+          importance: AndroidImportance.HIGH,
+          sound: 'default',
+          vibration: true,
+        });
+        this.channelCreated = true;
+        console.log('[Notifications] Notifee channel created:', CHANNEL_ID);
+      } catch (error) {
+        console.error('[Notifications] Error creating channel:', error);
+      }
     }
   }
 
@@ -33,9 +38,12 @@ class NotificationService {
     data?: Record<string, string>,
   ): Promise<void> {
     try {
+      console.log('[Notifications] displayNotification called:', { title, body });
 
+      // Ensure channel exists
       await this.createNotificationChannel();
 
+      // Display notification using Notifee
       const notificationId = await notifee.displayNotification({
         title,
         body,
@@ -43,16 +51,24 @@ class NotificationService {
         android: {
           channelId: CHANNEL_ID,
           importance: AndroidImportance.HIGH,
+          pressAction: {
+            id: 'default',
+          },
           smallIcon: 'ic_launcher',
-          largeIcon: 'ic_launcher',
-          pressAction: { id: 'default' },
           sound: 'default',
-          showTimestamp: true,
         },
         ios: {
           sound: 'default',
+          foregroundPresentationOptions: {
+            badge: true,
+            sound: true,
+            banner: true,
+            list: true,
+          },
         },
       });
+
+      console.log('[Notifications] Notification displayed with ID:', notificationId);
     } catch (error) {
       console.error('[Notifications] Error displaying notification:', error);
     }
@@ -61,8 +77,14 @@ class NotificationService {
   async requestPermission(): Promise<boolean> {
     try {
       console.log('[Notifications] Requesting permission...');
+
+      // Request FCM permission
       const authStatus = await messaging().requestPermission();
-      console.log('[Notifications] Auth status:', authStatus);
+      console.log('[Notifications] FCM Auth status:', authStatus);
+
+      // Also request Notifee permission
+      const notifeeSettings = await notifee.requestPermission();
+      console.log('[Notifications] Notifee permission:', notifeeSettings);
 
       const enabled =
         authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
@@ -76,7 +98,6 @@ class NotificationService {
 
       return enabled;
     } catch (error) {
-
       console.log('[Notifications] Permission request error:', error);
       return false;
     }
@@ -135,7 +156,6 @@ class NotificationService {
     }
   }
 
-
   async syncTokenToServer(_token?: string): Promise<boolean> {
     // Device token API is not available on the backend
     // Skip the API call until backend implements this endpoint
@@ -145,6 +165,7 @@ class NotificationService {
   setupListeners(): void {
     console.log('[Notifications] Setting up listeners...');
 
+    // Handle foreground FCM messages
     this.unsubscribeOnMessage = messaging().onMessage(
       async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
         console.log('[Notifications] Received foreground message:', JSON.stringify(remoteMessage, null, 2));
@@ -155,6 +176,7 @@ class NotificationService {
           console.log('[Notifications] Parsed notification:', notification);
           useNotificationStore.getState().addNotification(notification);
 
+          // Display notification using Notifee
           await this.displayNotification(
             notification.title,
             notification.body,
@@ -162,7 +184,7 @@ class NotificationService {
           );
         } else {
           console.log('[Notifications] Using data-only message');
-          const { data } : any = remoteMessage;
+          const { data }: any = remoteMessage;
           if (data?.title && data?.body) {
             await this.displayNotification(
               data.title,
@@ -174,20 +196,19 @@ class NotificationService {
       },
     );
 
-
+    // Handle token refresh
     this.unsubscribeOnTokenRefresh = messaging().onTokenRefresh(
       async (token: string) => {
         console.log('[Notifications] Token refreshed, syncing...');
         useNotificationStore.getState().setFcmToken(token);
-
-
         await this.syncTokenToServer(token);
       },
     );
 
-
+    // Handle notification opened from background
     this.unsubscribeOnNotificationOpened = messaging().onNotificationOpenedApp(
       (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
+        console.log('[Notifications] App opened from notification:', remoteMessage);
         const notification = this.parseRemoteMessage(remoteMessage);
         if (notification) {
           useNotificationStore.getState().addNotification(notification);
@@ -195,16 +216,45 @@ class NotificationService {
         this.handleNotificationNavigation(remoteMessage);
       },
     );
+
+    // Setup Notifee foreground event handler
+    notifee.onForegroundEvent(({ type, detail }) => {
+      console.log('[Notifee] Foreground event:', type, detail);
+
+      if (type === EventType.PRESS) {
+        const { notification } = detail;
+        if (notification?.data) {
+          navigateFromNotification(notification.data as Record<string, string>);
+        } else {
+          navigateToTab('Notifications');
+        }
+      }
+    });
   }
 
   async checkInitialNotification(): Promise<void> {
+    // Check FCM initial notification
     const remoteMessage = await messaging().getInitialNotification();
     if (remoteMessage) {
+      console.log('[Notifications] FCM initial notification:', remoteMessage);
       const notification = this.parseRemoteMessage(remoteMessage);
       if (notification) {
         useNotificationStore.getState().addNotification(notification);
       }
       this.handleNotificationNavigation(remoteMessage);
+      return;
+    }
+
+    // Check Notifee initial notification
+    const initialNotification = await notifee.getInitialNotification();
+    if (initialNotification) {
+      console.log('[Notifee] Initial notification:', initialNotification);
+      const { notification } = initialNotification;
+      if (notification?.data) {
+        navigateFromNotification(notification.data as Record<string, string>);
+      } else {
+        navigateToTab('Notifications');
+      }
     }
   }
 
@@ -239,7 +289,6 @@ class NotificationService {
     // If deepLink is provided, use it directly
     if (data?.deepLink) {
       console.log('[Notifications] Deep link provided:', data.deepLink);
-      // Could add Linking.openURL support here for custom schemes
     }
 
     // If we have notification data, navigate based on event_code
@@ -259,7 +308,6 @@ class NotificationService {
     this.unsubscribeOnTokenRefresh = null;
     this.unsubscribeOnNotificationOpened = null;
   }
-
 
   async testLocalNotification(): Promise<void> {
     await this.createNotificationChannel();
