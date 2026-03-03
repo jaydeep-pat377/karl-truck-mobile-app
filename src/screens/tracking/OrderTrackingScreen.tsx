@@ -563,6 +563,27 @@ export const OrderTrackingScreen: React.FC = () => {
             }}
           />
 
+          {/* Plant marker renders first (behind trucks) */}
+          {isMapReady && plantLocation && (
+            <Mapbox.MarkerView coordinate={[plantLocation.longitude, plantLocation.latitude]} anchor={{ x: 0.5, y: 1 }} allowOverlap={true}>
+              <View style={styles.markerWrap}>
+                <View style={styles.markerLabelContainer}>
+                  <View style={[styles.markerLabel, { backgroundColor: colors.warning.main }]}>
+                    <Icon name="factory" size={ms(12)} color={colors.common.white} style={{ marginRight: ms(4) }} />
+                    <Text style={styles.markerLabelText} numberOfLines={1}>
+                      {trackingData?.plant?.description || 'Plant'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.plantMarker}>
+                  <Icon name="factory" size={ms(18)} color={colors.common.white} />
+                </View>
+                <View style={styles.plantArrow} />
+              </View>
+            </Mapbox.MarkerView>
+          )}
+
+          {/* Truck markers render after plant (always on top) */}
           {isMapReady && tickets.map(ticket => {
             // Don't show trucks that are at plant on the map
             if (!ticket.truck?.latitude || !ticket.truck?.longitude || ticket.status === 'at_plant') return null;
@@ -582,25 +603,6 @@ export const OrderTrackingScreen: React.FC = () => {
               </Mapbox.MarkerView>
             );
           })}
-
-          {isMapReady && plantLocation && (
-            <Mapbox.MarkerView coordinate={[plantLocation.longitude, plantLocation.latitude]} anchor={{ x: 0.5, y: 1 }} allowOverlap={true}>
-              <View style={styles.markerWrap}>
-                <View style={styles.markerLabelContainer}>
-                  <View style={[styles.markerLabel, { backgroundColor: colors.warning.main }]}>
-                    <Icon name="factory" size={ms(12)} color={colors.common.white} style={{ marginRight: ms(4) }} />
-                    <Text style={styles.markerLabelText} numberOfLines={1}>
-                      {trackingData?.plant?.description || 'Plant'}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.plantMarker}>
-                  <Icon name="factory" size={ms(18)} color={colors.common.white} />
-                </View>
-                <View style={styles.plantArrow} />
-              </View>
-            </Mapbox.MarkerView>
-          )}
 
           {isMapReady && jobLocation && (
             <Mapbox.MarkerView coordinate={[jobLocation.longitude, jobLocation.latitude]} anchor={{ x: 0.5, y: 1 }} allowOverlap={true}>
@@ -650,7 +652,7 @@ export const OrderTrackingScreen: React.FC = () => {
                 { key: 'to_job', color: colors.trackingStatus.toJob, label: 'To Job' },
                 { key: 'at_job', color: colors.trackingStatus.atJob, label: 'At Job' },
                 { key: 'pouring', color: colors.trackingStatus.poured, label: 'Pour' },
-                { key: 'ticketed_end', color: '#E91E63', label: 'Ticketed' },
+                { key: 'washing', color: colors.trackingStatus.washing, label: 'Wash' },
               ].map((status) => (
                 <View key={status.key} style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: status.color }]} />
@@ -870,13 +872,13 @@ const styles = StyleSheet.create({
 
   statusLegend: {
     position: 'absolute',
-    bottom: ms(16),
-    left: ms(12),
-    right: ms(70),
+    bottom: ms(12),
+    left: ms(8),
+    maxWidth: '50%',
     backgroundColor: colors.semiTransparent.darkGray90,
-    borderRadius: ms(10),
-    paddingHorizontal: ms(10),
-    paddingVertical: ms(8),
+    borderRadius: ms(8),
+    paddingHorizontal: ms(6),
+    paddingVertical: ms(6),
     shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -884,39 +886,47 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   statusLegendCollapsed: {
+    right: 'auto' as any,
     paddingHorizontal: ms(8),
     paddingVertical: ms(6),
   },
   legendHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: ms(6),
+    gap: ms(4),
   },
   legendTitle: {
     fontSize: ms(11),
     fontFamily: fontFamily.bold,
     color: colors.common.white,
+    flex: 1,
   },
   legendContent: {
-    marginTop: ms(8),
+    marginTop: ms(6),
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: ms(6),
+    justifyContent: 'flex-start',
+    rowGap: ms(6),
+    columnGap: ms(2),
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: '48%',
+    paddingVertical: ms(2),
   },
   legendDot: {
     width: ms(8),
     height: ms(8),
     borderRadius: ms(2),
     marginRight: ms(4),
+    flexShrink: 0,
   },
   legendLabel: {
-    fontSize: ms(10),
+    fontSize: ms(9),
     fontFamily: fontFamily.medium,
     color: colors.common.white,
+    flexShrink: 1,
   },
 
   mapControls: { position: 'absolute', right: ms(12), gap: ms(8) },

@@ -72,7 +72,7 @@ export const CreateChatRoomScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: themeColors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <View style={[styles.header, { borderBottomColor: themeColors.border }]}>
         <TouchableOpacity

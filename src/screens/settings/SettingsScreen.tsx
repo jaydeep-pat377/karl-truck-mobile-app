@@ -198,7 +198,7 @@ export const SettingsScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: themeColors.background }]}
-      edges={['top']}>
+      edges={['top', 'bottom']}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <TouchableOpacity

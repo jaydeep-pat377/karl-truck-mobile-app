@@ -37,7 +37,7 @@ interface ScreenContainerProps {
 
 export const ScreenContainer: React.FC<ScreenContainerProps> = ({
   children,
-  edges = ['top'],
+  edges = ['top', 'bottom'],
   backgroundColor,
   usePlainView = false,
   style,

@@ -500,7 +500,7 @@ const DashboardScreen: React.FC = () => {
   const DashboardSkeleton = () => {
     const shimmerColor = isDark ? colors.dark.cardElevated : colors.grey[10];
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={[]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['bottom']}>
         <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
           <Text variant="h2" style={{ color: themeColors.text.primary }}>
             Overview
@@ -569,7 +569,7 @@ const DashboardScreen: React.FC = () => {
     return (
       <SafeAreaView
         style={[styles.container, styles.loaderContainer, { backgroundColor: themeColors.background, paddingTop: insets.top }]}
-        edges={[]}
+        edges={['bottom']}
       >
         <Icon name="alert-circle-outline" size={48} color={colors.error.main} />
         <Text variant="h4" style={{ marginTop: spacing.md, color: colors.error.main }}>
@@ -591,7 +591,7 @@ const DashboardScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={[]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['bottom']}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <Text variant="h2" style={{ color: themeColors.text.primary }}>
           Overview
