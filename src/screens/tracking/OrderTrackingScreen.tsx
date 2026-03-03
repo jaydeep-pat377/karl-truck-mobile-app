@@ -169,8 +169,8 @@ export const OrderTrackingScreen: React.FC = () => {
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
   const [isLegendExpanded, setIsLegendExpanded] = useState(true);
 
-  const SHEET_MIN_HEIGHT = useMemo(() => screenHeight * 0.38, [screenHeight]);
-  const SHEET_MAX_HEIGHT = useMemo(() => screenHeight * 0.78, [screenHeight]);
+  const SHEET_MIN_HEIGHT = useMemo(() => screenHeight * 0.38 + insets.bottom, [screenHeight, insets.bottom]);
+  const SHEET_MAX_HEIGHT = useMemo(() => screenHeight * 0.78 + insets.bottom, [screenHeight, insets.bottom]);
 
   const sheetHeight = useRef(new Animated.Value(screenHeight * 0.38)).current;
   const lastGestureY = useRef(0);
@@ -681,7 +681,7 @@ export const OrderTrackingScreen: React.FC = () => {
 
       </Animated.View>
 
-      <Animated.View style={[styles.sheet, { height: sheetHeight, backgroundColor: themeColors.background }]}>
+      <Animated.View style={[styles.sheet, { height: sheetHeight, backgroundColor: themeColors.background, paddingBottom: insets.bottom }]}>
 
         <View {...panResponder.panHandlers}>
           <TouchableOpacity
@@ -804,7 +804,7 @@ export const OrderTrackingScreen: React.FC = () => {
             renderItem={({ item }) => renderTicketCard(item)}
             keyExtractor={(item) => item.ticket_id}
             style={styles.ticketsList}
-            contentContainerStyle={{ paddingBottom: insets.bottom + ms(16), flexGrow: 1 }}
+            contentContainerStyle={{ paddingBottom: ms(16), flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl

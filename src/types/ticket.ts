@@ -396,6 +396,23 @@ export interface OrderGraphs {
   trucks_on_job?: TrucksOnJobGraph;
 }
 
+export interface DelayDetailItem {
+  load_order: number;
+  ticket: string | null;
+  truck: string | null;
+  planned_on_job: string | null;
+  actual_on_job: string | null;
+  producer_delay: number;
+  begin_pour: string | null;
+  end_pour: string | null;
+  scheduled_end_pour: string | null;
+  spacing: number;
+  waiting_to_pour: number;
+  pour_min_over: number;
+  contractor_delay: number;
+  plus_load: boolean;
+}
+
 export interface OrderDetailsOrder {
   order_id: string;
   order_code: string;
@@ -436,6 +453,7 @@ export interface OrderDetailsOrder {
   notes_count?: number;
   graphs?: OrderGraphs;
   realtime_order_updates?: RealtimeOrderUpdates;
+  delay_details?: DelayDetailItem[];
 }
 
 export interface OrderDetailsApiData {

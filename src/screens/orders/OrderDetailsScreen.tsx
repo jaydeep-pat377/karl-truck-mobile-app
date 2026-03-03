@@ -2343,6 +2343,7 @@ export const OrderDetailsScreen: React.FC = () => {
           {/* Delay Details Table */}
           <DelayDetailsTable
             isDark={isDark}
+            data={orderDetails?.delay_details}
             onTicketPress={(ticketCode) => {
               // Navigate to ticket details when API is ready
               console.log('Ticket pressed:', ticketCode);

@@ -4,43 +4,13 @@ import { Text, Icon } from '../common';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, spacing } from '../../utils/responsive';
-
-interface DelayDetailsItem {
-  loadOrder: number;
-  ticket: string;
-  truck: string;
-  plannedOnJob: string;
-  actualOnJob: string;
-  producerDelay: number;
-  beginPour: string;
-  endPour: string;
-  scheduledEndPour: string;
-  spacing: number;
-  waitingToPour: number;
-  pourMinOver: number;
-  contractorDelay: number;
-  plusLoad: number;
-}
+import { DelayDetailItem } from '../../types/ticket';
 
 interface DelayDetailsTableProps {
   isDark?: boolean;
+  data?: DelayDetailItem[];
   onTicketPress?: (ticketCode: string) => void;
 }
-
-// Static mock data
-const MOCK_DATA: DelayDetailsItem[] = [
-  { loadOrder: 1, ticket: '23383391', truck: '205430', plannedOnJob: '04:00:00', actualOnJob: '03:45:26', producerDelay: 0, beginPour: '03:54:38', endPour: '04:08:12', scheduledEndPour: '04:10:00', spacing: 10, waitingToPour: 0, pourMinOver: 4, contractorDelay: 4, plusLoad: 0 },
-  { loadOrder: 2, ticket: '23383393', truck: '205259', plannedOnJob: '04:10:00', actualOnJob: '03:54:07', producerDelay: 0, beginPour: '04:08:48', endPour: '04:17:26', scheduledEndPour: '04:20:00', spacing: 10, waitingToPour: 0, pourMinOver: -1, contractorDelay: -1, plusLoad: 0 },
-  { loadOrder: 3, ticket: '23383394', truck: '205434', plannedOnJob: '04:20:00', actualOnJob: '04:05:33', producerDelay: 0, beginPour: '04:17:10', endPour: '04:34:52', scheduledEndPour: '04:30:00', spacing: 10, waitingToPour: 0, pourMinOver: 8, contractorDelay: 8, plusLoad: 0 },
-  { loadOrder: 4, ticket: '23383395', truck: '205425', plannedOnJob: '04:30:00', actualOnJob: '04:18:38', producerDelay: 0, beginPour: '04:25:26', endPour: '04:34:32', scheduledEndPour: '04:40:00', spacing: 10, waitingToPour: 0, pourMinOver: -1, contractorDelay: -1, plusLoad: 0 },
-  { loadOrder: 5, ticket: '23383396', truck: '205377', plannedOnJob: '04:40:00', actualOnJob: '04:30:37', producerDelay: 0, beginPour: '04:46:39', endPour: '04:46:42', scheduledEndPour: '04:50:00', spacing: 10, waitingToPour: 7, pourMinOver: -10, contractorDelay: -3, plusLoad: 0 },
-  { loadOrder: 6, ticket: '23383397', truck: '205176', plannedOnJob: '04:50:00', actualOnJob: '04:35:04', producerDelay: 0, beginPour: '04:47:42', endPour: '05:02:52', scheduledEndPour: '05:00:00', spacing: 10, waitingToPour: 0, pourMinOver: 5, contractorDelay: 5, plusLoad: 0 },
-  { loadOrder: 7, ticket: '23383398', truck: '205336', plannedOnJob: '05:00:00', actualOnJob: '04:45:07', producerDelay: 0, beginPour: '04:58:01', endPour: '05:06:43', scheduledEndPour: '05:10:00', spacing: 10, waitingToPour: 0, pourMinOver: -1, contractorDelay: -1, plusLoad: 0 },
-  { loadOrder: 8, ticket: '23383399', truck: '205430', plannedOnJob: '05:10:00', actualOnJob: '04:53:27', producerDelay: 0, beginPour: '05:06:53', endPour: '05:17:16', scheduledEndPour: '05:20:00', spacing: 10, waitingToPour: 0, pourMinOver: 0, contractorDelay: 0, plusLoad: 0 },
-  { loadOrder: 9, ticket: '23383400', truck: '205259', plannedOnJob: '05:20:00', actualOnJob: '05:02:37', producerDelay: 0, beginPour: '05:17:16', endPour: '05:25:07', scheduledEndPour: '05:30:00', spacing: 10, waitingToPour: 0, pourMinOver: -2, contractorDelay: -2, plusLoad: 0 },
-  { loadOrder: 10, ticket: '23383401', truck: '205434', plannedOnJob: '05:30:00', actualOnJob: '05:11:20', producerDelay: 0, beginPour: '05:25:24', endPour: '05:37:13', scheduledEndPour: '05:40:00', spacing: 10, waitingToPour: 0, pourMinOver: 2, contractorDelay: 2, plusLoad: 0 },
-  { loadOrder: 11, ticket: '23383402', truck: '205425', plannedOnJob: '05:40:00', actualOnJob: '05:26:02', producerDelay: 0, beginPour: '05:37:14', endPour: '05:51:31', scheduledEndPour: '05:50:00', spacing: 10, waitingToPour: 0, pourMinOver: 4, contractorDelay: 4, plusLoad: 0 },
-];
 
 const getDelayColor = (value: number): string => {
   if (value > 0) return colors.error.main;
@@ -54,7 +24,19 @@ const getDelayBgColor = (value: number, isDark: boolean): string => {
   return isDark ? colors.grey[80] : colors.grey[10];
 };
 
-const formatTime = (time: string): string => {
+// Format ISO timestamp or time string to HH:MM format
+const formatTime = (time: string | null | undefined): string => {
+  if (!time) return '--:--';
+
+  // Check if it's an ISO timestamp
+  if (time.includes('T')) {
+    const date = new Date(time);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+
+  // Handle HH:MM:SS format
   const parts = time.split(':');
   if (parts.length >= 2) {
     return `${parts[0]}:${parts[1]}`;
@@ -64,6 +46,7 @@ const formatTime = (time: string): string => {
 
 export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
   isDark = false,
+  data = [],
   onTicketPress,
 }) => {
   const [showAll, setShowAll] = useState(false);
@@ -77,11 +60,16 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
     border: isDark ? colors.grey[70] : colors.grey[15],
   };
 
-  const displayData = showAll ? MOCK_DATA : MOCK_DATA.slice(0, 1);
+  // Don't render if no data
+  if (!data || data.length === 0) {
+    return null;
+  }
 
-  const renderCard = ({ item, index }: { item: DelayDetailsItem; index: number }) => {
-    const hasDelay = item.contractorDelay > 0 || item.producerDelay > 0;
-    const isEarly = item.contractorDelay < 0;
+  const displayData = showAll ? data : data.slice(0, 1);
+
+  const renderCard = ({ item, index }: { item: DelayDetailItem; index: number }) => {
+    const hasDelay = item.contractor_delay > 0 || item.producer_delay > 0;
+    const isEarly = item.contractor_delay < 0;
 
     return (
       <View style={[
@@ -96,22 +84,24 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
           <View style={styles.cardHeaderLeft}>
             <View style={[styles.loadBadge, { backgroundColor: colors.primary.main + '15' }]}>
               <Text style={[styles.loadBadgeText, { color: colors.primary.main }]}>
-                Load {item.loadOrder}
+                Load {item.load_order}
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => onTicketPress?.(item.ticket)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.ticketText, { color: colors.info.main }]}>
-                #{item.ticket}
-              </Text>
-            </TouchableOpacity>
+            {item.ticket && (
+              <TouchableOpacity
+                onPress={() => onTicketPress?.(item.ticket!)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.ticketText, { color: colors.info.main }]}>
+                  #{item.ticket}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
           <View style={styles.cardHeaderRight}>
             <Icon name="truck-outline" size={ms(14)} color={themeColors.textSecondary} />
             <Text style={[styles.truckText, { color: themeColors.text }]}>
-              {item.truck}
+              {item.truck || 'N/A'}
             </Text>
           </View>
         </View>
@@ -121,41 +111,41 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
           <View style={styles.timeRow}>
             <View style={styles.timeItem}>
               <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>Planned</Text>
-              <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.plannedOnJob)}</Text>
+              <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.planned_on_job)}</Text>
             </View>
             <View style={styles.timeItem}>
               <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>Actual</Text>
-              <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.actualOnJob)}</Text>
+              <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.actual_on_job)}</Text>
             </View>
             <View style={styles.timeItem}>
               <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>Begin Pour</Text>
-              <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.beginPour)}</Text>
+              <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.begin_pour)}</Text>
             </View>
             <View style={styles.timeItem}>
               <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>End Pour</Text>
-              <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.endPour)}</Text>
+              <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.end_pour)}</Text>
             </View>
           </View>
         </View>
 
         {/* Delay Metrics */}
         <View style={styles.metricsSection}>
-          <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.producerDelay, isDark) }]}>
+          <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.producer_delay, isDark) }]}>
             <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Producer</Text>
-            <Text style={[styles.metricValue, { color: getDelayColor(item.producerDelay) }]}>
-              {item.producerDelay > 0 ? '+' : ''}{item.producerDelay} min
+            <Text style={[styles.metricValue, { color: getDelayColor(item.producer_delay) }]}>
+              {item.producer_delay > 0 ? '+' : ''}{item.producer_delay} min
             </Text>
           </View>
-          <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.contractorDelay, isDark) }]}>
+          <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.contractor_delay, isDark) }]}>
             <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Contractor</Text>
-            <Text style={[styles.metricValue, { color: getDelayColor(item.contractorDelay) }]}>
-              {item.contractorDelay > 0 ? '+' : ''}{item.contractorDelay} min
+            <Text style={[styles.metricValue, { color: getDelayColor(item.contractor_delay) }]}>
+              {item.contractor_delay > 0 ? '+' : ''}{item.contractor_delay} min
             </Text>
           </View>
-          <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.waitingToPour, isDark) }]}>
+          <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.waiting_to_pour, isDark) }]}>
             <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Waiting</Text>
-            <Text style={[styles.metricValue, { color: getDelayColor(item.waitingToPour) }]}>
-              {item.waitingToPour} min
+            <Text style={[styles.metricValue, { color: getDelayColor(item.waiting_to_pour) }]}>
+              {item.waiting_to_pour} min
             </Text>
           </View>
           <View style={[styles.metricItem, { backgroundColor: isDark ? colors.grey[80] : colors.grey[10] }]}>
@@ -179,7 +169,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
         </View>
         <View style={[styles.countBadge, { backgroundColor: colors.primary.main + '15' }]}>
           <Text style={[styles.countText, { color: colors.primary.main }]}>
-            {MOCK_DATA.length}
+            {data.length}
           </Text>
         </View>
       </View>
@@ -187,21 +177,21 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
       {/* Cards */}
       <View style={styles.cardsContainer}>
         {displayData.map((item, index) => (
-          <React.Fragment key={item.loadOrder}>
+          <React.Fragment key={`${item.load_order}-${item.ticket || index}`}>
             {renderCard({ item, index })}
           </React.Fragment>
         ))}
       </View>
 
       {/* See More Button */}
-      {MOCK_DATA.length > 1 && (
+      {data.length > 1 && (
         <TouchableOpacity
           style={styles.seeMoreButton}
           onPress={() => setShowAll(!showAll)}
           activeOpacity={0.7}
         >
           <Text style={[styles.seeMoreText, { color: colors.primary.main }]}>
-            {showAll ? 'See Less' : `See More (${MOCK_DATA.length - 1} more)`}
+            {showAll ? 'See Less' : `See More (${data.length - 1} more)`}
           </Text>
           <Icon
             name={showAll ? 'chevron-up' : 'chevron-down'}
