@@ -117,7 +117,7 @@ const AnimatedInput: React.FC<{
           placeholderTextColor={isDark ? colors.grey[60] : colors.grey[50]}
           style={[
             styles.input,
-            { color: isDark ? colors.common.white : colors.grey[90] },
+            { color: isDark ? colors.common.white : colors.grey[100] },
           ]}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
@@ -345,7 +345,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
                 variant="h2"
                 style={[
                   styles.welcomeTitle,
-                  { color: isDark ? colors.common.white : colors.grey[90] },
+                  { color: isDark ? colors.common.white : colors.grey[100] },
                 ]}>
                 {t('auth.welcomeBack')}
               </Text>
@@ -661,9 +661,11 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   loginButtonGradient: {
-    paddingVertical: ms(12),
+    paddingVertical: ms(16),
+    minHeight: ms(52),
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
   },
   loginButtonText: {
     fontWeight: '700',

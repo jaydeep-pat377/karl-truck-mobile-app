@@ -18,6 +18,9 @@ pod 'GoogleUtilities', :modular_headers => true
 pod 'GoogleDataTransport', :modular_headers => true
 pod 'nanopb', :modular_headers => true
 
+# Push Notification iOS requires modular headers for Swift import
+pod 'RNCPushNotificationIOS', :path => '../node_modules/@react-native-community/push-notification-ios', :modular_headers => true
+
 # Mapbox configuration
 $RNMapboxMapsImpl = 'mapbox'
 

@@ -99,7 +99,7 @@ const AnimatedInput: React.FC<{
           placeholderTextColor={isDark ? colors.grey[60] : colors.grey[50]}
           style={[
             styles.input,
-            { color: isDark ? colors.common.white : colors.grey[90] },
+            { color: isDark ? colors.common.white : colors.grey[100] },
           ]}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
@@ -272,7 +272,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
                 variant="h2"
                 style={[
                   styles.title,
-                  { color: isDark ? colors.common.white : colors.grey[90] },
+                  { color: isDark ? colors.common.white : colors.grey[100] },
                 ]}>
                 {t('auth.forgotPassword.title')}
               </Text>

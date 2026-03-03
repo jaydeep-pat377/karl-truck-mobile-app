@@ -273,7 +273,7 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
                   {/* Left Side - Text */}
                   <View style={styles.textContent}>
                     {/* Headline */}
-                    <Text style={[styles.headline, { color: isDark ? colors.common.white : colors.grey[90] }]}>
+                    <Text style={[styles.headline, { color: isDark ? colors.common.white : colors.grey[100] }]}>
                       {ad.headline}
                     </Text>
 

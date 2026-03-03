@@ -54,7 +54,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
   const themeColors = {
     card: isDark ? colors.dark.card : colors.common.white,
     cardElevated: isDark ? colors.dark.cardElevated : colors.grey[5],
-    text: isDark ? colors.common.white : colors.grey[90],
+    text: isDark ? colors.common.white : colors.grey[100],
     textSecondary: isDark ? colors.grey[40] : colors.grey[60],
     textHint: isDark ? colors.grey[50] : colors.grey[50],
     border: isDark ? colors.grey[70] : colors.grey[15],

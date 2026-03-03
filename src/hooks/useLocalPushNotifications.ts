@@ -1,12 +1,12 @@
 /**
  * Local Push Notifications Hook
  *
- * Handles local push notifications using react-native-push-notification.
+ * Handles local push notifications using @notifee/react-native.
  * Shows system-level notifications on the device.
  */
 import { useEffect, useRef, useCallback } from 'react';
 import { Platform } from 'react-native';
-import PushNotification from 'react-native-push-notification';
+import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 import { RealtimeNotificationItem } from './useRealtimeNotifications';
 
 // ---------------------
@@ -38,87 +38,65 @@ function getAndroidChannelId(type: RealtimeNotificationItem['type']): string {
 // ---------------------
 // Create Android notification channels
 // ---------------------
-function createAndroidChannels(): void {
+async function createAndroidChannels(): Promise<void> {
   if (Platform.OS !== 'android') return;
 
-  PushNotification.createChannel(
-    {
-      channelId: CHANNEL_IDS.orders,
-      channelName: 'Orders',
-      channelDescription: 'New orders, order updates, and order requests',
-      importance: 5, // MAX for heads-up
-      playSound: true,
-      soundName: 'default',
-      vibrate: true,
-    },
-    (created) => console.log(`[LocalPush] Orders channel created: ${created}`),
-  );
+  try {
+    await notifee.createChannel({
+      id: CHANNEL_IDS.orders,
+      name: 'Orders',
+      description: 'New orders, order updates, and order requests',
+      importance: AndroidImportance.HIGH,
+      sound: 'default',
+      vibration: true,
+    });
 
-  PushNotification.createChannel(
-    {
-      channelId: CHANNEL_IDS.trucks,
-      channelName: 'Trucks',
-      channelDescription: 'Truck arrivals, late trucks, and truck updates',
-      importance: 5, // MAX for heads-up
-      playSound: true,
-      soundName: 'default',
-      vibrate: true,
-    },
-    (created) => console.log(`[LocalPush] Trucks channel created: ${created}`),
-  );
+    await notifee.createChannel({
+      id: CHANNEL_IDS.trucks,
+      name: 'Trucks',
+      description: 'Truck arrivals, late trucks, and truck updates',
+      importance: AndroidImportance.HIGH,
+      sound: 'default',
+      vibration: true,
+    });
 
-  PushNotification.createChannel(
-    {
-      channelId: CHANNEL_IDS.alerts,
-      channelName: 'Alerts',
-      channelDescription: 'Critical alerts and quality notifications',
-      importance: 5, // MAX
-      playSound: true,
-      soundName: 'default',
-      vibrate: true,
-    },
-    (created) => console.log(`[LocalPush] Alerts channel created: ${created}`),
-  );
+    await notifee.createChannel({
+      id: CHANNEL_IDS.alerts,
+      name: 'Alerts',
+      description: 'Critical alerts and quality notifications',
+      importance: AndroidImportance.HIGH,
+      sound: 'default',
+      vibration: true,
+    });
 
-  PushNotification.createChannel(
-    {
-      channelId: CHANNEL_IDS.general,
-      channelName: 'General',
-      channelDescription: 'General notifications and updates',
-      importance: 5, // MAX for heads-up
-      playSound: true,
-      soundName: 'default',
-      vibrate: true,
-    },
-    (created) => console.log(`[LocalPush] General channel created: ${created}`),
-  );
+    await notifee.createChannel({
+      id: CHANNEL_IDS.general,
+      name: 'General',
+      description: 'General notifications and updates',
+      importance: AndroidImportance.HIGH,
+      sound: 'default',
+      vibration: true,
+    });
 
-  console.log('[LocalPush] Android channels created');
+    console.log('[LocalPush] Android channels created');
+  } catch (error) {
+    console.error('[LocalPush] Error creating channels:', error);
+  }
 }
 
 // ---------------------
 // Request notification permissions
 // ---------------------
 async function requestPermissions(): Promise<boolean> {
-  return new Promise((resolve) => {
-    PushNotification.checkPermissions((permissions) => {
-      if (permissions.alert) {
-        console.log('[LocalPush] Permission already granted');
-        resolve(true);
-      } else {
-        PushNotification.requestPermissions()
-          .then((result) => {
-            const granted = result.alert === true;
-            console.log('[LocalPush] Permission', granted ? 'granted' : 'denied');
-            resolve(granted);
-          })
-          .catch((error) => {
-            console.error('[LocalPush] Error requesting permission:', error);
-            resolve(false);
-          });
-      }
-    });
-  });
+  try {
+    const settings = await notifee.requestPermission();
+    const granted = settings.authorizationStatus >= 1; // AUTHORIZED or PROVISIONAL
+    console.log('[LocalPush] Permission', granted ? 'granted' : 'denied');
+    return granted;
+  } catch (error) {
+    console.error('[LocalPush] Error requesting permission:', error);
+    return false;
+  }
 }
 
 // ---------------------
@@ -149,57 +127,63 @@ export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps
       await requestPermissions();
 
       // Create Android channels
-      createAndroidChannels();
+      await createAndroidChannels();
     };
 
     initialize();
 
-    // Configure notification handler
-    PushNotification.configure({
-      onNotification: function (notification) {
-        console.log('[LocalPush] Notification received:', notification);
-        if (notification.userInteraction) {
-          console.log('[LocalPush] Notification pressed:', notification.id);
-          const data = notification.data;
-          if (data) {
-            onNotificationTapRef.current?.(data);
-          }
+    // Setup foreground event handler for notification taps
+    const unsubscribe = notifee.onForegroundEvent(({ type, detail }) => {
+      if (type === EventType.PRESS) {
+        console.log('[LocalPush] Notification pressed:', detail.notification?.id);
+        const data = detail.notification?.data;
+        if (data) {
+          onNotificationTapRef.current?.(data);
         }
-      },
-      popInitialNotification: true,
-      requestPermissions: false,
+      }
     });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // ---------------------
   // Show a local notification immediately
   // ---------------------
-  const showLocalNotification = useCallback((item: RealtimeNotificationItem) => {
+  const showLocalNotification = useCallback(async (item: RealtimeNotificationItem) => {
     try {
       const channelId = getAndroidChannelId(item.type);
 
-      PushNotification.localNotification({
+      await notifee.displayNotification({
         id: item.id,
-        channelId,
         title: item.title,
-        message: item.description,
-        userInfo: {
+        body: item.description,
+        data: {
           notificationId: item.id,
-          eventCode: item.eventCode,
+          eventCode: item.eventCode || '',
           type: item.type,
           entityType: item.entityType || '',
           entityId: item.entityId || '',
         },
-        playSound: true,
-        soundName: 'default',
-        smallIcon: 'ic_launcher',
-        largeIcon: 'ic_launcher',
-        vibrate: true,
-        vibration: 300,
-        priority: 'max',
-        importance: 'max',
-        visibility: 'public',
-        allowWhileIdle: true,
+        android: {
+          channelId,
+          importance: AndroidImportance.HIGH,
+          pressAction: {
+            id: 'default',
+          },
+          smallIcon: 'ic_launcher',
+          sound: 'default',
+        },
+        ios: {
+          sound: 'default',
+          foregroundPresentationOptions: {
+            badge: true,
+            sound: true,
+            banner: true,
+            list: true,
+          },
+        },
       });
 
       console.log('[LocalPush] Notification displayed:', item.id);
@@ -211,9 +195,9 @@ export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps
   // ---------------------
   // Update app icon badge count
   // ---------------------
-  const setBadgeCount = useCallback((count: number) => {
+  const setBadgeCount = useCallback(async (count: number) => {
     try {
-      PushNotification.setApplicationIconBadgeNumber(count);
+      await notifee.setBadgeCount(count);
       console.log('[LocalPush] Badge count set to:', count);
     } catch (error) {
       console.error('[LocalPush] Error setting badge count:', error);
@@ -223,9 +207,9 @@ export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps
   // ---------------------
   // Clear all notifications from tray
   // ---------------------
-  const clearAllNotifications = useCallback(() => {
+  const clearAllNotifications = useCallback(async () => {
     try {
-      PushNotification.cancelAllLocalNotifications();
+      await notifee.cancelAllNotifications();
       console.log('[LocalPush] All notifications cleared');
     } catch (error) {
       console.error('[LocalPush] Error clearing notifications:', error);
@@ -235,9 +219,9 @@ export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps
   // ---------------------
   // Cancel a specific notification
   // ---------------------
-  const cancelNotification = useCallback((notificationId: string) => {
+  const cancelNotification = useCallback(async (notificationId: string) => {
     try {
-      PushNotification.cancelLocalNotification(notificationId);
+      await notifee.cancelNotification(notificationId);
       console.log('[LocalPush] Notification cancelled:', notificationId);
     } catch (error) {
       console.error('[LocalPush] Error cancelling notification:', error);
