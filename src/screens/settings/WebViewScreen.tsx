@@ -30,6 +30,33 @@ export const WebViewScreen: React.FC = () => {
     navigation.goBack();
   };
 
+  // JavaScript to hide back button/link from webpage content
+  const injectedJS = `
+    (function() {
+      var style = document.createElement('style');
+      style.innerHTML = 'a[href*="back"], a:contains("Back"), [class*="back"], .back-link, .back-button, a[onclick*="back"], button:contains("Back") { display: none !important; } a svg { display: none !important; }';
+      document.head.appendChild(style);
+
+      // Hide elements containing "Back" text at the top
+      var links = document.querySelectorAll('a');
+      links.forEach(function(link) {
+        if (link.textContent.trim() === 'Back' || link.textContent.trim() === '← Back') {
+          link.style.display = 'none';
+        }
+      });
+
+      // Also try to hide by checking for back navigation patterns
+      var allElements = document.querySelectorAll('a, button, div');
+      allElements.forEach(function(el) {
+        var text = el.textContent.trim();
+        if ((text === 'Back' || text === '← Back' || text === '< Back') && el.tagName !== 'BODY') {
+          el.style.display = 'none';
+        }
+      });
+    })();
+    true;
+  `;
+
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={backgroundColor} />
@@ -64,6 +91,7 @@ export const WebViewScreen: React.FC = () => {
           onLoadStart={() => setIsLoading(true)}
           onLoadEnd={() => setIsLoading(false)}
           onLoadProgress={({ nativeEvent }) => setLoadProgress(nativeEvent.progress)}
+          injectedJavaScript={injectedJS}
           javaScriptEnabled
           domStorageEnabled
           startInLoadingState={false}

@@ -13,7 +13,6 @@ import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useLogout } from '../../hooks/useLogout';
 import { useProfile } from '../../hooks/useProfile';
 import { MainTabParamList } from '../../navigation/types';
-import { playMessageSound, initMessageSound, isSoundReady } from '../../utils/notificationSound';
 import { BiometricToggleItem } from '../../components/settings/BiometricToggleItem';
 
 interface SettingsItemProps {
@@ -67,10 +66,7 @@ const ThemeToggleItem: React.FC<ThemeToggleItemProps> = ({ onToggle }) => {
   const { t } = useTranslation();
 
   return (
-    <TouchableOpacity
-      style={styles.themeToggleItem}
-      onPress={onToggle}
-      activeOpacity={0.7}>
+    <View style={styles.themeToggleItem}>
       <View style={[
         styles.themeIconContainer,
         { backgroundColor: isDark ? colors.info.main + '20' : colors.warning.main + '20' }
@@ -93,7 +89,7 @@ const ThemeToggleItem: React.FC<ThemeToggleItemProps> = ({ onToggle }) => {
 
       <TouchableOpacity
         onPress={onToggle}
-        activeOpacity={0.8}
+        activeOpacity={1}
         style={[
           styles.themeToggleSwitch,
           { backgroundColor: isDark ? colors.primary.main : themeColors.border }
@@ -112,7 +108,7 @@ const ThemeToggleItem: React.FC<ThemeToggleItemProps> = ({ onToggle }) => {
           />
         </View>
       </TouchableOpacity>
-    </TouchableOpacity>
+    </View>
   );
 };
 
@@ -124,11 +120,6 @@ export const SettingsScreen: React.FC = () => {
   const { profile, isLoading: isProfileLoading, refetch: refetchProfile } = useProfile();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Initialize sound on mount
-  useEffect(() => {
-    initMessageSound();
-  }, []);
 
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -204,7 +195,7 @@ export const SettingsScreen: React.FC = () => {
           <TouchableOpacity
             style={[styles.headerButton, { backgroundColor: themeColors.surface }]}
             onPress={handleGoBack}
-            activeOpacity={0.7}
+            activeOpacity={1}
           >
             <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
           </TouchableOpacity>
@@ -212,7 +203,7 @@ export const SettingsScreen: React.FC = () => {
           <TouchableOpacity
             style={[styles.headerButton, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
             onPress={handleRefresh}
-            activeOpacity={0.7}
+            activeOpacity={1}
             disabled={isRefreshing}
           >
             {isRefreshing ? (
@@ -223,7 +214,7 @@ export const SettingsScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity activeOpacity={0.7} onPress={handleNavigateToEditProfile}>
+        <TouchableOpacity activeOpacity={1} onPress={handleNavigateToEditProfile}>
           <Card padding="sm" style={styles.profileCard}>
             <View style={styles.profileContent}>
               <View style={[styles.avatar, { backgroundColor: colors.primary.main }]}>
@@ -328,13 +319,6 @@ export const SettingsScreen: React.FC = () => {
           </Text>
           <Card padding="none">
             <ThemeToggleItem onToggle={toggleTheme} />
-            <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
-            <SettingsItem
-              icon="translate"
-              title={t('settings.language')}
-              subtitle="English"
-              onPress={() => { }}
-            />
           </Card>
         </View>
 
@@ -348,20 +332,6 @@ export const SettingsScreen: React.FC = () => {
               title={t('settings.notifications')}
               subtitle="Manage notification preferences"
               onPress={handleNavigateToNotifications}
-            />
-            <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
-            <SettingsItem
-              icon="volume-high"
-              title="Test Notification Sound"
-              subtitle={isSoundReady() ? "Tap to test if sound works" : "Loading sound..."}
-              onPress={() => {
-                const played = playMessageSound();
-                if (played) {
-                  Alert.alert('Sound Test', 'Notification sound played!');
-                } else {
-                  Alert.alert('Sound Test', 'Sound not ready or throttled. Try again.');
-                }
-              }}
             />
           </Card>
         </View>
@@ -388,12 +358,6 @@ export const SettingsScreen: React.FC = () => {
               icon="shield-outline"
               title={t('settings.privacyPolicy')}
               onPress={handleNavigateToPrivacyPolicy}
-            />
-            <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
-            <SettingsItem
-              icon="help-circle-outline"
-              title={t('settings.contactSupport')}
-              onPress={() => { }}
             />
           </Card>
         </View>
