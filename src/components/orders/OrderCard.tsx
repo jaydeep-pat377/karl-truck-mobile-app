@@ -14,6 +14,30 @@ import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, isSmallDevice, spacing } from '../../utils/responsive';
 import { getStatusColor, getProgressBarColor } from '../../utils/statusUtils';
+import { TicketTrackingStatus } from '../../types';
+
+// Get progress bar color based on recent ticket status
+const getTicketStatusColor = (status: TicketTrackingStatus | undefined): string | undefined => {
+  if (!status) return undefined;
+
+  const statusColorMap: Record<string, string> = {
+    pending: colors.trackingStatus.pending,
+    ticketed: colors.trackingStatus.ticketed,
+    loading: colors.trackingStatus.loading,
+    loaded: colors.trackingStatus.loaded,
+    to_job: colors.trackingStatus.toJob,
+    at_job: colors.trackingStatus.atJob,
+    pouring: colors.trackingStatus.pouring,
+    poured: colors.trackingStatus.poured,
+    washing: colors.trackingStatus.washing,
+    to_plant: colors.trackingStatus.toPlant,
+    at_plant: colors.trackingStatus.atPlant,
+    cancelled: colors.trackingStatus.cancelled,
+    voided: colors.trackingStatus.voided,
+  };
+
+  return statusColorMap[status];
+};
 
 interface OrderCardProps {
   order: any;
@@ -123,7 +147,9 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   const statusColor = getStatusColor(order.status, progress);
 
 
-  const progressBarColor = getProgressBarColor(order.status, progress);
+  // Use recent ticket status color if available, otherwise fall back to order status color
+  const ticketStatusColor = getTicketStatusColor(order.recentTicketStatus);
+  const progressBarColor = ticketStatusColor || getProgressBarColor(order.status, progress);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);

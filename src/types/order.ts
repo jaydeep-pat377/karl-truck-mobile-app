@@ -24,6 +24,21 @@ export interface PlantDetails {
   longitude?: number | null;
 }
 
+export type TicketTrackingStatus =
+  | 'pending'
+  | 'ticketed'
+  | 'loading'
+  | 'loaded'
+  | 'to_job'
+  | 'at_job'
+  | 'pouring'
+  | 'poured'
+  | 'washing'
+  | 'to_plant'
+  | 'at_plant'
+  | 'cancelled'
+  | 'voided';
+
 export interface Order {
   id: string;
   orderCode: string;
@@ -65,6 +80,7 @@ export interface Order {
   canChat?: boolean;
   canTicketed?: boolean;
   isFavorite?: boolean;
+  recentTicketStatus?: TicketTrackingStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -170,6 +186,13 @@ export interface ApiOrderLocation {
   longitude: number | null;
 }
 
+export interface ApiRecentTicket {
+  ticket_code: string;
+  status: string;
+  status_display: string;
+  truck_code: string;
+}
+
 export interface ApiOrder {
   order_id: string;
   order_code: string;
@@ -200,6 +223,7 @@ export interface ApiOrder {
   product_description?: string;
   weather_data: ApiOrderWeatherData | null;
   is_favourite: boolean;
+  recent_ticket?: ApiRecentTicket | null;
 }
 
 export interface OrdersPagination {

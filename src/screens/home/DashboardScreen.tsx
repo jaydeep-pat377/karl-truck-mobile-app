@@ -28,7 +28,6 @@ import { useDashboard } from '../../hooks/useDashboard';
 import { notificationService } from '../../services/notificationService';
 import { announcementService, Announcement as ApiAnnouncement } from '../../api/services';
 import { updateWidgetData } from '../../modules/TodayOverviewWidget';
-import { getProgressBarColor } from '../../utils/statusUtils';
 import { fontFamily } from '../../theme/typography';
 import { useAuthStore } from '../../store/authStore';
 
@@ -44,6 +43,8 @@ interface ActiveDelivery {
   remainingQty: number;
   progressPercent: number;
   status: string;
+  statusDisplay?: string;
+  orderStatus: string;
 }
 
 const defaultQuickLaunchActions: QuickLaunchAction[] = [
@@ -325,20 +326,37 @@ const DashboardScreen: React.FC = () => {
   const getStatusColor = (status: string) => {
     const normalizedStatus = status.toLowerCase().replace(/\s+/g, '_');
     switch (normalizedStatus) {
+      // Ticket tracking statuses
+      case 'pending':
+        return colors.trackingStatus.pending;
+      case 'ticketed':
+        return colors.trackingStatus.ticketed;
+      case 'loading':
+        return colors.trackingStatus.loading;
+      case 'loaded':
+        return colors.trackingStatus.loaded;
+      case 'to_job':
+        return colors.trackingStatus.toJob;
+      case 'at_job':
+        return colors.trackingStatus.atJob;
+      case 'pouring':
+        return colors.trackingStatus.pouring;
+      case 'poured':
+        return colors.trackingStatus.poured;
+      case 'washing':
+        return colors.trackingStatus.washing;
+      case 'to_plant':
+        return colors.trackingStatus.toPlant;
+      case 'at_plant':
+        return colors.trackingStatus.atPlant;
+      // Order level statuses
       case 'in_progress':
         return colors.primary.main;
       case 'completed':
         return colors.status.completed;
-      case 'enrt':
-      case 'en_route':
-        return colors.status.enRoute;
-      case 'onsit':
-      case 'on_site':
-        return colors.status.onSite;
-      case 'loading':
-        return colors.warning.main;
       case 'cancelled':
       case 'canceled':
+      case 'voided':
         return colors.error.main;
       case 'hold':
       case 'hold_delivery':
@@ -354,9 +372,9 @@ const DashboardScreen: React.FC = () => {
   );
 
   const renderDeliveryCard = ({ item, onPress }: { item: ActiveDelivery; onPress?: () => void }) => {
-    const statusColor = getStatusColor(item.status);
     const progressPercent = Math.min(item.progressPercent, 100);
-    const progressColor = getProgressBarColor(item.status, progressPercent);
+    // Use ticket tracking status color for progress bar and status badge
+    const progressColor = getStatusColor(item.status);
 
     // Safe formatter that handles null, undefined, and 0
     const formatQty = (qty: number | null | undefined): string => {
@@ -401,7 +419,7 @@ const DashboardScreen: React.FC = () => {
             </View>
             <View style={[styles.deliveryStatusBadge, { backgroundColor: `${progressColor}15` }]}>
               <View style={[styles.deliveryStatusDot, { backgroundColor: progressColor }]} />
-              <Text style={[styles.deliveryStatusText, { color: progressColor }]}>{item.status}</Text>
+              <Text style={[styles.deliveryStatusText, { color: progressColor }]}>{item.orderStatus}</Text>
             </View>
           </View>
 
@@ -747,14 +765,16 @@ const DashboardScreen: React.FC = () => {
                     deliveredQty: order.delivered_qty || 0,
                     remainingQty: order.remaining_qty || 0,
                     progressPercent: order.progress_percent || 0,
-                    status: order.status || 'Normal',
+                    status: order.recent_ticket?.status || order.status || 'Normal',
+                    statusDisplay: order.recent_ticket?.status_display || order.status || 'Normal',
+                    orderStatus: order.status || 'Normal',
                   };
                   return (
                     <View key={order.order_id} style={index === activeDeliveries.orders.length - 1 ? { marginRight: spacing.sm } : undefined}>
                       {renderDeliveryCard({
                         item: deliveryItem,
                         onPress: () => {
-                          const progressColor = getProgressBarColor(order.status, deliveryItem.progressPercent || 0);
+                          const statusBasedColor = getStatusColor(order.status);
                           // Navigate to OrderDetailInTab within Orders, but with sourceTab='Home'
                           // This keeps tab bar visible but the tab bar will detect this and not highlight any tab
                           navigation.navigate('Orders', {
@@ -764,7 +784,7 @@ const DashboardScreen: React.FC = () => {
                               orderCode: order.order_code,
                               orderDate: new Date().toISOString().split('T')[0],
                               status: order.status,
-                              progressColor: progressColor,
+                              progressColor: statusBasedColor,
                               sourceTab: 'Home',
                             },
                           });

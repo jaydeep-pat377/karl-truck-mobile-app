@@ -56,6 +56,13 @@ export interface TodayProgress {
   avg_status_percent: AvgStatusPercent;
 }
 
+export interface ActiveDeliveryRecentTicket {
+  ticket_code: string;
+  status: string;
+  status_display: string;
+  truck_code: string;
+}
+
 export interface ActiveDeliveryOrder {
   order_id: string;
   order_code: string;
@@ -68,6 +75,7 @@ export interface ActiveDeliveryOrder {
   remaining_qty: number;
   progress_percent: number;
   status: string;
+  recent_ticket?: ActiveDeliveryRecentTicket | null;
 }
 
 export interface ActiveDeliveriesPagination {

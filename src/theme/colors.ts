@@ -1,5 +1,4 @@
 export const colors = {
-  // Login Screen Colors
   login: {
     light: {
       loadingBg: '#f0f4f8',
@@ -253,20 +252,20 @@ export const colors = {
     plant: '#2f7ed8',
   },
   trackingStatus: {
-    pending: '#9E9E9E',        // gray
-    ticketed: '#FFC107',       // yellow
-    loading: '#FF9800',        // yellow orange
-    loaded: '#FF5722',         // orange
-    toJob: '#4CAF50',          // green
-    atJob: '#8BC34A',          // yellow green
-    pouring: '#009688',        // blue green (teal)
-    poured: '#2196F3',         // blue
-    washing: '#03A9F4',        // light blue
-    toPlant: '#9C27B0',        // violet
-    atPlant: '#a5244f',        // red violet
-    cancelled: '#F44336',      // red
-    voided: '#F44336',         // red
-    live: '#4CAF50',           // green
+    pending: '#9E9E9E',
+    ticketed: '#FFC107',
+    loading: '#FF9800',
+    loaded: '#FF5722',
+    toJob: '#8BC34A',
+    atJob: '#4CAF50',
+    pouring: '#009688',
+    poured: '#2196F3',
+    washing: '#03A9F4',
+    toPlant: '#9C27B0',
+    atPlant: '#a5244f',
+    cancelled: '#F44336',
+    voided: '#F44336',
+    live: '#4CAF50',
   },
   chat: {
     light: {

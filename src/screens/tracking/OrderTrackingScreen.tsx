@@ -82,20 +82,20 @@ const truckMarkerStyles = StyleSheet.create({
   },
   selectedRing: {
     position: 'absolute',
-    width: ms(75),
-    height: ms(75),
-    borderRadius: ms(40),
+    width: ms(55),
+    height: ms(55),
+    borderRadius: ms(28),
     backgroundColor: `${colors.primary.main}20`,
     borderWidth: 3,
     borderColor: colors.primary.main,
   },
   truckImage: {
-    width: ms(60),
-    height: ms(60),
+    width: ms(42),
+    height: ms(42),
   },
   truckImageSelected: {
-    width: ms(65),
-    height: ms(65),
+    width: ms(48),
+    height: ms(48),
   },
   loadBadge: {
     marginTop: ms(4),
@@ -576,7 +576,7 @@ export const OrderTrackingScreen: React.FC = () => {
                   </View>
                 </View>
                 <View style={styles.plantMarker}>
-                  <Icon name="factory" size={ms(18)} color={colors.common.white} />
+                  <Icon name="factory" size={ms(33)} color={colors.common.white} />
                 </View>
                 <View style={styles.plantArrow} />
               </View>
@@ -616,7 +616,7 @@ export const OrderTrackingScreen: React.FC = () => {
                   </View>
                 </View>
                 <View style={styles.jobMarker}>
-                  <Icon name="map-marker" size={ms(22)} color={colors.common.white} />
+                  <Icon name="map-marker" size={ms(37)} color={colors.common.white} />
                 </View>
                 <View style={styles.jobArrow} />
               </View>
@@ -637,7 +637,7 @@ export const OrderTrackingScreen: React.FC = () => {
         >
           <View style={styles.legendHeader}>
             <Icon name="information-outline" size={ms(14)} color={colors.common.white} />
-            {isLegendExpanded && <Text style={styles.legendTitle}>Status</Text>}
+            <Text style={styles.legendTitle}>Status</Text>
             <Icon
               name={isLegendExpanded ? 'chevron-up' : 'chevron-down'}
               size={ms(14)}
@@ -887,8 +887,9 @@ const styles = StyleSheet.create({
   },
   statusLegendCollapsed: {
     right: 'auto' as any,
-    paddingHorizontal: ms(8),
+    paddingHorizontal: ms(10),
     paddingVertical: ms(6),
+    minWidth: ms(90),
   },
   legendHeader: {
     flexDirection: 'row',
@@ -899,7 +900,6 @@ const styles = StyleSheet.create({
     fontSize: ms(11),
     fontFamily: fontFamily.bold,
     color: colors.common.white,
-    flex: 1,
   },
   legendContent: {
     marginTop: ms(6),
@@ -940,9 +940,9 @@ const styles = StyleSheet.create({
   markerLabelContainer: { marginBottom: ms(4) },
   markerLabel: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: ms(8), paddingVertical: ms(4), borderRadius: ms(6), maxWidth: ms(180), shadowColor: colors.common.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3, elevation: 4 },
   markerLabelText: { fontSize: ms(11), fontFamily: fontFamily.semiBold, color: colors.common.white, textAlign: 'center' },
-  plantMarker: { width: ms(40), height: ms(40), borderRadius: ms(20), backgroundColor: colors.mapMarker.plant, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: colors.common.white, shadowColor: colors.common.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
+  plantMarker: { width: ms(55), height: ms(55), borderRadius: ms(28), backgroundColor: colors.mapMarker.plant, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: colors.common.white, shadowColor: colors.common.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
   plantArrow: { width: 0, height: 0, borderLeftWidth: 7, borderRightWidth: 7, borderTopWidth: 9, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: colors.mapMarker.plant, marginTop: -3 },
-  jobMarker: { width: ms(40), height: ms(40), borderRadius: ms(20), backgroundColor: colors.mapMarker.jobSite, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: colors.common.white, shadowColor: colors.common.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
+  jobMarker: { width: ms(55), height: ms(55), borderRadius: ms(28), backgroundColor: colors.mapMarker.jobSite, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: colors.common.white, shadowColor: colors.common.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
   jobArrow: { width: 0, height: 0, borderLeftWidth: 7, borderRightWidth: 7, borderTopWidth: 9, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: colors.mapMarker.jobSite, marginTop: -3 },
   jobSiteLabel: { backgroundColor: colors.mapMarker.jobSite, paddingHorizontal: ms(8), paddingVertical: ms(3), borderRadius: ms(4), marginTop: ms(4), shadowColor: colors.common.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 3 },
   jobSiteLabelText: { fontSize: ms(10), fontFamily: fontFamily.semiBold, color: colors.common.white },

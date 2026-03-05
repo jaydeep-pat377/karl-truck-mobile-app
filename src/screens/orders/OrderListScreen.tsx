@@ -25,7 +25,7 @@ import { Text, Card, ListFooterLoader, TruckLoader, Icon } from '../../component
 import { OrderCard } from '../../components/orders';
 import { OrderStatusTabs } from '../../components/dashboard';
 import type { OrderStatusFilter, OrderStatusCount } from '../../components/dashboard';
-import { Order, ApiOrder, OrdersQueryParams, WeatherCondition } from '../../types';
+import { Order, ApiOrder, OrdersQueryParams, WeatherCondition, TicketTrackingStatus } from '../../types';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { spacing, ms, iconSizes, wp, hp } from '../../utils/responsive';
@@ -195,6 +195,7 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     canTicketed: apiOrder.can_ticketed,
     isFavorite: apiOrder.is_favourite ?? false,
     product_description: apiOrder.product_description || '',
+    recentTicketStatus: apiOrder.recent_ticket?.status as TicketTrackingStatus | undefined,
     createdAt: apiOrder.order_date,
     updatedAt: apiOrder.order_date,
   };

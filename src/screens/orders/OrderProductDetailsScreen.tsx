@@ -109,6 +109,8 @@ interface ScheduleDetailItem {
 
 interface ScheduledLoadItem {
   load_number: number;
+  load_status?: string;
+  load_status_code?: string;
   scheduled_time?: string;
   actual_time?: string | null;
   scheduled_qty?: string;
@@ -274,6 +276,8 @@ export const OrderProductDetailsScreen: React.FC = () => {
     })) || [];
     const scheduledLoads: ScheduledLoadItem[] = (orderDetails as any).scheduled_loads?.items?.map((l: any) => ({
       load_number: l.load_number,
+      load_status: l.load_status,
+      load_status_code: l.load_status_code,
       ticket_code: l.ticket_code,
       scheduled_qty: l.scheduled_qty,
       actual_qty: l.actual_qty,
@@ -689,7 +693,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 <Icon name="timer-sand" size={14} color={colors.secondary.main} />
                 <Text style={[styles.timingLabel, { color: themeColors.text.hint }]}>Spacing</Text>
                 <Text style={[styles.timingValue, { color: themeColors.text.primary }]}>
-                  {jobData.spacingMinutes > 0 ? `${jobData.spacingMinutes}m` : '-'}
+                  {jobData.spacingMinutes > 0 ? `${jobData.spacingMinutes} min` : '-'}
                 </Text>
               </View>
               <View style={[styles.timingDivider, { backgroundColor: themeColors.border }]} />
@@ -697,7 +701,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 <Icon name="speedometer" size={14} color={colors.primary.main} />
                 <Text style={[styles.timingLabel, { color: themeColors.text.hint }]}>Sched Rate</Text>
                 <Text style={[styles.timingValue, { color: themeColors.text.primary }]}>
-                  {jobData.scheduledRate > 0 ? `${jobData.scheduledRate}` : '-'}
+                  {jobData.scheduledRate > 0 ? `${jobData.scheduledRate} CY/HR` : '-'}
                 </Text>
               </View>
               <View style={[styles.timingDivider, { backgroundColor: themeColors.border }]} />
@@ -705,7 +709,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 <Icon name="clock-check-outline" size={14} color={colors.success.main} />
                 <Text style={[styles.timingLabel, { color: themeColors.text.hint }]}>Actual</Text>
                 <Text style={[styles.timingValue, { color: themeColors.text.primary }]}>
-                  {jobData.actualSpacingMinutes > 0 ? `${jobData.actualSpacingMinutes.toFixed(1)}m` : '-'}
+                  {jobData.actualSpacingMinutes > 0 ? `${jobData.actualSpacingMinutes.toFixed(1)} min` : '-'}
                 </Text>
               </View>
             </View>
@@ -741,73 +745,6 @@ export const OrderProductDetailsScreen: React.FC = () => {
 
           {/* Bottom spacer for proper padding */}
           <View style={{ height: GRID.md }} />
-        </View>
-
-        {/* Contact Details Card */}
-        <View style={[styles.card, { backgroundColor: themeColors.card }]}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardTitleRow}>
-              <View style={[styles.cardIconContainer, { backgroundColor: colors.info.main }]}>
-                <Icon name="office-building" size={16} color={colors.common.white} />
-              </View>
-              <Text style={[styles.cardTitle, { color: themeColors.text.primary }]}>
-                Contact Details
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.contactInfoContainer}>
-            <View style={styles.contactInfoRow}>
-              <View style={[styles.contactInfoIcon, { backgroundColor: colors.primary.main + '12' }]}>
-                <Icon name="domain" size={16} color={colors.primary.main} />
-              </View>
-              <View style={styles.contactInfoContent}>
-                <Text style={[styles.contactInfoLabel, { color: themeColors.text.hint }]}>Plant Name</Text>
-                <Text style={[styles.contactInfoValue, { color: themeColors.text.primary }]} numberOfLines={1}>
-                  {jobData.plantName}
-                </Text>
-                {jobData.plantCode ? (
-                  <Text style={[styles.contactInfoSubValue, { color: themeColors.text.secondary }]}>
-                    Code: {jobData.plantCode}
-                  </Text>
-                ) : null}
-              </View>
-            </View>
-
-            {(jobData.plantAddress1 || jobData.plantAddress2) && (
-              <View style={styles.contactInfoRow}>
-                <View style={[styles.contactInfoIcon, { backgroundColor: colors.secondary.main + '12' }]}>
-                  <Icon name="map-marker-outline" size={16} color={colors.secondary.main} />
-                </View>
-                <View style={styles.contactInfoContent}>
-                  <Text style={[styles.contactInfoLabel, { color: themeColors.text.hint }]}>Address</Text>
-                  <Text style={[styles.contactInfoValue, { color: themeColors.text.primary }]} numberOfLines={2}>
-                    {[jobData.plantAddress1, jobData.plantAddress2].filter(Boolean).join(', ')}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {jobData.plantPhone && (
-              <View style={styles.contactInfoRow}>
-                <View style={[styles.contactInfoIcon, { backgroundColor: colors.success.main + '12' }]}>
-                  <Icon name="phone-outline" size={16} color={colors.success.main} />
-                </View>
-                <View style={styles.contactInfoContent}>
-                  <Text style={[styles.contactInfoLabel, { color: themeColors.text.hint }]}>Phone</Text>
-                  <Text style={[styles.contactInfoValue, { color: themeColors.text.primary }]}>
-                    {jobData.plantPhone}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.callButton, { backgroundColor: colors.success.main + '12' }]}
-                  onPress={() => handleCall(jobData.plantPhone)}
-                  activeOpacity={0.7}>
-                  <Icon name="phone" size={18} color={colors.success.main} />
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
         </View>
 
         {/* Product SKU Details Card */}
@@ -876,7 +813,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                       <Icon name="clock-outline" size={ms(18)} color={colors.info.main} />
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
-                        {schedule.truck_space ? `${schedule.truck_space}m` : '-'}
+                        {schedule.truck_space ? `${schedule.truck_space} min` : '-'}
                       </Text>
                       <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Spacing</Text>
                     </View>
@@ -892,7 +829,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                       <ConcreteTruck width={ms(22)} height={ms(16)} color={colors.success.main} />
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
-                        {schedule.time_to_job ? `${schedule.time_to_job}m` : '-'}
+                        {schedule.time_to_job ? `${schedule.time_to_job} min` : '-'}
                       </Text>
                       <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>To Job</Text>
                     </View>
@@ -903,7 +840,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                       <ConcreteTruck width={ms(22)} height={ms(16)} color={colors.secondary.main} />
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
-                        {schedule.unload_time ? `${schedule.unload_time}m` : '-'}
+                        {schedule.unload_time ? `${schedule.unload_time} min` : '-'}
                       </Text>
                       <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Unload</Text>
                     </View>
@@ -911,7 +848,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                       <Icon name="water" size={ms(18)} color={colors.info.main} />
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
-                        {schedule.job_wash_time ? `${schedule.job_wash_time}m` : '-'}
+                        {schedule.job_wash_time ? `${schedule.job_wash_time} min` : '-'}
                       </Text>
                       <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Wash</Text>
                     </View>
@@ -919,7 +856,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                       <ConcreteTruck width={ms(22)} height={ms(16)} color={colors.warning.main} />
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
-                        {schedule.time_to_plant ? `${schedule.time_to_plant}m` : '-'}
+                        {schedule.time_to_plant ? `${schedule.time_to_plant} min` : '-'}
                       </Text>
                       <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>To Plant</Text>
                     </View>
@@ -1006,6 +943,71 @@ export const OrderProductDetailsScreen: React.FC = () => {
                   ))}
                 </View>
               )}
+
+              {/* Plant Details Section */}
+              <View style={[styles.associatedProductsSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
+                <View style={styles.associatedProductsHeader}>
+                  <View style={[styles.associatedProductsIconBox, { backgroundColor: isDark ? colors.info.main + '25' : colors.info.main + '12' }]}>
+                    <Icon name="office-building" size={ms(16)} color={colors.info.main} />
+                  </View>
+                  <Text style={[styles.associatedProductsTitle, { color: themeColors.text.primary }]}>
+                    Plant Details
+                  </Text>
+                </View>
+
+                <View style={[styles.productListItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3], borderColor: isDark ? themeColors.border : colors.grey[10] }]}>
+                  <View style={styles.contactInfoRow}>
+                    <View style={[styles.contactInfoIcon, { backgroundColor: colors.primary.main + '12' }]}>
+                      <Icon name="domain" size={16} color={colors.primary.main} />
+                    </View>
+                    <View style={styles.contactInfoContent}>
+                      <Text style={[styles.contactInfoLabel, { color: themeColors.text.hint }]}>Plant Name</Text>
+                      <Text style={[styles.contactInfoValue, { color: themeColors.text.primary }]} numberOfLines={1}>
+                        {jobData.plantName}
+                      </Text>
+                      {jobData.plantCode ? (
+                        <Text style={[styles.contactInfoSubValue, { color: themeColors.text.secondary }]}>
+                          Code: {jobData.plantCode}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+
+                  {(jobData.plantAddress1 || jobData.plantAddress2) && (
+                    <View style={[styles.contactInfoRow, { marginTop: GRID.sm }]}>
+                      <View style={[styles.contactInfoIcon, { backgroundColor: colors.secondary.main + '12' }]}>
+                        <Icon name="map-marker-outline" size={16} color={colors.secondary.main} />
+                      </View>
+                      <View style={styles.contactInfoContent}>
+                        <Text style={[styles.contactInfoLabel, { color: themeColors.text.hint }]}>Address</Text>
+                        <Text style={[styles.contactInfoValue, { color: themeColors.text.primary }]} numberOfLines={2}>
+                          {[jobData.plantAddress1, jobData.plantAddress2].filter(Boolean).join(', ')}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {jobData.plantPhone && (
+                    <View style={[styles.contactInfoRow, { marginTop: GRID.sm }]}>
+                      <View style={[styles.contactInfoIcon, { backgroundColor: colors.success.main + '12' }]}>
+                        <Icon name="phone-outline" size={16} color={colors.success.main} />
+                      </View>
+                      <View style={styles.contactInfoContent}>
+                        <Text style={[styles.contactInfoLabel, { color: themeColors.text.hint }]}>Phone</Text>
+                        <Text style={[styles.contactInfoValue, { color: themeColors.text.primary }]}>
+                          {jobData.plantPhone}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.callButton, { backgroundColor: colors.success.main + '12' }]}
+                        onPress={() => handleCall(jobData.plantPhone)}
+                        activeOpacity={0.7}>
+                        <Icon name="phone" size={18} color={colors.success.main} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              </View>
 
               {/* Scheduled Loads Button */}
               {jobData.scheduledLoads && jobData.scheduledLoads.length > 0 && (
@@ -1337,7 +1339,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: GRID.md,
-    marginBottom: GRID.sm,
     paddingVertical: GRID.sm,
     paddingHorizontal: GRID.md,
     borderRadius: ms(8),
@@ -1398,7 +1399,6 @@ const styles = StyleSheet.create({
   },
   skuScheduleSection: {
     padding: GRID.md,
-    borderTopWidth: 1,
   },
   skuScheduleTitle: {
     fontSize: ms(13),

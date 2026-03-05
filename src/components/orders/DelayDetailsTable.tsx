@@ -1,10 +1,37 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, FlatList, Modal, ScrollView } from 'react-native';
 import { Text, Icon } from '../common';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, spacing } from '../../utils/responsive';
 import { DelayDetailItem } from '../../types/ticket';
+
+const CALCULATION_INFO = [
+  {
+    label: 'Delivery Performance',
+    description: 'Actual Arrived - Scheduled On Job (minutes). Positive = late, 0 = on time.',
+  },
+  {
+    label: 'Pour Performance',
+    description: 'Waiting to Pour + Pour Minutes Over. Waiting = Begin Pour - MAX(Scheduled, Arrived). Pour Over = (End Pour - Begin Pour) - Spacing.',
+  },
+  {
+    label: 'Waiting to Pour',
+    description: 'Begin Pour - MAX(Scheduled On Job, Actual Arrived) (minutes)',
+  },
+  {
+    label: 'Pour Duration',
+    description: 'End Pour - Begin Pour (minutes)',
+  },
+  {
+    label: 'Pour Min Over',
+    description: 'Actual Pour Duration - Scheduled Spacing (minutes). Negative = faster than scheduled.',
+  },
+  {
+    label: 'Spacing',
+    description: 'Scheduled spacing between loads (Load Qty / Delivery Rate)',
+  },
+];
 
 interface DelayDetailsTableProps {
   isDark?: boolean;
@@ -24,24 +51,47 @@ const getDelayBgColor = (value: number, isDark: boolean): string => {
   return isDark ? colors.grey[80] : colors.grey[10];
 };
 
-// Format ISO timestamp or time string to HH:MM format
+// Format ISO timestamp or time string to HH:MM format with rounding at 30 seconds
 const formatTime = (time: string | null | undefined): string => {
   if (!time) return '--:--';
 
-  // Check if it's an ISO timestamp
+  let hours: number;
+  let minutes: number;
+  let seconds: number;
+
+  // Check if it's an ISO timestamp (e.g., "2026-03-04T16:29:55.000Z")
   if (time.includes('T')) {
-    const date = new Date(time);
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
+    const timePart = time.split('T')[1];
+    if (timePart) {
+      const timeOnly = timePart.split('.')[0]; // Remove milliseconds
+      const parts = timeOnly.split(':');
+      hours = parseInt(parts[0], 10);
+      minutes = parseInt(parts[1], 10);
+      seconds = parseInt(parts[2] || '0', 10);
+    } else {
+      return '--:--';
+    }
+  } else {
+    // Handle HH:MM:SS format
+    const parts = time.split(':');
+    hours = parseInt(parts[0], 10);
+    minutes = parseInt(parts[1], 10);
+    seconds = parseInt(parts[2] || '0', 10);
   }
 
-  // Handle HH:MM:SS format
-  const parts = time.split(':');
-  if (parts.length >= 2) {
-    return `${parts[0]}:${parts[1]}`;
+  // Round up if seconds >= 30
+  if (seconds >= 30) {
+    minutes += 1;
+    if (minutes >= 60) {
+      minutes = 0;
+      hours += 1;
+      if (hours >= 24) {
+        hours = 0;
+      }
+    }
   }
-  return time;
+
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
 export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
@@ -50,6 +100,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
   onTicketPress,
 }) => {
   const [showAll, setShowAll] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
   const themeColors = {
     card: isDark ? colors.dark.card : colors.common.white,
@@ -80,29 +131,34 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
         }
       ]}>
         {/* Card Header */}
-        <View style={styles.cardHeader}>
-          <View style={styles.cardHeaderLeft}>
-            <View style={[styles.loadBadge, { backgroundColor: colors.primary.main + '15' }]}>
-              <Text style={[styles.loadBadgeText, { color: colors.primary.main }]}>
-                Load {item.load_order}
-              </Text>
-            </View>
-            {item.ticket && (
-              <TouchableOpacity
-                onPress={() => onTicketPress?.(item.ticket!)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.ticketText, { color: colors.info.main }]}>
-                  #{item.ticket}
-                </Text>
-              </TouchableOpacity>
-            )}
+        <View style={styles.cardInfoRow}>
+          <View style={[styles.infoBadge, { backgroundColor: colors.primary.main + '15' }]}>
+            <Text style={[styles.infoLabel, { color: colors.primary.main }]}>Load</Text>
+            <Text style={[styles.infoValue, { color: colors.primary.main }]}>{item.load_order}</Text>
           </View>
-          <View style={styles.cardHeaderRight}>
-            <Icon name="truck-outline" size={ms(14)} color={themeColors.textSecondary} />
-            <Text style={[styles.truckText, { color: themeColors.text }]}>
-              {item.truck || 'N/A'}
-            </Text>
+          {item.load_qty && (
+            <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[70] : colors.grey[10] }]}>
+              <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]}>Qty</Text>
+              <Text style={[styles.infoValue, { color: themeColors.text }]}>{item.load_qty} CY</Text>
+            </View>
+          )}
+          <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[70] : colors.grey[10] }]}>
+            <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]}>Spacing</Text>
+            <Text style={[styles.infoValue, { color: themeColors.text }]}>{item.spacing} min</Text>
+          </View>
+          {item.ticket && (
+            <TouchableOpacity
+              style={[styles.infoBadge, { backgroundColor: colors.info.main + '15' }]}
+              onPress={() => onTicketPress?.(item.ticket!)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.infoLabel, { color: colors.info.main }]}>Ticket</Text>
+              <Text style={[styles.infoValue, { color: colors.info.main }]}>#{item.ticket}</Text>
+            </TouchableOpacity>
+          )}
+          <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[70] : colors.grey[10] }]}>
+            <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]}>Truck</Text>
+            <Text style={[styles.infoValue, { color: themeColors.text }]}>{item.truck || 'N/A'}</Text>
           </View>
         </View>
 
@@ -110,20 +166,24 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
         <View style={[styles.timeSection, { borderColor: themeColors.border }]}>
           <View style={styles.timeRow}>
             <View style={styles.timeItem}>
-              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>Planned</Text>
+              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{"Scheduled\nTime"}</Text>
               <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.planned_on_job)}</Text>
             </View>
             <View style={styles.timeItem}>
-              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>Actual</Text>
+              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{"Arrived\nTime"}</Text>
               <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.actual_on_job)}</Text>
             </View>
             <View style={styles.timeItem}>
-              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>Begin Pour</Text>
+              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{"Begin\nPour"}</Text>
               <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.begin_pour)}</Text>
             </View>
             <View style={styles.timeItem}>
-              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>End Pour</Text>
+              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{"End\nPour"}</Text>
               <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.end_pour)}</Text>
+            </View>
+            <View style={styles.timeItem}>
+              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{"Pour\nDuration"}</Text>
+              <Text style={[styles.timeValue, { color: colors.info.main }]}>{item.pour_duration} min</Text>
             </View>
           </View>
         </View>
@@ -131,27 +191,27 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
         {/* Delay Metrics */}
         <View style={styles.metricsSection}>
           <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.producer_delay, isDark) }]}>
-            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Producer</Text>
+            <View style={styles.metricLabelWrapper}>
+              <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Delivery Performance</Text>
+            </View>
             <Text style={[styles.metricValue, { color: getDelayColor(item.producer_delay) }]}>
               {item.producer_delay > 0 ? '+' : ''}{item.producer_delay} min
             </Text>
           </View>
           <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.contractor_delay, isDark) }]}>
-            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Contractor</Text>
+            <View style={styles.metricLabelWrapper}>
+              <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Pour Performance</Text>
+            </View>
             <Text style={[styles.metricValue, { color: getDelayColor(item.contractor_delay) }]}>
               {item.contractor_delay > 0 ? '+' : ''}{item.contractor_delay} min
             </Text>
           </View>
           <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.waiting_to_pour, isDark) }]}>
-            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Waiting</Text>
+            <View style={styles.metricLabelWrapper}>
+              <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Waiting</Text>
+            </View>
             <Text style={[styles.metricValue, { color: getDelayColor(item.waiting_to_pour) }]}>
               {item.waiting_to_pour} min
-            </Text>
-          </View>
-          <View style={[styles.metricItem, { backgroundColor: isDark ? colors.grey[80] : colors.grey[10] }]}>
-            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Spacing</Text>
-            <Text style={[styles.metricValue, { color: themeColors.text }]}>
-              {item.spacing} min
             </Text>
           </View>
         </View>
@@ -165,7 +225,14 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
           <Icon name="clock-alert-outline" size={ms(20)} color={colors.primary.main} />
-          <Text style={[styles.title, { color: themeColors.text }]}>Delay Details</Text>
+          <Text style={[styles.title, { color: themeColors.text }]}>Order Performance</Text>
+          <TouchableOpacity
+            style={styles.infoIconButton}
+            onPress={() => setShowInfoModal(true)}
+            activeOpacity={0.7}
+          >
+            <Icon name="information-outline" size={ms(14)} color={colors.info.main} />
+          </TouchableOpacity>
         </View>
         <View style={[styles.countBadge, { backgroundColor: colors.primary.main + '15' }]}>
           <Text style={[styles.countText, { color: colors.primary.main }]}>
@@ -173,6 +240,37 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
           </Text>
         </View>
       </View>
+
+      {/* Info Modal */}
+      <Modal
+        visible={showInfoModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowInfoModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowInfoModal(false)}
+        >
+          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Calculation Details</Text>
+              <TouchableOpacity onPress={() => setShowInfoModal(false)}>
+                <Icon name="close" size={ms(22)} color={themeColors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {CALCULATION_INFO.map((item, index) => (
+                <View key={index} style={[styles.infoItem, { borderBottomColor: themeColors.border }]}>
+                  <Text style={[styles.infoLabel, { color: colors.primary.main }]}>{item.label}</Text>
+                  <Text style={[styles.infoDescription, { color: themeColors.textSecondary }]}>{item.description}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Cards */}
       <View style={styles.cardsContainer}>
@@ -226,6 +324,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
+  infoIconButton: {
+    width: ms(24),
+    height: ms(24),
+    borderRadius: ms(12),
+    backgroundColor: colors.info.main + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   title: {
     fontSize: ms(16),
     fontFamily: fontFamily.semiBold,
@@ -247,43 +353,35 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderLeftWidth: 3,
   },
-  cardHeader: {
+  cardInfoRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'stretch',
+    gap: 3,
+  },
+  infoBadge: {
+    flex: 1,
+    flexShrink: 1,
+    paddingHorizontal: 2,
+    paddingVertical: spacing.xs,
+    borderRadius: ms(4),
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    justifyContent: 'center',
+    minWidth: 0,
   },
-  cardHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+  infoLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(6),
+    marginBottom: 1,
   },
-  cardHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  loadBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs / 2,
-    borderRadius: ms(6),
-  },
-  loadBadgeText: {
+  infoValue: {
     fontFamily: fontFamily.semiBold,
-    fontSize: ms(11),
-  },
-  ticketText: {
-    fontFamily: fontFamily.medium,
-    fontSize: ms(13),
-  },
-  truckText: {
-    fontFamily: fontFamily.medium,
-    fontSize: ms(12),
+    fontSize: ms(10),
+    textAlign: 'center',
   },
   timeSection: {
-    paddingVertical: spacing.sm,
     borderTopWidth: 1,
     borderBottomWidth: 1,
+    marginTop: spacing.sm,
     marginBottom: spacing.sm,
   },
   timeRow: {
@@ -292,16 +390,18 @@ const styles = StyleSheet.create({
   },
   timeItem: {
     alignItems: 'center',
+    justifyContent: 'center',
     flex: 1,
   },
   timeLabel: {
     fontFamily: fontFamily.regular,
     fontSize: ms(10),
     marginBottom: spacing.xs / 2,
+    textAlign: 'center',
   },
   timeValue: {
     fontFamily: fontFamily.semiBold,
-    fontSize: ms(12),
+    fontSize: ms(10),
   },
   metricsSection: {
     flexDirection: 'row',
@@ -310,14 +410,20 @@ const styles = StyleSheet.create({
   metricItem: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xs,
     borderRadius: ms(8),
   },
+  metricLabelWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   metricLabel: {
     fontFamily: fontFamily.regular,
     fontSize: ms(9),
-    marginBottom: spacing.xs / 2,
+    textAlign: 'center',
   },
   metricValue: {
     fontFamily: fontFamily.semiBold,
@@ -334,6 +440,54 @@ const styles = StyleSheet.create({
   seeMoreText: {
     fontFamily: fontFamily.semiBold,
     fontSize: ms(13),
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalContent: {
+    width: '100%',
+    maxHeight: '80%',
+    borderRadius: ms(16),
+    padding: spacing.md,
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.grey[20],
+  },
+  modalTitle: {
+    fontSize: ms(16),
+    fontFamily: fontFamily.bold,
+  },
+  modalBody: {
+    maxHeight: ms(400),
+  },
+  infoItem: {
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+  },
+  infoLabel: {
+    fontSize: ms(13),
+    fontFamily: fontFamily.semiBold,
+    marginBottom: spacing.xs,
+  },
+  infoDescription: {
+    fontSize: ms(12),
+    fontFamily: fontFamily.regular,
+    lineHeight: ms(18),
   },
 });
 

@@ -9,6 +9,8 @@ import { fontFamily } from '../../theme/typography';
 
 export interface ScheduledLoadItem {
   load_number: number;
+  load_status?: string;
+  load_status_code?: string;
   scheduled_time?: string;
   actual_time?: string | null;
   scheduled_qty?: string;
@@ -24,6 +26,24 @@ export interface ScheduledLoadItem {
   actual_wash_time?: string | null;
   actual_at_plant_time?: string | null;
 }
+
+// Status config for load status colors and icons
+const LOAD_STATUS_CONFIG: Record<string, { color: string; icon: string; label: string }> = {
+  pending: { color: colors.grey[50], icon: 'clock-outline', label: 'Pending' },
+  ticketed: { color: colors.trackingStatus.ticketed, icon: 'ticket-outline', label: 'Ticketed' },
+  loading: { color: colors.trackingStatus.loading, icon: 'package-variant', label: 'Loading' },
+  loaded: { color: colors.trackingStatus.loaded, icon: 'package-variant-closed', label: 'Loaded' },
+  to_job: { color: colors.trackingStatus.toJob, icon: 'truck-fast', label: 'To Job' },
+  at_job: { color: colors.trackingStatus.atJob, icon: 'map-marker-check', label: 'At Job' },
+  pouring: { color: colors.trackingStatus.pouring, icon: 'water', label: 'Pouring' },
+  begin_pour: { color: colors.trackingStatus.pouring, icon: 'water', label: 'Begin Pour' },
+  poured: { color: colors.trackingStatus.poured, icon: 'water-check', label: 'Poured' },
+  washing: { color: colors.trackingStatus.washing, icon: 'water-pump', label: 'Washing' },
+  to_plant: { color: colors.trackingStatus.toPlant, icon: 'arrow-u-left-top', label: 'To Plant' },
+  at_plant: { color: colors.trackingStatus.atPlant, icon: 'home-circle', label: 'At Plant' },
+  cancelled: { color: colors.error.main, icon: 'close-circle', label: 'Cancelled' },
+  voided: { color: colors.error.main, icon: 'close-circle', label: 'Voided' },
+};
 
 interface ScheduledLoadsBottomSheetProps {
   visible: boolean;
@@ -110,51 +130,62 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                   { backgroundColor: isDark ? themeColors.cardElevated : colors.common.white }
                 ]}
               >
-                {/* Card Header - Single Line */}
+                {/* Card Header */}
                 <View style={styles.loadCardHeader}>
-                  {/* Load Number */}
-                  <View style={[
-                    styles.loadBadge,
-                    {
-                      backgroundColor: isCompleted ? colors.success.main + '15' : colors.primary.main + '15',
-                      borderWidth: 1,
-                      borderColor: isCompleted ? colors.success.main : colors.primary.main
-                    }
-                  ]}>
-                    <Text style={[styles.loadBadgeText, { color: isCompleted ? colors.success.main : colors.primary.main }]}>#{load.load_number}</Text>
+                  {/* Left Group: Load Number, Quantity & Status */}
+                  <View style={styles.headerLeftGroup}>
+                    <View style={[
+                      styles.loadBadge,
+                      {
+                        backgroundColor: isCompleted ? colors.success.main + '15' : colors.primary.main + '15',
+                        borderWidth: 1,
+                        borderColor: isCompleted ? colors.success.main : colors.primary.main
+                      }
+                    ]}>
+                      <Text style={[styles.loadBadgeText, { color: isCompleted ? colors.success.main : colors.primary.main }]}>#{load.load_number}</Text>
+                    </View>
+                    <Text style={[styles.loadCardQtyText, { color: themeColors.text.primary }]} numberOfLines={1}>
+                      {load.scheduled_qty}
+                    </Text>
+                    {/* Status */}
+                    {load.load_status && (
+                      <View style={[styles.loadStatusTag, {
+                        backgroundColor: isDark
+                          ? (LOAD_STATUS_CONFIG[load.load_status_code || '']?.color || colors.grey[50]) + '20'
+                          : (LOAD_STATUS_CONFIG[load.load_status_code || '']?.color || colors.grey[50]) + '15'
+                      }]}>
+                        <Icon
+                          name={LOAD_STATUS_CONFIG[load.load_status_code || '']?.icon || 'circle-outline'}
+                          size={ms(10)}
+                          color={LOAD_STATUS_CONFIG[load.load_status_code || '']?.color || colors.grey[50]}
+                        />
+                        <Text
+                          style={[styles.loadStatusText, { color: LOAD_STATUS_CONFIG[load.load_status_code || '']?.color || colors.grey[50] }]}
+                        >
+                          {load.load_status}
+                        </Text>
+                      </View>
+                    )}
                   </View>
 
-                  {/* Quantity */}
-                  <Text style={[styles.loadCardQtyText, { color: themeColors.text.primary }]} numberOfLines={1}>
-                    {load.scheduled_qty}
-                  </Text>
+                  {/* Right Group: Ticket, Truck */}
+                  <View style={styles.headerRightGroup}>
+                    {/* Ticket */}
+                    {load.ticket_code && (
+                      <View style={[styles.loadTicketTag, { backgroundColor: isDark ? colors.secondary.main + '20' : colors.secondary.main + '12' }]}>
+                        <Icon name="ticket-outline" size={ms(10)} color={colors.secondary.main} />
+                        <Text style={[styles.loadTicketText, { color: colors.secondary.main }]}>{load.ticket_code}</Text>
+                      </View>
+                    )}
 
-                  {/* Spacer to push right items */}
-                  <View style={styles.headerSpacer} />
-
-                  {/* Status */}
-                  {isCompleted && (
-                    <View style={[styles.loadStatusTag, { backgroundColor: isDark ? colors.success.main + '20' : colors.success.main + '15' }]}>
-                      <Icon name="check-circle" size={ms(10)} color={colors.success.main} />
-                      <Text style={[styles.loadStatusText, { color: colors.success.main }]}>Done</Text>
-                    </View>
-                  )}
-
-                  {/* Ticket */}
-                  {load.ticket_code && (
-                    <View style={[styles.loadTicketTag, { backgroundColor: isDark ? colors.secondary.main + '20' : colors.secondary.main + '12' }]}>
-                      <Icon name="ticket-outline" size={ms(10)} color={colors.secondary.main} />
-                      <Text style={[styles.loadTicketText, { color: colors.secondary.main }]} numberOfLines={1}>{load.ticket_code}</Text>
-                    </View>
-                  )}
-
-                  {/* Truck */}
-                  {load.truck_code && (
-                    <View style={[styles.loadTruckTag, { backgroundColor: isDark ? colors.info.main + '20' : colors.info.main + '12' }]}>
-                      <ConcreteTruck width={ms(16)} height={ms(12)} color={colors.info.main} />
-                      <Text style={[styles.loadTruckText, { color: colors.info.main }]} numberOfLines={1}>{load.truck_code}</Text>
-                    </View>
-                  )}
+                    {/* Truck */}
+                    {load.truck_code && (
+                      <View style={[styles.loadTruckTag, { backgroundColor: isDark ? colors.info.main + '20' : colors.info.main + '12' }]}>
+                        <ConcreteTruck width={ms(16)} height={ms(12)} color={colors.info.main} />
+                        <Text style={[styles.loadTruckText, { color: colors.info.main }]}>{load.truck_code}</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
 
                 {/* Time Row */}
@@ -281,8 +312,21 @@ const styles = StyleSheet.create({
   loadCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: GRID.xs,
     paddingHorizontal: GRID.sm,
+    gap: GRID.xs,
+  },
+  headerLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: GRID.xs,
+    flex: 1,
+  },
+  headerRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: GRID.xs,
   },
   loadBadge: {
@@ -295,9 +339,6 @@ const styles = StyleSheet.create({
     fontSize: ms(11),
     color: colors.common.white,
   },
-  headerSpacer: {
-    flex: 1,
-  },
   loadCardQtyText: {
     fontFamily: fontFamily.semiBold,
     fontSize: ms(12),
@@ -306,14 +347,17 @@ const styles = StyleSheet.create({
   loadStatusTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: GRID.xs,
-    paddingVertical: 2,
+    justifyContent: 'center',
+    paddingHorizontal: GRID.sm,
+    paddingVertical: 3,
     borderRadius: RADIUS.full,
-    gap: 2,
+    gap: 3,
+    flexShrink: 0,
   },
   loadStatusText: {
     fontFamily: fontFamily.semiBold,
-    fontSize: ms(9),
+    fontSize: ms(10),
+    flexShrink: 0,
   },
   loadTruckTag: {
     flexDirection: 'row',
@@ -322,12 +366,10 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: RADIUS.full,
     gap: 2,
-    maxWidth: ms(70),
   },
   loadTruckText: {
     fontFamily: fontFamily.semiBold,
-    fontSize: ms(10),
-    flexShrink: 1,
+    fontSize: ms(9),
   },
   loadTicketTag: {
     flexDirection: 'row',
@@ -336,11 +378,10 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: RADIUS.full,
     gap: 2,
-    maxWidth: ms(80),
   },
   loadTicketText: {
     fontFamily: fontFamily.semiBold,
-    fontSize: ms(10),
+    fontSize: ms(9),
     flexShrink: 1,
   },
   loadTimeRow: {

@@ -120,6 +120,7 @@ const getMockOrder = (orderId: string): Order => ({
   longitude: -80.8431,
   scheduledDate: '2025-11-07',
   scheduledTime: '08:00',
+  displayDate: '07 Nov 2025',
   status: 'IN_PROCESS',
   productType: '3CCC608',
   productMix: '+406 BR | 256.00 CY',
@@ -263,6 +264,7 @@ interface CircularProgressProps {
   progress: number;
   size?: number;
   isDark: boolean;
+  unit?: string;
 }
 
 const CircularProgress: React.FC<CircularProgressProps> = ({
@@ -271,6 +273,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
   progress,
   size = ms(120),
   isDark,
+  unit,
 }) => {
   const strokeWidth = ms(8);
   const radius = (size - strokeWidth) / 2;
@@ -322,6 +325,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
         <View style={styles.circularProgressInner}>
           <Text style={[styles.progressTime, { color: themeColors.text.primary }]}>{time}</Text>
           <Text style={[styles.progressLabel, { color: themeColors.text.hint }]}>{label}</Text>
+          {unit && <Text style={[styles.progressUnit, { color: themeColors.text.hint }]}>{unit}</Text>}
         </View>
       </View>
     </View>
@@ -390,10 +394,10 @@ const StatusPipeline: React.FC<StatusPipelineProps> = ({ statuses, isDark }) => 
   const activeIndex = statuses.findIndex(s => s.active);
 
   const indicatorColors = [
-    colors.success.main,
-    colors.warning.main,
-    colors.success.main,
-    colors.info.main,
+    colors.trackingStatus.loading,   // yellow orange
+    colors.trackingStatus.toJob,     // green
+    colors.trackingStatus.atJob,     // yellow green
+    colors.trackingStatus.pouring,   // blue green (teal)
   ];
 
   const getIndicatorColor = (index: number) => {
@@ -1455,6 +1459,7 @@ export const OrderDetailsScreen: React.FC = () => {
       completedLoads: orderDetails.tickets?.length || 0,
       progress,
       estimatedFinishTime: orderDetails.estimated_finish_time,
+      displayDate: orderDetails.display_date,
       hasAlert: orderDetails.has_notes,
       createdAt: orderDetails.order_date,
       updatedAt: orderDetails.order_date,
@@ -1482,11 +1487,11 @@ export const OrderDetailsScreen: React.FC = () => {
       orderedVolume: orderDetails.ordered_qty ?? 0,
       remainingVolume: orderDetails.remaining_qty ?? 0,
       estimatedFinish: orderDetails.estimated_finish_time || 'N/A',
-      temperature: orderDetails.weather_data?.temperature_fahrenheit || 0,
+      temperature: orderDetails.weather_data?.temperature_fahrenheit ?? null,
       windSpeed: orderDetails.weather_data?.wind_speed_mph || null,
       humidity: orderDetails.weather_data?.humidity || null,
       weatherDescription: orderDetails.weather_data?.weather_description || 'Partly cloudy',
-      evaporationRate: orderDetails.weather_data?.evaporation_rate || null,
+      evaporationRate: orderDetails.weather_data?.evaporation_rate ?? (orderDetails as any).weather?.evaporationRate ?? null,
       siteName: orderDetails.customer_name,
       plantName: orderDetails.plant_details?.description || orderDetails.products?.[0]?.plant_code || 'N/A',
       plantCode: orderDetails.plant_details?.code || orderDetails.products?.[0]?.plant_code || '',
@@ -1951,7 +1956,7 @@ export const OrderDetailsScreen: React.FC = () => {
             <View style={styles.headerChipsRow}>
               <View style={[styles.headerChip, { backgroundColor: isDark ? colors.common.white + '20' : colors.common.black + '15' }]}>
                 <Icon name="file-document-outline" size={12} color={isDark ? colors.common.white : colors.grey[80]} />
-                <Text style={[styles.headerChipText, { color: isDark ? colors.common.white : colors.grey[80] }]}>Order: {order.orderCode}</Text>
+                <Text style={[styles.headerChipText, { color: isDark ? colors.common.white : colors.grey[80] }]}>{order.orderCode}{order.displayDate ? ` | ${order.displayDate}` : ''}{order.scheduledTime ? ` | ${order.scheduledTime}` : ''}</Text>
               </View>
             </View>
 
@@ -1977,7 +1982,7 @@ export const OrderDetailsScreen: React.FC = () => {
                 style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
                 Partly cloudy
               </Text>
-              {jobData.temperature !== 0 && (
+              {jobData.temperature !== null && (
                 <>
                   <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
                   <Text style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
@@ -2001,12 +2006,15 @@ export const OrderDetailsScreen: React.FC = () => {
                   </Text>
                 </>
               )}
-              {jobData.evaporationRate !== null && (
-                <View style={[styles.headerEvapBadge, { backgroundColor: getEvaporationBgColor(jobData.evaporationRate) }]}>
+              {jobData.evaporationRate !== null && jobData.evaporationRate !== undefined && (
+                <TouchableOpacity
+                  onPress={handleWeatherPress}
+                  activeOpacity={0.7}
+                  style={[styles.headerEvapBadge, { backgroundColor: getEvaporationBgColor(jobData.evaporationRate) }]}>
                   <Text style={styles.headerEvapText}>
                     {getEvaporationText(jobData.evaporationRate)}
                   </Text>
-                </View>
+                </TouchableOpacity>
               )}
             </TouchableOpacity>
           </View>
@@ -2034,10 +2042,11 @@ export const OrderDetailsScreen: React.FC = () => {
                 </View>
 
                 <CircularProgress
-                  time={jobData.elapsedTime}
+                  time={formatQty(jobData.pouredVolume)}
                   label="Poured"
                   progress={order.progress ?? 0}
                   isDark={isDark}
+                  unit="CY"
                 />
 
                 <View style={styles.metricItem}>
@@ -2176,6 +2185,16 @@ export const OrderDetailsScreen: React.FC = () => {
             scheduledQty={jobData.orderedVolume}
             truckSpace={jobData.avgSpacing ? parseInt(jobData.avgSpacing) : 0}
             isDark={isDark}
+          />
+
+          {/* Delay Details Table */}
+          <DelayDetailsTable
+            isDark={isDark}
+            data={orderDetails?.delay_details}
+            onTicketPress={(ticketCode) => {
+              // Navigate to ticket details when API is ready
+              console.log('Ticket pressed:', ticketCode);
+            }}
           />
 
           {/* Order Activity Section - Combined Order Updates and Order Created */}
@@ -2339,16 +2358,6 @@ export const OrderDetailsScreen: React.FC = () => {
               </View>
             );
           })()}
-
-          {/* Delay Details Table */}
-          <DelayDetailsTable
-            isDark={isDark}
-            data={orderDetails?.delay_details}
-            onTicketPress={(ticketCode) => {
-              // Navigate to ticket details when API is ready
-              console.log('Ticket pressed:', ticketCode);
-            }}
-          />
 
           {/* Bottom spacing for tab bar */}
           <View style={{ height: ms(100) }} />
@@ -2573,15 +2582,17 @@ const styles = StyleSheet.create({
   headerChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: GRID.sm + 2,
-    paddingVertical: GRID.xs + 1,
+    justifyContent: 'center',
+    paddingHorizontal: GRID.md,
+    paddingVertical: GRID.xs + 2,
     borderRadius: RADIUS.full,
-    gap: 4,
+    gap: 6,
   },
   headerChipText: {
-    fontFamily: fontFamily.medium,
-    fontSize: ms(10),
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(11),
     color: colors.common.white,
+    textAlign: 'center',
   },
   headerAddressRow: {
     flexDirection: 'row',
@@ -2616,14 +2627,15 @@ const styles = StyleSheet.create({
   },
   headerEvapBadge: {
     paddingHorizontal: ms(8),
-    paddingVertical: ms(0),
+    paddingVertical: ms(2),
     borderRadius: ms(10),
     marginLeft: ms(4),
   },
   headerEvapText: {
-    fontSize: ms(9),
+    fontSize: ms(8),
     fontFamily: fontFamily.bold,
     color: colors.common.white,
+    lineHeight: ms(13),
   },
   scrollView: {
     flex: 1,
@@ -2743,11 +2755,18 @@ const styles = StyleSheet.create({
   progressTime: {
     fontFamily: fontFamily.bold,
     fontSize: ms(24),
+    textAlign: 'center',
   },
   progressLabel: {
     fontFamily: fontFamily.medium,
     fontSize: ms(10),
     marginTop: 2,
+    textAlign: 'center',
+  },
+  progressUnit: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(10),
+    textAlign: 'center',
   },
   progressBadge: {
     position: 'absolute',

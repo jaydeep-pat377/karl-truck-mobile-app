@@ -398,6 +398,7 @@ export interface OrderGraphs {
 
 export interface DelayDetailItem {
   load_order: number;
+  load_qty?: number | string | null;
   ticket: string | null;
   truck: string | null;
   planned_on_job: string | null;
@@ -405,6 +406,7 @@ export interface DelayDetailItem {
   producer_delay: number;
   begin_pour: string | null;
   end_pour: string | null;
+  pour_duration: number;
   scheduled_end_pour: string | null;
   spacing: number;
   waiting_to_pour: number;
