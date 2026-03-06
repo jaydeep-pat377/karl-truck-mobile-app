@@ -162,10 +162,12 @@ export const OrderTrackingScreen: React.FC = () => {
   const { height: screenHeight } = useWindowDimensions();
   const themeColors = isDark ? colors.dark : colors.light;
   const cameraRef = useRef<Mapbox.Camera>(null);
+  const flatListRef = useRef<FlatList<TrackingTicket>>(null);
   const [isMapReady, setIsMapReady] = useState(false);
 
-  const { orderId } = route.params;
+  const { orderId, ticketCode } = route.params;
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
   const [isLegendExpanded, setIsLegendExpanded] = useState(true);
 
@@ -268,6 +270,35 @@ export const OrderTrackingScreen: React.FC = () => {
     if (!selectedTicketId) return null;
     return tickets.find(t => t.ticket_id === selectedTicketId) || null;
   }, [selectedTicketId, tickets]);
+
+  // Auto-select ticket when ticketCode is provided from navigation params
+  useEffect(() => {
+    if (ticketCode && tickets.length > 0 && !hasAutoSelected) {
+      const ticketIndex = tickets.findIndex(t => t.ticket_code === ticketCode);
+      if (ticketIndex !== -1) {
+        const matchingTicket = tickets[ticketIndex];
+        setSelectedTicketId(matchingTicket.ticket_id);
+        setHasAutoSelected(true);
+        // Expand the sheet and scroll to the ticket in the list
+        setIsSheetExpanded(true);
+        Animated.spring(sheetHeight, {
+          toValue: SHEET_MAX_HEIGHT,
+          useNativeDriver: false,
+          tension: 100,
+          friction: 12,
+        }).start(() => {
+          // Scroll to the ticket after sheet is expanded
+          setTimeout(() => {
+            flatListRef.current?.scrollToIndex({
+              index: ticketIndex,
+              animated: true,
+              viewPosition: 0.5,
+            });
+          }, 100);
+        });
+      }
+    }
+  }, [ticketCode, tickets, hasAutoSelected, sheetHeight, SHEET_MAX_HEIGHT]);
 
   const plantLocation = useMemo(() => {
     if (!trackingData?.plant?.latitude || !trackingData?.plant?.longitude) return null;
@@ -800,12 +831,22 @@ export const OrderTrackingScreen: React.FC = () => {
           </View>
 
           <FlatList
+            ref={flatListRef}
             data={tickets}
             renderItem={({ item }) => renderTicketCard(item)}
             keyExtractor={(item) => item.ticket_id}
             style={styles.ticketsList}
             contentContainerStyle={{ paddingBottom: ms(16), flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
+            onScrollToIndexFailed={(info) => {
+              setTimeout(() => {
+                flatListRef.current?.scrollToIndex({
+                  index: info.index,
+                  animated: true,
+                  viewPosition: 0.5,
+                });
+              }, 500);
+            }}
             refreshControl={
               <RefreshControl
                 refreshing={isRefetching}

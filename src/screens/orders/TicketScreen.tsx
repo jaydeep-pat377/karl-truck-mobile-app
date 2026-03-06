@@ -1347,20 +1347,11 @@ export const TicketScreen: React.FC = () => {
   }, [navigation, orderCode, orderDate, weatherData, getStatusColor]);
 
   const handleMapPress = useCallback((ticket: DeliveryTicket) => {
-    navigation.navigate('MapTracking', {
-      orderCode: orderCode || undefined,
-      customerName: customerName || undefined,
-      destination: deliveryAddress || undefined,
-      jobLatitude: ticket.orderLocation?.latitude || undefined,
-      jobLongitude: ticket.orderLocation?.longitude || undefined,
-      plantLatitude: ticket.plantLocation?.latitude || undefined,
-      plantLongitude: ticket.plantLocation?.longitude || undefined,
-      latitude: ticket.truckLocation?.latitude || undefined,
-      longitude: ticket.truckLocation?.longitude || undefined,
-      truckCode: ticket.truckId || undefined,
-      ticketCode: ticket.ticketNumber || undefined,
+    navigation.navigate('Tracking', {
+      orderId: orderId,
+      ticketCode: ticket.ticketNumber,
     });
-  }, [navigation, orderCode, customerName, deliveryAddress]);
+  }, [navigation, orderId]);
 
   const handleSearch = useCallback(() => {
     setAppliedSearchQuery(searchQuery.trim());

@@ -230,7 +230,7 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>;
   OrderDetail: { orderId: string; orderCode: string; orderDate: string; status?: string; progressColor?: string; sourceTab?: 'Orders' | 'Today' | 'Home' };
   TodayOrders: undefined;
-  Tracking: { orderId: string };
+  Tracking: { orderId: string; ticketCode?: string };
   Weather: WeatherScreenParams;
   ProductDetails: ProductDetailsScreenParams;
   ProductCode: ProductCodeScreenParams;

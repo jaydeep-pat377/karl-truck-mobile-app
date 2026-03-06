@@ -1387,26 +1387,9 @@ export const OrderListScreen: React.FC = () => {
   }, [navigation]);
 
   const handleMap = useCallback((order: Order) => {
-    const status = order.status?.toLowerCase() || '';
-    const isInProgress = status === 'in_process' || status === 'in progress' || status === 'in_progress' || status === 'inprogress';
-
-    if (isInProgress) {
-      navigation.navigate('Tracking', {
-        orderId: order.id,
-      });
-    } else {
-      navigation.navigate('MapTracking', {
-        orderCode: order.orderCode || undefined,
-        customerName: order.customerName || undefined,
-        destination: order.deliveryAddress || undefined,
-        jobLatitude: order.jobLatitude ? String(order.jobLatitude) : undefined,
-        jobLongitude: order.jobLongitude ? String(order.jobLongitude) : undefined,
-        plantName: order.plantDetails?.name || undefined,
-        plantCode: order.plantDetails?.code || undefined,
-        plantLatitude: order.plantDetails?.latitude ? String(order.plantDetails.latitude) : undefined,
-        plantLongitude: order.plantDetails?.longitude ? String(order.plantDetails.longitude) : undefined,
-      });
-    }
+    navigation.navigate('Tracking', {
+      orderId: order.id,
+    });
   }, [navigation]);
 
   const handleToggleFavorite = useCallback((orderId: string) => {

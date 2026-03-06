@@ -772,6 +772,7 @@ export const TicketDetailScreen: React.FC = () => {
     ticket,
     ticketCode: apiTicketCode,
     orderCode: apiOrderCode,
+    orderId,
     loadNumber,
     customerName,
     deliveryAddress,
@@ -880,32 +881,18 @@ export const TicketDetailScreen: React.FC = () => {
   }, [driverPhone, showWarning]);
 
   const handleTrackTruck = useCallback(() => {
-    if (truckLatitude && truckLongitude) {
-      navigation.navigate('MapTracking', {
-        latitude: truckLatitude,
-        longitude: truckLongitude,
-        truckCode: truckCode || undefined,
+    if (orderId) {
+      navigation.navigate('Tracking', {
+        orderId: orderId,
         ticketCode: apiTicketCode || undefined,
-        driverName: driverName || undefined,
-        driverCode: driverCode || undefined,
-        destination: deliveryAddress || undefined,
-        orderCode: apiOrderCode || undefined,
-        customerName: customerName || undefined,
-
-        plantLatitude: plantLocationLatitude || undefined,
-        plantLongitude: plantLocationLongitude || undefined,
-        plantName: plantName || undefined,
-
-        jobLatitude: orderLocationLatitude || undefined,
-        jobLongitude: orderLocationLongitude || undefined,
       });
     } else {
       showWarning(
-        'Location Unavailable',
-        'Truck location coordinates are not available at the moment. The truck may not have GPS data or the location service is temporarily unavailable. Please try again later.'
+        'Order Unavailable',
+        'Order information is not available at the moment. Please try again later.'
       );
     }
-  }, [truckLatitude, truckLongitude, truckCode, apiTicketCode, driverName, driverCode, deliveryAddress, apiOrderCode, customerName, plantLocationLatitude, plantLocationLongitude, plantName, orderLocationLatitude, orderLocationLongitude, navigation, showWarning]);
+  }, [orderId, apiTicketCode, navigation, showWarning]);
 
   const handleGetDirections = useCallback(() => {
     if (truckLatitude && truckLongitude) {
@@ -933,26 +920,14 @@ export const TicketDetailScreen: React.FC = () => {
   const handleOpenInAppMap = useCallback(() => {
     closeDirectionsMenu();
     setTimeout(() => {
-      navigation.navigate('MapTracking', {
-        latitude: truckLatitude || undefined,
-        longitude: truckLongitude || undefined,
-        truckCode: truckCode || undefined,
-        ticketCode: apiTicketCode || undefined,
-        driverName: driverName || undefined,
-        driverCode: driverCode || undefined,
-        destination: deliveryAddress || undefined,
-        orderCode: apiOrderCode || undefined,
-        customerName: customerName || undefined,
-
-        plantLatitude: plantLocationLatitude || undefined,
-        plantLongitude: plantLocationLongitude || undefined,
-        plantName: plantName || undefined,
-
-        jobLatitude: orderLocationLatitude || undefined,
-        jobLongitude: orderLocationLongitude || undefined,
-      });
+      if (orderId) {
+        navigation.navigate('Tracking', {
+          orderId: orderId,
+          ticketCode: apiTicketCode || undefined,
+        });
+      }
     }, 300);
-  }, [closeDirectionsMenu, navigation, truckLatitude, truckLongitude, truckCode, apiTicketCode, driverName, driverCode, deliveryAddress, apiOrderCode, customerName, plantLocationLatitude, plantLocationLongitude, plantName, orderLocationLatitude, orderLocationLongitude]);
+  }, [closeDirectionsMenu, navigation, orderId, apiTicketCode]);
 
   const handleOpenInGoogleMaps = useCallback(() => {
     closeDirectionsMenu();
@@ -1271,7 +1246,7 @@ export const TicketDetailScreen: React.FC = () => {
           icon="map-marker-radius"
           label="Track"
           color={accentColor}
-          onPress={handleGetDirections}
+          onPress={handleTrackTruck}
           isDark={isDark}
           disabled={isAtPlant || isCancelled}
         />
