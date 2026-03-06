@@ -170,12 +170,8 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   const statusColor = getStatusColor(order.status, progress);
 
 
-  // Priority: 1) delivery_progress segment color, 2) recent ticket status, 3) order status
-  const deliveryProgressColor = order.deliveryProgress?.segments?.[0]
-    ? getSegmentColor(order.deliveryProgress.segments[0].status)
-    : undefined;
-  const ticketStatusColor = getTicketStatusColor(order.recentTicketStatus);
-  const progressBarColor = deliveryProgressColor || ticketStatusColor || getProgressBarColor(order.status, progress);
+  // Use only recent_ticket.status for card shadow and border color
+  const progressBarColor = getTicketStatusColor(order.recentTicketStatus) || colors.grey[40];
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);

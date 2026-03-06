@@ -70,6 +70,7 @@ interface ActiveDelivery {
   statusDisplay?: string;
   orderStatus: string;
   deliveryProgress?: DeliveryProgress;
+  recentTicketStatus?: string;
 }
 
 const defaultQuickLaunchActions: QuickLaunchAction[] = [
@@ -398,10 +399,10 @@ const DashboardScreen: React.FC = () => {
 
   const renderDeliveryCard = ({ item, onPress }: { item: ActiveDelivery; onPress?: () => void }) => {
     const progressPercent = Math.min(item.progressPercent, 100);
-    // Use delivery progress segment color if available, otherwise fall back to status color
-    const progressColor = item.deliveryProgress?.segments?.[0]
-      ? getSegmentColor(item.deliveryProgress.segments[0].status)
-      : getStatusColor(item.status);
+    // Use only recent_ticket.status for card shadow and border color
+    const progressColor = item.recentTicketStatus
+      ? getSegmentColor(item.recentTicketStatus)
+      : colors.grey[40];
 
     // Safe formatter that handles null, undefined, and 0
     const formatQty = (qty: number | null | undefined): string => {
@@ -815,6 +816,7 @@ const DashboardScreen: React.FC = () => {
                     statusDisplay: order.recent_ticket?.status_display || order.status || 'Normal',
                     orderStatus: order.status || 'Normal',
                     deliveryProgress: order.delivery_progress,
+                    recentTicketStatus: order.recent_ticket?.status,
                   };
                   return (
                     <View key={order.order_id} style={index === activeDeliveries.orders.length - 1 ? { marginRight: spacing.sm } : undefined}>
