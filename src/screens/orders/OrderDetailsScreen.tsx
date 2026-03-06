@@ -2229,7 +2229,52 @@ export const OrderDetailsScreen: React.FC = () => {
                   </View>
                 </View>
 
-                {/* Order Created Section - Shown first after header */}
+                {/* Order Updates Timeline - Shown first */}
+                {updateItems.length > 0 && (
+                  <>
+                    <View style={styles.orderUpdatesTimeline}>
+                      {(showAllUpdates ? updateItems : updateItems.slice(0, 1)).map((update) => (
+                        <View key={update.id} style={[
+                          styles.orderUpdateItem,
+                          { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }
+                        ]}>
+                          <View style={[styles.orderUpdateIconBox, { backgroundColor: colors.info.main + '15' }]}>
+                            <Icon name="information-outline" size={ms(18)} color={colors.info.main} />
+                          </View>
+                          <View style={styles.orderUpdateContent}>
+                            <Text style={[styles.orderUpdateMessage, { color: themeColors.text.primary }]}>
+                              {update.change_message}
+                            </Text>
+                            <View style={styles.orderUpdateMeta}>
+                              <Icon name="clock-outline" size={ms(12)} color={themeColors.text.hint} />
+                              <Text style={[styles.orderUpdateTime, { color: themeColors.text.hint }]}>
+                                {update.changed_at}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                    {updateItems.length > 1 && (
+                      <TouchableOpacity
+                        style={styles.seeMoreButton}
+                        onPress={() => setShowAllUpdates(!showAllUpdates)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.seeMoreText, { color: colors.primary.main }]}>
+                          {showAllUpdates ? 'See Less' : `See More (${updateItems.length - 1} more)`}
+                        </Text>
+                        <Icon
+                          name={showAllUpdates ? 'chevron-up' : 'chevron-down'}
+                          size={ms(16)}
+                          color={colors.primary.main}
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
+
+                {/* Order Created Section */}
                 {orderCreatedItem && (
                   <View style={[styles.orderCreatedInCard, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
                     <View style={styles.orderCreatedHeader}>
@@ -2278,90 +2323,46 @@ export const OrderDetailsScreen: React.FC = () => {
                         </View>
                       )}
                     </View>
-
-                    {orderCreatedItem.products && orderCreatedItem.products.length > 0 && (
-                      <View style={[styles.orderCreatedProducts, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
-                        <Text style={[styles.orderCreatedProductsTitle, { color: themeColors.text.secondary }]}>
-                          Products ({orderCreatedItem.products.length})
-                        </Text>
-                        {orderCreatedItem.products.map((product, index) => (
-                          <View key={index} style={[styles.orderCreatedProductItem, { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }]}>
-                            <View style={styles.orderCreatedProductRow}>
-                              <Icon name="cube-outline" size={ms(14)} color={colors.primary.main} />
-                              <Text style={[styles.orderCreatedProductCode, { color: themeColors.text.primary }]}>
-                                {product.item_code}
-                              </Text>
-                            </View>
-                            <View style={styles.orderCreatedProductRow}>
-                              <Icon name="text-box-outline" size={ms(14)} color={themeColors.text.secondary} />
-                              <Text style={[styles.orderCreatedProductDesc, { color: themeColors.text.secondary }]} numberOfLines={2}>
-                                {product.description}
-                              </Text>
-                            </View>
-                            <View style={styles.orderCreatedProductRow}>
-                              <Icon name="scale" size={ms(14)} color={colors.primary.main} />
-                              <Text style={[styles.orderCreatedProductQty, { color: colors.primary.main }]}>
-                                {product.quantity}
-                              </Text>
-                            </View>
-                            {product.slump && (
-                              <View style={styles.orderCreatedProductRow}>
-                                <Icon name="water" size={ms(14)} color={themeColors.text.hint} />
-                                <Text style={[styles.orderCreatedProductSlump, { color: themeColors.text.hint }]}>
-                                  Slump: {product.slump}"
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-                        ))}
-                      </View>
-                    )}
                   </View>
                 )}
 
-                {/* Order Updates Timeline */}
-                {updateItems.length > 0 && (
-                  <>
-                    <View style={styles.orderUpdatesTimeline}>
-                      {(showAllUpdates ? updateItems : updateItems.slice(0, 1)).map((update) => (
-                        <View key={update.id} style={[
-                          styles.orderUpdateItem,
-                          { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }
-                        ]}>
-                          <View style={[styles.orderUpdateIconBox, { backgroundColor: colors.info.main + '15' }]}>
-                            <Icon name="information-outline" size={ms(18)} color={colors.info.main} />
-                          </View>
-                          <View style={styles.orderUpdateContent}>
-                            <Text style={[styles.orderUpdateMessage, { color: themeColors.text.primary }]}>
-                              {update.change_message}
-                            </Text>
-                            <View style={styles.orderUpdateMeta}>
-                              <Icon name="clock-outline" size={ms(12)} color={themeColors.text.hint} />
-                              <Text style={[styles.orderUpdateTime, { color: themeColors.text.hint }]}>
-                                {update.changed_at}
-                              </Text>
-                            </View>
-                          </View>
+                {/* Products Section */}
+                {orderCreatedItem && orderCreatedItem.products && orderCreatedItem.products.length > 0 && (
+                  <View style={[styles.orderCreatedProducts, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
+                    <Text style={[styles.orderCreatedProductsTitle, { color: themeColors.text.secondary }]}>
+                      Products ({orderCreatedItem.products.length})
+                    </Text>
+                    {orderCreatedItem.products.map((product, index) => (
+                      <View key={index} style={[styles.orderCreatedProductItem, { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }]}>
+                        <View style={styles.orderCreatedProductRow}>
+                          <Icon name="cube-outline" size={ms(14)} color={colors.primary.main} />
+                          <Text style={[styles.orderCreatedProductCode, { color: themeColors.text.primary }]}>
+                            {product.item_code}
+                          </Text>
                         </View>
-                      ))}
-                    </View>
-                    {updateItems.length > 1 && (
-                      <TouchableOpacity
-                        style={styles.seeMoreButton}
-                        onPress={() => setShowAllUpdates(!showAllUpdates)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.seeMoreText, { color: colors.primary.main }]}>
-                          {showAllUpdates ? 'See Less' : `See More (${updateItems.length - 1} more)`}
-                        </Text>
-                        <Icon
-                          name={showAllUpdates ? 'chevron-up' : 'chevron-down'}
-                          size={ms(16)}
-                          color={colors.primary.main}
-                        />
-                      </TouchableOpacity>
-                    )}
-                  </>
+                        <View style={styles.orderCreatedProductRow}>
+                          <Icon name="text-box-outline" size={ms(14)} color={themeColors.text.secondary} />
+                          <Text style={[styles.orderCreatedProductDesc, { color: themeColors.text.secondary }]} numberOfLines={2}>
+                            {product.description}
+                          </Text>
+                        </View>
+                        <View style={styles.orderCreatedProductRow}>
+                          <Icon name="scale" size={ms(14)} color={colors.primary.main} />
+                          <Text style={[styles.orderCreatedProductQty, { color: colors.primary.main }]}>
+                            {product.quantity}
+                          </Text>
+                        </View>
+                        {product.slump && (
+                          <View style={styles.orderCreatedProductRow}>
+                            <Icon name="water" size={ms(14)} color={themeColors.text.hint} />
+                            <Text style={[styles.orderCreatedProductSlump, { color: themeColors.text.hint }]}>
+                              Slump: {product.slump}"
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                  </View>
                 )}
               </View>
             );
