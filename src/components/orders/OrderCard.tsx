@@ -14,7 +14,7 @@ import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, isSmallDevice, spacing } from '../../utils/responsive';
 import { getStatusColor, getProgressBarColor } from '../../utils/statusUtils';
-import { TicketTrackingStatus } from '../../types';
+import { TicketTrackingStatus, DeliveryProgress } from '../../types';
 
 // Get progress bar color based on recent ticket status
 const getTicketStatusColor = (status: TicketTrackingStatus | undefined): string | undefined => {
@@ -37,6 +37,29 @@ const getTicketStatusColor = (status: TicketTrackingStatus | undefined): string 
   };
 
   return statusColorMap[status];
+};
+
+// Get delivery progress segment color based on status
+const getSegmentColor = (status: string): string => {
+  const statusColorMap: Record<string, string> = {
+    pending: colors.trackingStatus.pending,        // Grey
+    ticketed: colors.trackingStatus.ticketed,      // Yellow #FFC107
+    loading: colors.trackingStatus.loading,        // Yellow Orange #FF9800
+    loaded: colors.trackingStatus.loaded,          // Orange #FF5722
+    to_job: colors.trackingStatus.toJob,           // Green #8BC34A
+    at_job: colors.trackingStatus.atJob,           // Yellow Green #4CAF50
+    on_job: colors.trackingStatus.atJob,           // Yellow Green #4CAF50
+    pouring: colors.trackingStatus.pouring,        // Blue Green #009688
+    poured: colors.trackingStatus.poured,          // Blue #2196F3
+    washing: colors.trackingStatus.washing,        // Light Blue #03A9F4
+    to_plant: colors.trackingStatus.toPlant,       // Violet #9C27B0
+    at_plant: colors.trackingStatus.atPlant,       // Red Violet #a5244f
+    cancelled: colors.trackingStatus.cancelled,    // Red #F44336
+    voided: colors.trackingStatus.voided,          // Red #F44336
+    remaining: colors.grey[30],                    // Grey for remaining
+  };
+
+  return statusColorMap[status.toLowerCase()] || colors.grey[40];
 };
 
 interface OrderCardProps {
@@ -147,9 +170,12 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   const statusColor = getStatusColor(order.status, progress);
 
 
-  // Use recent ticket status color if available, otherwise fall back to order status color
+  // Priority: 1) delivery_progress segment color, 2) recent ticket status, 3) order status
+  const deliveryProgressColor = order.deliveryProgress?.segments?.[0]
+    ? getSegmentColor(order.deliveryProgress.segments[0].status)
+    : undefined;
   const ticketStatusColor = getTicketStatusColor(order.recentTicketStatus);
-  const progressBarColor = ticketStatusColor || getProgressBarColor(order.status, progress);
+  const progressBarColor = deliveryProgressColor || ticketStatusColor || getProgressBarColor(order.status, progress);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -325,21 +351,35 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
             <>
               <View style={styles.progressRow}>
                 <View style={[styles.progressBarBg, { backgroundColor: isDark ? colors.progress.trackDark : colors.progress.trackLight }]}>
-                  <View
-                    style={[
-                      styles.progressBarFill,
-                      {
-                        width: `${Math.min(progress, 100)}%`,
-                        backgroundColor: progressBarColor,
-                      },
-                    ]}
-                  />
+                  {order.deliveryProgress?.segments && order.deliveryProgress.segments.length > 0 ? (
+                    <View style={styles.segmentedProgressContainer}>
+                      {order.deliveryProgress.segments.map((segment: any, index: number) => (
+                        segment.percentage > 0 && (
+                          <View
+                            key={`${segment.status}-${index}`}
+                            style={[
+                              styles.progressBarSegment,
+                              {
+                                width: `${segment.percentage}%`,
+                                backgroundColor: getSegmentColor(segment.status),
+                              },
+                            ]}
+                          />
+                        )
+                      ))}
+                    </View>
+                  ) : (
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        {
+                          width: `${Math.min(progress, 100)}%`,
+                          backgroundColor: progressBarColor,
+                        },
+                      ]}
+                    />
+                  )}
                 </View>
-                <Text
-                  variant="captionSmall"
-                  style={[styles.progressPercent, { color: progressBarColor }]}>
-                  {progress}%
-                </Text>
               </View>
 
               <View style={styles.loadsRow}>
@@ -584,6 +624,15 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: '100%',
     borderRadius: ms(2),
+  },
+  segmentedProgressContainer: {
+    flexDirection: 'row',
+    height: '100%',
+    borderRadius: ms(2),
+    overflow: 'hidden',
+  },
+  progressBarSegment: {
+    height: '100%',
   },
   progressPercent: {
     fontFamily: fontFamily.semiBold,

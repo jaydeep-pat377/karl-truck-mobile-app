@@ -25,6 +25,30 @@ import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { RootStackParamList } from '../../navigation/types';
 import { useTicketsByOrder } from '../../hooks';
 import { ApiTicketStatus, TicketByOrderItem } from '../../types/ticket';
+import { DeliveryProgress, DeliveryProgressSegment } from '../../types/order';
+
+// Get delivery progress segment color based on status
+const getSegmentColor = (status: string): string => {
+  const statusColorMap: Record<string, string> = {
+    pending: colors.trackingStatus.pending,        // Grey
+    ticketed: colors.trackingStatus.ticketed,      // Yellow #FFC107
+    loading: colors.trackingStatus.loading,        // Yellow Orange #FF9800
+    loaded: colors.trackingStatus.loaded,          // Orange #FF5722
+    to_job: colors.trackingStatus.toJob,           // Green #8BC34A
+    at_job: colors.trackingStatus.atJob,           // Yellow Green #4CAF50
+    on_job: colors.trackingStatus.atJob,           // Yellow Green #4CAF50
+    pouring: colors.trackingStatus.pouring,        // Blue Green #009688
+    poured: colors.trackingStatus.poured,          // Blue #2196F3
+    washing: colors.trackingStatus.washing,        // Light Blue #03A9F4
+    to_plant: colors.trackingStatus.toPlant,       // Violet #9C27B0
+    at_plant: colors.trackingStatus.atPlant,       // Red Violet #a5244f
+    cancelled: colors.trackingStatus.cancelled,    // Red #F44336
+    voided: colors.trackingStatus.voided,          // Red #F44336
+    remaining: colors.grey[30],                    // Grey for remaining
+  };
+
+  return statusColorMap[status.toLowerCase()] || colors.grey[40];
+};
 
 type TicketScreenRouteProp = RouteProp<RootStackParamList, 'Ticket'>;
 
@@ -495,6 +519,7 @@ interface OrderHeaderProps {
   weatherData?: WeatherData | null;
   onWeatherPress?: () => void;
   lastTicketStatusColor?: string;
+  deliveryProgress?: DeliveryProgress | null;
 }
 
 const OrderHeader: React.FC<OrderHeaderProps> = ({
@@ -512,6 +537,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
   weatherData,
   onWeatherPress,
   lastTicketStatusColor,
+  deliveryProgress,
 }) => {
   const themeColors = isDark ? colors.dark : colors.light;
   const ticketUi = isDark ? colors.ticket.ui.dark : colors.ticket.ui.light;
@@ -672,25 +698,59 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
           <Text style={[styles.progressTitle, { color: themeColors.text.secondary }]}>
             Delivery Progress
           </Text>
-          <Text style={[styles.progressPercentage, { color: progressBarColor }]}>
-            {progressData.displayPercentage >= 100 ? '100%' : `${progressData.displayPercentage}%`}
-          </Text>
         </View>
-        <View style={[styles.progressBarContainer, { backgroundColor: `${progressBarColor}20` }]}>
-          <View
-            style={[
-              styles.progressBarFill,
-              {
-                width: `${progressData.percentage}%`,
-                backgroundColor: progressBarColor,
-              },
-            ]}
-          />
+        <View style={[styles.progressBarContainer, { backgroundColor: isDark ? colors.dark.surface : colors.grey[10] }]}>
+          {deliveryProgress?.segments && deliveryProgress.segments.length > 0 ? (
+            <View style={styles.progressSegmentsContainer}>
+              {deliveryProgress.segments.map((segment, index) => (
+                segment.percentage > 0 && (
+                  <View
+                    key={`${segment.status}-${index}`}
+                    style={[
+                      styles.progressBarSegment,
+                      {
+                        width: `${segment.percentage}%`,
+                        backgroundColor: getSegmentColor(segment.status),
+                      },
+                    ]}
+                  />
+                )
+              ))}
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.progressBarFill,
+                {
+                  width: `${progressData.percentage}%`,
+                  backgroundColor: progressBarColor,
+                },
+              ]}
+            />
+          )}
         </View>
 
-        <Text style={[styles.progressLabel, { color: themeColors.text.hint }]}>
-          {progressDisplay || `${(progressData.totalDelivered ?? 0).toFixed(1)} of ${progressData.totalOrdered ?? 0} CY delivered`}
-        </Text>
+        {deliveryProgress?.segments && deliveryProgress.segments.length > 0 ? (
+          <View style={styles.progressLegend}>
+            {deliveryProgress.segments.map((segment, index) => (
+              <View key={`legend-${segment.status}-${index}`} style={styles.progressLegendItem}>
+                <View
+                  style={[
+                    styles.progressLegendDot,
+                    { backgroundColor: getSegmentColor(segment.status) },
+                  ]}
+                />
+                <Text style={[styles.progressLegendText, { color: themeColors.text.hint }]}>
+                  {segment.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={[styles.progressLabel, { color: themeColors.text.hint }]}>
+            {progressDisplay || `${(progressData.totalDelivered ?? 0).toFixed(1)} of ${progressData.totalOrdered ?? 0} CY delivered`}
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -1180,6 +1240,7 @@ export const TicketScreen: React.FC = () => {
     isLoading,
     isRefetching,
     refetch,
+    deliveryProgress,
   } = useTicketsByOrder({
     orderId,
     sort_order: advancedFilters.sortOrder,
@@ -1398,6 +1459,7 @@ export const TicketScreen: React.FC = () => {
         weatherData={weatherData}
         onWeatherPress={handleWeatherPress}
         lastTicketStatusColor={lastTicketStatusColor}
+        deliveryProgress={deliveryProgress}
       />
       <View style={styles.listHeaderRow}>
         <Text style={[styles.listHeaderText, { color: themeColors.text.secondary }]}>
@@ -1421,6 +1483,7 @@ export const TicketScreen: React.FC = () => {
     themeColors,
     weatherData,
     lastTicketStatusColor,
+    deliveryProgress,
   ]);
 
   const renderTicket = useCallback(
@@ -1756,6 +1819,32 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: '100%',
     borderRadius: ms(3),
+  },
+  progressSegmentsContainer: {
+    flexDirection: 'row',
+    height: '100%',
+  },
+  progressBarSegment: {
+    height: '100%',
+  },
+  progressLegend: {
+    flexDirection: 'column',
+    marginTop: ms(6),
+    gap: ms(4),
+  },
+  progressLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(4),
+  },
+  progressLegendDot: {
+    width: ms(8),
+    height: ms(8),
+    borderRadius: ms(4),
+  },
+  progressLegendText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
   },
   progressLabel: {
     fontFamily: fontFamily.regular,

@@ -196,6 +196,7 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     isFavorite: apiOrder.is_favourite ?? false,
     product_description: apiOrder.product_description || '',
     recentTicketStatus: apiOrder.recent_ticket?.status as TicketTrackingStatus | undefined,
+    deliveryProgress: apiOrder.delivery_progress,
     createdAt: apiOrder.order_date,
     updatedAt: apiOrder.order_date,
   };

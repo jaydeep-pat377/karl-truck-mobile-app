@@ -9,6 +9,7 @@ import {
   TicketsByOrderFilters,
   TicketsByOrderSummary,
 } from '../types/ticket';
+import { DeliveryProgress } from '../types/order';
 import { AxiosError } from 'axios';
 
 interface ApiErrorResponse {
@@ -40,6 +41,7 @@ export const useTicketsByOrder = (params: UseTicketsByOrderParams) => {
   const tickets: TicketByOrderItem[] = data?.tickets || [];
   const filters: TicketsByOrderFilters | null = data?.filters || null;
   const summary: TicketsByOrderSummary | null = data?.summary || null;
+  const deliveryProgress: DeliveryProgress | null = data?.delivery_progress || null;
 
   const errorMessage =
     query.error?.response?.data?.message ||
@@ -52,6 +54,7 @@ export const useTicketsByOrder = (params: UseTicketsByOrderParams) => {
     tickets,
     filters,
     summary,
+    deliveryProgress,
 
     orderId: order?.order_id,
     orderCode: order?.order_code,

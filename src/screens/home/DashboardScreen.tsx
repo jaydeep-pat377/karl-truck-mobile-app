@@ -30,6 +30,30 @@ import { announcementService, Announcement as ApiAnnouncement } from '../../api/
 import { updateWidgetData } from '../../modules/TodayOverviewWidget';
 import { fontFamily } from '../../theme/typography';
 import { useAuthStore } from '../../store/authStore';
+import { DeliveryProgress } from '../../types/order';
+
+// Get delivery progress segment color based on status
+const getSegmentColor = (status: string): string => {
+  const statusColorMap: Record<string, string> = {
+    pending: colors.trackingStatus.pending,
+    ticketed: colors.trackingStatus.ticketed,
+    loading: colors.trackingStatus.loading,
+    loaded: colors.trackingStatus.loaded,
+    to_job: colors.trackingStatus.toJob,
+    at_job: colors.trackingStatus.atJob,
+    on_job: colors.trackingStatus.atJob,
+    pouring: colors.trackingStatus.pouring,
+    poured: colors.trackingStatus.poured,
+    washing: colors.trackingStatus.washing,
+    to_plant: colors.trackingStatus.toPlant,
+    at_plant: colors.trackingStatus.atPlant,
+    cancelled: colors.trackingStatus.cancelled,
+    voided: colors.trackingStatus.voided,
+    remaining: colors.grey[30],
+  };
+
+  return statusColorMap[status.toLowerCase()] || colors.grey[40];
+};
 
 interface ActiveDelivery {
   id: string;
@@ -45,6 +69,7 @@ interface ActiveDelivery {
   status: string;
   statusDisplay?: string;
   orderStatus: string;
+  deliveryProgress?: DeliveryProgress;
 }
 
 const defaultQuickLaunchActions: QuickLaunchAction[] = [
@@ -373,8 +398,10 @@ const DashboardScreen: React.FC = () => {
 
   const renderDeliveryCard = ({ item, onPress }: { item: ActiveDelivery; onPress?: () => void }) => {
     const progressPercent = Math.min(item.progressPercent, 100);
-    // Use ticket tracking status color for progress bar and status badge
-    const progressColor = getStatusColor(item.status);
+    // Use delivery progress segment color if available, otherwise fall back to status color
+    const progressColor = item.deliveryProgress?.segments?.[0]
+      ? getSegmentColor(item.deliveryProgress.segments[0].status)
+      : getStatusColor(item.status);
 
     // Safe formatter that handles null, undefined, and 0
     const formatQty = (qty: number | null | undefined): string => {
@@ -485,7 +512,26 @@ const DashboardScreen: React.FC = () => {
               { backgroundColor: isDark ? colors.semiTransparent.white06 : colors.semiTransparent.black04 },
             ]}
           >
-            <View style={[styles.deliveryProgressFill, { width: `${progressPercent}%`, backgroundColor: progressColor }]} />
+            {item.deliveryProgress?.segments && item.deliveryProgress.segments.length > 0 ? (
+              <View style={styles.deliveryProgressSegments}>
+                {item.deliveryProgress.segments.map((segment, index) => (
+                  segment.percentage > 0 && (
+                    <View
+                      key={`${segment.status}-${index}`}
+                      style={[
+                        styles.deliveryProgressSegment,
+                        {
+                          width: `${segment.percentage}%`,
+                          backgroundColor: getSegmentColor(segment.status),
+                        },
+                      ]}
+                    />
+                  )
+                ))}
+              </View>
+            ) : (
+              <View style={[styles.deliveryProgressFill, { width: `${progressPercent}%`, backgroundColor: progressColor }]} />
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -768,6 +814,7 @@ const DashboardScreen: React.FC = () => {
                     status: order.recent_ticket?.status || order.status || 'Normal',
                     statusDisplay: order.recent_ticket?.status_display || order.status || 'Normal',
                     orderStatus: order.status || 'Normal',
+                    deliveryProgress: order.delivery_progress,
                   };
                   return (
                     <View key={order.order_id} style={index === activeDeliveries.orders.length - 1 ? { marginRight: spacing.sm } : undefined}>
@@ -1065,6 +1112,13 @@ const createStyles = (
     deliveryProgressFill: {
       height: '100%',
       borderRadius: ms(2),
+    },
+    deliveryProgressSegments: {
+      flexDirection: 'row',
+      height: '100%',
+    },
+    deliveryProgressSegment: {
+      height: '100%',
     },
     loadMoreButton: {
       width: ms(60),

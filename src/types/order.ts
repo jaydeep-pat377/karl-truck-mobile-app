@@ -81,6 +81,7 @@ export interface Order {
   canTicketed?: boolean;
   isFavorite?: boolean;
   recentTicketStatus?: TicketTrackingStatus;
+  deliveryProgress?: DeliveryProgress;
   createdAt: string;
   updatedAt: string;
 }
@@ -193,6 +194,22 @@ export interface ApiRecentTicket {
   truck_code: string;
 }
 
+export interface DeliveryProgressSegment {
+  status: string;
+  status_display: string;
+  qty: number;
+  percentage: number;
+  label: string;
+  color: string;
+}
+
+export interface DeliveryProgress {
+  total_qty: number;
+  segments: DeliveryProgressSegment[];
+  delivered_qty: number;
+  overall_percentage: number;
+}
+
 export interface ApiOrder {
   order_id: string;
   order_code: string;
@@ -224,6 +241,7 @@ export interface ApiOrder {
   weather_data: ApiOrderWeatherData | null;
   is_favourite: boolean;
   recent_ticket?: ApiRecentTicket | null;
+  delivery_progress?: DeliveryProgress;
 }
 
 export interface OrdersPagination {

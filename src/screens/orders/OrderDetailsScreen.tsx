@@ -81,6 +81,29 @@ const formatQty = (num: number): string => {
   return parseFloat(num.toFixed(2)).toString();
 };
 
+// Get delivery progress segment color based on status
+const getSegmentColor = (status: string): string => {
+  const statusColorMap: Record<string, string> = {
+    pending: colors.trackingStatus.pending,        // Grey
+    ticketed: colors.trackingStatus.ticketed,      // Yellow #FFC107
+    loading: colors.trackingStatus.loading,        // Yellow Orange #FF9800
+    loaded: colors.trackingStatus.loaded,          // Orange #FF5722
+    to_job: colors.trackingStatus.toJob,           // Green #8BC34A
+    at_job: colors.trackingStatus.atJob,           // Yellow Green #4CAF50
+    on_job: colors.trackingStatus.atJob,           // Yellow Green #4CAF50
+    pouring: colors.trackingStatus.pouring,        // Blue Green #009688
+    poured: colors.trackingStatus.poured,          // Blue #2196F3
+    washing: colors.trackingStatus.washing,        // Light Blue #03A9F4
+    to_plant: colors.trackingStatus.toPlant,       // Violet #9C27B0
+    at_plant: colors.trackingStatus.atPlant,       // Red Violet #a5244f
+    cancelled: colors.trackingStatus.cancelled,    // Red #F44336
+    voided: colors.trackingStatus.voided,          // Red #F44336
+    remaining: colors.grey[30],                    // Grey for remaining
+  };
+
+  return statusColorMap[status.toLowerCase()] || colors.grey[40];
+};
+
 const SHADOWS = {
   sm: {
     shadowColor: colors.common.black,
@@ -468,6 +491,84 @@ const StatusPipeline: React.FC<StatusPipelineProps> = ({ statuses, isDark }) => 
             </View>
           );
         })}
+      </View>
+    </View>
+  );
+};
+
+interface DeliveryProgressSegment {
+  status: string;
+  status_display: string;
+  qty: number;
+  percentage: number;
+  label: string;
+  color: string;
+}
+
+interface DeliveryProgressBarProps {
+  segments: DeliveryProgressSegment[];
+  overallPercentage: number;
+  isDark: boolean;
+}
+
+const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
+  segments,
+  overallPercentage,
+  isDark,
+}) => {
+  const themeColors = isDark ? colors.dark : colors.light;
+
+  if (!segments || segments.length === 0) {
+    return null;
+  }
+
+  // Get the first segment's color for the percentage text
+  const primaryColor = segments[0] ? getSegmentColor(segments[0].status) : colors.primary.main;
+
+  return (
+    <View style={[styles.deliveryProgressCard, { backgroundColor: themeColors.card }, SHADOWS.sm]}>
+      <View style={styles.deliveryProgressHeader}>
+        <View style={styles.deliveryProgressTitleRow}>
+          <Icon name="chart-timeline-variant" size={16} color={colors.primary.main} />
+          <Text style={[styles.deliveryProgressTitle, { color: themeColors.text.primary }]}>
+            Delivery Progress
+          </Text>
+        </View>
+      </View>
+
+      <View style={[styles.deliveryProgressBarBg, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}>
+        <View style={styles.deliveryProgressSegments}>
+          {segments.map((segment, index) => (
+            segment.percentage > 0 && (
+              <View
+                key={`${segment.status}-${index}`}
+                style={[
+                  styles.deliveryProgressSegment,
+                  {
+                    width: `${segment.percentage}%`,
+                    backgroundColor: getSegmentColor(segment.status),
+                  },
+                ]}
+              />
+            )
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.deliveryProgressLegend}>
+        {segments.map((segment, index) => (
+          <View key={`legend-${segment.status}-${index}`} style={styles.deliveryProgressLegendItem}>
+            <View
+              style={[
+                styles.deliveryProgressLegendDot,
+                { backgroundColor: getSegmentColor(segment.status) },
+              ]}
+            />
+            <Text style={[styles.deliveryProgressLegendText, { color: themeColors.text.secondary }]}>
+              {segment.label}
+            </Text>
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -2065,6 +2166,14 @@ export const OrderDetailsScreen: React.FC = () => {
 
           <StatusPipeline statuses={jobData.statusPills} isDark={isDark} />
 
+          {orderDetails?.delivery_progress?.segments && orderDetails.delivery_progress.segments.length > 0 && (
+            <DeliveryProgressBar
+              segments={orderDetails.delivery_progress.segments}
+              overallPercentage={orderDetails.delivery_progress.overall_percentage ?? 0}
+              isDark={isDark}
+            />
+          )}
+
           <View style={[styles.quickActionsCard, { backgroundColor: themeColors.card }, SHADOWS.sm]}>
             {orderDetails?.can_ticketed && (
               <>
@@ -2862,6 +2971,62 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bold,
     marginTop: GRID.sm,
     textAlign: 'center',
+  },
+  // Delivery Progress Bar Styles
+  deliveryProgressCard: {
+    borderRadius: RADIUS.lg,
+    padding: GRID.md,
+    marginBottom: GRID.md,
+  },
+  deliveryProgressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: GRID.sm,
+  },
+  deliveryProgressTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: GRID.xs,
+  },
+  deliveryProgressTitle: {
+    fontSize: ms(13),
+    fontFamily: fontFamily.semiBold,
+  },
+  deliveryProgressPercent: {
+    fontSize: ms(14),
+    fontFamily: fontFamily.bold,
+  },
+  deliveryProgressBarBg: {
+    height: ms(10),
+    borderRadius: ms(5),
+    overflow: 'hidden',
+  },
+  deliveryProgressSegments: {
+    flexDirection: 'row',
+    height: '100%',
+  },
+  deliveryProgressSegment: {
+    height: '100%',
+  },
+  deliveryProgressLegend: {
+    flexDirection: 'column',
+    marginTop: GRID.sm,
+    gap: GRID.xs,
+  },
+  deliveryProgressLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: GRID.xs,
+  },
+  deliveryProgressLegendDot: {
+    width: ms(8),
+    height: ms(8),
+    borderRadius: ms(4),
+  },
+  deliveryProgressLegendText: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.medium,
   },
   pipelineSeparator: {
     width: 1,

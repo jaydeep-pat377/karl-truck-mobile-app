@@ -1,4 +1,4 @@
-import { RealtimeOrderUpdates } from './order';
+import { RealtimeOrderUpdates, DeliveryProgress } from './order';
 
 export type ApiTicketStatus =
   | 'pending'
@@ -248,6 +248,7 @@ export interface TicketsByOrderData {
   tickets: TicketByOrderItem[];
   filters: TicketsByOrderFilters;
   summary: TicketsByOrderSummary;
+  delivery_progress?: DeliveryProgress;
 }
 
 export interface TicketsByOrderApiResponse {
