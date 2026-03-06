@@ -9,6 +9,7 @@ import {
   Dimensions,
   StatusBar,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -230,6 +231,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
   };
 
   const handleLogin = async () => {
+    Keyboard.dismiss();
     if (!validateForm()) return;
 
     clearError();

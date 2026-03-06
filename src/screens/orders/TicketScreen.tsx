@@ -557,6 +557,27 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
     };
   }, [totalDeliveredQty, orderedQty, totalTickets]);
 
+  // Accordion state for delivery progress legend
+  const [isProgressExpanded, setIsProgressExpanded] = React.useState(false);
+  const progressAnimatedHeight = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(progressAnimatedHeight, {
+      toValue: isProgressExpanded ? 1 : 0,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
+  }, [isProgressExpanded, progressAnimatedHeight]);
+
+  const toggleProgressExpand = () => {
+    setIsProgressExpanded(!isProgressExpanded);
+  };
+
+  // Calculate max height based on number of segments (including bottom margin)
+  const progressLegendMaxHeight = deliveryProgress?.segments
+    ? deliveryProgress.segments.length * 24 + ms(6) + ms(8)
+    : 0;
+
   return (
     <View
       style={[
@@ -694,11 +715,20 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
       <View style={[styles.orderDivider, { backgroundColor: themeColors.border }]} />
 
       <View style={styles.progressSection}>
-        <View style={styles.progressHeader}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={toggleProgressExpand}
+          style={styles.progressHeader}
+        >
           <Text style={[styles.progressTitle, { color: themeColors.text.secondary }]}>
             Delivery Progress
           </Text>
-        </View>
+          <Icon
+            name={isProgressExpanded ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={themeColors.text.secondary}
+          />
+        </TouchableOpacity>
         <View style={[styles.progressBarContainer, { backgroundColor: isDark ? colors.dark.surface : colors.grey[10] }]}>
           {deliveryProgress?.segments && deliveryProgress.segments.length > 0 ? (
             <View style={styles.progressSegmentsContainer}>
@@ -731,21 +761,35 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
         </View>
 
         {deliveryProgress?.segments && deliveryProgress.segments.length > 0 ? (
-          <View style={styles.progressLegend}>
-            {deliveryProgress.segments.map((segment, index) => (
-              <View key={`legend-${segment.status}-${index}`} style={styles.progressLegendItem}>
-                <View
-                  style={[
-                    styles.progressLegendDot,
-                    { backgroundColor: getSegmentColor(segment.status) },
-                  ]}
-                />
-                <Text style={[styles.progressLegendText, { color: themeColors.text.hint }]}>
-                  {segment.label}
-                </Text>
-              </View>
-            ))}
-          </View>
+          <Animated.View
+            style={[
+              styles.progressLegendContainer,
+              {
+                maxHeight: progressAnimatedHeight.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, progressLegendMaxHeight],
+                }),
+                opacity: progressAnimatedHeight,
+                overflow: 'hidden',
+              },
+            ]}
+          >
+            <View style={styles.progressLegend}>
+              {deliveryProgress.segments.map((segment, index) => (
+                <View key={`legend-${segment.status}-${index}`} style={styles.progressLegendItem}>
+                  <View
+                    style={[
+                      styles.progressLegendDot,
+                      { backgroundColor: getSegmentColor(segment.status) },
+                    ]}
+                  />
+                  <Text style={[styles.progressLegendText, { color: themeColors.text.hint }]}>
+                    {segment.label}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </Animated.View>
         ) : (
           <Text style={[styles.progressLabel, { color: themeColors.text.hint }]}>
             {progressDisplay || `${(progressData.totalDelivered ?? 0).toFixed(1)} of ${progressData.totalOrdered ?? 0} CY delivered`}
@@ -1796,7 +1840,9 @@ const styles = StyleSheet.create({
     color: colors.common.white,
     lineHeight: ms(13),
   },
-  progressSection: {},
+  progressSection: {
+    marginBottom: ms(8),
+  },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1827,9 +1873,13 @@ const styles = StyleSheet.create({
   progressBarSegment: {
     height: '100%',
   },
+  progressLegendContainer: {
+    overflow: 'hidden',
+  },
   progressLegend: {
     flexDirection: 'column',
     marginTop: ms(6),
+    marginBottom: ms(8),
     gap: ms(4),
   },
   progressLegendItem: {

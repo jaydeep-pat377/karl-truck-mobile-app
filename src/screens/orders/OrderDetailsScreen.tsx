@@ -517,6 +517,16 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
   isDark,
 }) => {
   const themeColors = isDark ? colors.dark : colors.light;
+  const [isExpanded, setIsExpanded] = React.useState(false);
+  const animatedHeight = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(animatedHeight, {
+      toValue: isExpanded ? 1 : 0,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
+  }, [isExpanded, animatedHeight]);
 
   if (!segments || segments.length === 0) {
     return null;
@@ -525,16 +535,32 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
   // Get the first segment's color for the percentage text
   const primaryColor = segments[0] ? getSegmentColor(segments[0].status) : colors.primary.main;
 
+  const toggleExpand = () => {
+    setIsExpanded(!isExpanded);
+  };
+
+  // Calculate max height based on number of segments
+  const maxHeight = segments.length * 28 + GRID.sm;
+
   return (
     <View style={[styles.deliveryProgressCard, { backgroundColor: themeColors.card }, SHADOWS.sm]}>
-      <View style={styles.deliveryProgressHeader}>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={toggleExpand}
+        style={styles.deliveryProgressHeader}
+      >
         <View style={styles.deliveryProgressTitleRow}>
           <Icon name="chart-timeline-variant" size={16} color={colors.primary.main} />
           <Text style={[styles.deliveryProgressTitle, { color: themeColors.text.primary }]}>
             Delivery Progress
           </Text>
         </View>
-      </View>
+        <Icon
+          name={isExpanded ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color={themeColors.text.secondary}
+        />
+      </TouchableOpacity>
 
       <View style={[styles.deliveryProgressBarBg, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}>
         <View style={styles.deliveryProgressSegments}>
@@ -555,21 +581,35 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
         </View>
       </View>
 
-      <View style={styles.deliveryProgressLegend}>
-        {segments.map((segment, index) => (
-          <View key={`legend-${segment.status}-${index}`} style={styles.deliveryProgressLegendItem}>
-            <View
-              style={[
-                styles.deliveryProgressLegendDot,
-                { backgroundColor: getSegmentColor(segment.status) },
-              ]}
-            />
-            <Text style={[styles.deliveryProgressLegendText, { color: themeColors.text.secondary }]}>
-              {segment.label}
-            </Text>
-          </View>
-        ))}
-      </View>
+      <Animated.View
+        style={[
+          styles.deliveryProgressLegendContainer,
+          {
+            maxHeight: animatedHeight.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, maxHeight],
+            }),
+            opacity: animatedHeight,
+            overflow: 'hidden',
+          },
+        ]}
+      >
+        <View style={styles.deliveryProgressLegend}>
+          {segments.map((segment, index) => (
+            <View key={`legend-${segment.status}-${index}`} style={styles.deliveryProgressLegendItem}>
+              <View
+                style={[
+                  styles.deliveryProgressLegendDot,
+                  { backgroundColor: getSegmentColor(segment.status) },
+                ]}
+              />
+              <Text style={[styles.deliveryProgressLegendText, { color: themeColors.text.secondary }]}>
+                {segment.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </Animated.View>
     </View>
   );
 };
@@ -2316,59 +2356,41 @@ export const OrderDetailsScreen: React.FC = () => {
                   </View>
                   <View style={[styles.orderUpdatesCountBadge, { backgroundColor: colors.primary.main + '15' }]}>
                     <Text style={[styles.orderUpdatesCountText, { color: colors.primary.main }]}>
-                      {orderDetails.realtime_order_updates.count}
+                      {updateItems.length}
                     </Text>
                   </View>
                 </View>
 
                 {/* Order Updates Timeline - Shown first */}
                 {updateItems.length > 0 && (
-                  <>
-                    <View style={styles.orderUpdatesTimeline}>
-                      {(showAllUpdates ? updateItems : updateItems.slice(0, 1)).map((update) => (
-                        <View key={update.id} style={[
-                          styles.orderUpdateItem,
-                          { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }
-                        ]}>
-                          <View style={[styles.orderUpdateIconBox, { backgroundColor: colors.info.main + '15' }]}>
-                            <Icon name="information-outline" size={ms(18)} color={colors.info.main} />
-                          </View>
-                          <View style={styles.orderUpdateContent}>
-                            <Text style={[styles.orderUpdateMessage, { color: themeColors.text.primary }]}>
-                              {update.change_message}
+                  <View style={styles.orderUpdatesTimeline}>
+                    {(showAllUpdates ? updateItems : updateItems.slice(0, 1)).map((update) => (
+                      <View key={update.id} style={[
+                        styles.orderUpdateItem,
+                        { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }
+                      ]}>
+                        <View style={[styles.orderUpdateIconBox, { backgroundColor: colors.info.main + '15' }]}>
+                          <Icon name="information-outline" size={ms(18)} color={colors.info.main} />
+                        </View>
+                        <View style={styles.orderUpdateContent}>
+                          <Text style={[styles.orderUpdateMessage, { color: themeColors.text.primary }]}>
+                            {update.change_message}
+                          </Text>
+                          <View style={styles.orderUpdateMeta}>
+                            <Icon name="clock-outline" size={ms(12)} color={themeColors.text.hint} />
+                            <Text style={[styles.orderUpdateTime, { color: themeColors.text.hint }]}>
+                              {update.changed_at}
                             </Text>
-                            <View style={styles.orderUpdateMeta}>
-                              <Icon name="clock-outline" size={ms(12)} color={themeColors.text.hint} />
-                              <Text style={[styles.orderUpdateTime, { color: themeColors.text.hint }]}>
-                                {update.changed_at}
-                              </Text>
-                            </View>
                           </View>
                         </View>
-                      ))}
-                    </View>
-                    {updateItems.length > 1 && (
-                      <TouchableOpacity
-                        style={styles.seeMoreButton}
-                        onPress={() => setShowAllUpdates(!showAllUpdates)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.seeMoreText, { color: colors.primary.main }]}>
-                          {showAllUpdates ? 'See Less' : `See More (${updateItems.length - 1} more)`}
-                        </Text>
-                        <Icon
-                          name={showAllUpdates ? 'chevron-up' : 'chevron-down'}
-                          size={ms(16)}
-                          color={colors.primary.main}
-                        />
-                      </TouchableOpacity>
-                    )}
-                  </>
+                      </View>
+                    ))}
+                  </View>
                 )}
 
-                {/* Order Created Section */}
-                {orderCreatedItem && (
-                  <View style={[styles.orderCreatedInCard, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
+                {/* Order Created Section - Visible when expanded OR when no update items */}
+                {(showAllUpdates || updateItems.length === 0) && orderCreatedItem && (
+                  <View style={styles.orderCreatedInCard}>
                     <View style={styles.orderCreatedHeader}>
                       <View style={styles.orderCreatedTitleRow}>
                         <View style={[styles.orderCreatedIconBox, { backgroundColor: colors.success.main + '15' }]}>
@@ -2418,7 +2440,25 @@ export const OrderDetailsScreen: React.FC = () => {
                   </View>
                 )}
 
-                {/* Products Section */}
+                {/* See More / See Less Button - Only show when there are multiple updates or orderCreatedItem with updates */}
+                {(updateItems.length > 1 || (updateItems.length > 0 && orderCreatedItem)) && (
+                  <TouchableOpacity
+                    style={styles.seeMoreButton}
+                    onPress={() => setShowAllUpdates(!showAllUpdates)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.seeMoreText, { color: colors.primary.main }]}>
+                      {showAllUpdates ? 'See Less' : 'See More'}
+                    </Text>
+                    <Icon
+                      name={showAllUpdates ? 'chevron-up' : 'chevron-down'}
+                      size={ms(16)}
+                      color={colors.primary.main}
+                    />
+                  </TouchableOpacity>
+                )}
+
+                {/* Products Section - Always visible at the bottom */}
                 {orderCreatedItem && orderCreatedItem.products && orderCreatedItem.products.length > 0 && (
                   <View style={[styles.orderCreatedProducts, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
                     <Text style={[styles.orderCreatedProductsTitle, { color: themeColors.text.secondary }]}>
@@ -3008,6 +3048,9 @@ const styles = StyleSheet.create({
   },
   deliveryProgressSegment: {
     height: '100%',
+  },
+  deliveryProgressLegendContainer: {
+    overflow: 'hidden',
   },
   deliveryProgressLegend: {
     flexDirection: 'column',
@@ -4178,9 +4221,8 @@ const styles = StyleSheet.create({
     ...SHADOWS.sm,
   },
   orderCreatedInCard: {
-    borderTopWidth: 1,
-    marginTop: GRID.md,
-    paddingTop: GRID.md,
+    marginTop: GRID.xs,
+    paddingTop: GRID.xs,
     marginBottom: GRID.md,
   },
   orderCreatedHeader: {
