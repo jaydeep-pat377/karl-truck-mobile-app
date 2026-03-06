@@ -130,6 +130,19 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
           borderLeftColor: hasDelay ? colors.error.main : isEarly ? colors.success.main : colors.primary.main,
         }
       ]}>
+        {/* Ticket Row - Top of Card */}
+        {item.ticket && (
+          <TouchableOpacity
+            style={[styles.ticketTopRow, { backgroundColor: colors.info.main + '15' }]}
+            onPress={() => onTicketPress?.(item.ticket!)}
+            activeOpacity={0.7}
+          >
+            <Icon name="ticket-outline" size={ms(14)} color={colors.info.main} />
+            <Text style={[styles.ticketTopLabel, { color: colors.info.main }]}>Ticket</Text>
+            <Text style={[styles.ticketTopValue, { color: colors.info.main }]}>#{item.ticket}</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Card Header */}
         <View style={styles.cardInfoRow}>
           <View style={[styles.infoBadge, { backgroundColor: colors.primary.main + '15' }]}>
@@ -137,28 +150,18 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
             <Text style={[styles.infoValue, { color: colors.primary.main }]}>{item.load_order}</Text>
           </View>
           {item.load_qty && (
-            <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[70] : colors.grey[10] }]}>
+            <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[60] : colors.grey[10] }]}>
               <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]}>Qty</Text>
               <Text style={[styles.infoValue, { color: themeColors.text }]}>{item.load_qty} CY</Text>
             </View>
           )}
-          <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[70] : colors.grey[10] }]}>
+          <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[60] : colors.grey[10] }]}>
             <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]}>Spacing</Text>
             <Text style={[styles.infoValue, { color: themeColors.text }]}>{item.spacing} min</Text>
           </View>
-          {item.ticket && (
-            <TouchableOpacity
-              style={[styles.infoBadge, { backgroundColor: colors.info.main + '15' }]}
-              onPress={() => onTicketPress?.(item.ticket!)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.infoLabel, { color: colors.info.main }]}>Ticket</Text>
-              <Text style={[styles.infoValue, { color: colors.info.main }]}>#{item.ticket}</Text>
-            </TouchableOpacity>
-          )}
-          <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[70] : colors.grey[10] }]}>
-            <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]}>Truck</Text>
-            <Text style={[styles.infoValue, { color: themeColors.text }]}>{item.truck || 'N/A'}</Text>
+          <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[60] : colors.grey[10] }]}>
+            <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]}>Pour Duration</Text>
+            <Text style={[styles.infoValue, { color: themeColors.text }]}>{item.pour_duration} min</Text>
           </View>
         </View>
 
@@ -180,10 +183,6 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
             <View style={styles.timeItem}>
               <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{"End\nPour"}</Text>
               <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.end_pour)}</Text>
-            </View>
-            <View style={styles.timeItem}>
-              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{"Pour\nDuration"}</Text>
-              <Text style={[styles.timeValue, { color: colors.info.main }]}>{item.pour_duration} min</Text>
             </View>
           </View>
         </View>
@@ -263,7 +262,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               {CALCULATION_INFO.map((item, index) => (
                 <View key={index} style={[styles.infoItem, { borderBottomColor: themeColors.border }]}>
-                  <Text style={[styles.infoLabel, { color: colors.primary.main }]}>{item.label}</Text>
+                  <Text style={[styles.modalInfoLabel, { color: colors.primary.main }]}>{item.label}</Text>
                   <Text style={[styles.infoDescription, { color: themeColors.textSecondary }]}>{item.description}</Text>
                 </View>
               ))}
@@ -353,6 +352,24 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderLeftWidth: 3,
   },
+  ticketTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: ms(6),
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
+  },
+  ticketTopLabel: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(13),
+  },
+  ticketTopValue: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(14),
+  },
   cardInfoRow: {
     flexDirection: 'row',
     alignItems: 'stretch',
@@ -370,12 +387,12 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontFamily: fontFamily.regular,
-    fontSize: ms(6),
+    fontSize: ms(8),
     marginBottom: 1,
   },
   infoValue: {
     fontFamily: fontFamily.semiBold,
-    fontSize: ms(10),
+    fontSize: ms(12),
     textAlign: 'center',
   },
   timeSection: {
@@ -395,13 +412,13 @@ const styles = StyleSheet.create({
   },
   timeLabel: {
     fontFamily: fontFamily.regular,
-    fontSize: ms(10),
+    fontSize: ms(11),
     marginBottom: spacing.xs / 2,
     textAlign: 'center',
   },
   timeValue: {
     fontFamily: fontFamily.semiBold,
-    fontSize: ms(10),
+    fontSize: ms(12),
   },
   metricsSection: {
     flexDirection: 'row',
@@ -422,12 +439,12 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     fontFamily: fontFamily.regular,
-    fontSize: ms(9),
+    fontSize: ms(11),
     textAlign: 'center',
   },
   metricValue: {
     fontFamily: fontFamily.semiBold,
-    fontSize: ms(11),
+    fontSize: ms(13),
   },
   seeMoreButton: {
     flexDirection: 'row',
@@ -466,7 +483,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     paddingBottom: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.grey[20],
+    borderBottomColor: colors.grey[25],
   },
   modalTitle: {
     fontSize: ms(16),
@@ -479,7 +496,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
   },
-  infoLabel: {
+  modalInfoLabel: {
     fontSize: ms(13),
     fontFamily: fontFamily.semiBold,
     marginBottom: spacing.xs,

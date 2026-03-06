@@ -265,6 +265,7 @@ interface CircularProgressProps {
   size?: number;
   isDark: boolean;
   unit?: string;
+  unitValue?: string;
 }
 
 const CircularProgress: React.FC<CircularProgressProps> = ({
@@ -274,6 +275,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
   size = ms(120),
   isDark,
   unit,
+  unitValue,
 }) => {
   const strokeWidth = ms(8);
   const radius = (size - strokeWidth) / 2;
@@ -325,7 +327,12 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
         <View style={styles.circularProgressInner}>
           <Text style={[styles.progressTime, { color: themeColors.text.primary }]}>{time}</Text>
           <Text style={[styles.progressLabel, { color: themeColors.text.hint }]}>{label}</Text>
-          {unit && <Text style={[styles.progressUnit, { color: themeColors.text.hint }]}>{unit}</Text>}
+          {(unitValue || unit) && (
+            <Text style={[styles.progressUnit, { color: themeColors.text.hint }]}>
+              {unitValue && <Text style={{ fontFamily: fontFamily.bold }}>{unitValue} </Text>}
+              {unit}
+            </Text>
+          )}
         </View>
       </View>
     </View>
@@ -2036,16 +2043,17 @@ export const OrderDetailsScreen: React.FC = () => {
                     <Text style={[styles.metricValue, { color: themeColors.text.primary }]} numberOfLines={1} adjustsFontSizeToFit>
                       {formatQty(jobData.deliveredVolume)}
                     </Text>
-                    <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>cy</Text>
+                    <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>CY</Text>
                   </View>
                   <Text style={[styles.metricLabel, { color: themeColors.text.hint }]}>Delivered</Text>
                 </View>
 
                 <CircularProgress
-                  time={formatQty(jobData.pouredVolume)}
+                  time={`${Math.round(order.progress ?? 0)}%`}
                   label="Poured"
                   progress={order.progress ?? 0}
                   isDark={isDark}
+                  unitValue={formatQty(jobData.pouredVolume)}
                   unit="CY"
                 />
 
@@ -2054,7 +2062,7 @@ export const OrderDetailsScreen: React.FC = () => {
                     <Text style={[styles.metricValue, { color: themeColors.text.primary }]} numberOfLines={1} adjustsFontSizeToFit>
                       {formatQty(jobData.orderedVolume)}
                     </Text>
-                    <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>cy</Text>
+                    <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>CY</Text>
                   </View>
                   <Text style={[styles.metricLabel, { color: themeColors.text.hint }]}>Ordered</Text>
                 </View>
@@ -2254,19 +2262,19 @@ export const OrderDetailsScreen: React.FC = () => {
                       {orderCreatedItem.purchase_order && (
                         <View style={styles.orderCreatedRow}>
                           <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>PO#</Text>
-                          <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]}>{orderCreatedItem.purchase_order}</Text>
+                          <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]}>{orderCreatedItem.purchase_order === 'n/a' ? '-' : orderCreatedItem.purchase_order}</Text>
                         </View>
                       )}
                       {orderCreatedItem.instructions && (
                         <View style={styles.orderCreatedRow}>
                           <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>Instructions</Text>
-                          <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]}>{orderCreatedItem.instructions}</Text>
+                          <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]}>{orderCreatedItem.instructions === 'n/a' ? '-' : orderCreatedItem.instructions}</Text>
                         </View>
                       )}
                       {orderCreatedItem.ordered_by && (
                         <View style={styles.orderCreatedRow}>
                           <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>Ordered By</Text>
-                          <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]} numberOfLines={2}>{orderCreatedItem.ordered_by}</Text>
+                          <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]} numberOfLines={2}>{orderCreatedItem.ordered_by === 'n/a' ? '-' : orderCreatedItem.ordered_by}</Text>
                         </View>
                       )}
                     </View>

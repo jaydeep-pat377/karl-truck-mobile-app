@@ -411,9 +411,10 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, duratio
   };
 
   const formatDuration = (value: string | number): string => {
-    // If it's already a string (from API), return it directly
+    // If it's already a string (from API), fix pluralization if needed
     if (typeof value === 'string') {
-      return value;
+      // Fix "1 minutes" to "1 minute"
+      return value.replace(/\b1 minutes\b/g, '1 minute');
     }
     // If it's a number, format it
     if (value < 60) {
