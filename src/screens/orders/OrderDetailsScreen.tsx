@@ -2440,26 +2440,8 @@ export const OrderDetailsScreen: React.FC = () => {
                   </View>
                 )}
 
-                {/* See More / See Less Button - Only show when there are multiple updates or orderCreatedItem with updates */}
-                {(updateItems.length > 1 || (updateItems.length > 0 && orderCreatedItem)) && (
-                  <TouchableOpacity
-                    style={styles.seeMoreButton}
-                    onPress={() => setShowAllUpdates(!showAllUpdates)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.seeMoreText, { color: colors.primary.main }]}>
-                      {showAllUpdates ? 'See Less' : 'See More'}
-                    </Text>
-                    <Icon
-                      name={showAllUpdates ? 'chevron-up' : 'chevron-down'}
-                      size={ms(16)}
-                      color={colors.primary.main}
-                    />
-                  </TouchableOpacity>
-                )}
-
-                {/* Products Section - Always visible at the bottom */}
-                {orderCreatedItem && orderCreatedItem.products && orderCreatedItem.products.length > 0 && (
+                {/* Products Section - Below Order Created */}
+                {(showAllUpdates || updateItems.length === 0) && orderCreatedItem && orderCreatedItem.products && orderCreatedItem.products.length > 0 && (
                   <View style={[styles.orderCreatedProducts, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
                     <Text style={[styles.orderCreatedProductsTitle, { color: themeColors.text.secondary }]}>
                       Products ({orderCreatedItem.products.length})
@@ -2495,6 +2477,24 @@ export const OrderDetailsScreen: React.FC = () => {
                       </View>
                     ))}
                   </View>
+                )}
+
+                {/* See More / See Less Button - At the end */}
+                {(updateItems.length > 1 || (updateItems.length > 0 && orderCreatedItem)) && (
+                  <TouchableOpacity
+                    style={styles.seeMoreButton}
+                    onPress={() => setShowAllUpdates(!showAllUpdates)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.seeMoreText, { color: colors.primary.main }]}>
+                      {showAllUpdates ? 'See Less' : 'See More'}
+                    </Text>
+                    <Icon
+                      name={showAllUpdates ? 'chevron-up' : 'chevron-down'}
+                      size={ms(16)}
+                      color={colors.primary.main}
+                    />
+                  </TouchableOpacity>
                 )}
               </View>
             );

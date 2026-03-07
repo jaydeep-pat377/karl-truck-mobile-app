@@ -143,7 +143,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   const themeColors = isDark ? colors.dark : colors.light;
   const containerWidth = SCREEN_WIDTH - horizontalPadding * 2;
   const yAxisWidth = 25;
-  const chartPadding = { top: 15, right: 20, bottom: 50, left: 35 };
+  const chartPadding = { top: 15, right: 20, bottom: 65, left: 35 };
   const chartAreaHeight = height - chartPadding.top - chartPadding.bottom;
   const baseChartWidth = containerWidth - yAxisWidth;
   const zoomedChartWidth = baseChartWidth * zoomLevel;
@@ -459,12 +459,12 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                       <SvgText
                         key={`x-${label.index}`}
                         x={x}
-                        y={height - 28}
+                        y={height - 38}
                         fontSize={ms(10)}
                         fill={themeColors.text.hint}
                         textAnchor="end"
                         fontFamily={fontFamily.medium}
-                        transform={`rotate(-45, ${x}, ${height - 28})`}
+                        transform={`rotate(-45, ${x}, ${height - 38})`}
                       >
                         {label.display}
                       </SvgText>

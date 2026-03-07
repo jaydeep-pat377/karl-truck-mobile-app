@@ -164,7 +164,9 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
 
 
   const parseTimeToMinutes = (timeDisplay: string): number => {
-    const [hours, minutes] = timeDisplay.split(':').map(Number);
+    // Handle time formats like "07:05 CST" or "07:05"
+    const timePart = timeDisplay.split(' ')[0]; // Remove timezone suffix
+    const [hours, minutes] = timePart.split(':').map(Number);
     return hours * 60 + (minutes || 0);
   };
 

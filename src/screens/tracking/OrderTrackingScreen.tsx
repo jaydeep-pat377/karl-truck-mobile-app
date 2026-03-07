@@ -273,7 +273,7 @@ export const OrderTrackingScreen: React.FC = () => {
 
   // Auto-select ticket when ticketCode is provided from navigation params
   useEffect(() => {
-    if (ticketCode && tickets.length > 0 && !hasAutoSelected) {
+    if (ticketCode && tickets.length > 0 && !hasAutoSelected && isMapReady) {
       const ticketIndex = tickets.findIndex(t => t.ticket_code === ticketCode);
       if (ticketIndex !== -1) {
         const matchingTicket = tickets[ticketIndex];
@@ -296,9 +296,20 @@ export const OrderTrackingScreen: React.FC = () => {
             });
           }, 100);
         });
+
+        // Zoom to the truck on the map with highlight
+        if (cameraRef.current && matchingTicket.truck?.latitude && matchingTicket.truck?.longitude) {
+          setTimeout(() => {
+            cameraRef.current?.setCamera({
+              centerCoordinate: [matchingTicket.truck!.longitude, matchingTicket.truck!.latitude],
+              zoomLevel: 14,
+              animationDuration: 1000,
+            });
+          }, 500);
+        }
       }
     }
-  }, [ticketCode, tickets, hasAutoSelected, sheetHeight, SHEET_MAX_HEIGHT]);
+  }, [ticketCode, tickets, hasAutoSelected, sheetHeight, SHEET_MAX_HEIGHT, isMapReady]);
 
   const plantLocation = useMemo(() => {
     if (!trackingData?.plant?.latitude || !trackingData?.plant?.longitude) return null;
@@ -661,38 +672,40 @@ export const OrderTrackingScreen: React.FC = () => {
           </TouchableOpacity>
         </SafeAreaView>
 
-        <TouchableOpacity
-          style={[styles.statusLegend, !isLegendExpanded && styles.statusLegendCollapsed]}
-          onPress={() => setIsLegendExpanded(!isLegendExpanded)}
-          activeOpacity={0.9}
-        >
-          <View style={styles.legendHeader}>
-            <Icon name="information-outline" size={ms(14)} color={colors.common.white} />
-            <Text style={styles.legendTitle}>Status</Text>
-            <Icon
-              name={isLegendExpanded ? 'chevron-up' : 'chevron-down'}
-              size={ms(14)}
-              color={colors.common.white}
-            />
-          </View>
-          {isLegendExpanded && (
-            <View style={styles.legendContent}>
-              {[
-                { key: 'ticketed', color: colors.trackingStatus.ticketed, label: 'Ticketed' },
-                { key: 'loading', color: colors.trackingStatus.loading, label: 'Loading' },
-                { key: 'to_job', color: colors.trackingStatus.toJob, label: 'To Job' },
-                { key: 'at_job', color: colors.trackingStatus.atJob, label: 'At Job' },
-                { key: 'pouring', color: colors.trackingStatus.poured, label: 'Pour' },
-                { key: 'washing', color: colors.trackingStatus.washing, label: 'Wash' },
-              ].map((status) => (
-                <View key={status.key} style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: status.color }]} />
-                  <Text style={styles.legendLabel}>{status.label}</Text>
-                </View>
-              ))}
+        {isMapReady && (
+          <TouchableOpacity
+            style={[styles.statusLegend, !isLegendExpanded && styles.statusLegendCollapsed]}
+            onPress={() => setIsLegendExpanded(!isLegendExpanded)}
+            activeOpacity={0.9}
+          >
+            <View style={styles.legendHeader}>
+              <Icon name="information-outline" size={ms(14)} color={colors.common.white} />
+              <Text style={styles.legendTitle}>Status</Text>
+              <Icon
+                name={isLegendExpanded ? 'chevron-up' : 'chevron-down'}
+                size={ms(14)}
+                color={colors.common.white}
+              />
             </View>
-          )}
-        </TouchableOpacity>
+            {isLegendExpanded && (
+              <View style={styles.legendContent}>
+                {[
+                  { key: 'ticketed', color: colors.trackingStatus.ticketed, label: 'Ticketed' },
+                  { key: 'loading', color: colors.trackingStatus.loading, label: 'Loading' },
+                  { key: 'to_job', color: colors.trackingStatus.toJob, label: 'To Job' },
+                  { key: 'at_job', color: colors.trackingStatus.atJob, label: 'At Job' },
+                  { key: 'pouring', color: colors.trackingStatus.poured, label: 'Pour' },
+                  { key: 'washing', color: colors.trackingStatus.washing, label: 'Wash' },
+                ].map((status) => (
+                  <View key={status.key} style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: status.color }]} />
+                    <Text style={styles.legendLabel}>{status.label}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
 
         <View style={[styles.mapControls, { top: insets.top + ms(70) }]}>
           <TouchableOpacity style={[styles.mapBtn, { backgroundColor: themeColors.card }]} onPress={handleFitAll}>

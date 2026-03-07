@@ -1459,6 +1459,7 @@ export const TicketScreen: React.FC = () => {
   }, [navigation, orderId]);
 
   const handleSearch = useCallback(() => {
+    Keyboard.dismiss();
     setAppliedSearchQuery(searchQuery.trim());
   }, [searchQuery]);
 

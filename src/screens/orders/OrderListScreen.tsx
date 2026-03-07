@@ -1171,6 +1171,7 @@ export const OrderListScreen: React.FC = () => {
   }, [mappedOrders, appliedFilters.productType, appliedFilters.hasAlertOnly]);
 
   const handleSearch = useCallback(() => {
+    Keyboard.dismiss();
     setAppliedSearchQuery(searchQuery.trim());
   }, [searchQuery]);
 
@@ -2184,6 +2185,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
     marginBottom: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
