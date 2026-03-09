@@ -272,6 +272,7 @@ export const OrderTrackingScreen: React.FC = () => {
   }, [selectedTicketId, tickets]);
 
   // Auto-select ticket when ticketCode is provided from navigation params
+  // Sheet size remains constant (at minimum height), only highlights the ticket and zooms map
   useEffect(() => {
     if (ticketCode && tickets.length > 0 && !hasAutoSelected && isMapReady) {
       const ticketIndex = tickets.findIndex(t => t.ticket_code === ticketCode);
@@ -279,23 +280,15 @@ export const OrderTrackingScreen: React.FC = () => {
         const matchingTicket = tickets[ticketIndex];
         setSelectedTicketId(matchingTicket.ticket_id);
         setHasAutoSelected(true);
-        // Expand the sheet and scroll to the ticket in the list
-        setIsSheetExpanded(true);
-        Animated.spring(sheetHeight, {
-          toValue: SHEET_MAX_HEIGHT,
-          useNativeDriver: false,
-          tension: 100,
-          friction: 12,
-        }).start(() => {
-          // Scroll to the ticket after sheet is expanded
-          setTimeout(() => {
-            flatListRef.current?.scrollToIndex({
-              index: ticketIndex,
-              animated: true,
-              viewPosition: 0.5,
-            });
-          }, 100);
-        });
+
+        // Scroll to the ticket in the list (within current sheet height - no expansion)
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({
+            index: ticketIndex,
+            animated: true,
+            viewPosition: 0.5,
+          });
+        }, 300);
 
         // Zoom to the truck on the map with highlight
         if (cameraRef.current && matchingTicket.truck?.latitude && matchingTicket.truck?.longitude) {
@@ -309,7 +302,7 @@ export const OrderTrackingScreen: React.FC = () => {
         }
       }
     }
-  }, [ticketCode, tickets, hasAutoSelected, sheetHeight, SHEET_MAX_HEIGHT, isMapReady]);
+  }, [ticketCode, tickets, hasAutoSelected, isMapReady]);
 
   const plantLocation = useMemo(() => {
     if (!trackingData?.plant?.latitude || !trackingData?.plant?.longitude) return null;
