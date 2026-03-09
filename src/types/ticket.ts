@@ -408,6 +408,7 @@ export interface DelayDetailItem {
   begin_pour: string | null;
   end_pour: string | null;
   pour_out: number | null;
+  pour_out_minutes: number | null;
   pour_duration: number | null;
   scheduled_end_pour: string | null;
   spacing: number;

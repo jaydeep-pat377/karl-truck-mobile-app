@@ -257,7 +257,7 @@ function generateHighchartsHTML(
   visibleSeries: { waiting: boolean; pouring: boolean },
   maxYValue: number
 ): string {
-  const backgroundColor = isDark ? '#1f2937' : '#ffffff';
+  const backgroundColor = isDark ? '#323232' : '#ffffff';
   const textColor = isDark ? '#e5e7eb' : '#333333';
   const gridColor = isDark ? '#374151' : '#e6e6e6';
 

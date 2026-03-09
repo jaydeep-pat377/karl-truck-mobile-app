@@ -8,16 +8,24 @@ import { DelayDetailItem } from '../../types/ticket';
 
 const CALCULATION_INFO = [
   {
-    label: 'Delivery Performance',
+    label: 'Producer Delay',
     description: 'Actual Arrived - Scheduled On Job (minutes). Positive = late, 0 = on time.',
   },
   {
-    label: 'Pour Performance',
+    label: 'Contractor Delay',
     description: 'Waiting to Pour + Pour Minutes Over. Waiting = Begin Pour - MAX(Scheduled, Arrived). Pour Over = (End Pour - Begin Pour) - Spacing.',
   },
   {
     label: 'Waiting to Pour',
     description: 'Begin Pour - MAX(Scheduled On Job, Actual Arrived) (minutes)',
+  },
+  {
+    label: 'Pour Out',
+    description: 'End Pour - Begin Pour (minutes). Time taken to pour out the concrete load. Shows "--" if pour is not yet complete.',
+  },
+  {
+    label: 'Pour Performance',
+    description: 'Actual Pour Duration - Scheduled Spacing (minutes). Negative = faster than scheduled, Positive = slower than scheduled.',
   },
   {
     label: 'Pour Duration',
@@ -188,29 +196,35 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
         </View>
 
         {/* Delay Metrics */}
-        <View style={styles.metricsSection}>
-          <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.producer_delay, isDark) }]}>
-            <View style={styles.metricLabelWrapper}>
-              <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Delivery Performance</Text>
-            </View>
+        <View style={styles.metricsRow}>
+          <View style={[styles.metricItemSmall, { backgroundColor: getDelayBgColor(item.producer_delay, isDark) }]}>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>{"Producer\nDelay"}</Text>
             <Text style={[styles.metricValue, { color: getDelayColor(item.producer_delay) }]}>
-              {item.producer_delay > 0 ? '+' : ''}{item.producer_delay} min
+              {item.producer_delay > 0 ? '+' : ''}{item.producer_delay}
             </Text>
           </View>
-          <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.contractor_delay, isDark) }]}>
-            <View style={styles.metricLabelWrapper}>
-              <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Pour Performance</Text>
-            </View>
+          <View style={[styles.metricItemSmall, { backgroundColor: getDelayBgColor(item.contractor_delay, isDark) }]}>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>{"Contractor\nDelay"}</Text>
             <Text style={[styles.metricValue, { color: getDelayColor(item.contractor_delay) }]}>
-              {item.contractor_delay > 0 ? '+' : ''}{item.contractor_delay} min
+              {item.contractor_delay > 0 ? '+' : ''}{item.contractor_delay}
             </Text>
           </View>
           <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.waiting_to_pour, isDark) }]}>
-            <View style={styles.metricLabelWrapper}>
-              <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Waiting</Text>
-            </View>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Waiting</Text>
             <Text style={[styles.metricValue, { color: getDelayColor(item.waiting_to_pour) }]}>
-              {item.waiting_to_pour} min
+              {item.waiting_to_pour}
+            </Text>
+          </View>
+          <View style={[styles.metricItem, { backgroundColor: item.pour_out_minutes !== null && item.pour_out_minutes !== undefined ? getDelayBgColor(item.pour_out_minutes, isDark) : (isDark ? colors.grey[80] : colors.grey[10]) }]}>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>{"Pour\nOut"}</Text>
+            <Text style={[styles.metricValue, { color: item.pour_out_minutes !== null && item.pour_out_minutes !== undefined ? getDelayColor(item.pour_out_minutes) : themeColors.textHint }]}>
+              {item.pour_out_minutes !== null && item.pour_out_minutes !== undefined ? item.pour_out_minutes : '--'}
+            </Text>
+          </View>
+          <View style={[styles.metricItemLarge, { backgroundColor: getDelayBgColor(item.pour_min_over, isDark) }]}>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>{"Pour\nPerf"}</Text>
+            <Text style={[styles.metricValue, { color: getDelayColor(item.pour_min_over) }]}>
+              {item.pour_min_over > 0 ? '+' : ''}{item.pour_min_over}
             </Text>
           </View>
         </View>
@@ -387,8 +401,9 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontFamily: fontFamily.regular,
-    fontSize: ms(8),
+    fontSize: ms(10),
     marginBottom: 1,
+    textAlign: 'center',
   },
   infoValue: {
     fontFamily: fontFamily.semiBold,
@@ -419,32 +434,47 @@ const styles = StyleSheet.create({
   timeValue: {
     fontFamily: fontFamily.semiBold,
     fontSize: ms(12),
+    textAlign: 'center',
   },
-  metricsSection: {
+  metricsRow: {
     flexDirection: 'row',
-    gap: spacing.xs,
+    gap: 4,
   },
   metricItem: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xs,
-    borderRadius: ms(8),
-  },
-  metricLabelWrapper: {
-    flex: 1,
     justifyContent: 'center',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: 2,
+    borderRadius: ms(6),
+  },
+  metricItemSmall: {
+    flex: 0.75,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: 2,
+    borderRadius: ms(6),
+  },
+  metricItemLarge: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: 2,
+    borderRadius: ms(6),
   },
   metricLabel: {
     fontFamily: fontFamily.regular,
-    fontSize: ms(11),
+    fontSize: ms(9),
     textAlign: 'center',
+    lineHeight: ms(12),
+    marginBottom: 2,
   },
   metricValue: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: ms(13),
+    fontFamily: fontFamily.bold,
+    fontSize: ms(12),
+    textAlign: 'center',
   },
   seeMoreButton: {
     flexDirection: 'row',
