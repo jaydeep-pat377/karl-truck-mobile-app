@@ -161,7 +161,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
           </View>
           <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[60] : colors.grey[10] }]}>
             <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]}>Pour Duration</Text>
-            <Text style={[styles.infoValue, { color: themeColors.text }]}>{item.pour_duration} min</Text>
+            <Text style={[styles.infoValue, { color: themeColors.text }]}>{item.pour_duration !== null ? `${item.pour_duration} min` : '--'}</Text>
           </View>
         </View>
 

@@ -407,7 +407,8 @@ export interface DelayDetailItem {
   producer_delay: number;
   begin_pour: string | null;
   end_pour: string | null;
-  pour_duration: number;
+  pour_out: number | null;
+  pour_duration: number | null;
   scheduled_end_pour: string | null;
   spacing: number;
   waiting_to_pour: number;

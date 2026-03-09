@@ -4,7 +4,8 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { moderateScale as ms } from 'react-native-size-matters';
 import { PourSpeedChart } from './PourSpeedChart';
-import { TrucksOnJobChart } from './TrucksOnJobChart';
+import { TrucksOnJobChart, ScheduledLoadItem } from './TrucksOnJobChart';
+import { TrucksOnJobWebView } from './TrucksOnJobWebView';
 
 export interface PourSpeedGraphApi {
   schedule_rate: number;
@@ -14,64 +15,37 @@ export interface PourSpeedGraphApi {
   poured: Array<{ time: string; time_display: string; rate: number; cumulative_qty?: number }>;
 }
 
-export interface TrucksOnJobGraphApi {
-  time_points: Array<{
-    time: string;
-    time_display: string;
-    waiting: number;
-    pouring: number;
-    washout: number;
-    total: number;
-    avg_waiting_minutes?: number | null;
-    avg_pouring_minutes?: number | null;
-    avg_washing_minutes?: number | null;
-  }>;
-  averages: {
-    avg_waiting_minutes: number;
-    avg_pouring_minutes: number;
-    avg_washout_minutes: number;
-  };
-}
-
 export interface OrderGraphsApi {
   pour_speed?: PourSpeedGraphApi;
-  trucks_on_job?: TrucksOnJobGraphApi;
 }
 
 export interface PerformanceChartsProps {
-
   graphData?: OrderGraphsApi | null;
-
+  scheduledLoads?: ScheduledLoadItem[];
   scheduledQty?: number;
-
   truckSpace?: number;
-
   isDark: boolean;
-
   chartHeight?: number;
-
   showPourSpeed?: boolean;
-
   showTrucksOnJob?: boolean;
-
-  trucksDisplayMode?: 'line' | 'area';
-
   scrollable?: boolean;
-
   pointSpacing?: number;
+  /** Use WebView with Highcharts for Trucks on Job chart (exact web parity) */
+  useHighchartsWebView?: boolean;
 }
 
 export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
   graphData,
+  scheduledLoads = [],
   scheduledQty = 0,
   truckSpace = 0,
   isDark,
   chartHeight = ms(180),
   showPourSpeed = true,
   showTrucksOnJob = true,
-  trucksDisplayMode = 'line',
   scrollable = true,
   pointSpacing = 80,
+  useHighchartsWebView = false,
 }) => {
   return (
     <View style={styles.container}>
@@ -91,19 +65,20 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
         />
       )}
 
-      {showTrucksOnJob && (
-        <TrucksOnJobChart
-          timePoints={graphData?.trucks_on_job?.time_points || []}
-          averages={graphData?.trucks_on_job?.averages || {
-            avg_waiting_minutes: 0,
-            avg_pouring_minutes: 0,
-            avg_washout_minutes: 0,
-          }}
-          isDark={isDark}
-          height={chartHeight}
-          scrollable={scrollable}
-          minPointSpacing={pointSpacing}
-        />
+      {showTrucksOnJob && scheduledLoads.length > 0 && (
+        useHighchartsWebView ? (
+          <TrucksOnJobWebView
+            scheduledLoads={scheduledLoads}
+            isDark={isDark}
+            height={chartHeight}
+          />
+        ) : (
+          <TrucksOnJobChart
+            scheduledLoads={scheduledLoads}
+            isDark={isDark}
+            height={chartHeight}
+          />
+        )
       )}
     </View>
   );

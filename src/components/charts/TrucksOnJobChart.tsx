@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
@@ -26,49 +25,297 @@ import { fontFamily } from '../../theme/typography';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
+// Colors matching web Highcharts: Waiting = #434348 (dark gray), Pouring = #90ed7d (light green)
 const COLORS = {
-  waiting: '#4A4A4A',
-  pouring: colors.dashboard.statGreen,
-  washout: colors.dashboard.statBlue,
+  waiting: '#434348',
+  pouring: '#90ed7d',
   grid: '#E0E0E0',
 };
 
-export interface TrucksTimePoint {
-  time: string;
-  time_display: string;
-  waiting: number;
-  pouring: number;
-  washout?: number;
-  total: number;
-  avg_waiting_minutes?: number | null;
-  avg_pouring_minutes?: number | null;
-  avg_washing_minutes?: number | null;
+// ============= INTERFACES =============
+
+// ScheduledLoad from API - matches the actual API response structure
+export interface ScheduledLoadItem {
+  id?: string;
+  ticket_id?: string;
+  ticket_code?: string | null;
+  truck_id?: string;
+  truck_code?: string | null;
+  load_number?: number;
+  load_qty?: number;
+  scheduled_qty_raw?: number;
+  actual_qty_raw?: number;
+  // String formats for qty (from some API responses)
+  scheduled_qty?: string;
+  actual_qty?: string | null;
+  // Scheduled timing fields
+  scheduled_time?: string;
+  scheduled_on_job_time?: string;
+  scheduled_fin_pour_time?: string;
+  scheduled_at_plant_time?: string;
+  // Actual timing fields from API
+  actual_time?: string | null;
+  actual_on_job_time?: string | null;
+  actual_begin_pour_time?: string | null;
+  actual_unload_time?: string | null;
+  actual_end_pour_time?: string | null;
+  actual_wash_time?: string | null;
+  actual_to_plant_time?: string | null;
+  actual_at_plant_time?: string | null;
+  // Remove reason
+  ticket_remove_reason_code?: string | null;
+  is_completed?: boolean;
 }
 
-export interface TrucksAverages {
-  avg_waiting_minutes: number;
-  avg_pouring_minutes: number;
-  avg_washout_minutes: number;
+interface TruckState {
+  ticketId: string;
+  truckCode: string;
+  onJobTime: string;
+  unloadTime: string | null;
+  endUnloadTime: string | null;
+  washTime: string | null;
+  toPlantTime: string | null;
+  loadQty: number;
+}
+
+interface ChartDataPoint {
+  timestamp: number;
+  waiting: number;
+  pouring: number;
 }
 
 export interface TrucksOnJobChartProps {
-  timePoints: TrucksTimePoint[];
-  averages?: TrucksAverages;
+  scheduledLoads: ScheduledLoadItem[];
   isDark: boolean;
   height?: number;
   horizontalPadding?: number;
-  scrollable?: boolean;
-  minPointSpacing?: number;
 }
 
+// ============= CORE LOGIC FUNCTIONS (Same as Web) =============
+
+// Parse time string like "11:08 CST" or ISO date to Date object
+function parseTimeString(timeStr: string | null | undefined, referenceDate?: Date): Date | null {
+  if (!timeStr) return null;
+
+  // Try ISO format first
+  const isoDate = new Date(timeStr);
+  if (!isNaN(isoDate.getTime()) && timeStr.includes('T')) {
+    return isoDate;
+  }
+
+  // Parse format like "11:08 CST" or "11:08"
+  const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+  if (match) {
+    const hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const date = referenceDate ? new Date(referenceDate) : new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  }
+
+  return null;
+}
+
+// Filter valid scheduled loads - exclude canceled and loads without truck codes
+function filterValidLoads(loads: ScheduledLoadItem[]): ScheduledLoadItem[] {
+  return loads.filter((load) => {
+    // Exclude canceled loads
+    if (load.ticket_remove_reason_code && load.ticket_remove_reason_code.trim() !== '') {
+      return false;
+    }
+    // Exclude loads without truck code
+    if (!load.truck_code || load.truck_code.trim() === '') {
+      return false;
+    }
+    return true;
+  });
+}
+
+// Process scheduled loads to TruckState objects
+function processTruckStates(loads: ScheduledLoadItem[]): TruckState[] {
+  const validLoads = filterValidLoads(loads);
+
+  // Use today as reference date for time parsing
+  const referenceDate = new Date();
+
+  return validLoads
+    .filter((load) => !!load.actual_on_job_time)
+    .map((load) => {
+      const onJobDate = parseTimeString(load.actual_on_job_time, referenceDate);
+      if (!onJobDate) return null;
+
+      // toPlant fallback: actual_to_plant_time → actual_at_plant_time
+      const toPlantDate = parseTimeString(load.actual_to_plant_time || load.actual_at_plant_time, referenceDate);
+
+      // Ensure ordering: if toPlant exists and is before onJob, clamp
+      let safeToPlant: string | null = null;
+      if (toPlantDate) {
+        safeToPlant =
+          toPlantDate.getTime() >= onJobDate.getTime()
+            ? toPlantDate.toISOString()
+            : onJobDate.toISOString();
+      }
+
+      // unload_time = actual_begin_pour_time or actual_unload_time
+      const unloadDate = parseTimeString(load.actual_begin_pour_time || load.actual_unload_time, referenceDate);
+      // end_unload = actual_end_pour_time
+      const endUnloadDate = parseTimeString(load.actual_end_pour_time, referenceDate);
+      // wash_time = actual_wash_time
+      const washDate = parseTimeString(load.actual_wash_time, referenceDate);
+
+      // Parse quantities - handle both number and string formats
+      let loadQty = 0;
+      if (typeof load.actual_qty_raw === 'number') {
+        loadQty = load.actual_qty_raw;
+      } else if (typeof load.load_qty === 'number') {
+        loadQty = load.load_qty;
+      } else if (typeof load.scheduled_qty_raw === 'number') {
+        loadQty = load.scheduled_qty_raw;
+      } else if (typeof load.actual_qty === 'string' && load.actual_qty) {
+        loadQty = parseFloat(load.actual_qty) || 0;
+      } else if (typeof load.scheduled_qty === 'string' && load.scheduled_qty) {
+        loadQty = parseFloat(load.scheduled_qty) || 0;
+      }
+
+      return {
+        ticketId: load.ticket_id || load.ticket_code || load.id || String(load.load_number) || '',
+        truckCode: load.truck_code!,
+        onJobTime: onJobDate.toISOString(),
+        unloadTime: unloadDate?.toISOString() || null,
+        endUnloadTime: endUnloadDate?.toISOString() || null,
+        washTime: washDate?.toISOString() || null,
+        toPlantTime: safeToPlant,
+        loadQty,
+      };
+    })
+    .filter((state): state is TruckState => state !== null);
+}
+
+// Calculate trucks on job at a specific time (CORE CALCULATION)
+function calculateTrucksOnJob(
+  time: Date,
+  truckStates: TruckState[]
+): { waiting: number; pouring: number } {
+  let waiting = 0;
+  let pouring = 0;
+
+  const timeMs = time.getTime();
+
+  for (const state of truckStates) {
+    const onJobMs = new Date(state.onJobTime).getTime();
+
+    // End Pour time (cascade: wash_time → end_unload → to_plant_time)
+    const endPourMs = state.washTime
+      ? new Date(state.washTime).getTime()
+      : state.endUnloadTime
+        ? new Date(state.endUnloadTime).getTime()
+        : state.toPlantTime
+          ? new Date(state.toPlantTime).getTime()
+          : null;
+
+    // Departure = endPour; if no endPour data, truck is still on job
+    const departureMs = endPourMs ?? Infinity;
+
+    // Truck must be on job at this time
+    // At departure time, truck is GONE (count drops AT event time)
+    if (timeMs < onJobMs || timeMs >= departureMs) {
+      continue;
+    }
+
+    if (state.unloadTime) {
+      const unloadMs = new Date(state.unloadTime).getTime();
+      if (timeMs < unloadMs) {
+        // Before unload → Waiting
+        waiting++;
+      } else {
+        // From unload to endPour → Pouring
+        pouring++;
+      }
+    } else {
+      // No unload time → still waiting
+      waiting++;
+    }
+  }
+
+  return { waiting, pouring };
+}
+
+// Generate chart data points with step pattern
+function generateTrucksOnJobData(truckStates: TruckState[]): ChartDataPoint[] {
+  if (truckStates.length === 0) return [];
+
+  // Step 1: Collect all event timestamps
+  const eventTimesMs: number[] = [];
+
+  for (const state of truckStates) {
+    // Arrival event
+    eventTimesMs.push(new Date(state.onJobTime).getTime());
+
+    // Pour start event
+    if (state.unloadTime) {
+      eventTimesMs.push(new Date(state.unloadTime).getTime());
+    }
+
+    // Departure event (endPour)
+    const endPour = state.washTime || state.endUnloadTime || state.toPlantTime;
+    if (endPour) {
+      eventTimesMs.push(new Date(endPour).getTime());
+    }
+  }
+
+  // Step 2: Sort and deduplicate
+  const uniqueEvents = [...new Set(eventTimesMs)].sort((a, b) => a - b);
+  if (uniqueEvents.length === 0) return [];
+
+  // Step 3: Generate data points with step pattern
+  const dataPoints = new Map<number, { waiting: number; pouring: number }>();
+
+  // First event
+  const firstEventMs = uniqueEvents[0];
+  const firstState = calculateTrucksOnJob(new Date(firstEventMs), truckStates);
+  dataPoints.set(firstEventMs, {
+    waiting: firstState.waiting,
+    pouring: firstState.pouring,
+  });
+
+  // Subsequent events: (T-1min, old_state) + (T, new_state)
+  for (let i = 1; i < uniqueEvents.length; i++) {
+    const eventMs = uniqueEvents[i];
+    const beforeMs = eventMs - 60000; // 1 minute before
+
+    // Add "before" point if it doesn't collide
+    if (!dataPoints.has(beforeMs)) {
+      const beforeState = calculateTrucksOnJob(new Date(beforeMs), truckStates);
+      dataPoints.set(beforeMs, {
+        waiting: beforeState.waiting,
+        pouring: beforeState.pouring,
+      });
+    }
+
+    // State at the event
+    const atState = calculateTrucksOnJob(new Date(eventMs), truckStates);
+    dataPoints.set(eventMs, {
+      waiting: atState.waiting,
+      pouring: atState.pouring,
+    });
+  }
+
+  // Step 4: Sort and return
+  const sorted = [...dataPoints.entries()].sort((a, b) => a[0] - b[0]);
+  return sorted.map(([timestamp, state]) => ({
+    timestamp,
+    waiting: state.waiting,
+    pouring: state.pouring,
+  }));
+}
+
+// ============= CHART COMPONENT =============
+
 export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
-  timePoints,
-  averages: _averages,
+  scheduledLoads,
   isDark,
   height = ms(220),
   horizontalPadding = 16,
-  scrollable = true,
-  minPointSpacing = 80,
 }) => {
   const [tooltip, setTooltip] = useState<{
     x: number;
@@ -76,26 +323,30 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     time: string;
     waiting: number;
     pouring: number;
-    washout: number;
-    total: number;
   } | null>(null);
 
-
+  // Legend toggles
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(
-    new Set(['waiting', 'pouring', 'washout'])
+    new Set(['waiting', 'pouring'])
   );
 
   // Zoom state
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isAtEnd, setIsAtEnd] = useState(false);
-  const MIN_ZOOM = 1; // 100%
-  const MAX_ZOOM = 5; // 500%
+  const MIN_ZOOM = 1;
+  const MAX_ZOOM = 5;
   const ZOOM_STEP = 0.5;
   const chartScrollRef = useRef<ScrollViewType>(null);
   const currentScrollX = useRef(0);
 
+  // Process scheduled loads data using web logic
+  const truckStates = useMemo(() => processTruckStates(scheduledLoads), [scheduledLoads]);
+  const chartData = useMemo(() => generateTrucksOnJobData(truckStates), [truckStates]);
+
+  const hasData = chartData.length > 0;
+
   const handleZoomIn = () => {
-    if (isAtEnd || zoomLevel >= MAX_ZOOM) return; // Don't zoom in if at the end or max zoom
+    if (isAtEnd || zoomLevel >= MAX_ZOOM) return;
     setZoomLevel(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
   };
 
@@ -103,8 +354,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     if (zoomLevel <= MIN_ZOOM) return;
     const newZoom = Math.max(zoomLevel - ZOOM_STEP, MIN_ZOOM);
     setZoomLevel(newZoom);
-    setIsAtEnd(false); // Reset end state when zooming out
-    // Adjust scroll position to prevent blank screen
+    setIsAtEnd(false);
     setTimeout(() => {
       const newMaxScroll = baseChartWidth * newZoom - baseChartWidth;
       if (currentScrollX.current > newMaxScroll) {
@@ -123,7 +373,6 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   const handleScroll = (event: any) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     currentScrollX.current = contentOffset.x;
-    // Check if scrolled to the end (with small threshold)
     const isEnd = contentOffset.x + layoutMeasurement.width >= contentSize.width - 5;
     setIsAtEnd(isEnd);
   };
@@ -132,6 +381,8 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     setSelectedFilters(prev => {
       const newSet = new Set(prev);
       if (newSet.has(key)) {
+        // Don't allow deselecting if it's the only selected item
+        if (newSet.size === 1) return prev;
         newSet.delete(key);
       } else {
         newSet.add(key);
@@ -148,168 +399,190 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   const baseChartWidth = containerWidth - yAxisWidth;
   const zoomedChartWidth = baseChartWidth * zoomLevel;
 
-  const hasData = timePoints && timePoints.length > 0;
-
-
+  // Calculate maxY based on visible series
   const maxY = useMemo(() => {
-    if (!hasData) return 4;
-    const maxTotal = Math.max(...timePoints.map(d => d.waiting + d.pouring + (d.washout || 0)), 1);
-    return Math.max(maxTotal + 1, 4);
-  }, [timePoints, hasData]);
+    if (!hasData) return 6;
 
+    const showWaiting = selectedFilters.has('waiting');
+    const showPouring = selectedFilters.has('pouring');
 
+    let maxValue = 0;
+
+    if (showWaiting && showPouring) {
+      maxValue = Math.max(...chartData.map(d => d.waiting + d.pouring), 0);
+    } else if (showWaiting) {
+      maxValue = Math.max(...chartData.map(d => d.waiting), 0);
+    } else if (showPouring) {
+      maxValue = Math.max(...chartData.map(d => d.pouring), 0);
+    }
+
+    // Round up to next even number + padding
+    const roundedUp = Math.ceil(maxValue / 2) * 2 + 2;
+    return Math.max(roundedUp, 6);
+  }, [chartData, hasData, selectedFilters]);
+
+  // Y-axis values (even numbers only)
   const yAxisValues = useMemo(() => {
-    return Array.from({ length: maxY + 1 }, (_, i) => maxY - i);
+    const values: number[] = [];
+    for (let i = maxY; i >= 0; i -= 2) {
+      values.push(i);
+    }
+    return values;
   }, [maxY]);
 
+  // X-axis configuration
+  const xAxisConfig = useMemo(() => {
+    if (!hasData || chartData.length === 0) {
+      return { startMs: Date.now(), endMs: Date.now() + 3600000, tickInterval: 30 };
+    }
 
+    const firstTime = chartData[0].timestamp;
+    const lastTime = chartData[chartData.length - 1].timestamp;
 
+    // Add equal padding on both sides (30 minutes) for horizontal centering
+    const PADDING_MS = 30 * 60 * 1000; // 30 minutes in milliseconds
+    const startMs = firstTime - PADDING_MS;
+    const endMs = lastTime + PADDING_MS;
 
-  const getX = (index: number, totalPoints?: number): number => {
-    const points = totalPoints || timePoints.length || 5; // default 5 for empty state
-    if (points === 1) {
+    // Tick interval based on duration
+    const durationHours = (endMs - startMs) / (60 * 60 * 1000);
+    let tickInterval: number;
+    if (durationHours <= 4) {
+      tickInterval = 15;
+    } else if (durationHours <= 8) {
+      tickInterval = 30;
+    } else {
+      tickInterval = 60;
+    }
+
+    return { startMs, endMs, tickInterval };
+  }, [chartData, hasData]);
+
+  // Get X position for a timestamp
+  const getX = (timestamp: number): number => {
+    const { startMs, endMs } = xAxisConfig;
+    const totalRange = endMs - startMs;
+
+    if (totalRange === 0) {
       return chartPadding.left + (zoomedChartWidth - chartPadding.left - chartPadding.right) / 2;
     }
-    const availableWidth = zoomedChartWidth - chartPadding.left - chartPadding.right;
-    return chartPadding.left + (index / (points - 1)) * availableWidth;
-  };
 
+    const position = (timestamp - startMs) / totalRange;
+    const availableWidth = zoomedChartWidth - chartPadding.left - chartPadding.right;
+    return chartPadding.left + position * availableWidth;
+  };
 
   const getY = (value: number): number => {
     return chartPadding.top + chartAreaHeight - (value / maxY) * chartAreaHeight;
   };
 
+  // Format timestamp to HH:MM
+  const formatTime = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    const hours = date.getHours();
+    const mins = date.getMinutes();
+    return `${hours}:${mins.toString().padStart(2, '0')}`;
+  };
 
-  const createWaitingAreaPath = (): string => {
-    if (!hasData || timePoints.length === 0) return '';
-    if (!selectedFilters.has('waiting')) return '';
+  // Generate X-axis labels
+  const xAxisLabels = useMemo(() => {
+    const { startMs, endMs, tickInterval } = xAxisConfig;
+    const labels: Array<{ timestamp: number; display: string; position: number }> = [];
 
-    const baseY = getY(0);
-    let path = `M ${getX(0)} ${baseY}`;
-
-
-    path += ` L ${getX(0)} ${getY(timePoints[0].waiting)}`;
-
-
-    for (let i = 1; i < timePoints.length; i++) {
-      path += ` L ${getX(i)} ${getY(timePoints[i].waiting)}`;
+    for (let ms = startMs; ms <= endMs; ms += tickInterval * 60 * 1000) {
+      const position = (ms - startMs) / (endMs - startMs);
+      labels.push({
+        timestamp: ms,
+        display: formatTime(ms),
+        position,
+      });
     }
 
+    return labels;
+  }, [xAxisConfig]);
 
-    path += ` L ${getX(timePoints.length - 1)} ${baseY}`;
+  // Create Waiting area path with step pattern
+  const createWaitingAreaPath = (): string => {
+    if (!hasData || chartData.length === 0) return '';
+    if (!selectedFilters.has('waiting')) return '';
 
+    const n = chartData.length;
+    const baseY = getY(0);
 
+    // Build top edge with step pattern
+    const topEdge: Array<{ x: number; y: number }> = [];
+    topEdge.push({ x: getX(chartData[0].timestamp), y: getY(chartData[0].waiting) });
+
+    for (let i = 1; i < n; i++) {
+      // Horizontal step to current X at previous Y
+      topEdge.push({ x: getX(chartData[i].timestamp), y: getY(chartData[i - 1].waiting) });
+      // Vertical step to current Y
+      topEdge.push({ x: getX(chartData[i].timestamp), y: getY(chartData[i].waiting) });
+    }
+
+    let path = `M ${getX(chartData[0].timestamp)} ${baseY}`;
+    path += ` L ${topEdge[0].x} ${topEdge[0].y}`;
+
+    for (let i = 1; i < topEdge.length; i++) {
+      path += ` L ${topEdge[i].x} ${topEdge[i].y}`;
+    }
+
+    path += ` L ${getX(chartData[n - 1].timestamp)} ${baseY}`;
     path += ' Z';
 
     return path;
   };
 
-
+  // Create Pouring area path (stacked on top of Waiting)
   const createPouringAreaPath = (): string => {
-    if (!hasData || timePoints.length === 0) return '';
+    if (!hasData || chartData.length === 0) return '';
     if (!selectedFilters.has('pouring')) return '';
 
     const waitingActive = selectedFilters.has('waiting');
+    const getBaseValue = (point: ChartDataPoint) => waitingActive ? point.waiting : 0;
+    const getTopValue = (point: ChartDataPoint) => getBaseValue(point) + point.pouring;
 
+    const n = chartData.length;
 
-    const getBaseValue = (point: TrucksTimePoint) => waitingActive ? point.waiting : 0;
+    // Build top edge
+    const topEdge: Array<{ x: number; y: number }> = [];
+    topEdge.push({ x: getX(chartData[0].timestamp), y: getY(getTopValue(chartData[0])) });
 
-    let path = `M ${getX(0)} ${getY(getBaseValue(timePoints[0]))}`;
-
-
-    for (let i = 0; i < timePoints.length; i++) {
-      const topY = getY(getBaseValue(timePoints[i]) + timePoints[i].pouring);
-      if (i === 0) {
-        path += ` L ${getX(i)} ${topY}`;
-      } else {
-        path += ` L ${getX(i)} ${topY}`;
-      }
+    for (let i = 1; i < n; i++) {
+      topEdge.push({ x: getX(chartData[i].timestamp), y: getY(getTopValue(chartData[i - 1])) });
+      topEdge.push({ x: getX(chartData[i].timestamp), y: getY(getTopValue(chartData[i])) });
     }
 
+    // Build bottom edge
+    const bottomEdge: Array<{ x: number; y: number }> = [];
+    bottomEdge.push({ x: getX(chartData[0].timestamp), y: getY(getBaseValue(chartData[0])) });
 
-    for (let i = timePoints.length - 1; i >= 0; i--) {
-      path += ` L ${getX(i)} ${getY(getBaseValue(timePoints[i]))}`;
+    for (let i = 1; i < n; i++) {
+      bottomEdge.push({ x: getX(chartData[i].timestamp), y: getY(getBaseValue(chartData[i - 1])) });
+      bottomEdge.push({ x: getX(chartData[i].timestamp), y: getY(getBaseValue(chartData[i])) });
     }
 
+    let path = `M ${bottomEdge[0].x} ${bottomEdge[0].y}`;
+    path += ` L ${topEdge[0].x} ${topEdge[0].y}`;
+
+    for (let i = 1; i < topEdge.length; i++) {
+      path += ` L ${topEdge[i].x} ${topEdge[i].y}`;
+    }
+
+    path += ` L ${bottomEdge[bottomEdge.length - 1].x} ${bottomEdge[bottomEdge.length - 1].y}`;
+
+    for (let i = bottomEdge.length - 2; i >= 0; i--) {
+      path += ` L ${bottomEdge[i].x} ${bottomEdge[i].y}`;
+    }
 
     path += ' Z';
-
     return path;
   };
 
-
-  const createWashoutAreaPath = (): string => {
-    if (!hasData || timePoints.length === 0) return '';
-    if (!selectedFilters.has('washout')) return '';
-
-
-    const hasWashout = timePoints.some(d => (d.washout || 0) > 0);
-    if (!hasWashout) return '';
-
-    const waitingActive = selectedFilters.has('waiting');
-    const pouringActive = selectedFilters.has('pouring');
-
-
-    const getBaseValue = (point: TrucksTimePoint) => {
-      let base = 0;
-      if (waitingActive) base += point.waiting;
-      if (pouringActive) base += point.pouring;
-      return base;
-    };
-
-
-    let path = `M ${getX(0)} ${getY(getBaseValue(timePoints[0]))}`;
-
-
-    for (let i = 0; i < timePoints.length; i++) {
-      const topY = getY(getBaseValue(timePoints[i]) + (timePoints[i].washout || 0));
-      if (i === 0) {
-        path += ` L ${getX(i)} ${topY}`;
-      } else {
-        path += ` L ${getX(i)} ${topY}`;
-      }
-    }
-
-
-    for (let i = timePoints.length - 1; i >= 0; i--) {
-      path += ` L ${getX(i)} ${getY(getBaseValue(timePoints[i]))}`;
-    }
-
-
-    path += ' Z';
-
-    return path;
-  };
-
-
-  const xAxisLabels = useMemo(() => {
-    if (!hasData) {
-      // Show default time labels when no data (8:00 to 10:00 with 30 min intervals)
-      const defaultLabels = ['8:00', '8:30', '9:00', '9:30', '10:00'];
-      return defaultLabels.map((display, index) => ({
-        index,
-        display,
-        show: true,
-        hasData: false,
-      }));
-    }
-
-    // Calculate how many labels can fit based on chart width and zoom
-    // Each rotated label needs approximately 50px of space
-    const labelWidth = 50;
+  const getXFromPosition = (position: number): number => {
     const availableWidth = zoomedChartWidth - chartPadding.left - chartPadding.right;
-    const maxLabels = Math.max(2, Math.floor(availableWidth / labelWidth));
-
-    // Calculate interval to fit within maxLabels
-    const interval = Math.max(1, Math.ceil(timePoints.length / maxLabels));
-
-    return timePoints.map((point, index) => ({
-      index,
-      display: point.time_display,
-      show: index % interval === 0 || index === timePoints.length - 1,
-      hasData: point.waiting > 0 || point.pouring > 0 || (point.washout || 0) > 0,
-    }));
-  }, [timePoints, hasData, zoomedChartWidth]);
+    return chartPadding.left + position * availableWidth;
+  };
 
   const hideTooltip = () => setTooltip(null);
 
@@ -406,6 +679,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                     <Path
                       d={createWaitingAreaPath()}
                       fill={COLORS.waiting}
+                      fillOpacity={0.85}
                     />
                   )}
 
@@ -413,20 +687,13 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                     <Path
                       d={createPouringAreaPath()}
                       fill={COLORS.pouring}
+                      fillOpacity={0.85}
                     />
                   )}
 
-                  {hasData && (
-                    <Path
-                      d={createWashoutAreaPath()}
-                      fill={COLORS.washout}
-                    />
-                  )}
-
-                  {hasData && timePoints.map((point, index) => {
-                    const x = getX(index);
-                    const washout = point.washout || 0;
-                    const topY = getY(point.waiting + point.pouring + washout);
+                  {hasData && chartData.map((point, index) => {
+                    const x = getX(point.timestamp);
+                    const topY = getY(point.waiting + point.pouring);
                     return (
                       <G
                         key={`touch-${index}`}
@@ -434,11 +701,9 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                           setTooltip({
                             x,
                             y: topY,
-                            time: point.time_display,
+                            time: formatTime(point.timestamp),
                             waiting: point.waiting,
                             pouring: point.pouring,
-                            washout: washout,
-                            total: point.waiting + point.pouring + washout,
                           });
                         }}
                       >
@@ -452,12 +717,11 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                     );
                   })}
 
-                  {xAxisLabels.filter(l => l.show).map((label) => {
-                    const totalLabels = xAxisLabels.filter(l => l.show).length;
-                    const x = getX(label.index, hasData ? undefined : totalLabels);
+                  {xAxisLabels.map((label, idx) => {
+                    const x = getXFromPosition(label.position);
                     return (
                       <SvgText
-                        key={`x-${label.index}`}
+                        key={`x-${idx}-${label.display}`}
                         x={x}
                         y={height - 38}
                         fontSize={ms(10)}
@@ -491,10 +755,6 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                       <View style={[styles.tooltipDot, { backgroundColor: COLORS.pouring }]} />
                       <Text style={styles.tooltipText}>Pouring: {tooltip.pouring}</Text>
                     </View>
-                    <View style={styles.tooltipRow}>
-                      <View style={[styles.tooltipDot, { backgroundColor: COLORS.washout }]} />
-                      <Text style={styles.tooltipText}>Washout: {tooltip.washout}</Text>
-                    </View>
                   </View>
                 )}
               </View>
@@ -510,6 +770,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
         </View>
       )}
 
+      {/* Legend */}
       <View style={styles.legend}>
         <TouchableOpacity
           style={[
@@ -518,7 +779,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
               backgroundColor: selectedFilters.has('waiting')
                 ? isDark ? themeColors.surface : colors.grey[5]
                 : 'transparent',
-              borderColor: isDark ? themeColors.border : colors.grey[15],
+              borderColor: selectedFilters.has('waiting') ? COLORS.waiting : (isDark ? themeColors.border : colors.grey[15]),
               opacity: selectedFilters.has('waiting') ? 1 : 0.5,
             },
           ]}
@@ -530,7 +791,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
             styles.legendLabel,
             { color: selectedFilters.has('waiting') ? themeColors.text.primary : themeColors.text.hint }
           ]}>
-            "Waiting"
+            Waiting
           </Text>
         </TouchableOpacity>
 
@@ -541,7 +802,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
               backgroundColor: selectedFilters.has('pouring')
                 ? isDark ? themeColors.surface : colors.grey[5]
                 : 'transparent',
-              borderColor: isDark ? themeColors.border : colors.grey[15],
+              borderColor: selectedFilters.has('pouring') ? COLORS.pouring : (isDark ? themeColors.border : colors.grey[15]),
               opacity: selectedFilters.has('pouring') ? 1 : 0.5,
             },
           ]}
@@ -553,30 +814,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
             styles.legendLabel,
             { color: selectedFilters.has('pouring') ? themeColors.text.primary : themeColors.text.hint }
           ]}>
-            "Pouring"
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.legendButton,
-            {
-              backgroundColor: selectedFilters.has('washout')
-                ? isDark ? themeColors.surface : colors.grey[5]
-                : 'transparent',
-              borderColor: isDark ? themeColors.border : colors.grey[15],
-              opacity: selectedFilters.has('washout') ? 1 : 0.5,
-            },
-          ]}
-          onPress={() => toggleFilter('washout')}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.legendBox, { backgroundColor: COLORS.washout }]} />
-          <Text style={[
-            styles.legendLabel,
-            { color: selectedFilters.has('washout') ? themeColors.text.primary : themeColors.text.hint }
-          ]}>
-            "Washout"
+            Pouring
           </Text>
         </TouchableOpacity>
       </View>
@@ -613,10 +851,6 @@ const styles = StyleSheet.create({
     borderRadius: ms(8),
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  zoomText: {
-    fontSize: ms(10),
-    fontFamily: fontFamily.semiBold,
   },
   chartRow: {
     flexDirection: 'row',

@@ -38,13 +38,50 @@ interface TruckMarkerProps {
 const TruckMarkerContent: React.FC<TruckMarkerProps> = React.memo(({ ticket, isSelected, onPress }) => {
   const config = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.ticketed;
   const truckImage = truckImagesByStatus[ticket.status] || truckImagesByStatus.ticketed;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isSelected) {
+      // Pulsing animation for selected truck
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.15,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isSelected, pulseAnim]);
 
   return (
     <TouchableOpacity
       style={truckMarkerStyles.wrap}
       onPress={onPress}
       activeOpacity={0.8}>
+      {/* Outer glow ring with pulse animation */}
+      {isSelected && (
+        <Animated.View
+          style={[
+            truckMarkerStyles.outerGlow,
+            { transform: [{ scale: pulseAnim }] }
+          ]}
+        />
+      )}
+      {/* Inner highlight ring */}
       {isSelected && <View style={truckMarkerStyles.selectedRing} />}
+      {/* Pointer/Arrow indicator */}
+      {isSelected && <View style={truckMarkerStyles.pointerArrow} />}
 
       <Image
         source={truckImage}
@@ -69,7 +106,6 @@ const TruckMarkerContent: React.FC<TruckMarkerProps> = React.memo(({ ticket, isS
     </TouchableOpacity>
   );
 }, (prevProps, nextProps) => {
-
   return prevProps.isSelected === nextProps.isSelected &&
     prevProps.ticket.ticket_id === nextProps.ticket.ticket_id &&
     prevProps.ticket.status === nextProps.ticket.status;
@@ -80,22 +116,49 @@ const truckMarkerStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  outerGlow: {
+    position: 'absolute',
+    width: ms(72),
+    height: ms(72),
+    borderRadius: ms(36),
+    backgroundColor: `${colors.primary.main}15`,
+    borderWidth: 1,
+    borderColor: `${colors.primary.main}30`,
+  },
   selectedRing: {
     position: 'absolute',
-    width: ms(55),
-    height: ms(55),
-    borderRadius: ms(28),
-    backgroundColor: `${colors.primary.main}20`,
+    width: ms(58),
+    height: ms(58),
+    borderRadius: ms(29),
+    backgroundColor: `${colors.primary.main}25`,
     borderWidth: 3,
     borderColor: colors.primary.main,
+    // Shadow for depth
+    shadowColor: colors.primary.main,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  pointerArrow: {
+    position: 'absolute',
+    top: ms(-12),
+    width: 0,
+    height: 0,
+    borderLeftWidth: ms(8),
+    borderRightWidth: ms(8),
+    borderBottomWidth: ms(10),
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: colors.primary.main,
   },
   truckImage: {
     width: ms(42),
     height: ms(42),
   },
   truckImageSelected: {
-    width: ms(48),
-    height: ms(48),
+    width: ms(50),
+    height: ms(50),
   },
   loadBadge: {
     marginTop: ms(4),
@@ -106,10 +169,18 @@ const truckMarkerStyles = StyleSheet.create({
     alignItems: 'center',
   },
   loadBadgeSelected: {
-    paddingHorizontal: ms(10),
+    marginTop: ms(6),
+    paddingHorizontal: ms(12),
     paddingVertical: ms(4),
+    borderRadius: ms(12),
     borderWidth: 2,
     borderColor: colors.common.white,
+    // Shadow for badge
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   loadText: {
     fontSize: ms(10),
@@ -117,7 +188,8 @@ const truckMarkerStyles = StyleSheet.create({
     color: colors.common.white,
   },
   loadTextSelected: {
-    fontSize: ms(12),
+    fontSize: ms(13),
+    fontFamily: fontFamily.bold,
   },
 });
 

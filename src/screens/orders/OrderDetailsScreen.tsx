@@ -1764,16 +1764,24 @@ export const OrderDetailsScreen: React.FC = () => {
         actual_time: l.actual_time,
         scheduled_qty: l.scheduled_qty,
         actual_qty: l.actual_qty,
+        scheduled_qty_raw: l.scheduled_qty_raw,
+        actual_qty_raw: l.actual_qty_raw,
+        load_qty: l.load_qty,
         variance: l.variance,
         truck_code: l.truck_code,
         scheduled_on_job_time: l.scheduled_on_job_time,
         scheduled_fin_pour_time: l.scheduled_fin_pour_time,
         scheduled_at_plant_time: l.scheduled_at_plant_time,
         ticket_code: l.ticket_code,
+        ticket_id: l.ticket_id,
+        ticket_remove_reason_code: l.ticket_remove_reason_code,
         actual_on_job_time: l.actual_on_job_time,
         actual_unload_time: l.actual_unload_time,
+        actual_begin_pour_time: l.actual_begin_pour_time,
+        actual_end_pour_time: l.actual_end_pour_time,
         actual_wash_time: l.actual_wash_time,
         actual_at_plant_time: l.actual_at_plant_time,
+        actual_to_plant_time: l.actual_to_plant_time,
       })) || [],
     };
   }, [orderDetails]);
@@ -2322,9 +2330,11 @@ export const OrderDetailsScreen: React.FC = () => {
 
           <PerformanceCharts
             graphData={orderDetails?.graphs}
+            scheduledLoads={jobData.scheduledLoads || []}
             scheduledQty={jobData.orderedVolume}
             truckSpace={jobData.avgSpacing ? parseInt(jobData.avgSpacing) : 0}
             isDark={isDark}
+            useHighchartsWebView={true}
           />
 
           {/* Delay Details Table */}
