@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     width: ms(40),
     height: ms(40),
     borderRadius: ms(20),
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: colors.semiTransparent.white20,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: ms(8),
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: ms(9),
     fontFamily: fontFamily.regular,
-    color: 'rgba(255,255,255,0.8)',
+    color: colors.semiTransparent.white80,
     marginBottom: ms(1),
     textAlign: 'center',
   },

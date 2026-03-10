@@ -757,8 +757,88 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 borderColor: isDark ? themeColors.border : colors.grey[10],
               }
             ]}>
+              {/* Products List Section - Primary + Associated (Moved above Delivery Schedule) */}
+              {jobData.combinedProducts.length > 0 && (
+                <View style={[styles.associatedProductsSection, { borderTopColor: 'transparent' }]}>
+                  <View style={styles.associatedProductsHeader}>
+                    <View style={[styles.associatedProductsIconBox, { backgroundColor: isDark ? colors.primary.main + '25' : colors.primary.main + '12' }]}>
+                      <Icon name="cube-outline" size={ms(16)} color={colors.primary.main} />
+                    </View>
+                    <Text style={[styles.associatedProductsTitle, { color: themeColors.text.primary }]}>
+                      Products
+                    </Text>
+                    <View style={[styles.associatedProductsCountBadge, { backgroundColor: colors.primary.main }]}>
+                      <Text style={styles.associatedProductsCountText}>{jobData.combinedProducts.length}</Text>
+                    </View>
+                  </View>
+
+                  {/* Products List */}
+                  {jobData.combinedProducts.map((item, index) => (
+                    <View
+                      key={`${item.itemCode}-${index}`}
+                      style={[
+                        styles.productListItem,
+                        {
+                          backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3],
+                          borderColor: item.isPrimary
+                            ? (isDark ? colors.primary.main + '40' : colors.primary.main + '30')
+                            : (isDark ? themeColors.border : colors.grey[10]),
+                        }
+                      ]}
+                    >
+                      {/* Product Header Row */}
+                      <View style={styles.productListHeader}>
+                        <View style={styles.productTypeLabelRow}>
+                          <View style={[
+                            styles.productTypeDot,
+                            { backgroundColor: item.isPrimary ? colors.primary.main : colors.secondary.main }
+                          ]} />
+                          <Text style={[
+                            styles.productTypeLabelText,
+                            { color: item.isPrimary ? colors.primary.main : colors.secondary.main }
+                          ]}>
+                            {item.isPrimary ? 'Concrete' : 'Associated'}
+                          </Text>
+                        </View>
+                        <Text style={[styles.productListItemCode, { color: colors.primary.main }]}>
+                          {item.itemCode}
+                        </Text>
+                      </View>
+
+                      {/* Description Row */}
+                      {item.description && (
+                        <Text style={[styles.productListDesc, { color: themeColors.text.secondary }]} numberOfLines={2}>
+                          {item.description}
+                        </Text>
+                      )}
+
+                      {/* Details Grid */}
+                      <View style={styles.productListDetailsGrid}>
+                        {/* Quantity */}
+                        <View style={styles.productListDetailItem}>
+                          <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Qty</Text>
+                          <Text style={[styles.productListDetailValue, { color: colors.success.main }]}>
+                            {item.quantity} {item.quantityUnit || ''}
+                          </Text>
+                        </View>
+
+                        {/* Slump - only for concrete/mix products */}
+                        {item.isPrimary && (
+                          <View style={styles.productListDetailItem}>
+                            <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Slump</Text>
+                            <Text style={[styles.productListDetailValue, { color: themeColors.text.primary }]}>
+                              {item.slump !== '-' ? `${item.slump}"` : '-'}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+
               {/* Card Header with Delivery Schedule Title */}
-              <View style={styles.skuCardHeader}>
+              <View style={[styles.skuCardHeader, { borderTopWidth: 1, borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
                 <View style={styles.cardTitleRow}>
                   <View style={[styles.cardIconContainer, { backgroundColor: colors.secondary.main }]}>
                     <Icon name="calendar-clock" size={16} color={colors.common.white} />
@@ -861,86 +941,6 @@ export const OrderProductDetailsScreen: React.FC = () => {
                       <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>To Plant</Text>
                     </View>
                   </View>
-                </View>
-              )}
-
-              {/* Products List Section - Primary + Associated */}
-              {jobData.combinedProducts.length > 0 && (
-                <View style={[styles.associatedProductsSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
-                  <View style={styles.associatedProductsHeader}>
-                    <View style={[styles.associatedProductsIconBox, { backgroundColor: isDark ? colors.primary.main + '25' : colors.primary.main + '12' }]}>
-                      <Icon name="cube-outline" size={ms(16)} color={colors.primary.main} />
-                    </View>
-                    <Text style={[styles.associatedProductsTitle, { color: themeColors.text.primary }]}>
-                      Products
-                    </Text>
-                    <View style={[styles.associatedProductsCountBadge, { backgroundColor: colors.primary.main }]}>
-                      <Text style={styles.associatedProductsCountText}>{jobData.combinedProducts.length}</Text>
-                    </View>
-                  </View>
-
-                  {/* Products List */}
-                  {jobData.combinedProducts.map((item, index) => (
-                    <View
-                      key={`${item.itemCode}-${index}`}
-                      style={[
-                        styles.productListItem,
-                        {
-                          backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3],
-                          borderColor: item.isPrimary
-                            ? (isDark ? colors.primary.main + '40' : colors.primary.main + '30')
-                            : (isDark ? themeColors.border : colors.grey[10]),
-                        }
-                      ]}
-                    >
-                      {/* Product Header Row */}
-                      <View style={styles.productListHeader}>
-                        <View style={styles.productTypeLabelRow}>
-                          <View style={[
-                            styles.productTypeDot,
-                            { backgroundColor: item.isPrimary ? colors.primary.main : colors.secondary.main }
-                          ]} />
-                          <Text style={[
-                            styles.productTypeLabelText,
-                            { color: item.isPrimary ? colors.primary.main : colors.secondary.main }
-                          ]}>
-                            {item.isPrimary ? 'Concrete' : 'Associated'}
-                          </Text>
-                        </View>
-                        <Text style={[styles.productListItemCode, { color: colors.primary.main }]}>
-                          {item.itemCode}
-                        </Text>
-                      </View>
-
-                      {/* Description Row */}
-                      {item.description && (
-                        <Text style={[styles.productListDesc, { color: themeColors.text.secondary }]} numberOfLines={2}>
-                          {item.description}
-                        </Text>
-                      )}
-
-                      {/* Details Grid */}
-                      <View style={styles.productListDetailsGrid}>
-                        {/* Quantity */}
-                        <View style={styles.productListDetailItem}>
-                          <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Qty</Text>
-                          <Text style={[styles.productListDetailValue, { color: colors.success.main }]}>
-                            {item.quantity} {item.quantityUnit || ''}
-                          </Text>
-                        </View>
-
-                        {/* Slump - only for concrete/mix products */}
-                        {item.isPrimary && (
-                          <View style={styles.productListDetailItem}>
-                            <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Slump</Text>
-                            <Text style={[styles.productListDetailValue, { color: themeColors.text.primary }]}>
-                              {item.slump !== '-' ? `${item.slump}"` : '-'}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  ))}
                 </View>
               )}
 

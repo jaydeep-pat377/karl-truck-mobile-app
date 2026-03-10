@@ -30,7 +30,7 @@ interface SplashScreenProps {
 }
 
 const SplashScreen: React.FC<SplashScreenProps> = ({
-  appName = 'TruckApp',
+  appName = 'Truckast AI',
   primaryColor = colors.primary.main,
   secondaryColor = colors.primary.dark,
   svgWidth = 200,

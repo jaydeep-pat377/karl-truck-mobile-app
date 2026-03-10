@@ -191,7 +191,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                 {/* Time Row */}
                 <View style={[styles.loadTimeRow, {
                   borderTopColor: isDark ? themeColors.border : colors.grey[10],
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'transparent'
+                  backgroundColor: isDark ? colors.semiTransparent.white03 : colors.common.transparent
                 }]}>
                   <View style={styles.loadTimeBlock}>
                     <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>Scheduled</Text>

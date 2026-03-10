@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.semiTransparent.black50,
   },
   datePickerContent: {
     width: '90%',

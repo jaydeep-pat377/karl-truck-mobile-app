@@ -238,11 +238,12 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   const sizeConfig = {
     xsmall: {
-      paddingHorizontal: ms(5),
+      paddingHorizontal: ms(3),
       paddingVertical: ms(1),
       borderRadius: ms(4),
-      fontSize: ms(8),
-      letterSpacing: 0.2,
+      fontSize: ms(7),
+      letterSpacing: 0.1,
+      gap: ms(2),
     },
     small: {
       paddingHorizontal: ms(6),
@@ -250,6 +251,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       borderRadius: ms(4),
       fontSize: ms(9),
       letterSpacing: 0.3,
+      gap: ms(3),
     },
     medium: {
       paddingHorizontal: ms(8),
@@ -257,6 +259,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       borderRadius: ms(6),
       fontSize: ms(10),
       letterSpacing: 0.4,
+      gap: ms(3),
     },
     large: {
       paddingHorizontal: ms(12),
@@ -264,12 +267,13 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       borderRadius: ms(8),
       fontSize: ms(11),
       letterSpacing: 0.5,
+      gap: ms(3),
     },
   };
 
   const config = sizeConfig[size];
   const iconName = isCancelledStatus ? 'close-circle-outline' : (statusIcons[status] || 'help-circle-outline');
-  const iconSize = size === 'xsmall' ? ms(10) : size === 'small' ? ms(16) : size === 'medium' ? ms(18) : ms(20);
+  const iconSize = size === 'xsmall' ? ms(6) : size === 'small' ? ms(16) : size === 'medium' ? ms(18) : ms(20);
 
   return (
     <View
@@ -280,7 +284,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
           borderRadius: config.borderRadius,
           paddingHorizontal: config.paddingHorizontal,
           paddingVertical: config.paddingVertical,
-          gap: ms(3),
+          gap: config.gap,
         },
       ]}>
       <Icon name={iconName} size={iconSize} color={textColor} />

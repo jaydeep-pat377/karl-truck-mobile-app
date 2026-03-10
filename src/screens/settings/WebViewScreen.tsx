@@ -110,7 +110,7 @@ export const WebViewScreen: React.FC = () => {
           })}
         />
         {isLoading && (
-          <View style={[styles.loadingOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)' }]}>
+          <View style={[styles.loadingOverlay, { backgroundColor: isDark ? colors.semiTransparent.black80 : colors.semiTransparent.white80 }]}>
             <ActivityIndicator size="large" color={colors.primary.main} />
             <Text variant="caption" color="secondary" style={styles.loadingText}>
               Loading...

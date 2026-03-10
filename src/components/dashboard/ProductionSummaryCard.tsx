@@ -112,7 +112,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
   };
 
   const formatQty = (qty: number) => {
-    return qty % 1 === 0 ? qty.toString() : qty.toFixed(2);
+    return qty.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   // Render a summary card item (Company/Region/Plant) matching top card design
@@ -199,8 +199,8 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
         <View style={styles.productionSection}>
           <View style={styles.productionHeader}>
             <Text style={[styles.productionTitle, { color: themeColors.text.primary }]}>Production & Delivery</Text>
-            <Text style={[styles.productionQty, { color: themeColors.text.secondary }]}>
-              {formatQty(item.deliveredQty)} / {formatQty(item.totalQty)} CYD
+            <Text style={[styles.productionQty, { color: themeColors.text.secondary }]} numberOfLines={1}>
+              {formatQty(item.deliveredQty)} OF {formatQty(item.totalQty)} CY
             </Text>
           </View>
 
@@ -220,7 +220,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
             <View style={styles.deliveredRow}>
               <View style={[styles.deliveredDot, { backgroundColor: colors.dashboard.statGreen }]} />
               <Text style={[styles.deliveredText, { color: themeColors.text.secondary }]}>
-                Delivered: {formatQty(item.deliveredQty)} CYD
+                Delivered: {formatQty(item.deliveredQty)} CY
               </Text>
             </View>
             <Text style={[styles.percentText, { color: themeColors.text.primary }]}>{itemProgressPercent}%</Text>
@@ -447,10 +447,12 @@ const styles = StyleSheet.create({
   productionTitle: {
     fontSize: ms(13),
     fontFamily: fontFamily.semiBold,
+    flexShrink: 1,
   },
   productionQty: {
     fontSize: ms(11),
     fontFamily: fontFamily.medium,
+    flexShrink: 0,
   },
   progressTrack: {
     height: ms(4),

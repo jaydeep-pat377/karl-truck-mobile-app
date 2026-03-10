@@ -55,6 +55,32 @@ const getSegmentColor = (status: string): string => {
   return statusColorMap[status.toLowerCase()] || colors.grey[40];
 };
 
+// Get display label for status
+const getStatusDisplayLabel = (status: string | undefined): string => {
+  if (!status) return '';
+  const labelMap: Record<string, string> = {
+    pending: 'Pending',
+    ticketed: 'Ticketed',
+    loading: 'Loading',
+    loaded: 'Loaded',
+    to_job: 'To Job',
+    at_job: 'At Job',
+    on_job: 'On Job',
+    pouring: 'Pouring',
+    poured: 'Poured',
+    washing: 'Washing',
+    to_plant: 'To Plant',
+    at_plant: 'At Plant',
+    cancelled: 'Cancelled',
+    voided: 'Voided',
+    remaining: 'Remaining',
+  };
+  return labelMap[status.toLowerCase()] || status;
+};
+
+// Allowed statuses to show in progress bar
+const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'poured', 'remaining'];
+
 interface ActiveDelivery {
   id: string;
   orderCode: string;
@@ -507,33 +533,87 @@ const DashboardScreen: React.FC = () => {
             </View>
           </View>
 
-          <View
-            style={[
-              styles.deliveryProgressTrack,
-              { backgroundColor: isDark ? colors.semiTransparent.white06 : colors.semiTransparent.black04 },
-            ]}
-          >
-            {item.deliveryProgress?.segments && item.deliveryProgress.segments.length > 0 ? (
-              <View style={styles.deliveryProgressSegments}>
-                {item.deliveryProgress.segments.map((segment, index) => (
-                  segment.percentage > 0 && (
+          {item.deliveryProgress?.segments && item.deliveryProgress.segments.length > 0 ? (
+            <View style={styles.deliveryProgressSection}>
+              {/* Status Labels Row - Above Progress Bar */}
+              <View style={styles.deliveryProgressLabelsRow}>
+                {item.deliveryProgress.segments
+                  .filter((segment) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))
+                  .map((segment, index) => (
                     <View
-                      key={`${segment.status}-${index}`}
-                      style={[
-                        styles.deliveryProgressSegment,
-                        {
-                          width: `${segment.percentage}%`,
-                          backgroundColor: getSegmentColor(segment.status),
-                        },
-                      ]}
-                    />
-                  )
-                ))}
+                      key={`label-${segment.status}-${index}`}
+                      style={[styles.deliveryProgressLabelContainer, { flex: segment.percentage || 1 }]}
+                    >
+                      <Text
+                        style={[styles.deliveryProgressLabelText, { color: themeColors.text.secondary }]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {getStatusDisplayLabel(segment.status)}
+                      </Text>
+                    </View>
+                  ))}
               </View>
-            ) : (
-              <View style={[styles.deliveryProgressFill, { width: `${progressPercent}%`, backgroundColor: progressColor }]} />
-            )}
-          </View>
+
+              {/* Progress Bar */}
+              <View
+                style={[
+                  styles.deliveryProgressTrack,
+                  { backgroundColor: isDark ? colors.semiTransparent.white06 : colors.semiTransparent.black04 },
+                ]}
+              >
+                <View style={styles.deliveryProgressSegments}>
+                  {item.deliveryProgress.segments
+                    .filter((segment) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))
+                    .map((segment, index, arr) => (
+                      <View
+                        key={`${segment.status}-${index}`}
+                        style={[
+                          styles.deliveryProgressSegment,
+                          {
+                            flex: segment.percentage || 1,
+                            backgroundColor: getSegmentColor(segment.status),
+                            borderRightWidth: index < arr.length - 1 ? 1 : 0,
+                            borderRightColor: themeColors.card,
+                          },
+                        ]}
+                      />
+                    ))}
+                </View>
+              </View>
+
+              {/* CY Values Row - Below Progress Bar */}
+              <View style={styles.deliveryProgressValuesRow}>
+                {item.deliveryProgress.segments
+                  .filter((segment) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))
+                  .map((segment, index) => (
+                    <View
+                      key={`value-${segment.status}-${index}`}
+                      style={[styles.deliveryProgressValueContainer, { flex: segment.percentage || 1 }]}
+                    >
+                      <Text
+                        style={[styles.deliveryProgressValueText, { color: themeColors.text.hint }]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {segment.qty !== undefined ? `${segment.qty} CY` : ''}
+                      </Text>
+                    </View>
+                  ))}
+              </View>
+            </View>
+          ) : (
+            <View style={styles.deliveryProgressSection}>
+              <View
+                style={[
+                  styles.deliveryProgressTrack,
+                  { backgroundColor: isDark ? colors.semiTransparent.white06 : colors.semiTransparent.black04 },
+                ]}
+              >
+                <View style={[styles.deliveryProgressFill, { width: `${progressPercent}%`, backgroundColor: progressColor }]} />
+              </View>
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -1106,8 +1186,6 @@ const createStyles = (
     },
     deliveryProgressTrack: {
       height: ms(4),
-      marginHorizontal: ms(12),
-      marginBottom: ms(10),
       borderRadius: ms(2),
       overflow: 'hidden',
     },
@@ -1121,6 +1199,38 @@ const createStyles = (
     },
     deliveryProgressSegment: {
       height: '100%',
+    },
+    deliveryProgressSection: {
+      marginHorizontal: ms(12),
+      marginBottom: ms(10),
+    },
+    deliveryProgressLabelsRow: {
+      flexDirection: 'row',
+      marginBottom: ms(2),
+    },
+    deliveryProgressLabelContainer: {
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      paddingHorizontal: ms(2),
+    },
+    deliveryProgressLabelText: {
+      fontSize: ms(9),
+      fontFamily: fontFamily.medium,
+      textAlign: 'center',
+    },
+    deliveryProgressValuesRow: {
+      flexDirection: 'row',
+      marginTop: ms(2),
+    },
+    deliveryProgressValueContainer: {
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      paddingHorizontal: ms(2),
+    },
+    deliveryProgressValueText: {
+      fontSize: ms(9),
+      fontFamily: fontFamily.medium,
+      textAlign: 'center',
     },
     loadMoreButton: {
       width: ms(60),

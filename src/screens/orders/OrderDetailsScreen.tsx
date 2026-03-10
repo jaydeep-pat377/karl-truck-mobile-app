@@ -60,9 +60,9 @@ const getEvaporationBgColor = (rate: number | null | undefined): string => {
   if (rate === null || rate === undefined) return colors.grey[40];
   if (rate < 0.10) return colors.success.main;
   if (rate < 0.20) return colors.warning.main;
-  if (rate < 0.30) return '#FF6B6B';
-  if (rate < 0.40) return '#E53935';
-  return '#B71C1C';
+  if (rate < 0.30) return colors.unloadingRate.light;
+  if (rate < 0.40) return colors.unloadingRate.medium;
+  return colors.unloadingRate.dark;
 };
 
 const getEvaporationText = (rate: number | null | undefined): string => {
@@ -103,6 +103,32 @@ const getSegmentColor = (status: string): string => {
 
   return statusColorMap[status.toLowerCase()] || colors.grey[40];
 };
+
+// Get display label for status
+const getStatusDisplayLabel = (status: string | undefined): string => {
+  if (!status) return '';
+  const labelMap: Record<string, string> = {
+    pending: 'Pending',
+    ticketed: 'Ticketed',
+    loading: 'Loading',
+    loaded: 'Loaded',
+    to_job: 'To Job',
+    at_job: 'At Job',
+    on_job: 'On Job',
+    pouring: 'Pouring',
+    poured: 'Poured',
+    washing: 'Washing',
+    to_plant: 'To Plant',
+    at_plant: 'At Plant',
+    cancelled: 'Cancelled',
+    voided: 'Voided',
+    remaining: 'Remaining',
+  };
+  return labelMap[status.toLowerCase()] || status;
+};
+
+// Allowed statuses to show in progress bar
+const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'poured', 'remaining'];
 
 const SHADOWS = {
   sm: {
@@ -517,99 +543,81 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
   isDark,
 }) => {
   const themeColors = isDark ? colors.dark : colors.light;
-  const [isExpanded, setIsExpanded] = React.useState(false);
-  const animatedHeight = React.useRef(new Animated.Value(0)).current;
-
-  React.useEffect(() => {
-    Animated.timing(animatedHeight, {
-      toValue: isExpanded ? 1 : 0,
-      duration: 250,
-      useNativeDriver: false,
-    }).start();
-  }, [isExpanded, animatedHeight]);
 
   if (!segments || segments.length === 0) {
     return null;
   }
 
-  // Get the first segment's color for the percentage text
-  const primaryColor = segments[0] ? getSegmentColor(segments[0].status) : colors.primary.main;
-
-  const toggleExpand = () => {
-    setIsExpanded(!isExpanded);
-  };
-
-  // Calculate max height based on number of segments
-  const maxHeight = segments.length * 28 + GRID.sm;
+  // Filter segments by allowed statuses
+  const filteredSegments = segments
+    .filter((segment) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()));
 
   return (
     <View style={[styles.deliveryProgressCard, { backgroundColor: themeColors.card }, SHADOWS.sm]}>
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={toggleExpand}
-        style={styles.deliveryProgressHeader}
-      >
+      <View style={styles.deliveryProgressHeader}>
         <View style={styles.deliveryProgressTitleRow}>
           <Icon name="chart-timeline-variant" size={16} color={colors.primary.main} />
           <Text style={[styles.deliveryProgressTitle, { color: themeColors.text.primary }]}>
-            Delivery Progress
+            Delivery Status
           </Text>
         </View>
-        <Icon
-          name={isExpanded ? 'chevron-up' : 'chevron-down'}
-          size={20}
-          color={themeColors.text.secondary}
-        />
-      </TouchableOpacity>
+      </View>
 
+      {/* Status Labels Row - Above Progress Bar */}
+      <View style={styles.deliveryProgressLabelsRow}>
+        {filteredSegments.map((segment, index) => (
+          <View
+            key={`label-${segment.status}-${index}`}
+            style={[styles.deliveryProgressLabelContainer, { flex: segment.percentage || 1 }]}
+          >
+            <Text
+              style={[styles.deliveryProgressLabelText, { color: themeColors.text.secondary }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {getStatusDisplayLabel(segment.status)}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Progress Bar */}
       <View style={[styles.deliveryProgressBarBg, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}>
         <View style={styles.deliveryProgressSegments}>
-          {segments.map((segment, index) => (
-            segment.percentage > 0 && (
-              <View
-                key={`${segment.status}-${index}`}
-                style={[
-                  styles.deliveryProgressSegment,
-                  {
-                    width: `${segment.percentage}%`,
-                    backgroundColor: getSegmentColor(segment.status),
-                  },
-                ]}
-              />
-            )
+          {filteredSegments.map((segment, index, arr) => (
+            <View
+              key={`${segment.status}-${index}`}
+              style={[
+                styles.deliveryProgressSegment,
+                {
+                  flex: segment.percentage || 1,
+                  backgroundColor: getSegmentColor(segment.status),
+                  borderRightWidth: index < arr.length - 1 ? 1 : 0,
+                  borderRightColor: themeColors.card,
+                },
+              ]}
+            />
           ))}
         </View>
       </View>
 
-      <Animated.View
-        style={[
-          styles.deliveryProgressLegendContainer,
-          {
-            maxHeight: animatedHeight.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, maxHeight],
-            }),
-            opacity: animatedHeight,
-            overflow: 'hidden',
-          },
-        ]}
-      >
-        <View style={styles.deliveryProgressLegend}>
-          {segments.map((segment, index) => (
-            <View key={`legend-${segment.status}-${index}`} style={styles.deliveryProgressLegendItem}>
-              <View
-                style={[
-                  styles.deliveryProgressLegendDot,
-                  { backgroundColor: getSegmentColor(segment.status) },
-                ]}
-              />
-              <Text style={[styles.deliveryProgressLegendText, { color: themeColors.text.secondary }]}>
-                {segment.label}
-              </Text>
-            </View>
-          ))}
-        </View>
-      </Animated.View>
+      {/* CY Values Row - Below Progress Bar */}
+      <View style={styles.deliveryProgressValuesRow}>
+        {filteredSegments.map((segment, index) => (
+          <View
+            key={`value-${segment.status}-${index}`}
+            style={[styles.deliveryProgressValueContainer, { flex: segment.percentage || 1 }]}
+          >
+            <Text
+              style={[styles.deliveryProgressValueText, { color: themeColors.text.hint }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {segment.qty !== undefined ? `${segment.qty} CY` : ''}
+            </Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 };
@@ -3022,7 +3030,7 @@ const styles = StyleSheet.create({
     marginTop: GRID.sm,
     textAlign: 'center',
   },
-  // Delivery Progress Bar Styles
+  // Delivery Status Bar Styles
   deliveryProgressCard: {
     borderRadius: RADIUS.lg,
     padding: GRID.md,
@@ -3048,16 +3056,46 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bold,
   },
   deliveryProgressBarBg: {
-    height: ms(10),
-    borderRadius: ms(5),
+    height: ms(6),
+    borderRadius: ms(3),
     overflow: 'hidden',
   },
   deliveryProgressSegments: {
     flexDirection: 'row',
     height: '100%',
+    borderRadius: ms(3),
+    overflow: 'hidden',
   },
   deliveryProgressSegment: {
     height: '100%',
+  },
+  deliveryProgressLabelsRow: {
+    flexDirection: 'row',
+    marginBottom: ms(4),
+  },
+  deliveryProgressLabelContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: ms(2),
+  },
+  deliveryProgressLabelText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+    textAlign: 'center',
+  },
+  deliveryProgressValuesRow: {
+    flexDirection: 'row',
+    marginTop: ms(4),
+  },
+  deliveryProgressValueContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: ms(2),
+  },
+  deliveryProgressValueText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+    textAlign: 'center',
   },
   deliveryProgressLegendContainer: {
     overflow: 'hidden',

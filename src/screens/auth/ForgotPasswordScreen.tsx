@@ -349,7 +349,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
             <Text variant="caption" style={[styles.footerText, { color: loginColors.footerText }]}>
               Powered by{' '}
               <Text variant="caption" style={[styles.footerBrand, { color: loginColors.footerBrand }]}>
-                Truckast
+                Truckast AI
               </Text>
             </Text>
           </Animated.View>
@@ -482,6 +482,8 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: vs(8),
     marginBottom: vs(20),
+    width: '100%',
+    height: ms(52),
     borderRadius: ms(14),
     overflow: 'hidden',
     shadowOffset: { width: 0, height: 8 },
@@ -490,7 +492,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   submitButtonGradient: {
-    paddingVertical: ms(12),
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

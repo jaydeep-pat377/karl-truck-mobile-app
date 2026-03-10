@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   ofText: {
     fontSize: ms(10),
     fontFamily: fontFamily.regular,
-    color: 'rgba(255,255,255,0.85)',
+    color: colors.semiTransparent.white85,
   },
   totalQty: {
     fontSize: ms(10),
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   statsText: {
     fontSize: ms(8),
     fontFamily: fontFamily.medium,
-    color: 'rgba(255,255,255,0.85)',
+    color: colors.semiTransparent.white85,
   },
 });
 

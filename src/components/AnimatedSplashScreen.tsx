@@ -283,7 +283,7 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
               transform: [{ translateY: titleTranslateY }],
             },
           ]}>
-          Truckast
+          Truckast AI
         </Animated.Text>
 
         <Animated.Text
@@ -317,7 +317,7 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
         </Animated.View>
 
         <Animated.Text style={[styles.footer, { opacity: footerOpacity }]}>
-          Powered by TruckApp
+          Powered by Truckast AI 
         </Animated.Text>
       </LinearGradient>
     </Animated.View>

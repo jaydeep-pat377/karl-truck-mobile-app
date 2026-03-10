@@ -976,8 +976,8 @@ const styles = StyleSheet.create({
 
   mapWrap: { overflow: 'hidden' },
   map: { flex: 1 },
-  mapLoadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center' },
-  mapLoadingText: { marginTop: ms(10), fontSize: ms(14), fontFamily: fontFamily.medium, color: '#757575' },
+  mapLoadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.semiTransparent.white90, justifyContent: 'center', alignItems: 'center' },
+  mapLoadingText: { marginTop: ms(10), fontSize: ms(14), fontFamily: fontFamily.medium, color: colors.grey[50] },
 
   header: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: ms(12), gap: ms(10) },
   backBtn: { width: ms(42), height: ms(42), borderRadius: ms(21), backgroundColor: colors.semiTransparent.black40, justifyContent: 'center', alignItems: 'center' },

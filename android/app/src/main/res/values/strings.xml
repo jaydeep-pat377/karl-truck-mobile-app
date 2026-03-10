@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TruckApp</string>
+    <string name="app_name">Truckast AI</string>
     <string name="widget_description">Shows today\'s order overview with progress</string>
     <string name="widget_name">Today\'s Overview</string>
 </resources>

@@ -6,6 +6,7 @@ import {
   Pressable,
   ActivityIndicator,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card, StatusBadge, WeatherEvaporationPill, Icon } from '../common';
@@ -56,11 +57,36 @@ const getSegmentColor = (status: string): string => {
     at_plant: colors.trackingStatus.atPlant,       // Red Violet #a5244f
     cancelled: colors.trackingStatus.cancelled,    // Red #F44336
     voided: colors.trackingStatus.voided,          // Red #F44336
-    remaining: colors.grey[30],                    // Grey for remaining
+    remaining: colors.grey[40],                    // Grey for remaining
   };
 
   return statusColorMap[status.toLowerCase()] || colors.grey[40];
 };
+
+// Get display label for status
+const getStatusDisplayLabel = (status: string | undefined): string => {
+  if (!status) return '';
+  const labelMap: Record<string, string> = {
+    pending: 'Pending',
+    ticketed: 'Ticketed',
+    loading: 'Loading',
+    loaded: 'Loaded',
+    to_job: 'To Job',
+    at_job: 'At Job',
+    on_job: 'On Job',
+    pouring: 'Pouring',
+    poured: 'Poured',
+    washing: 'Washing',
+    to_plant: 'To Plant',
+    at_plant: 'At Plant',
+    cancelled: 'Cancelled',
+    voided: 'Voided',
+  };
+  return labelMap[status.toLowerCase()] || status;
+};
+
+// Allowed statuses to show in progress bar
+const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'poured', 'remaining'];
 
 interface OrderCardProps {
   order: any;
@@ -215,9 +241,9 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
     if (rate === null || rate === undefined) return colors.grey[40];
     if (rate < 0.10) return colors.success.main; // green
     if (rate < 0.20) return colors.warning.main; // yellow
-    if (rate < 0.30) return '#FF6B6B'; // light red
-    if (rate < 0.40) return '#E53935'; // medium red
-    return '#B71C1C'; // dark red
+    if (rate < 0.30) return colors.unloadingRate.light;
+    if (rate < 0.40) return colors.unloadingRate.medium;
+    return colors.unloadingRate.dark;
   };
 
   // Get evaporation rate text label
@@ -286,6 +312,27 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
               style={[styles.dateTime, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
               {formatDate(order.scheduledDate)} • {order.scheduledTime}
             </Text>
+            {weatherData?.temperature !== null && (
+              <View style={styles.headerWeatherRow}>
+                <Icon
+                  name={getWeatherIconName(weatherData?.condition || '')}
+                  size={ms(12)}
+                  color={colors.info.main}
+                />
+                <Text
+                  variant="captionSmall"
+                  style={[styles.headerWeatherTemp, { color: isDark ? themeColors.text.hint : colors.grey[60] }]}>
+                  {weatherData?.temperature}°F
+                </Text>
+                {evaporationRateValue !== null && (
+                  <View style={[styles.headerEvapBadge, { backgroundColor: getEvaporationBgColor(evaporationRateValue) }]}>
+                    <Text style={styles.headerEvapText}>
+                      {getEvaporationText(evaporationRateValue)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
             <TouchableOpacity
               style={styles.favoriteButton}
               onPress={onFavoritePress}
@@ -333,6 +380,12 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
               style={[styles.productText, { color: isDark ? themeColors.text.hint : colors.grey[60] }]}>
               {order.productType || ''}{order.product_description ? ` | ${order.product_description}` : ''}
             </Text>
+            <View style={styles.loadsContainer}>
+              <ConcreteTruck width={ms(14)} height={ms(10)} color={themeColors.text.secondary} />
+              <Text style={[styles.loadsText, { color: themeColors.text.secondary }]}>
+                {order.completedLoads || 0}/{order.totalLoads || 0}
+              </Text>
+            </View>
             <View style={styles.cyContainer}>
               <Text style={[styles.cyText, { color: themeColors.text.primary }]}>
                 {(order.quantity ?? order.ordered_qty ?? 0).toFixed(2)}
@@ -345,26 +398,73 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
 
           {showDetails && (
             <>
-              <View style={styles.progressRow}>
-                <View style={[styles.progressBarBg, { backgroundColor: isDark ? colors.progress.trackDark : colors.progress.trackLight }]}>
-                  {order.deliveryProgress?.segments && order.deliveryProgress.segments.length > 0 ? (
+              {order.deliveryProgress?.segments && order.deliveryProgress.segments.length > 0 ? (
+                <View style={styles.segmentedProgressSection}>
+                  {/* Status Labels Row - Above Progress Bar */}
+                  <View style={styles.segmentLabelsRow}>
+                    {order.deliveryProgress.segments
+                      .filter((segment: any) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))
+                      .map((segment: any, index: number) => (
+                        <View
+                          key={`label-${segment.status}-${index}`}
+                          style={[styles.segmentLabelContainer, { flex: segment.percentage || 1 }]}
+                        >
+                          <Text
+                            style={[styles.segmentLabelText, { color: themeColors.text.secondary }]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
+                            {getStatusDisplayLabel(segment.status)}
+                          </Text>
+                        </View>
+                      ))}
+                  </View>
+
+                  {/* Progress Bar */}
+                  <View style={[styles.progressBarBg, { backgroundColor: isDark ? colors.progress.trackDark : colors.progress.trackLight }]}>
                     <View style={styles.segmentedProgressContainer}>
-                      {order.deliveryProgress.segments.map((segment: any, index: number) => (
-                        segment.percentage > 0 && (
+                      {order.deliveryProgress.segments
+                        .filter((segment: any) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))
+                        .map((segment: any, index: number, filteredArr: any[]) => (
                           <View
-                            key={`${segment.status}-${index}`}
+                            key={`bar-${segment.status}-${index}`}
                             style={[
                               styles.progressBarSegment,
                               {
-                                width: `${segment.percentage}%`,
+                                flex: segment.percentage || 1,
                                 backgroundColor: getSegmentColor(segment.status),
+                                borderRightWidth: index < filteredArr.length - 1 ? 1 : 0,
+                                borderRightColor: themeColors.card,
                               },
                             ]}
                           />
-                        )
-                      ))}
+                        ))}
                     </View>
-                  ) : (
+                  </View>
+
+                  {/* CY Values Row - Below Progress Bar */}
+                  <View style={styles.segmentValuesRow}>
+                    {order.deliveryProgress.segments
+                      .filter((segment: any) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))
+                      .map((segment: any, index: number) => (
+                        <View
+                          key={`value-${segment.status}-${index}`}
+                          style={[styles.segmentValueContainer, { flex: segment.percentage || 1 }]}
+                        >
+                          <Text
+                            style={[styles.segmentValueText, { color: themeColors.text.hint }]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
+                            {segment.qty !== undefined ? `${segment.qty} CY` : ''}
+                          </Text>
+                        </View>
+                      ))}
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.progressRow}>
+                  <View style={[styles.progressBarBg, { backgroundColor: isDark ? colors.progress.trackDark : colors.progress.trackLight }]}>
                     <View
                       style={[
                         styles.progressBarFill,
@@ -374,68 +474,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
                         },
                       ]}
                     />
-                  )}
-                </View>
-              </View>
-
-              <View style={styles.loadsRow}>
-                <ConcreteTruck width={ms(16)} height={ms(12)} color={themeColors.text.secondary} />
-                <Text variant="captionSmall" color="secondary">
-                  {order.completedLoads || 0}/{order.totalLoads || 0}
-                </Text>
-              </View>
-
-              {/* Weather Info Row */}
-              {weatherData && (
-                <View style={styles.weatherInfoRow}>
-                  <Icon
-                    name="weather-partly-cloudy"
-                    size={ms(14)}
-                    color={colors.info.main}
-                  />
-                  <Text
-                    variant="captionSmall"
-                    numberOfLines={1}
-                    style={[styles.weatherDescText, { color: themeColors.text.secondary }]}>
-                    Partly cloudy
-                  </Text>
-                  {weatherData.temperature !== null && (
-                    <>
-                      <View style={[styles.weatherDot, { backgroundColor: themeColors.text.hint }]} />
-                      <Text variant="captionSmall" style={{ color: themeColors.text.secondary }}>
-                        {weatherData.temperature}°F
-                      </Text>
-                    </>
-                  )}
-                  {weatherData.windSpeed !== null && (
-                    <>
-                      <View style={[styles.weatherDot, { backgroundColor: themeColors.text.hint }]} />
-                      <Text variant="captionSmall" style={{ color: themeColors.text.secondary }}>
-                        {weatherData.windSpeed} mph wind
-                      </Text>
-                    </>
-                  )}
-                  {weatherData.humidity !== null && (
-                    <>
-                      <View style={[styles.weatherDot, { backgroundColor: themeColors.text.hint }]} />
-                      <Text variant="captionSmall" style={{ color: themeColors.text.secondary }}>
-                        {weatherData.humidity}% RH
-                      </Text>
-                    </>
-                  )}
-                  {evaporationRateValue !== null && (
-                    <TouchableOpacity
-                      onPress={onWeatherPress}
-                      activeOpacity={0.7}
-                      style={[
-                        styles.evapRateBadge,
-                        { backgroundColor: getEvaporationBgColor(evaporationRateValue) }
-                      ]}>
-                      <Text style={styles.evapRateText}>
-                        {getEvaporationText(evaporationRateValue)}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                  </View>
                 </View>
               )}
 
@@ -543,18 +582,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: ms(4),
-    gap: ms(6),
+    gap: ms(3),
   },
   statusBadgeContainer: {
     flexShrink: 0,
     flexGrow: 0,
   },
   favoriteButton: {
-    marginLeft: 'auto',
-    paddingLeft: ms(4),
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
+    marginLeft: 'auto',
   },
   orderId: {
     fontSize: ms(11),
@@ -565,6 +603,26 @@ const styles = StyleSheet.create({
     fontSize: ms(10),
     fontFamily: fontFamily.medium,
     flexShrink: 1,
+  },
+  headerWeatherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(3),
+    flexShrink: 0,
+  },
+  headerWeatherTemp: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+  },
+  headerEvapBadge: {
+    paddingHorizontal: ms(8),
+    borderRadius: ms(10),
+  },
+  headerEvapText: {
+    fontSize: ms(8),
+    fontFamily: fontFamily.bold,
+    color: colors.common.white,
+    lineHeight: ms(13),
   },
   titleRow: {
     marginBottom: ms(4),
@@ -579,6 +637,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     flex: 1,
+    fontSize: ms(11),
   },
   productRow: {
     flexDirection: 'row',
@@ -591,10 +650,21 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     flex: 1,
   },
+  loadsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(3),
+    marginLeft: ms(6),
+    flexShrink: 0,
+  },
+  loadsText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+  },
   cyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: ms(8),
+    marginLeft: ms(6),
     flexShrink: 0,
   },
   cyText: {
@@ -629,6 +699,89 @@ const styles = StyleSheet.create({
   },
   progressBarSegment: {
     height: '100%',
+  },
+  segmentedProgressSection: {
+    marginBottom: ms(6),
+    marginTop: ms(4),
+  },
+  segmentedScrollContent: {
+    paddingRight: ms(10),
+  },
+  segmentedProgressInner: {
+  },
+  segmentLabelsRow: {
+    flexDirection: 'row',
+    marginBottom: ms(2),
+  },
+  segmentLabelContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: ms(2),
+  },
+  segmentLabelText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+    textAlign: 'center',
+  },
+  segmentValuesRow: {
+    flexDirection: 'row',
+    marginTop: ms(2),
+  },
+  segmentValueContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: ms(2),
+  },
+  segmentValueText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+    textAlign: 'center',
+  },
+  segmentLabelsInlineRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginBottom: ms(4),
+    gap: ms(8),
+  },
+  segmentLabelInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(4),
+  },
+  segmentLabelDot: {
+    width: ms(6),
+    height: ms(6),
+    borderRadius: ms(3),
+  },
+  segmentLabelInlineText: {
+    fontSize: ms(9),
+    fontFamily: fontFamily.medium,
+  },
+  segmentValuesInlineRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginTop: ms(4),
+  },
+  segmentValueInlineText: {
+    fontSize: ms(9),
+    fontFamily: fontFamily.medium,
+  },
+  statusLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(4),
+    marginBottom: ms(4),
+  },
+  statusLabelDot: {
+    width: ms(6),
+    height: ms(6),
+    borderRadius: ms(3),
+  },
+  statusLabelText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.semiBold,
   },
   progressPercent: {
     fontFamily: fontFamily.semiBold,

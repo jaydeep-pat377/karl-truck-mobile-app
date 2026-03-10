@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   newBadgeText: {
     fontSize: ms(10),
     fontWeight: '700',
-    color: '#fff',
+    color: colors.common.white,
   },
   separator: {
     height: 4,

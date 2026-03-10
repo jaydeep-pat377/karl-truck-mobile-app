@@ -85,7 +85,7 @@ export const LockScreen: React.FC = () => {
             </View>
           </View>
 
-          <Text style={styles.title}>Truckast</Text>
+          <Text style={styles.title}>Truckast AI</Text>
 
           <View style={styles.lockIconContainer}>
             <Icon name="lock" size={ms(32)} color={colors.common.white} />
@@ -121,7 +121,7 @@ export const LockScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.footer}>Powered by TruckApp</Text>
+        <Text style={styles.footer}>Powered by Truckast AI </Text>
       </LinearGradient>
     </View>
   );

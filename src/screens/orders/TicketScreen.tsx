@@ -50,6 +50,32 @@ const getSegmentColor = (status: string): string => {
   return statusColorMap[status.toLowerCase()] || colors.grey[40];
 };
 
+// Get display label for status
+const getStatusDisplayLabel = (status: string | undefined): string => {
+  if (!status) return '';
+  const labelMap: Record<string, string> = {
+    pending: 'Pending',
+    ticketed: 'Ticketed',
+    loading: 'Loading',
+    loaded: 'Loaded',
+    to_job: 'To Job',
+    at_job: 'At Job',
+    on_job: 'On Job',
+    pouring: 'Pouring',
+    poured: 'Poured',
+    washing: 'Washing',
+    to_plant: 'To Plant',
+    at_plant: 'At Plant',
+    cancelled: 'Cancelled',
+    voided: 'Voided',
+    remaining: 'Remaining',
+  };
+  return labelMap[status.toLowerCase()] || status;
+};
+
+// Allowed statuses to show in progress bar
+const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'poured', 'remaining'];
+
 type TicketScreenRouteProp = RouteProp<RootStackParamList, 'Ticket'>;
 
 type TicketStatus = ApiTicketStatus;
@@ -200,9 +226,9 @@ const getEvaporationBgColor = (rate: number | null | undefined): string => {
   if (rate === null || rate === undefined) return colors.grey[40];
   if (rate < 0.10) return colors.success.main; // green
   if (rate < 0.20) return colors.warning.main; // yellow
-  if (rate < 0.30) return '#FF6B6B'; // light red
-  if (rate < 0.40) return '#E53935'; // medium red
-  return '#B71C1C'; // dark red
+  if (rate < 0.30) return colors.unloadingRate.light;
+  if (rate < 0.40) return colors.unloadingRate.medium;
+  return colors.unloadingRate.dark;
 };
 
 const getEvaporationText = (rate: number | null | undefined): string => {
@@ -715,86 +741,95 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
       <View style={[styles.orderDivider, { backgroundColor: themeColors.border }]} />
 
       <View style={styles.progressSection}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={toggleProgressExpand}
-          style={styles.progressHeader}
-        >
+        <View style={styles.progressHeader}>
           <Text style={[styles.progressTitle, { color: themeColors.text.secondary }]}>
-            Delivery Progress
+            Delivery Status
           </Text>
-          <Icon
-            name={isProgressExpanded ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={themeColors.text.secondary}
-          />
-        </TouchableOpacity>
-        <View style={[styles.progressBarContainer, { backgroundColor: isDark ? colors.dark.surface : colors.grey[10] }]}>
-          {deliveryProgress?.segments && deliveryProgress.segments.length > 0 ? (
-            <View style={styles.progressSegmentsContainer}>
-              {deliveryProgress.segments.map((segment, index) => (
-                segment.percentage > 0 && (
-                  <View
-                    key={`${segment.status}-${index}`}
-                    style={[
-                      styles.progressBarSegment,
-                      {
-                        width: `${segment.percentage}%`,
-                        backgroundColor: getSegmentColor(segment.status),
-                      },
-                    ]}
-                  />
-                )
-              ))}
-            </View>
-          ) : (
-            <View
-              style={[
-                styles.progressBarFill,
-                {
-                  width: `${progressData.percentage}%`,
-                  backgroundColor: progressBarColor,
-                },
-              ]}
-            />
-          )}
         </View>
 
         {deliveryProgress?.segments && deliveryProgress.segments.length > 0 ? (
-          <Animated.View
-            style={[
-              styles.progressLegendContainer,
-              {
-                maxHeight: progressAnimatedHeight.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, progressLegendMaxHeight],
-                }),
-                opacity: progressAnimatedHeight,
-                overflow: 'hidden',
-              },
-            ]}
-          >
-            <View style={styles.progressLegend}>
-              {deliveryProgress.segments.map((segment, index) => (
-                <View key={`legend-${segment.status}-${index}`} style={styles.progressLegendItem}>
+          <View style={styles.segmentedProgressSection}>
+            {/* Status Labels Row - Above Progress Bar */}
+            <View style={styles.segmentLabelsRow}>
+              {deliveryProgress.segments
+                .filter((segment) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))
+                .map((segment, index) => (
                   <View
-                    style={[
-                      styles.progressLegendDot,
-                      { backgroundColor: getSegmentColor(segment.status) },
-                    ]}
-                  />
-                  <Text style={[styles.progressLegendText, { color: themeColors.text.hint }]}>
-                    {segment.label}
-                  </Text>
-                </View>
-              ))}
+                    key={`label-${segment.status}-${index}`}
+                    style={[styles.segmentLabelContainer, { flex: segment.percentage || 1 }]}
+                  >
+                    <Text
+                      style={[styles.segmentLabelText, { color: themeColors.text.secondary }]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {getStatusDisplayLabel(segment.status)}
+                    </Text>
+                  </View>
+                ))}
             </View>
-          </Animated.View>
+
+            {/* Progress Bar */}
+            <View style={[styles.progressBarContainer, { backgroundColor: isDark ? colors.dark.surface : colors.grey[10] }]}>
+              <View style={styles.progressSegmentsContainer}>
+                {deliveryProgress.segments
+                  .filter((segment) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))
+                  .map((segment, index, filteredArr) => (
+                    <View
+                      key={`bar-${segment.status}-${index}`}
+                      style={[
+                        styles.progressBarSegment,
+                        {
+                          flex: segment.percentage || 1,
+                          backgroundColor: getSegmentColor(segment.status),
+                          borderRightWidth: index < filteredArr.length - 1 ? 1 : 0,
+                          borderRightColor: themeColors.card,
+                        },
+                      ]}
+                    />
+                  ))}
+              </View>
+            </View>
+
+            {/* CY Values Row - Below Progress Bar */}
+            <View style={styles.segmentValuesRow}>
+              {deliveryProgress.segments
+                .filter((segment) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))
+                .map((segment, index) => (
+                  <View
+                    key={`value-${segment.status}-${index}`}
+                    style={[styles.segmentValueContainer, { flex: segment.percentage || 1 }]}
+                  >
+                    <Text
+                      style={[styles.segmentValueText, { color: themeColors.text.hint }]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {segment.qty !== undefined ? `${segment.qty} CY` : ''}
+                    </Text>
+                  </View>
+                ))}
+            </View>
+          </View>
         ) : (
-          <Text style={[styles.progressLabel, { color: themeColors.text.hint }]}>
-            {progressDisplay || `${(progressData.totalDelivered ?? 0).toFixed(1)} of ${progressData.totalOrdered ?? 0} CY delivered`}
-          </Text>
+          <>
+            <View style={[styles.progressBarContainer, { backgroundColor: isDark ? colors.dark.surface : colors.grey[10] }]}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: `${progressData.percentage}%`,
+                    backgroundColor: progressBarColor,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={[styles.progressLabel, { color: themeColors.text.hint }]}>
+              {progressDisplay || `${(progressData.totalDelivered ?? 0).toFixed(1)} of ${progressData.totalOrdered ?? 0} CY delivered`}
+            </Text>
+          </>
         )}
+
       </View>
     </View>
   );
@@ -1873,6 +1908,38 @@ const styles = StyleSheet.create({
   },
   progressBarSegment: {
     height: '100%',
+  },
+  segmentedProgressSection: {
+    marginBottom: ms(6),
+    marginTop: ms(4),
+  },
+  segmentLabelsRow: {
+    flexDirection: 'row',
+    marginBottom: ms(2),
+  },
+  segmentLabelContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: ms(2),
+  },
+  segmentLabelText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+    textAlign: 'center',
+  },
+  segmentValuesRow: {
+    flexDirection: 'row',
+    marginTop: ms(2),
+  },
+  segmentValueContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: ms(2),
+  },
+  segmentValueText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+    textAlign: 'center',
   },
   progressLegendContainer: {
     overflow: 'hidden',

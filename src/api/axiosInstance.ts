@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, API_TIMEOUT } from '@env';
 import { STORAGE_KEYS } from '../utils/storage';
 import { alertService } from '../services/alertService';
+import { useAuthStore } from '../store/authStore';
 
 const FALLBACK_URL = 'http://10.0.2.2:5000/api';
 const BASE_URL = API_BASE_URL || FALLBACK_URL;
@@ -164,23 +165,36 @@ axiosInstance.interceptors.response.use(
           }
 
           return axiosInstance(originalRequest);
+        } else {
+          // No refresh token available, logout and redirect to login
+          if (ENABLE_API_LOGGING) {
+            console.log('No refresh token available, logging out...');
+          }
+
+          await useAuthStore.getState().logout();
+
+          alertService.showInfo(
+            'Session Expired',
+            'Your session has expired. Please log in again.'
+          );
+
+          return Promise.reject(error);
         }
       } catch (refreshError) {
         if (ENABLE_API_LOGGING) {
           console.error('Token refresh failed:', refreshError);
         }
 
-        await AsyncStorage.multiRemove([
-          STORAGE_KEYS.ACCESS_TOKEN,
-          STORAGE_KEYS.REFRESH_TOKEN,
-          STORAGE_KEYS.USER,
-        ]);
+        // Call logout to clear auth state and redirect to login
+        await useAuthStore.getState().logout();
 
-
-        alertService.showError(
+        // Show toast message instead of alert
+        alertService.showInfo(
           'Session Expired',
-          'Please log in again to continue.'
+          'Your session has expired. Please log in again.'
         );
+
+        return Promise.reject(refreshError);
       }
     }
 

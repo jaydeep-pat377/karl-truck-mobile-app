@@ -46,6 +46,7 @@ interface LoginScreenProps {
 }
 
 const REMEMBER_ME_EMAIL = 'rememberMeEmail';
+const REMEMBER_ME_PASSWORD = 'rememberMePassword';
 
 // Custom Animated Input Component
 const AnimatedInput: React.FC<{
@@ -167,13 +168,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
 
   const loadSavedCredentials = useCallback(async () => {
     try {
-      const [savedEmail, savedRememberMe] = await AsyncStorage.multiGet([
+      const [savedEmail, savedPassword, savedRememberMe] = await AsyncStorage.multiGet([
         REMEMBER_ME_EMAIL,
+        REMEMBER_ME_PASSWORD,
         STORAGE_KEYS.REMEMBER_ME,
       ]);
 
       if (savedRememberMe[1] === 'true' && savedEmail[1]) {
         setEmail(savedEmail[1]);
+        if (savedPassword[1]) {
+          setPassword(savedPassword[1]);
+        }
         setRememberMe(true);
       }
     } catch (error) {
@@ -212,16 +217,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleRememberMe = async (shouldRemember: boolean, userEmail: string) => {
+  const handleRememberMe = async (shouldRemember: boolean, userEmail: string, userPassword: string) => {
     try {
       if (shouldRemember) {
         await AsyncStorage.multiSet([
           [REMEMBER_ME_EMAIL, userEmail],
+          [REMEMBER_ME_PASSWORD, userPassword],
           [STORAGE_KEYS.REMEMBER_ME, 'true'],
         ]);
       } else {
         await AsyncStorage.multiRemove([
           REMEMBER_ME_EMAIL,
+          REMEMBER_ME_PASSWORD,
           STORAGE_KEYS.REMEMBER_ME,
         ]);
       }
@@ -238,11 +245,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
     setErrors({});
 
     try {
+      // Save credentials before login attempt if Remember Me is checked
+      // This ensures credentials are saved before navigation happens
+      await handleRememberMe(rememberMe, email, password);
+
       const deviceToken = await notificationService.getToken();
       await login(email, password, deviceToken || undefined);
-      await handleRememberMe(rememberMe, email);
     } catch (error) {
       console.log('Login error:', error);
+      // If login fails and Remember Me was checked, clear the saved credentials
+      if (rememberMe) {
+        await handleRememberMe(false, '', '');
+        // Keep the checkbox checked for user to try again
+        setRememberMe(true);
+      }
     }
   };
 
@@ -255,7 +271,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
     setRememberMe(newValue);
 
     if (!newValue) {
-      await handleRememberMe(false, '');
+      await handleRememberMe(false, '', '');
     }
   };
 
@@ -322,7 +338,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
               />
             </View>
             <Text variant="h1" style={[styles.brandTitle, { color: isDark ? colors.common.white : colors.primary.main }]}>
-              Truckast
+              Truckast AI
             </Text>
             <Text variant="caption" style={[styles.brandTagline, { color: loginColors.brandTagline }]}>
               Concrete Delivery Management
@@ -450,30 +466,35 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
                   </Text>
                 </TouchableOpacity>
               </View>
-
-              {/* Login Button */}
-              <AnimatedTouchable
-                onPress={handleLogin}
-                onPressIn={handlePressIn}
-                onPressOut={handlePressOut}
-                disabled={isLoading}
-                activeOpacity={0.9}
-                style={[styles.loginButton, { shadowColor: colors.primary.dark }, buttonAnimStyle]}>
-                <LinearGradient
-                  colors={[colors.primary.dark, colors.primary.main, colors.primary.light]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.loginButtonGradient}>
-                  {isLoading ? (
-                    <ActivityIndicator size="small" color={colors.common.white} />
-                  ) : (
-                    <Text variant="body" style={[styles.loginButtonText, { color: colors.common.white }]}>
-                      {t('auth.signIn')}
-                    </Text>
-                  )}
-                </LinearGradient>
-              </AnimatedTouchable>
             </View>
+          </Animated.View>
+
+          {/* Login Button - Outside form card to avoid iOS clipping */}
+          <Animated.View
+            entering={FadeInUp.delay(300).springify()}
+            style={styles.loginButtonWrapper}
+          >
+            <AnimatedTouchable
+              onPress={handleLogin}
+              onPressIn={handlePressIn}
+              onPressOut={handlePressOut}
+              disabled={isLoading}
+              activeOpacity={0.9}
+              style={[styles.loginButton, { shadowColor: colors.primary.dark }, buttonAnimStyle]}>
+              <LinearGradient
+                colors={[colors.primary.dark, colors.primary.main, colors.primary.light]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.loginButtonGradient}>
+                {isLoading ? (
+                  <ActivityIndicator size="small" color={colors.common.white} />
+                ) : (
+                  <Text variant="body" style={[styles.loginButtonText, { color: colors.common.white }]}>
+                    {t('auth.signIn')}
+                  </Text>
+                )}
+              </LinearGradient>
+            </AnimatedTouchable>
           </Animated.View>
 
           {/* Footer */}
@@ -483,7 +504,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
             <Text variant="caption" style={[styles.footerText, { color: loginColors.footerText }]}>
               Powered by{' '}
               <Text variant="caption" style={[styles.footerBrand, { color: loginColors.footerBrand }]}>
-                Truckast
+                Truckast AI
               </Text>
             </Text>
           </Animated.View>
@@ -531,12 +552,12 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: spacing.lg,
-    paddingTop: vs(60),
-    paddingBottom: vs(24),
+    paddingTop: vs(50),
+    paddingBottom: vs(40),
   },
   logoSection: {
     alignItems: 'center',
-    marginBottom: vs(24),
+    marginBottom: vs(16),
   },
   logoContainer: {
     width: ms(72),
@@ -566,7 +587,9 @@ const styles = StyleSheet.create({
   },
   formCard: {
     borderRadius: ms(24),
-    padding: ms(24),
+    paddingHorizontal: ms(24),
+    paddingTop: ms(24),
+    paddingBottom: ms(28),
     borderWidth: 1,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -635,7 +658,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: vs(20),
   },
   rememberMe: {
     flexDirection: 'row',
@@ -653,8 +675,13 @@ const styles = StyleSheet.create({
   forgotPassword: {
     fontWeight: '600',
   },
+  loginButtonWrapper: {
+    marginTop: vs(20),
+    width: '100%',
+  },
   loginButton: {
-    marginBottom: vs(20),
+    width: '100%',
+    height: ms(52),
     borderRadius: ms(14),
     overflow: 'hidden',
     shadowOffset: { width: 0, height: 8 },
@@ -663,8 +690,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   loginButtonGradient: {
-    paddingVertical: ms(16),
-    minHeight: ms(52),
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
