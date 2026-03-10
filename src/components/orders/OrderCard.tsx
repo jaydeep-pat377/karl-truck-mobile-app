@@ -57,10 +57,10 @@ const getSegmentColor = (status: string): string => {
     at_plant: colors.trackingStatus.atPlant,       // Red Violet #a5244f
     cancelled: colors.trackingStatus.cancelled,    // Red #F44336
     voided: colors.trackingStatus.voided,          // Red #F44336
-    remaining: colors.grey[40],                    // Grey for remaining
+    remaining: colors.trackingStatus.remaining,    // Light grey for remaining
   };
 
-  return statusColorMap[status.toLowerCase()] || colors.grey[40];
+  return statusColorMap[status.toLowerCase()] || colors.trackingStatus.remaining;
 };
 
 // Get display label for status
@@ -86,7 +86,7 @@ const getStatusDisplayLabel = (status: string | undefined): string => {
 };
 
 // Allowed statuses to show in progress bar
-const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'poured', 'remaining'];
+const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'pouring', 'remaining'];
 
 interface OrderCardProps {
   order: any;

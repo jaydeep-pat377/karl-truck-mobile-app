@@ -49,7 +49,7 @@ const getSegmentColor = (status: string): string => {
     at_plant: colors.trackingStatus.atPlant,
     cancelled: colors.trackingStatus.cancelled,
     voided: colors.trackingStatus.voided,
-    remaining: colors.grey[30],
+    remaining: colors.trackingStatus.remaining,    // Light grey for remaining
   };
 
   return statusColorMap[status.toLowerCase()] || colors.grey[40];
@@ -79,7 +79,7 @@ const getStatusDisplayLabel = (status: string | undefined): string => {
 };
 
 // Allowed statuses to show in progress bar
-const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'poured', 'remaining'];
+const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'pouring', 'remaining'];
 
 interface ActiveDelivery {
   id: string;
