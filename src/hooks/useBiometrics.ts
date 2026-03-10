@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Alert, Linking, Platform } from 'react-native';
 import ReactNativeBiometrics, { BiometryType } from 'react-native-biometrics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../utils/storage';
@@ -16,6 +17,7 @@ interface UseBiometricsReturn {
   enableBiometrics: () => Promise<{ success: boolean; error?: string }>;
   disableBiometrics: () => Promise<void>;
   getBiometryTypeName: () => string;
+  openBiometricSettings: () => void;
 }
 
 export const useBiometrics = (): UseBiometricsReturn => {
@@ -104,6 +106,30 @@ export const useBiometrics = (): UseBiometricsReturn => {
     }
   }, [biometryType]);
 
+  const openBiometricSettings = useCallback(() => {
+    Alert.alert(
+      'Biometric Not Set Up',
+      'Your device does not have any biometric authentication (fingerprint, face unlock, or PIN) configured. Please set it up in your device settings to use this feature.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Open Settings',
+          onPress: () => {
+            if (Platform.OS === 'android') {
+              Linking.sendIntent('android.settings.SECURITY_SETTINGS').catch(() => {
+                Linking.openSettings();
+              });
+            } else {
+              Linking.openURL('App-Prefs:PASSCODE').catch(() => {
+                Linking.openSettings();
+              });
+            }
+          },
+        },
+      ],
+    );
+  }, []);
+
   return {
     isAvailable,
     biometryType,
@@ -113,6 +139,7 @@ export const useBiometrics = (): UseBiometricsReturn => {
     enableBiometrics,
     disableBiometrics,
     getBiometryTypeName,
+    openBiometricSettings,
   };
 };
 

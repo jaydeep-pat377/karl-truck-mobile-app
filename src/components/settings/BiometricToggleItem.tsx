@@ -33,15 +33,22 @@ export const BiometricToggleItem: React.FC<BiometricToggleItemProps> = ({
     disableBiometrics,
     getBiometryTypeName,
     biometryType,
+    openBiometricSettings,
   } = useBiometrics();
   const [isToggling, setIsToggling] = useState(false);
 
-  // Don't render if biometrics not available or still loading
-  if (isLoading || !isAvailable) {
+  // Only hide while loading
+  if (isLoading) {
     return null;
   }
 
   const handleToggle = async () => {
+    // If biometrics not available, show alert to redirect to settings
+    if (!isAvailable) {
+      openBiometricSettings();
+      return;
+    }
+
     setIsToggling(true);
 
     try {
@@ -82,25 +89,29 @@ export const BiometricToggleItem: React.FC<BiometricToggleItemProps> = ({
       disabled={isToggling}>
       <View style={[
         styles.iconContainer,
-        { backgroundColor: colors.success.main + '20' }
+        { backgroundColor: (isAvailable ? colors.success.main : colors.warning.main) + '20' }
       ]}>
         <Icon
-          name={getBiometricIcon()}
+          name={isAvailable ? getBiometricIcon() : 'shield-lock-outline'}
           size={ms(20)}
-          color={colors.success.main}
+          color={isAvailable ? colors.success.main : colors.warning.main}
         />
       </View>
 
       <View style={styles.content}>
         <Text variant="bodySmall" style={{ fontWeight: '600' }}>
-          {getBiometryTypeName()}
+          {isAvailable ? getBiometryTypeName() : 'Biometric Authentication'}
         </Text>
-        <Text variant="caption" color="secondary">
-          Unlock app with {getBiometryTypeName().toLowerCase()}
+        <Text variant="caption" color={isAvailable ? 'secondary' : 'error'}>
+          {isAvailable
+            ? `Unlock app with ${getBiometryTypeName().toLowerCase()}`
+            : 'Not set up — tap to open settings'}
         </Text>
       </View>
 
-      {isToggling ? (
+      {!isAvailable ? (
+        <Icon name="chevron-right" size={ms(22)} color={themeColors.text.hint} />
+      ) : isToggling ? (
         <ActivityIndicator size="small" color={colors.primary.main} />
       ) : (
         <TouchableOpacity
