@@ -9,6 +9,9 @@ import { TrucksOnJobWebView } from './TrucksOnJobWebView';
 
 export interface PourSpeedGraphApi {
   schedule_rate: number;
+  truck_space: number;
+  schedule_qty: number;
+  unload_duration_minutes?: number;
   y_max: number;
   ordered: Array<{ time: string; time_display: string; rate: number; cumulative_qty?: number }>;
   delivered: Array<{ time: string; time_display: string; rate: number; cumulative_qty?: number; load_qty?: number; actual_spacing_min?: number }>;
@@ -56,8 +59,8 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
           pouredData={graphData?.pour_speed?.poured || []}
           scheduleRate={graphData?.pour_speed?.schedule_rate || 0}
           yMax={graphData?.pour_speed?.y_max || 50}
-          scheduledQty={scheduledQty}
-          truckSpace={truckSpace}
+          scheduledQty={graphData?.pour_speed?.schedule_qty || scheduledQty}
+          truckSpace={graphData?.pour_speed?.truck_space || truckSpace}
           isDark={isDark}
           height={chartHeight}
           scrollable={scrollable}

@@ -381,6 +381,9 @@ export interface TrucksOnJobAverages {
 
 export interface PourSpeedGraph {
   schedule_rate: number;
+  truck_space: number;
+  schedule_qty: number;
+  unload_duration_minutes?: number;
   y_max: number;
   ordered: PourSpeedDataPoint[];
   delivered: PourSpeedDataPoint[];

@@ -83,10 +83,10 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   orderedData,
   deliveredData,
   pouredData,
-  scheduleRate: _scheduleRate,
+  scheduleRate,
   yMax,
-  scheduledQty: _scheduledQty,
-  truckSpace: _truckSpace = 0,
+  scheduledQty,
+  truckSpace = 0,
   isDark,
   height = ms(180),
   horizontalPadding = 16,
@@ -437,6 +437,31 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
             </TouchableOpacity>
           </View>
         </View>
+        <View style={styles.headerStats}>
+          <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
+            <Icon name="clock-outline" size={ms(14)} color={colors.info.main} />
+            <View style={styles.statTextContainer}>
+              <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Spacing</Text>
+              <Text style={[styles.statValue, { color: colors.info.main }]}>{truckSpace} min</Text>
+            </View>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
+            <Icon name="speedometer" size={ms(14)} color={colors.info.main} />
+            <View style={styles.statTextContainer}>
+              <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Rate</Text>
+              <Text style={[styles.statValue, { color: colors.info.main }]}>{scheduleRate} CY/HR</Text>
+            </View>
+          </View>
+          {scheduledQty > 0 && (
+            <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
+              <Icon name="calendar-check" size={ms(14)} color={colors.info.main} />
+              <View style={styles.statTextContainer}>
+                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Scheduled</Text>
+                <Text style={[styles.statValue, { color: colors.info.main }]}>{scheduledQty.toFixed(2)} CY</Text>
+              </View>
+            </View>
+          )}
+        </View>
       </View>
 
       <Pressable onPress={hideTooltip} style={{ position: 'relative' }}>
@@ -722,6 +747,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  headerStats: {
+    flexDirection: 'row',
+    marginTop: ms(8),
+    gap: ms(6),
+  },
+  statCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: ms(6),
+    paddingVertical: ms(4),
+    borderRadius: ms(6),
+    borderWidth: 1,
+    gap: ms(6),
+  },
+  statTextContainer: {
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: ms(9),
+    fontFamily: fontFamily.medium,
+  },
+  statValue: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.bold,
   },
   title: {
     fontSize: ms(14),
