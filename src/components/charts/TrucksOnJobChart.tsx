@@ -618,10 +618,11 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                   <SvgText
                     key={`y-${value}`}
                     x={yAxisWidth - 5}
-                    y={y + 4}
+                    y={y}
                     fontSize={ms(11)}
                     fill={themeColors.text.hint}
                     textAnchor="end"
+                    alignmentBaseline="middle"
                     fontFamily={fontFamily.medium}
                   >
                     {value}

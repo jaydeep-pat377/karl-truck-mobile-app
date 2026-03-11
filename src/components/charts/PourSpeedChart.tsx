@@ -467,20 +467,28 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
       <Pressable onPress={hideTooltip} style={{ position: 'relative' }}>
         <View style={styles.chartContainer}>
           <View style={[styles.yAxis, { width: yAxisWidth }]}>
-            <Text style={[styles.yAxisLabel, { color: themeColors.text.hint }]}>
-              CY/HR
-            </Text>
             <Svg width={yAxisWidth} height={height}>
+              <SvgText
+                x={yAxisWidth - 5}
+                y={ms(10)}
+                fontSize={ms(9)}
+                fill={themeColors.text.hint}
+                textAnchor="end"
+                fontFamily={fontFamily.medium}
+              >
+                CY/HR
+              </SvgText>
               {yAxisValues.map((value, i) => {
                 const y = getY(value);
                 return (
                   <SvgText
                     key={`y-label-${i}`}
                     x={yAxisWidth - 5}
-                    y={y + 4}
+                    y={y}
                     fontSize={ms(10)}
                     fill={themeColors.text.hint}
                     textAnchor="end"
+                    alignmentBaseline="middle"
                     fontFamily={fontFamily.medium}
                   >
                     {value}
