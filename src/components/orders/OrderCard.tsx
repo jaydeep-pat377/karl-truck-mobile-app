@@ -6,16 +6,27 @@ import {
   Pressable,
   ActivityIndicator,
   Platform,
-  ScrollView,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text, Card, StatusBadge, WeatherEvaporationPill, Icon } from '../common';
+import { Text, Card, StatusBadge, Icon } from '../common';
 import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
-import { ms, isSmallDevice, spacing } from '../../utils/responsive';
-import { getStatusColor, getProgressBarColor } from '../../utils/statusUtils';
-import { TicketTrackingStatus, DeliveryProgress } from '../../types';
+import { ms, breakpoint } from '../../utils/responsive';
+import { getStatusColor } from '../../utils/statusUtils';
+import { TicketTrackingStatus } from '../../types';
+
+// Responsive sizes for header elements based on screen size
+const headerSizes = {
+  orderCodeFont: breakpoint(9, 11, 12),
+  dateTimeFont: breakpoint(8, 10, 11),
+  weatherTempFont: breakpoint(8, 10, 11),
+  evapBadgeFont: breakpoint(7, 8, 9),
+  evapBadgePadding: breakpoint(4, 8, 10),
+  weatherIcon: breakpoint(10, 12, 14),
+  starIcon: breakpoint(14, 16, 18),
+  headerGap: breakpoint(2, 4, 6),
+};
 
 const getTicketStatusColor = (status: TicketTrackingStatus | undefined): string | undefined => {
   if (!status) return undefined;
@@ -283,7 +294,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
       <View style={styles.cardInnerContainer}>
         <View style={styles.cardTouchable}>
         <View style={styles.cardContent}>
-          <View style={styles.headerRow}>
+          <View style={[styles.headerRow, { gap: ms(headerSizes.headerGap) }]}>
             <View style={styles.statusBadgeContainer}>
               <StatusBadge
                 status={order.status}
@@ -295,37 +306,40 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
               variant="captionSmall"
               color="secondary"
               numberOfLines={1}
-              ellipsizeMode="tail"
-              style={[styles.orderId, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
+              style={[styles.orderId, { color: isDark ? themeColors.text.hint : colors.grey[80], fontSize: ms(headerSizes.orderCodeFont) }]}>
               {order.orderCode}
             </Text>
             <Text
               variant="captionSmall"
               numberOfLines={1}
-              ellipsizeMode="tail"
-              style={[styles.dateTime, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
-              {formatDate(order.scheduledDate)} • {order.scheduledTime}
+              style={[styles.dateTime, { color: isDark ? themeColors.text.hint : colors.grey[80], fontSize: ms(headerSizes.dateTimeFont) }]}>
+              {formatDate(order.scheduledDate)} {order.scheduledTime}
             </Text>
             {weatherData && weatherData.temperature !== null && (
-              <View style={styles.headerWeatherRow}>
+              <TouchableOpacity
+                style={styles.headerWeatherRow}
+                onPress={onWeatherPress}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
                 <Icon
                   name={getWeatherIconName(weatherData?.condition || '')}
-                  size={ms(12)}
+                  size={ms(headerSizes.weatherIcon)}
                   color={colors.info.main}
                 />
                 <Text
                   variant="captionSmall"
-                  style={[styles.headerWeatherTemp, { color: isDark ? themeColors.text.hint : colors.grey[60] }]}>
+                  style={[styles.headerWeatherTemp, { color: isDark ? themeColors.text.hint : colors.grey[60], fontSize: ms(headerSizes.weatherTempFont) }]}>
                   {weatherData?.temperature}°F
                 </Text>
                 {evaporationRateValue !== null && (
-                  <View style={[styles.headerEvapBadge, { backgroundColor: getEvaporationBgColor(evaporationRateValue) }]}>
-                    <Text style={styles.headerEvapText}>
+                  <View style={[styles.headerEvapBadge, { backgroundColor: getEvaporationBgColor(evaporationRateValue), paddingHorizontal: ms(headerSizes.evapBadgePadding) }]}>
+                    <Text style={[styles.headerEvapText, { fontSize: ms(headerSizes.evapBadgeFont) }]}>
                       {getEvaporationText(evaporationRateValue)}
                     </Text>
                   </View>
                 )}
-              </View>
+              </TouchableOpacity>
             )}
             <TouchableOpacity
               style={styles.favoriteButton}
@@ -335,7 +349,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
             >
               <Icon
                 name={isFavorite ? 'star' : 'star-outline'}
-                size={ms(18)}
+                size={ms(headerSizes.starIcon)}
                 color={isFavorite ? colors.warning.main : (isDark ? colors.grey[50] : colors.grey[40])}
               />
             </TouchableOpacity>
@@ -576,7 +590,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: ms(4),
-    gap: ms(3),
   },
   statusBadgeContainer: {
     flexShrink: 0,
@@ -586,34 +599,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
-    marginLeft: 'auto',
+    marginLeft: ms(2),
   },
   orderId: {
-    fontSize: ms(11),
     fontFamily: fontFamily.semiBold,
-    flexShrink: 1,
+    flexShrink: 0,
   },
   dateTime: {
-    fontSize: ms(10),
     fontFamily: fontFamily.medium,
     flexShrink: 1,
+    flex: 1,
   },
   headerWeatherRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: ms(3),
+    gap: ms(2),
     flexShrink: 0,
   },
   headerWeatherTemp: {
-    fontSize: ms(10),
     fontFamily: fontFamily.medium,
   },
   headerEvapBadge: {
-    paddingHorizontal: ms(8),
     borderRadius: ms(10),
   },
   headerEvapText: {
-    fontSize: ms(8),
     fontFamily: fontFamily.bold,
     color: colors.common.white,
     lineHeight: ms(13),
