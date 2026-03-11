@@ -106,8 +106,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
         const latestMessage = messages[messages.length - 1];
 
         if (lastMessageTimeRef.current && latestMessage.created_at > lastMessageTimeRef.current) {
-          console.log('[Chat Poll] New messages detected');
-
           const newMessages = messages.filter(
             (msg) =>
               msg.created_at > (lastMessageTimeRef.current || '') &&
@@ -115,15 +113,11 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
           );
 
           if (newMessages.length > 0) {
-            console.log(`[Chat Poll] Found ${newMessages.length} new message(s)`);
-
-
             if (currentRoomId !== roomId) {
               playMessageSound();
             }
 
             newMessages.forEach((msg) => {
-              console.log(`[Chat Poll] Adding message from ${msg.sender_name}: ${msg.content.substring(0, 50)}`);
               setRealtimeMessages((prev) => {
                 if (prev.some((m) => m.id === msg.id)) {
                   return prev;
@@ -149,8 +143,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
     const setupSubscription = () => {
       try {
-        console.log(`[Chat] Setting up realtime subscription for order ${orderId}`);
-
         channel = supabase
           .channel(`chat-order-${orderId}-${Date.now()}`)
           .on(
@@ -163,8 +155,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
             },
             (payload) => {
               try {
-                console.log('[Chat] Realtime event received:', payload.eventType);
-
                 if (payload.eventType !== 'INSERT') {
                   return;
                 }
@@ -219,10 +209,8 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
           )
           .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') {
-              console.log(`[Chat] Realtime connected for order ${orderId}`);
               setIsRealtimeConnected(true);
             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || err) {
-              console.warn('[Chat] Realtime not available, using polling fallback');
               setIsRealtimeConnected(false);
 
               if (channel) {
@@ -243,7 +231,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
-        console.log('App became active, refreshing chat...');
         queryClient.invalidateQueries({ queryKey: ['chatMessages', orderId] });
 
         if (channel) {
@@ -254,7 +241,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
 
-    console.log('[Chat] Starting polling for new messages');
     pollingIntervalRef.current = setInterval(pollForNewMessages, 2000);
 
     return () => {
@@ -271,10 +257,8 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, images }: { content: string; images?: ImageAttachment[] }) => {
-      console.log('[useChatMessages] mutationFn called:', { content, imagesCount: images?.length, images });
       try {
         if (images && images.length > 0) {
-          console.log('[useChatMessages] Sending with images...');
           const result = await chatService.sendMessageWithImages(
             {
               chat_id: chatId || orderId,
@@ -283,17 +267,14 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
             },
             images
           );
-          console.log('[useChatMessages] sendMessageWithImages result:', result);
           return result;
         }
-        console.log('[useChatMessages] Sending text only...');
         return chatService.sendMessage({
           chat_id: chatId || orderId,
           order_id: orderId,
           content,
         });
       } catch (error) {
-        console.error('[useChatMessages] mutationFn error:', error);
         throw error;
       }
     },
@@ -347,7 +328,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       );
     },
     onError: (error: any) => {
-      console.error('Send message error:', error);
       setRealtimeMessages((prev) => prev.filter((m) => !m.id.startsWith('temp-')));
       queryClient.invalidateQueries({ queryKey: ['chatMessages', orderId] });
 

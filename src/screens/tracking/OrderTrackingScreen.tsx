@@ -193,7 +193,6 @@ const truckMarkerStyles = StyleSheet.create({
   },
 });
 
-console.log('[Mapbox] Token:', MAPBOX_ACCESS_TOKEN ? 'Present' : 'MISSING');
 if (MAPBOX_ACCESS_TOKEN) {
   Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN);
 } else {
@@ -648,7 +647,6 @@ export const OrderTrackingScreen: React.FC = () => {
           logoEnabled={false}
           attributionEnabled={false}
           onDidFinishLoadingMap={() => {
-            console.log('[Mapbox] Map finished loading');
             setIsMapReady(true);
 
             if (cameraRef.current && mapBounds) {
@@ -659,8 +657,7 @@ export const OrderTrackingScreen: React.FC = () => {
           }}
           onMapIdle={() => {
             console.log('[Mapbox] Map idle - tiles loaded');
-          }}
-        >
+          }}>
           <Mapbox.Camera
             ref={cameraRef}
             defaultSettings={{

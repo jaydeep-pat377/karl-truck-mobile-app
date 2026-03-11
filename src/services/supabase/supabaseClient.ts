@@ -65,11 +65,8 @@ export const getAnonymousUserId = async (): Promise<string> => {
     const newId = generateUUID();
     await AsyncStorage.setItem(ANON_USER_ID_KEY, newId);
     anonymousUserId = newId;
-    console.log('Created new anonymous user ID:', newId);
     return newId;
   } catch (err) {
-    console.error('Error getting anonymous user ID:', err);
-
     const fallbackId = generateUUID();
     anonymousUserId = fallbackId;
     return fallbackId;
@@ -78,21 +75,14 @@ export const getAnonymousUserId = async (): Promise<string> => {
 
 export const initializeSupabaseAuth = async (): Promise<{ userId: string } | null> => {
   if (!isSupabaseConfigured()) {
-    console.log('Supabase not configured');
     return null;
   }
 
   try {
-    console.log('Initializing Supabase...');
-
     const userId = await getAnonymousUserId();
-
     isInitialized = true;
-    console.log('Supabase initialized with user ID:', userId);
-
     return { userId };
   } catch (err) {
-    console.error('Supabase init error:', err);
     return null;
   }
 };

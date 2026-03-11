@@ -123,23 +123,13 @@ export function useRealtimeNotifications({
 
 
   useEffect(() => {
-    console.log('[RealtimeNotifications] Setup check:', {
-      userId,
-      tenantId,
-      enabled,
-      hasSupabase: !!notificationSupabase,
-    });
-
     if (!userId || !notificationSupabase || !enabled) {
-      console.log('[RealtimeNotifications] Skipping subscription - missing requirements');
       return;
     }
 
     fetchInitial();
 
     const channelName = `notifications:${userId}:${tenantId || 'all'}`;
-    console.log('[RealtimeNotifications] Subscribing to channel:', channelName);
-
     const channel = notificationSupabase
       .channel(channelName)
 
@@ -152,9 +142,7 @@ export function useRealtimeNotifications({
           filter: `user_id=eq.${userId}`,
         },
         (payload: any) => {
-          console.log('[RealtimeNotifications] INSERT received:', payload);
           const newItem = mapRow(payload.new);
-
 
           if (
             tenantId &&
@@ -188,7 +176,6 @@ export function useRealtimeNotifications({
           filter: `user_id=eq.${userId}`,
         },
         (payload: any) => {
-          console.log('[RealtimeNotifications] UPDATE received:', payload);
           const updated = mapRow(payload.new);
 
           setNotifications((prev) => {
@@ -201,7 +188,6 @@ export function useRealtimeNotifications({
         }
       )
       .subscribe((status) => {
-        console.log('[RealtimeNotifications] Channel status:', status);
         setIsConnected(status === 'SUBSCRIBED');
       });
 
@@ -209,7 +195,6 @@ export function useRealtimeNotifications({
 
     return () => {
       if (channelRef.current) {
-        console.log('[RealtimeNotifications] Unsubscribing from channel');
         notificationSupabase.removeChannel(channelRef.current);
         channelRef.current = null;
         setIsConnected(false);
@@ -223,7 +208,6 @@ export function useRealtimeNotifications({
   useEffect(() => {
     const handleAppState = (state: AppStateStatus) => {
       if (state === 'active' && userId && enabled) {
-        console.log('[RealtimeNotifications] App active, refetching...');
         fetchInitial();
       }
     };

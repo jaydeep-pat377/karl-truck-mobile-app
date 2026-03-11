@@ -22,7 +22,7 @@ export const useOrderDetails = (params: OrderDetailsQueryParams) => {
   });
 
   if (query.data) {
-    console.log('📋 Order Details API Response:', JSON.stringify(query.data, null, 2));
+    console.log('Order Details API Response:', JSON.stringify(query.data, null, 2));
   }
 
   const orderDetails: OrderDetailsOrder | null =

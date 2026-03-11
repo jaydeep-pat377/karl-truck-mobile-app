@@ -232,11 +232,8 @@ const DashboardScreen: React.FC = () => {
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        console.log('[Announcements] Fetching announcements...');
         const response = await announcementService.getAnnouncements({ page: 1, limit: 10 });
-        console.log('[Announcements] API Response:', JSON.stringify(response, null, 2));
         if (response.success && response.data?.announcements) {
-          console.log('[Announcements] Found', response.data.announcements.length, 'announcements');
           setApiAnnouncements(response.data.announcements);
         }
       } catch (error) {
@@ -354,7 +351,7 @@ const DashboardScreen: React.FC = () => {
 
       const orderListDateFilter = dateFilter === 'next_week' ? 'nextWeek'
         : dateFilter === 'last_week' ? 'lastWeek'
-        : dateFilter;
+          : dateFilter;
 
       navigation.navigate('Main', {
         screen: 'Orders',
@@ -792,7 +789,7 @@ const DashboardScreen: React.FC = () => {
 
               const orderListDateFilter = dateFilter === 'next_week' ? 'nextWeek'
                 : dateFilter === 'last_week' ? 'lastWeek'
-                : dateFilter;
+                  : dateFilter;
               navigation.navigate('Orders', {
                 company_name: company.name,
                 date_filter: orderListDateFilter,
@@ -803,7 +800,7 @@ const DashboardScreen: React.FC = () => {
             onRegionPress={(region) => {
               const orderListDateFilter = dateFilter === 'next_week' ? 'nextWeek'
                 : dateFilter === 'last_week' ? 'lastWeek'
-                : dateFilter;
+                  : dateFilter;
               navigation.navigate('Orders', {
                 region_name: region.name,
                 date_filter: orderListDateFilter,
@@ -814,7 +811,7 @@ const DashboardScreen: React.FC = () => {
             onPlantPress={(plant) => {
               const orderListDateFilter = dateFilter === 'next_week' ? 'nextWeek'
                 : dateFilter === 'last_week' ? 'lastWeek'
-                : dateFilter;
+                  : dateFilter;
               navigation.navigate('Orders', {
                 plant_code: plant.code,
                 plant_name: plant.name,

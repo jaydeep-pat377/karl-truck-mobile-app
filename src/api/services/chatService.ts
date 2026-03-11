@@ -74,7 +74,6 @@ export const chatService = {
         .order('last_message_at', { ascending: false, nullsFirst: false });
 
       if (error) {
-        console.log('Get rooms error:', error.message);
         return [];
       }
 
@@ -88,7 +87,6 @@ export const chatService = {
         last_message_at: chat.last_message_at || undefined,
       }));
     } catch (err) {
-      console.log('Get rooms exception:', err);
       return [];
     }
   },
@@ -220,22 +218,15 @@ export const chatService = {
 
     const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${fileName}`;
 
-    console.log('[Chat] Uploading image:', fileName);
-    console.log('[Chat] Image URI:', image.uri);
-    console.log('[Chat] Upload URL:', uploadUrl);
-
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
 
       xhr.timeout = 60000;
 
       xhr.onload = () => {
-        console.log('[Chat] XHR onload - status:', xhr.status);
-        console.log('[Chat] XHR response:', xhr.responseText);
 
         if (xhr.status >= 200 && xhr.status < 300) {
           const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${fileName}`;
-          console.log('[Chat] Upload successful:', publicUrl);
           resolve({
             url: publicUrl,
             type: image.type,
@@ -244,25 +235,21 @@ export const chatService = {
             height: image.height,
           });
         } else {
-          console.error('[Chat] Upload failed with status:', xhr.status);
           reject(new Error(`Upload failed: ${xhr.status} - ${xhr.responseText || 'Server error'}`));
         }
       };
 
       xhr.onerror = () => {
-        console.error('[Chat] XHR onerror triggered');
         reject(new Error('Network request failed - please check your internet connection'));
       };
 
       xhr.ontimeout = () => {
-        console.error('[Chat] XHR timeout');
         reject(new Error('Upload timeout - please try again'));
       };
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
           const progress = Math.round((event.loaded / event.total) * 100);
-          console.log('[Chat] Upload progress:', progress + '%');
         }
       };
 
@@ -283,9 +270,6 @@ export const chatService = {
         type: image.type || 'image/jpeg',
         name: fileName.split('/').pop() || `image_${timestamp}.jpg`,
       };
-
-      console.log('[Chat] File URI:', fileUri);
-      console.log('[Chat] File data:', JSON.stringify(fileData));
       formData.append('file', fileData);
 
       xhr.send(formData);
@@ -314,8 +298,6 @@ export const chatService = {
 
       userName = user.email.split('@')[0];
     }
-
-    console.log('Sending message with user name:', userName);
 
     let userRole = 'contractor';
     const role = (user.role || '').toLowerCase();
@@ -350,11 +332,6 @@ export const chatService = {
       .single();
 
     if (error) {
-      console.error('Send message error:', error);
-      console.error('Error code:', error.code);
-      console.error('Error details:', error.details);
-      console.error('Error hint:', error.hint);
-
       if (error.code === '42P01') {
         throw new Error('chat_messages table does not exist.');
       } else if (error.code === '42501') {
@@ -395,10 +372,8 @@ export const chatService = {
           'Authorization': 'Bearer SUPABASE_SERVICE_KEY_REMOVED',
         },
       });
-      console.log('[Chat] Connection test status:', response.status);
       return response.ok;
     } catch (error) {
-      console.error('[Chat] Connection test failed:', error);
       return false;
     }
   },
@@ -407,7 +382,6 @@ export const chatService = {
     payload: SendMessagePayload,
     images: ImageAttachment[]
   ): Promise<Message> => {
-    console.log('[Chat] sendMessageWithImages called:', { payload, imagesCount: images.length });
 
     try {
 
@@ -415,21 +389,14 @@ export const chatService = {
       if (!isConnected) {
         throw new Error('Cannot connect to storage server. Please check your internet connection.');
       }
-
-      console.log('[Chat] Starting image uploads...');
       const uploadedAttachments = await chatService.uploadImages(images, payload.order_id);
-      console.log('[Chat] Images uploaded:', uploadedAttachments);
-
-      console.log('[Chat] Sending message with attachments...');
       const result = await chatService.sendMessage({
         ...payload,
         message_type: images.length > 0 && !payload.content ? 'image' : 'text',
         attachments: uploadedAttachments,
       });
-      console.log('[Chat] Message sent successfully:', result);
       return result;
     } catch (error) {
-      console.error('[Chat] sendMessageWithImages error:', error);
       throw error;
     }
   },
@@ -439,7 +406,6 @@ export const chatService = {
     const user = useAuthStore.getState().user;
 
     if (!user?.id) {
-      console.warn('No user ID, cannot mark as read');
       return;
     }
 
@@ -579,7 +545,6 @@ export const chatService = {
         }
       )
       .subscribe((status, err) => {
-        console.log(`Chat subscription status for order ${orderId}:`, status);
         if (err) {
           console.error(`Chat subscription error:`, err);
         }

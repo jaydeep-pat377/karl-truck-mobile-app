@@ -99,8 +99,6 @@ const App: React.FC = () => {
 
   useEffect(() => {
     initializeSupabaseAuth().then((session) => {
-      console.log('session>>>>>>',session);
-
       if (session) {
         console.log('@@@@@@ Supabase auth initialized successfully');
       }

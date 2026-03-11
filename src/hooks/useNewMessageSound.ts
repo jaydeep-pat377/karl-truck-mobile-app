@@ -40,15 +40,10 @@ export const useNewMessageSound = (
 
 
     if (timeSinceLastPlay < throttleMs) {
-      console.log(
-        `[useNewMessageSound] Throttled (${timeSinceLastPlay}ms since last play, need ${throttleMs}ms)`
-      );
       return false;
     }
 
-
     lastPlayTimeRef.current = now;
-
 
     return basePlaySound();
   }, [basePlaySound, throttleMs]);

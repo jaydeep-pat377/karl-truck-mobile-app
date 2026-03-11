@@ -6,8 +6,6 @@ import { AppState, AppStateStatus } from 'react-native';
 const NOTIFICATION_URL = 'https://tabpplqpetdgruqmliix.supabase.co';
 const NOTIFICATION_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhYnBwbHFwZXRkZ3J1cW1saWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0NzMxNTgsImV4cCI6MjA4MjA0OTE1OH0.JqG84aRxD88qT1rlY_Rbe2r8QSX9U_ksP3IV9RqYSZg';
 
-console.log('[NotificationClient] Initializing...');
-
 const notificationSupabase: SupabaseClient = createClient(NOTIFICATION_URL, NOTIFICATION_KEY, {
   auth: {
     autoRefreshToken: false,
@@ -16,12 +14,8 @@ const notificationSupabase: SupabaseClient = createClient(NOTIFICATION_URL, NOTI
   },
 });
 
-console.log('[NotificationClient] Client created');
-
 export async function testNotificationConnection(userId: string): Promise<boolean> {
   try {
-    console.log('[NotificationClient] Testing REST API connection for user:', userId);
-
     const { data, error } = await notificationSupabase
       .from('notification_queue')
       .select('id, subject')
@@ -29,11 +23,9 @@ export async function testNotificationConnection(userId: string): Promise<boolea
       .limit(1);
 
     if (error) {
-      console.error('[NotificationClient] REST API error:', error.message);
       return false;
     }
 
-    console.log('[NotificationClient] REST API works! Found:', data?.length || 0, 'notifications');
     return true;
   } catch (err: any) {
     console.error('[NotificationClient] REST API exception:', err.message);
@@ -47,11 +39,7 @@ export function subscribeToNotifications(
   onInsert: (payload: any) => void,
   onStatusChange: (status: string) => void
 ): RealtimeChannel {
-  console.log('[NotificationClient] Creating subscription for user:', userId);
-
   const channelName = `notifications:${userId}`;
-
-
   const existingChannel = notificationSupabase.channel(channelName);
   if (existingChannel) {
     notificationSupabase.removeChannel(existingChannel);
@@ -73,7 +61,6 @@ export function subscribeToNotifications(
         filter: `user_id=eq.${userId}`,
       },
       (payload) => {
-        console.log('[NotificationClient] INSERT received:', payload);
         onInsert(payload);
       }
     )
@@ -90,7 +77,6 @@ export function subscribeToNotifications(
       }
     )
     .subscribe((status, err) => {
-      console.log('[NotificationClient] Subscription status:', status);
       if (err) {
         console.error('[NotificationClient] Subscription error:', err.message);
       }
@@ -102,7 +88,6 @@ export function subscribeToNotifications(
 
 export function unsubscribeFromNotifications(channel: RealtimeChannel): void {
   if (channel) {
-    console.log('[NotificationClient] Unsubscribing from channel');
     notificationSupabase.removeChannel(channel);
   }
 }

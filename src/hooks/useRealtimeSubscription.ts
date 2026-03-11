@@ -81,10 +81,7 @@ export function useRealtimeSubscription({
 
 
   const subscribe = useCallback(() => {
-    console.log('[useRealtimeSubscription] Subscribe called:', { userId, tenantId, enabled });
-
     if (!userId || !enabled) {
-      console.log('[useRealtimeSubscription] Skipping - no userId or not enabled');
       return;
     }
 
@@ -100,25 +97,16 @@ export function useRealtimeSubscription({
       tenantId,
 
       (payload) => {
-        console.log('[useRealtimeSubscription] New notification received!');
         const notification = mapRowToNotification(payload.new);
-
-
         const notifTenantId = payload.new.tenant_id;
         if (tenantId && notifTenantId !== null && notifTenantId !== tenantId) {
-          console.log('[useRealtimeSubscription] Tenant mismatch, skipping');
           return;
         }
-
-
         addNotification(notification);
-
-
         onNewNotificationRef.current?.(notification);
       },
 
       (status) => {
-        console.log('[useRealtimeSubscription] Status changed:', status);
         setIsConnected(status === 'SUBSCRIBED');
       }
     );
@@ -143,7 +131,6 @@ export function useRealtimeSubscription({
   useEffect(() => {
     const handleAppState = (state: AppStateStatus) => {
       if (state === 'active' && userId && enabled) {
-        console.log('[useRealtimeSubscription] App active, resubscribing...');
         setTimeout(subscribe, 500);
       }
     };

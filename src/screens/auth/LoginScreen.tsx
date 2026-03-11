@@ -79,75 +79,75 @@ const AnimatedInput: React.FC<{
   inputRef,
   isDark,
 }) => {
-  const [isFocused, setIsFocused] = useState(false);
-  const focusAnim = useSharedValue(0);
-  const loginColors = isDark ? colors.login.dark : colors.login.light;
+    const [isFocused, setIsFocused] = useState(false);
+    const focusAnim = useSharedValue(0);
+    const loginColors = isDark ? colors.login.dark : colors.login.light;
 
-  useEffect(() => {
-    focusAnim.value = withSpring(isFocused ? 1 : 0, { damping: 15 });
-  }, [isFocused]);
+    useEffect(() => {
+      focusAnim.value = withSpring(isFocused ? 1 : 0, { damping: 15 });
+    }, [isFocused]);
 
-  const containerAnimStyle = useAnimatedStyle(() => ({
-    borderColor: interpolateColor(
-      focusAnim.value,
-      [0, 1],
-      [loginColors.inputBorder, colors.primary.main]
-    ),
-    transform: [{ scale: withSpring(isFocused ? 1.01 : 1, { damping: 15 }) }],
-  }));
+    const containerAnimStyle = useAnimatedStyle(() => ({
+      borderColor: interpolateColor(
+        focusAnim.value,
+        [0, 1],
+        [loginColors.inputBorder, colors.primary.main]
+      ),
+      transform: [{ scale: withSpring(isFocused ? 1.01 : 1, { damping: 15 }) }],
+    }));
 
-  return (
-    <View style={styles.inputWrapper}>
-      <Animated.View
-        style={[
-          styles.inputContainer,
-          { backgroundColor: loginColors.inputBg },
-          containerAnimStyle,
-          error && styles.inputError,
-        ]}>
-        <Icon
-          name={icon}
-          size={ms(20)}
-          color={isFocused ? colors.primary.main : colors.grey[50]}
-        />
-        <TextInput
-          ref={inputRef}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={isDark ? colors.grey[60] : colors.grey[50]}
+    return (
+      <View style={styles.inputWrapper}>
+        <Animated.View
           style={[
-            styles.input,
-            { color: isDark ? colors.common.white : colors.grey[100] },
-          ]}
-          secureTextEntry={secureTextEntry}
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize}
-          returnKeyType={returnKeyType}
-          onSubmitEditing={onSubmitEditing}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-        />
-        {rightIcon && (
-          <TouchableOpacity onPress={onRightIconPress} activeOpacity={0.7}>
-            <Icon
-              name={rightIcon}
-              size={ms(20)}
-              color={colors.grey[50]}
-            />
-          </TouchableOpacity>
+            styles.inputContainer,
+            { backgroundColor: loginColors.inputBg },
+            containerAnimStyle,
+            error && styles.inputError,
+          ]}>
+          <Icon
+            name={icon}
+            size={ms(20)}
+            color={isFocused ? colors.primary.main : colors.grey[50]}
+          />
+          <TextInput
+            ref={inputRef}
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={placeholder}
+            placeholderTextColor={isDark ? colors.grey[60] : colors.grey[50]}
+            style={[
+              styles.input,
+              { color: isDark ? colors.common.white : colors.grey[100] },
+            ]}
+            secureTextEntry={secureTextEntry}
+            keyboardType={keyboardType}
+            autoCapitalize={autoCapitalize}
+            returnKeyType={returnKeyType}
+            onSubmitEditing={onSubmitEditing}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+          />
+          {rightIcon && (
+            <TouchableOpacity onPress={onRightIconPress} activeOpacity={0.7}>
+              <Icon
+                name={rightIcon}
+                size={ms(20)}
+                color={colors.grey[50]}
+              />
+            </TouchableOpacity>
+          )}
+        </Animated.View>
+        {error && (
+          <Animated.Text
+            entering={FadeInDown.duration(200)}
+            style={styles.errorText}>
+            {error}
+          </Animated.Text>
         )}
-      </Animated.View>
-      {error && (
-        <Animated.Text
-          entering={FadeInDown.duration(200)}
-          style={styles.errorText}>
-          {error}
-        </Animated.Text>
-      )}
-    </View>
-  );
-};
+      </View>
+    );
+  };
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
   const { theme, isDark } = useTheme();
@@ -251,8 +251,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
       const deviceToken = await notificationService.getToken();
       await login(email, password, deviceToken || undefined);
     } catch (error) {
-      console.log('Login error:', error);
-
       if (rememberMe) {
         await handleRememberMe(false, '', '');
 

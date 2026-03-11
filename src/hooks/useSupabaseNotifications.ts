@@ -152,8 +152,8 @@ export function useSupabaseNotifications({
   const channelRef = useRef<RealtimeChannel | null>(null);
   const reconnectAttempts = useRef(0);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
-  const subscribeRef = useRef<() => void>(() => {});
-  const fetchRef = useRef<() => Promise<void>>(async () => {});
+  const subscribeRef = useRef<() => void>(() => { });
+  const fetchRef = useRef<() => Promise<void>>(async () => { });
   const onNewNotificationRef = useRef(onNewNotification);
 
 
@@ -184,10 +184,8 @@ export function useSupabaseNotifications({
     try {
       const settings = await notifee.requestPermission();
       const authorized = settings.authorizationStatus >= 1;
-      console.log('[useSupabaseNotifications] Notification permission:', authorized ? 'granted' : 'denied');
       return authorized;
     } catch (error) {
-      console.error('[useSupabaseNotifications] Error requesting notification permission:', error);
       return false;
     }
   }, []);
@@ -199,12 +197,7 @@ export function useSupabaseNotifications({
 
 
   const showLocalNotification = useCallback(async (notification: Notification) => {
-    console.log('[useSupabaseNotifications] 📱 Attempting to show local notification...');
-    console.log('[useSupabaseNotifications] App state:', appStateRef.current);
-
-
     if (appStateRef.current !== 'active') {
-      console.log('[useSupabaseNotifications] ⚠️ App not active, skipping notification');
       return;
     }
 
@@ -220,11 +213,6 @@ export function useSupabaseNotifications({
           vibration: true,
         });
       }
-
-      console.log('[useSupabaseNotifications] Displaying notification:', {
-        title: notification.subject,
-        body: notification.body,
-      });
 
       await notifee.displayNotification({
         title: notification.subject || 'New Notification',
@@ -252,7 +240,6 @@ export function useSupabaseNotifications({
         },
       });
 
-      console.log('[useSupabaseNotifications] ✅ Notification displayed');
     } catch (err) {
       console.error('[useSupabaseNotifications] ❌ Failed to show local notification:', err);
     }
@@ -265,7 +252,6 @@ export function useSupabaseNotifications({
       return;
     }
 
-    console.log('[useSupabaseNotifications] Fetching notifications for user:', userId);
     setIsLoading(true);
     setError(null);
 
@@ -278,7 +264,6 @@ export function useSupabaseNotifications({
         .limit(50);
 
       if (fetchError) {
-        console.error('[useSupabaseNotifications] Fetch error:', fetchError);
         setError(fetchError.message);
         return;
       }
@@ -290,11 +275,8 @@ export function useSupabaseNotifications({
           (n) => n.tenant_id === null || n.tenant_id === tenantId
         );
       }
-
-      console.log('[useSupabaseNotifications] Fetched', filteredData.length, 'notifications');
       setNotifications(filteredData);
     } catch (err: any) {
-      console.error('[useSupabaseNotifications] Exception:', err);
       setError(err.message);
     } finally {
       setIsLoading(false);
@@ -304,14 +286,11 @@ export function useSupabaseNotifications({
 
   const handleReconnect = useCallback(() => {
     if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
-      console.warn('[useSupabaseNotifications] Max reconnect attempts reached');
       return;
     }
 
     const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
     reconnectAttempts.current++;
-
-    console.log(`[useSupabaseNotifications] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current})`);
 
     setTimeout(() => {
       if (userId && enabled) {
@@ -324,18 +303,15 @@ export function useSupabaseNotifications({
 
   const subscribe = useCallback(() => {
     if (!userId || !enabled) {
-      console.log('[useSupabaseNotifications] Not subscribing - userId:', userId, 'enabled:', enabled);
       return;
     }
 
 
     if (channelRef.current) {
-      console.log('[useSupabaseNotifications] Removing existing channel');
       supabase.removeChannel(channelRef.current);
     }
 
     const channelName = `notifications:${userId}:${tenantId ?? 'global'}`;
-    console.log('[useSupabaseNotifications] Creating subscription:', channelName);
 
     const channel = supabase
       .channel(channelName)
@@ -348,7 +324,6 @@ export function useSupabaseNotifications({
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('[useSupabaseNotifications] 🔔 NEW NOTIFICATION:', payload.new);
           const newNotification = {
             ...payload.new as Notification,
             isNew: true,
@@ -394,7 +369,6 @@ export function useSupabaseNotifications({
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('[useSupabaseNotifications] 📝 NOTIFICATION UPDATED:', payload.new);
           const updatedNotification = payload.new as Notification;
 
           setNotifications((prev) =>
@@ -405,8 +379,6 @@ export function useSupabaseNotifications({
         }
       )
       .subscribe((status, err) => {
-        console.log('[useSupabaseNotifications] Subscription status:', status);
-
         if (status === 'SUBSCRIBED') {
           reconnectAttempts.current = 0;
           setIsConnected(true);
@@ -414,7 +386,6 @@ export function useSupabaseNotifications({
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           setIsConnected(false);
           if (err) {
-            console.error('[useSupabaseNotifications] Subscription error:', err);
             setError(String(err));
           }
           handleReconnect();
@@ -429,7 +400,6 @@ export function useSupabaseNotifications({
 
   const reconnect = useCallback(() => {
     if (userId && enabled) {
-      console.log('[useSupabaseNotifications] Manual reconnect triggered');
       reconnectAttempts.current = 0;
       subscribe();
       fetchNotifications();
@@ -451,7 +421,6 @@ export function useSupabaseNotifications({
 
     return () => {
       if (channelRef.current) {
-        console.log('[useSupabaseNotifications] Cleanup: removing channel');
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
@@ -463,7 +432,6 @@ export function useSupabaseNotifications({
     const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
       appStateRef.current = state;
       if (state === 'active' && userId && enabled) {
-        console.log('[useSupabaseNotifications] App active, refreshing...');
         reconnectAttempts.current = 0;
         fetchNotifications();
         subscribe();
@@ -476,7 +444,6 @@ export function useSupabaseNotifications({
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
       if (state.isConnected && userId && enabled) {
-        console.log('[useSupabaseNotifications] Network restored, reconnecting...');
         reconnectAttempts.current = 0;
         subscribe();
         fetchNotifications();

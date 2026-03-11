@@ -28,10 +28,7 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
 
 
   const checkInitialLock = useCallback(async () => {
-    console.log('[AppLock] Checking initial lock:', { isAuthenticated, isEnabled, isInitialized, isBiometricsLoading });
-
     if (!isAuthenticated || !isEnabled) {
-      console.log('[AppLock] Not locking - auth:', isAuthenticated, 'enabled:', isEnabled);
       setIsLocked(false);
       setHasCheckedInitialLock(true);
       return;
@@ -39,25 +36,16 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
 
     try {
       const lastBackgroundTime = await AsyncStorage.getItem(STORAGE_KEYS.APP_LAST_BACKGROUND_TIME);
-      console.log('[AppLock] Last background time:', lastBackgroundTime);
-
       if (lastBackgroundTime) {
 
         const elapsed = Date.now() - parseInt(lastBackgroundTime, 10);
-        console.log('[AppLock] Elapsed time:', elapsed, 'Timeout:', LOCK_TIMEOUT_MS);
         if (elapsed >= LOCK_TIMEOUT_MS) {
-          console.log('[AppLock] Locking - timeout exceeded');
           setIsLocked(true);
         }
       } else {
-
-
-        console.log('[AppLock] Locking - fresh app start with biometrics enabled');
         setIsLocked(true);
       }
     } catch (error) {
-      console.error('[AppLock] Error checking initial lock state:', error);
-
       setIsLocked(true);
     } finally {
       setHasCheckedInitialLock(true);
@@ -67,8 +55,6 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
 
   useEffect(() => {
     const isReady = isInitialized && !isBiometricsLoading;
-    console.log('[AppLock] Ready check:', { isInitialized, isBiometricsLoading, isReady, hasCheckedInitialLock });
-
     if (isReady && !hasCheckedInitialLock) {
       checkInitialLock();
     }
@@ -83,7 +69,6 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
       ) {
 
         if (isAuthenticated && isEnabled) {
-          console.log('[AppLock] Going to background - saving timestamp');
           await AsyncStorage.setItem(
             STORAGE_KEYS.APP_LAST_BACKGROUND_TIME,
             Date.now().toString()
@@ -100,9 +85,7 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
 
             if (lastBackgroundTime) {
               const elapsed = Date.now() - parseInt(lastBackgroundTime, 10);
-              console.log('[AppLock] Returning from background, elapsed:', elapsed);
               if (elapsed >= LOCK_TIMEOUT_MS) {
-                console.log('[AppLock] Locking - background timeout exceeded');
                 setIsLocked(true);
               }
             }
@@ -125,7 +108,6 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
 
   useEffect(() => {
     if (!isAuthenticated && isInitialized) {
-      console.log('[AppLock] User logged out - clearing lock state');
       setIsLocked(false);
       setHasCheckedInitialLock(false);
       AsyncStorage.removeItem(STORAGE_KEYS.APP_LAST_BACKGROUND_TIME);
@@ -133,11 +115,9 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
   }, [isAuthenticated, isInitialized]);
 
   const unlock = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
-    console.log('[AppLock] Attempting to unlock');
     const result = await authenticate('Unlock App');
 
     if (result.success) {
-      console.log('[AppLock] Unlock successful');
       setIsLocked(false);
 
       await AsyncStorage.removeItem(STORAGE_KEYS.APP_LAST_BACKGROUND_TIME);
@@ -150,7 +130,6 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
 
   const lockApp = useCallback(() => {
     if (isAuthenticated && isEnabled) {
-      console.log('[AppLock] Manual lock triggered');
       setIsLocked(true);
     }
   }, [isAuthenticated, isEnabled]);

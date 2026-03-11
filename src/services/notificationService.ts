@@ -25,7 +25,6 @@ class NotificationService {
           vibration: true,
         });
         this.channelCreated = true;
-        console.log('[Notifications] Notifee channel created:', CHANNEL_ID);
       } catch (error) {
         console.error('[Notifications] Error creating channel:', error);
       }
@@ -38,12 +37,7 @@ class NotificationService {
     data?: Record<string, string>,
   ): Promise<void> {
     try {
-      console.log('[Notifications] displayNotification called:', { title, body });
-
-
       await this.createNotificationChannel();
-
-
       const notificationId = await notifee.displayNotification({
         title,
         body,
@@ -67,8 +61,6 @@ class NotificationService {
           },
         },
       });
-
-      console.log('[Notifications] Notification displayed with ID:', notificationId);
     } catch (error) {
       console.error('[Notifications] Error displaying notification:', error);
     }
@@ -76,21 +68,11 @@ class NotificationService {
 
   async requestPermission(): Promise<boolean> {
     try {
-      console.log('[Notifications] Requesting permission...');
-
-
       const authStatus = await messaging().requestPermission();
-      console.log('[Notifications] FCM Auth status:', authStatus);
-
-
       const notifeeSettings = await notifee.requestPermission();
-      console.log('[Notifications] Notifee permission:', notifeeSettings);
-
       const enabled =
         authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
         authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-
-      console.log('[Notifications] Permission enabled:', enabled);
 
       if (enabled) {
         await this.createNotificationChannel();
@@ -98,7 +80,6 @@ class NotificationService {
 
       return enabled;
     } catch (error) {
-      console.log('[Notifications] Permission request error:', error);
       return false;
     }
   }
@@ -107,10 +88,8 @@ class NotificationService {
     for (let i = 0; i < maxRetries; i++) {
       const apnsToken = await messaging().getAPNSToken();
       if (apnsToken) {
-        console.log(`[Notifications] APNS Token obtained on attempt ${i + 1}:`, apnsToken);
         return apnsToken;
       }
-      console.log(`[Notifications] APNS Token not ready, retrying (${i + 1}/${maxRetries})...`);
       await new Promise<void>(resolve => setTimeout(() => resolve(), delayMs));
     }
     return null;
@@ -121,37 +100,26 @@ class NotificationService {
 
       const cachedToken = useNotificationStore.getState().fcmToken;
       if (cachedToken) {
-        console.log('[Notifications] Using cached FCM token');
         return cachedToken;
       }
 
-      console.log('[Notifications] Getting token for platform:', Platform.OS);
-
       if (Platform.OS === 'ios') {
         try {
-          console.log('[Notifications] Registering for remote messages...');
           await messaging().registerDeviceForRemoteMessages();
-          console.log('[Notifications] Registered for remote messages');
-
           const apnsToken = await this.waitForApnsToken();
-          console.log('[Notifications] APNS Token:', apnsToken);
 
           if (!apnsToken) {
-            console.log('[Notifications] No APNS token after retries - likely running on simulator');
             return null;
           }
         } catch (error) {
-          console.log('[Notifications] iOS registration error:', error);
           return null;
         }
       }
 
       const token = await messaging().getToken();
-      console.log('[Notifications] FCM Device Token:', token);
       useNotificationStore.getState().setFcmToken(token);
       return token;
     } catch (error) {
-      console.log('[Notifications] Error getting token:', error);
       return null;
     }
   }
@@ -163,19 +131,12 @@ class NotificationService {
   }
 
   setupListeners(): void {
-    console.log('[Notifications] Setting up listeners...');
-
-
     this.unsubscribeOnMessage = messaging().onMessage(
       async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
-        console.log('[Notifications] Received foreground message:', JSON.stringify(remoteMessage, null, 2));
-
         const notification = this.parseRemoteMessage(remoteMessage);
 
         if (notification) {
-          console.log('[Notifications] Parsed notification:', notification);
           useNotificationStore.getState().addNotification(notification);
-
 
           await this.displayNotification(
             notification.title,
@@ -183,7 +144,6 @@ class NotificationService {
             remoteMessage.data as Record<string, string>,
           );
         } else {
-          console.log('[Notifications] Using data-only message');
           const { data }: any = remoteMessage;
           if (data?.title && data?.body) {
             await this.displayNotification(
@@ -199,7 +159,6 @@ class NotificationService {
 
     this.unsubscribeOnTokenRefresh = messaging().onTokenRefresh(
       async (token: string) => {
-        console.log('[Notifications] Token refreshed, syncing...');
         useNotificationStore.getState().setFcmToken(token);
         await this.syncTokenToServer(token);
       },
@@ -208,7 +167,6 @@ class NotificationService {
 
     this.unsubscribeOnNotificationOpened = messaging().onNotificationOpenedApp(
       (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
-        console.log('[Notifications] App opened from notification:', remoteMessage);
         const notification = this.parseRemoteMessage(remoteMessage);
         if (notification) {
           useNotificationStore.getState().addNotification(notification);
@@ -219,8 +177,6 @@ class NotificationService {
 
 
     notifee.onForegroundEvent(({ type, detail }) => {
-      console.log('[Notifee] Foreground event:', type, detail);
-
       if (type === EventType.PRESS) {
         const { notification } = detail;
         if (notification?.data) {
@@ -236,7 +192,6 @@ class NotificationService {
 
     const remoteMessage = await messaging().getInitialNotification();
     if (remoteMessage) {
-      console.log('[Notifications] FCM initial notification:', remoteMessage);
       const notification = this.parseRemoteMessage(remoteMessage);
       if (notification) {
         useNotificationStore.getState().addNotification(notification);
@@ -248,7 +203,6 @@ class NotificationService {
 
     const initialNotification = await notifee.getInitialNotification();
     if (initialNotification) {
-      console.log('[Notifee] Initial notification:', initialNotification);
       const { notification } = initialNotification;
       if (notification?.data) {
         navigateFromNotification(notification.data as Record<string, string>);
@@ -286,11 +240,9 @@ class NotificationService {
   ): void {
     const { data } = remoteMessage;
 
-
     if (data?.deepLink) {
       console.log('[Notifications] Deep link provided:', data.deepLink);
     }
-
 
     if (data) {
       navigateFromNotification(data as Record<string, string>);

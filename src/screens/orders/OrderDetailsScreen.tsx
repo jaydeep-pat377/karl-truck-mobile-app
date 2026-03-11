@@ -1802,22 +1802,12 @@ export const OrderDetailsScreen: React.FC = () => {
   const statusColor = useMemo(() => {
 
     if (progressColor) {
-      console.log('🎨 OrderDetails Status Debug: Using passed progressColor:', progressColor);
       return progressColor;
     }
 
     const status = passedStatus || order.status;
     const progress = order.progress || 0;
     const color = getStatusColor(status, progress);
-
-    console.log('🎨 OrderDetails Status Debug:', {
-      passedStatus,
-      orderStatus: order.status,
-      usedStatus: status,
-      progress,
-      resultColor: color,
-    });
-
     return color;
   }, [progressColor, passedStatus, order.status, order.progress]);
 
@@ -2321,17 +2311,11 @@ export const OrderDetailsScreen: React.FC = () => {
             useHighchartsWebView={true}
           />
 
-
           <DelayDetailsTable
             isDark={isDark}
             data={orderDetails?.delay_details}
-            onTicketPress={(ticketCode) => {
-
-              console.log('Ticket pressed:', ticketCode);
-            }}
+            onTicketPress={(ticketCode) => { }}
           />
-
-
           {orderDetails?.realtime_order_updates && orderDetails.realtime_order_updates.items.length > 0 && (() => {
             const orderCreatedItem = orderDetails.realtime_order_updates.items.find(
               (item): item is OrderCreatedItem => item.change_type === 'order_created'

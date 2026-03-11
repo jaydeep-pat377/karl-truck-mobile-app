@@ -95,25 +95,10 @@ class AlertService {
     let title = 'Error';
     let message = 'Something went wrong. Please try again.';
 
-
-    console.log('[AlertService] showApiError called with:', JSON.stringify({
-      message: error?.message,
-      status: error?.response?.status,
-      statusText: error?.response?.statusText,
-      data: error?.response?.data,
-      url: error?.config?.url,
-      method: error?.config?.method,
-      baseURL: error?.config?.baseURL,
-      hasRequest: !!error?.request,
-      hasResponse: !!error?.response,
-    }, null, 2));
-
     if (error?.response) {
 
       const status = error.response.status;
       const data = error.response.data;
-
-      console.log(`[AlertService] API Error - Status: ${status}, URL: ${error?.config?.url}, Data:`, JSON.stringify(data));
 
       if (data?.message) {
         message = data.message;
@@ -158,11 +143,9 @@ class AlertService {
           title = 'Error';
       }
     } else if (error?.request) {
-      console.log('[AlertService] No response received (network/connection issue):', error?.message);
       title = 'Connection Error';
       message = 'Unable to connect to the server. Please check your internet connection.';
     } else if (error?.message) {
-      console.log('[AlertService] Error message:', error.message);
       if (error.message.includes('timeout')) {
         title = 'Request Timeout';
         message = 'The request took too long. Please try again.';
@@ -191,8 +174,6 @@ class AlertService {
       apiStatus: error?.response?.status,
       apiResponseData: JSON.stringify(error?.response?.data),
     });
-
-    console.log(`[AlertService] Showing alert - Title: "${title}", Message: "${message}"`);
 
     this.showError(title, message, () => {
       console.log(`[AlertService] OK button pressed for error - Title: "${title}", Message: "${message}"`);

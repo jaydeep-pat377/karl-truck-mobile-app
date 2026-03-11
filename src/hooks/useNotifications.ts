@@ -16,25 +16,15 @@ export const useNotifications = () => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
-    console.log('==========================================');
-    console.log('[Notifications] Initializing on', Platform.OS);
-    console.log('==========================================');
-
     const hasPermission = await notificationService.requestPermission();
-    console.log('[Notifications] Permission granted:', hasPermission);
 
     if (hasPermission) {
       const token = await notificationService.getToken();
-      console.log('==========================================');
-      console.log('[Notifications] FCM TOKEN:');
-      console.log(token);
-      console.log('==========================================');
+      console.log('[Notifications] FCM TOKEN:', token);
       notificationService.setupListeners();
-      console.log('[Notifications] Listeners setup complete');
       await notificationService.checkInitialNotification();
     } else {
       console.log('[Notifications] Permission denied - notifications will not work');
-      console.log('Please enable notifications in Settings > TruckApp > Notifications');
     }
   }, []);
 
@@ -42,11 +32,9 @@ export const useNotifications = () => {
     if (hasSyncedToken.current) return;
 
     if (isAuthenticated && isInitialized) {
-      console.log('[Notifications] User authenticated on app launch, syncing token...');
       const success = await notificationService.syncTokenToServer();
       if (success) {
         hasSyncedToken.current = true;
-        console.log('[Notifications] Token sync successful');
       } else {
         console.log('[Notifications] Token sync failed, will retry on next state change');
       }

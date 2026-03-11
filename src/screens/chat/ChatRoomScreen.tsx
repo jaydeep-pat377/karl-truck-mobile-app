@@ -102,15 +102,10 @@ export const ChatRoomScreen: React.FC = () => {
     orderId,
   });
   const { typingUsers, setTyping } = useTypingIndicator(roomId);
-
   const themeColors = isDark ? colors.dark : colors.light;
 
-
   useEffect(() => {
-    console.log('[ChatRoom DEBUG] Initializing sound...');
     initMessageSound().then((success) => {
-      console.log('[ChatRoom DEBUG] Sound init result:', success);
-      console.log('[ChatRoom DEBUG] Sound ready:', isSoundReady());
     });
   }, []);
 
@@ -118,20 +113,11 @@ export const ChatRoomScreen: React.FC = () => {
   const prevMessagesLengthRef = useRef(messages?.length || 0);
   useEffect(() => {
     if (!messages) return;
-
-    console.log('[ChatRoom DEBUG] Messages updated, count:', messages.length, 'previous:', prevMessagesLengthRef.current);
-
-
     if (messages.length > prevMessagesLengthRef.current) {
       const newMessages = messages.slice(prevMessagesLengthRef.current);
-      console.log('[ChatRoom DEBUG] New messages:', newMessages.length);
 
       newMessages.forEach((msg) => {
-        console.log('[ChatRoom DEBUG] New msg from:', msg.sender_name, 'sender_id:', msg.sender_id, 'my_id:', user?.id);
-
-
         if (msg.sender_id !== user?.id && !msg.id.startsWith('temp-')) {
-          console.log('[ChatRoom DEBUG] Playing sound for message from:', msg.sender_name);
           const played = playMessageSound();
           console.log('[ChatRoom DEBUG] Sound played:', played);
         }

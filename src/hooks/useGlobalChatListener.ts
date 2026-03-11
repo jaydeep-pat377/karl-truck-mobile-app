@@ -39,7 +39,6 @@ export const useGlobalChatListener = () => {
 
 
   useEffect(() => {
-    console.log('[GlobalChatListener] Initializing sound on mount...');
     initMessageSound().then((success) => {
       console.log('[GlobalChatListener] Sound init result:', success);
     });
@@ -48,17 +47,10 @@ export const useGlobalChatListener = () => {
 
   useEffect(() => {
     if (!isConfigured || !supabase || !user?.id) {
-      console.log('[GlobalChatListener] Not ready:', {
-        isConfigured,
-        hasSupabase: !!supabase,
-        userId: user?.id
-      });
       return;
     }
 
     const setupSubscription = () => {
-      console.log('[GlobalChatListener] Setting up subscription for user:', user.id);
-
       const channelName = `global-chat-${user.id}-${Date.now()}`;
 
       channelRef.current = supabase
@@ -71,43 +63,27 @@ export const useGlobalChatListener = () => {
             table: 'chat_messages',
           },
           (payload) => {
-            console.log('[GlobalChatListener] Message received!');
 
             try {
               const msg = payload.new as RawChatMessage;
 
-              console.log('[GlobalChatListener] From:', msg.sender_name);
-              console.log('[GlobalChatListener] Room:', msg.order_id);
-              console.log('[GlobalChatListener] Current room:', currentRoomIdRef.current);
-              console.log('[GlobalChatListener] App state:', appStateRef.current);
-
-
               if (msg.sender_id === userIdRef.current) {
-                console.log('[GlobalChatListener] Skipped - own message');
                 return;
               }
 
-
               if (msg.is_deleted) {
-                console.log('[GlobalChatListener] Skipped - deleted');
                 return;
               }
 
 
               if (appStateRef.current !== 'active') {
-                console.log('[GlobalChatListener] Skipped - app not active');
                 return;
               }
-
 
               const messageRoomId = String(msg.order_id);
               if (currentRoomIdRef.current === messageRoomId) {
-                console.log('[GlobalChatListener] Skipped - viewing this chat');
                 return;
               }
-
-
-              console.log('[GlobalChatListener] Playing sound!');
               playMessageSound();
 
             } catch (error) {
@@ -116,7 +92,6 @@ export const useGlobalChatListener = () => {
           }
         )
         .subscribe((status, err) => {
-          console.log('[GlobalChatListener] Status:', status);
           if (err) {
             console.error('[GlobalChatListener] Error:', err);
           }
@@ -128,7 +103,6 @@ export const useGlobalChatListener = () => {
 
 
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      console.log('[GlobalChatListener] App state:', appStateRef.current, '->', nextAppState);
       appStateRef.current = nextAppState;
     };
 
@@ -138,7 +112,6 @@ export const useGlobalChatListener = () => {
 
 
     return () => {
-      console.log('[GlobalChatListener] Cleaning up');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;

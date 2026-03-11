@@ -36,7 +36,6 @@ const makeFetchTransport = (options: any) => {
           },
         };
       } catch (error) {
-        console.log('[Sentry Transport] Send failed:', error);
         return { statusCode: 0 };
       }
     },
@@ -46,7 +45,6 @@ const makeFetchTransport = (options: any) => {
 
 export const initSentry = (): void => {
   if (!hasDsn) {
-    console.log('[Sentry] Skipping initialization - no valid DSN');
     return;
   }
 
@@ -68,7 +66,7 @@ export const initSentry = (): void => {
       beforeBreadcrumb(breadcrumb) {
         if (breadcrumb.category === 'xhr' || breadcrumb.category === 'fetch') {
           if (breadcrumb.data?.url?.includes('password') ||
-              breadcrumb.data?.url?.includes('token')) {
+            breadcrumb.data?.url?.includes('token')) {
             breadcrumb.data.url = '[FILTERED]';
           }
         }
@@ -77,9 +75,7 @@ export const initSentry = (): void => {
     });
 
     isInitialized = true;
-    console.log(`[Sentry] Initialized for ${APP_ENV || 'unknown'} environment`);
   } catch (error) {
-    console.log('[Sentry] Init failed:', error);
     isInitialized = false;
   }
 };
@@ -107,7 +103,6 @@ export const captureException = (
   context?: Record<string, unknown>
 ): void => {
   if (!isInitialized) {
-    console.error('[Sentry] Error (not reported):', error);
     return;
   }
 
@@ -126,7 +121,6 @@ export const captureMessage = (
   level: Sentry.SeverityLevel = 'info'
 ): void => {
   if (!isInitialized) {
-    console.log(`[Sentry] Message (not reported): ${message}`);
     return;
   }
   Sentry.captureMessage(message, level);

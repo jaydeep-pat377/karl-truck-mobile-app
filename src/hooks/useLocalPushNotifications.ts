@@ -64,7 +64,6 @@ async function createAndroidChannels(): Promise<void> {
       vibration: true,
     });
 
-    console.log('[LocalPush] Android channels created');
   } catch (error) {
     console.error('[LocalPush] Error creating channels:', error);
   }
@@ -74,7 +73,6 @@ async function requestPermissions(): Promise<boolean> {
   try {
     const settings = await notifee.requestPermission();
     const granted = settings.authorizationStatus >= 1;
-    console.log('[LocalPush] Permission', granted ? 'granted' : 'denied');
     return granted;
   } catch (error) {
     console.error('[LocalPush] Error requesting permission:', error);
@@ -112,7 +110,6 @@ export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps
 
     const unsubscribe = notifee.onForegroundEvent(({ type, detail }) => {
       if (type === EventType.PRESS) {
-        console.log('[LocalPush] Notification pressed:', detail.notification?.id);
         const data = detail.notification?.data;
         if (data) {
           onNotificationTapRef.current?.(data);
@@ -163,7 +160,6 @@ export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps
         },
       });
 
-      console.log('[LocalPush] Notification displayed:', item.id);
     } catch (error) {
       console.error('[LocalPush] Error displaying notification:', error);
     }
@@ -175,7 +171,6 @@ export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps
   const setBadgeCount = useCallback(async (count: number) => {
     try {
       await notifee.setBadgeCount(count);
-      console.log('[LocalPush] Badge count set to:', count);
     } catch (error) {
       console.error('[LocalPush] Error setting badge count:', error);
     }
@@ -187,19 +182,14 @@ export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps
   const clearAllNotifications = useCallback(async () => {
     try {
       await notifee.cancelAllNotifications();
-      console.log('[LocalPush] All notifications cleared');
     } catch (error) {
       console.error('[LocalPush] Error clearing notifications:', error);
     }
   }, []);
 
-
-
-
   const cancelNotification = useCallback(async (notificationId: string) => {
     try {
       await notifee.cancelNotification(notificationId);
-      console.log('[LocalPush] Notification cancelled:', notificationId);
     } catch (error) {
       console.error('[LocalPush] Error cancelling notification:', error);
     }

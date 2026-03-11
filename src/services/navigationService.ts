@@ -47,9 +47,6 @@ export function navigateFromNotification(data: Record<string, string | unknown>)
   const chatId = data.chat_id as string;
   const roomId = data.room_id as string;
 
-  console.log('[NavigationService] Navigating from notification:', { eventCode, data });
-
-
   if (eventCode.includes('ORDER')) {
     if (orderId && orderCode && orderDate) {
       navigate('OrderDetail', {

@@ -108,8 +108,6 @@ axiosInstance.interceptors.response.use(
         const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
         if (refreshToken) {
-          console.log('Refresh Request Body:', JSON.stringify({ refreshToken }, null, 2));
-
           const response = await axios.post(
             `${BASE_URL}/auth/refresh`,
             { refreshToken },
@@ -120,29 +118,22 @@ axiosInstance.interceptors.response.use(
             }
           );
 
-          console.log('Refresh Response:', JSON.stringify(response.data, null, 2));
-
           if (response.data.success && response.data.data?.accessToken) {
             const { accessToken } = response.data.data;
 
             await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
             (originalRequest.headers as any)['Authorization'] = `Bearer ${accessToken}`;
 
-            console.log('New Access Token:', `${accessToken.substring(0, 30)}...${accessToken.substring(accessToken.length - 10)}`);
-
             return axiosInstance(originalRequest);
           } else {
-            console.log('Refresh Failed:', response.data.message);
             throw new Error(response.data.message || 'Token refresh failed');
           }
         } else {
-          console.log('No refresh token available, logging out...');
           await useAuthStore.getState().logout();
           alertService.showInfo('Session Expired', 'Your session has expired. Please log in again.');
           return Promise.reject(error);
         }
       } catch (refreshError: any) {
-        console.log('Token Refresh Error:', refreshError?.response?.data || refreshError?.message);
         await useAuthStore.getState().logout();
         alertService.showInfo('Session Expired', 'Your session has expired. Please log in again.');
         return Promise.reject(refreshError);

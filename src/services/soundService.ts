@@ -35,13 +35,11 @@ export const initNotificationSound = (): Promise<void> => {
       Sound.MAIN_BUNDLE,
       (error) => {
         if (error) {
-          console.warn('[Sound] Custom sound file not found, will use system notification sound');
           soundLoadFailed = true;
           soundInitialized = true;
           resolve();
           return;
         }
-        console.log('[Sound] Notification sound loaded successfully');
         soundInitialized = true;
         soundLoadFailed = false;
         resolve();
@@ -52,8 +50,6 @@ export const initNotificationSound = (): Promise<void> => {
 
 const playSystemNotificationSound = async (): Promise<void> => {
   try {
-    console.log('[Sound] Playing system notification sound via Notifee');
-
     Vibration.vibrate(200);
 
     const notificationId = await notifee.displayNotification({
@@ -76,16 +72,12 @@ const playSystemNotificationSound = async (): Promise<void> => {
       notifee.cancelNotification(notificationId).catch(() => { });
     }, 3000);
   } catch (error) {
-    console.warn('[Sound] Failed to play system sound:', error);
     Vibration.vibrate(200);
   }
 };
 
 export const playNotificationSound = (): void => {
-  console.log('[Sound] playNotificationSound called');
-
   if (soundLoadFailed || !notificationSound) {
-    console.log('[Sound] Using system notification fallback');
     playSystemNotificationSound();
     return;
   }
@@ -94,25 +86,19 @@ export const playNotificationSound = (): void => {
     notificationSound.stop(() => {
       notificationSound?.play((success) => {
         if (!success) {
-          console.warn('[Sound] Custom sound playback failed, using fallback');
           playSystemNotificationSound();
         } else {
-          console.log('[Sound] Custom sound played successfully');
           Vibration.vibrate(200);
         }
       });
     });
   } catch (error) {
-    console.warn('[Sound] Error playing sound:', error);
     playSystemNotificationSound();
   }
 };
 
 export const playNotificationSoundOnly = (): void => {
-  console.log('[Sound] playNotificationSoundOnly called');
-
   if (soundLoadFailed || !notificationSound) {
-    console.log('[Sound] No custom sound, vibrating');
     Vibration.vibrate([0, 200, 100, 200]);
     return;
   }
