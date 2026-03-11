@@ -1,5 +1,3 @@
-
-
 import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, API_TIMEOUT } from '@env';
@@ -10,8 +8,6 @@ import { useAuthStore } from '../store/authStore';
 const FALLBACK_URL = 'http://10.0.2.2:5000/api';
 const BASE_URL = API_BASE_URL || FALLBACK_URL;
 const TIMEOUT = Number(API_TIMEOUT) || 15000;
-
-console.log('API_BASE_URL from @env:', API_BASE_URL);
 
 const ENABLE_API_LOGGING = __DEV__;
 
@@ -56,25 +52,13 @@ axiosInstance.interceptors.request.use(
 
     if (ENABLE_API_LOGGING) {
       console.log('Headers:', JSON.stringify(config.headers, null, 2));
-      if (token) {
-        console.log('Token:', `${token.substring(0, 20)}...${token.substring(token.length - 10)}`);
-      }
-      if (config.params) {
-        console.log('Query Params:', JSON.stringify(config.params, null, 2));
-      }
-      if (config.data) {
-        console.log('Request Body:', JSON.stringify(config.data, null, 2));
-      }
-      console.log('=================================\n');
     }
 
     return config;
   },
   (error: AxiosError) => {
     if (ENABLE_API_LOGGING) {
-      console.error('\n========== REQUEST ERROR ==========');
       console.error('Error:', error.message);
-      console.error('===================================\n');
     }
     return Promise.reject(error);
   }
@@ -105,10 +89,7 @@ axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
 
     if (ENABLE_API_LOGGING) {
-      console.log('\n========== API RESPONSE ==========');
-      console.log(`[${response.status}] ${response.config.method?.toUpperCase()} ${response.config.url}`);
       console.log('Response Data:', JSON.stringify(response.data, null, 2));
-      console.log('==================================\n');
     }
     return response;
   },
@@ -118,8 +99,6 @@ axiosInstance.interceptors.response.use(
 
     // Only log errors for non-silent endpoints in development
     if (ENABLE_API_LOGGING && !isSilentEndpoint) {
-      console.error('\n========== API ERROR ==========');
-      console.error(`[${error.response?.status || 'NETWORK'}] ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
       console.error('Error Message:', error.message);
       if (error.response?.data) {
         console.error('Error Response:', JSON.stringify(error.response.data, null, 2));
@@ -137,13 +116,9 @@ axiosInstance.interceptors.response.use(
 
       try {
         const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-        const currentAccessToken = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 
-        if (refreshToken && currentAccessToken) {
-          if (ENABLE_API_LOGGING) {
-            console.log('\n========== TOKEN REFRESH ==========');
-            console.log('Attempting to refresh token...');
-          }
+        if (refreshToken) {
+          console.log('Request Body:', JSON.stringify({ refreshToken }, null, 2));
 
           const response = await axios.post(
             `${BASE_URL}/auth/refresh`,
@@ -151,25 +126,32 @@ axiosInstance.interceptors.response.use(
             {
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${currentAccessToken}`,
               },
             }
           );
 
-          const { accessToken } = response.data.data;
-          await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-          (originalRequest.headers as any)['Authorization'] = `Bearer ${accessToken}`;
+          console.log('Status:', response);
 
-          if (ENABLE_API_LOGGING) {
-            console.log('New Token:', `${accessToken.substring(0, 20)}...${accessToken.substring(accessToken.length - 10)}`);
+          // Check if refresh was successful
+          if (response.data.success && response.data.data?.accessToken) {
+            const { accessToken } = response.data.data;
+
+            // Store new access token
+            await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+
+            // Update original request with new token
+            (originalRequest.headers as any)['Authorization'] = `Bearer ${accessToken}`;
+            console.log('New Access Token:', `${accessToken.substring(0, 30)}...${accessToken.substring(accessToken.length - 10)}`);
+
+            // Retry original request with new token
+            return axiosInstance(originalRequest);
+          } else {
+            console.log('Message:', response.data.message);
+            throw new Error(response.data.message || 'Token refresh failed');
           }
-
-          return axiosInstance(originalRequest);
         } else {
           // No refresh token available, logout and redirect to login
-          if (ENABLE_API_LOGGING) {
-            console.log('No refresh token available, logging out...');
-          }
+          console.log('\n========== TOKEN REFRESH FAILED ==========');
 
           await useAuthStore.getState().logout();
 
@@ -180,15 +162,13 @@ axiosInstance.interceptors.response.use(
 
           return Promise.reject(error);
         }
-      } catch (refreshError) {
-        if (ENABLE_API_LOGGING) {
-          console.error('Token refresh failed:', refreshError);
-        }
+      } catch (refreshError: any) {
+        // Log refresh API error
+        console.log('\n========== TOKEN REFRESH ERROR ==========');
 
-        // Call logout to clear auth state and redirect to login
+        // Clear tokens and logout - redirect to login screen
         await useAuthStore.getState().logout();
 
-        // Show toast message instead of alert
         alertService.showInfo(
           'Session Expired',
           'Your session has expired. Please log in again.'
