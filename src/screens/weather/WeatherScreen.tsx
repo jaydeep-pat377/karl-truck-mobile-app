@@ -46,6 +46,33 @@ const RADIUS = {
 
 const WEATHER_COLORS = colors.weatherTheme;
 
+const getWeatherIcon = (iconCode: string | null | undefined): string => {
+  if (!iconCode) return '🌡️';
+
+  const iconMap: Record<string, string> = {
+    '01d': '☀️',
+    '01n': '🌙',
+    '02d': '🌤️',
+    '02n': '☁️',
+    '03d': '⛅',
+    '03n': '☁️',
+    '04d': '☁️',
+    '04n': '☁️',
+    '09d': '🌧️',
+    '09n': '🌧️',
+    '10d': '🌧️',
+    '10n': '🌧️',
+    '11d': '⛈️',
+    '11n': '⛈️',
+    '13d': '🌨️',
+    '13n': '🌨️',
+    '50d': '🌫️',
+    '50n': '🌫️',
+  };
+
+  return iconMap[iconCode] || '🌡️';
+};
+
 const WeatherIcon: React.FC<{ size?: number }> = ({ size = 100 }) => {
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100">
@@ -368,7 +395,7 @@ const DewPointCard: React.FC<DewPointCardProps> = ({ value, description }) => {
             {value}
           </Text>
           <Text style={[styles.simpleUnit, { color: WEATHER_COLORS.text.primary }]}>
-            °
+            ° F
           </Text>
         </View>
       </View>
@@ -465,6 +492,7 @@ export const WeatherScreen: React.FC = () => {
       temperature: weatherData.temperature_fahrenheit,
       temperatureUnit: 'F',
       condition: weatherData.weather_condition,
+      iconCode: weatherData.weather_icon,
       maxTemp: weatherData.temperature_max_fahrenheit,
       minTemp: weatherData.temperature_min_fahrenheit,
       evaporation: {
@@ -682,7 +710,11 @@ export const WeatherScreen: React.FC = () => {
             </View>
           </View>
           <View style={styles.weatherDisplay}>
-            <WeatherIcon size={ms(100)} />
+            <View style={styles.weatherIconContainer}>
+              <Text style={styles.weatherEmoji}>
+                {getWeatherIcon(weather.iconCode)}
+              </Text>
+            </View>
 
             <View style={styles.temperatureSection}>
               <Text style={styles.temperatureText}>
@@ -912,6 +944,17 @@ const styles = StyleSheet.create({
   weatherDisplay: {
     alignItems: 'center',
     paddingVertical: GRID.md,
+  },
+  weatherIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: ms(100),
+    height: ms(100),
+  },
+  weatherEmoji: {
+    fontSize: ms(72),
+    lineHeight: ms(100),
+    textAlign: 'center',
   },
   temperatureSection: {
     alignItems: 'center',

@@ -73,6 +73,33 @@ const getEvaporationText = (rate: number | null | undefined): string => {
   return 'Severe';
 };
 
+const getWeatherIcon = (iconCode: string | null | undefined): string => {
+  if (!iconCode) return '🌡️';
+
+  const iconMap: Record<string, string> = {
+    '01d': '☀️',
+    '01n': '🌙',
+    '02d': '🌤️',
+    '02n': '☁️',
+    '03d': '⛅',
+    '03n': '☁️',
+    '04d': '☁️',
+    '04n': '☁️',
+    '09d': '🌧️',
+    '09n': '🌧️',
+    '10d': '🌧️',
+    '10n': '🌧️',
+    '11d': '⛈️',
+    '11n': '⛈️',
+    '13d': '🌨️',
+    '13n': '🌨️',
+    '50d': '🌫️',
+    '50n': '🌫️',
+  };
+
+  return iconMap[iconCode] || '🌡️';
+};
+
 const formatQty = (num: number): string => {
   if (num === null || num === undefined) return '0';
 
@@ -1630,6 +1657,7 @@ export const OrderDetailsScreen: React.FC = () => {
       windSpeed: orderDetails.weather_data?.wind_speed_mph || null,
       humidity: orderDetails.weather_data?.humidity || null,
       weatherDescription: orderDetails.weather_data?.weather_description || 'Partly cloudy',
+      weatherIcon: orderDetails.weather_data?.weather_icon || null,
       evaporationRate: orderDetails.weather_data?.evaporation_rate ?? (orderDetails as any).weather?.evaporationRate ?? null,
       siteName: orderDetails.customer_name,
       plantName: orderDetails.plant_details?.description || orderDetails.products?.[0]?.plant_code || 'N/A',
@@ -2084,11 +2112,9 @@ export const OrderDetailsScreen: React.FC = () => {
                 style={styles.headerWeatherRow}
                 onPress={handleWeatherPress}
                 activeOpacity={0.7}>
-                <Icon
-                  name="weather-partly-cloudy"
-                  size={ms(14)}
-                  color={colors.info.main}
-                />
+                <Text style={styles.weatherEmoji}>
+                  {getWeatherIcon(jobData.weatherIcon)}
+                </Text>
                 <Text
                   numberOfLines={1}
                   style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
@@ -2734,6 +2760,9 @@ const styles = StyleSheet.create({
     marginBottom: -GRID.lg,
     gap: ms(4),
     flexWrap: 'wrap',
+  },
+  weatherEmoji: {
+    fontSize: ms(16),
   },
   headerWeatherText: {
     fontFamily: fontFamily.medium,

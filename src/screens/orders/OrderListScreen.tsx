@@ -190,6 +190,7 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
       humidity: apiOrder.weather_data.humidity,
       windSpeed: apiOrder.weather_data.wind_speed_mph,
       evaporationRate: apiOrder.weather_data.evaporation_rate,
+      iconCode: apiOrder.weather_data.weather_icon,
     } : undefined,
     canChat: apiOrder.can_chat,
     canTicketed: apiOrder.can_ticketed,

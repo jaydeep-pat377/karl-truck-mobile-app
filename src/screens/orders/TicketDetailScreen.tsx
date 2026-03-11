@@ -53,6 +53,33 @@ const getEvaporationText = (rate: number | null | undefined): string => {
   return 'Severe';
 };
 
+const getWeatherIcon = (iconCode: string | null | undefined): string => {
+  if (!iconCode) return '🌡️';
+
+  const iconMap: Record<string, string> = {
+    '01d': '☀️',
+    '01n': '🌙',
+    '02d': '🌤️',
+    '02n': '☁️',
+    '03d': '⛅',
+    '03n': '☁️',
+    '04d': '☁️',
+    '04n': '☁️',
+    '09d': '🌧️',
+    '09n': '🌧️',
+    '10d': '🌧️',
+    '10n': '🌧️',
+    '11d': '⛈️',
+    '11n': '⛈️',
+    '13d': '🌨️',
+    '13n': '🌨️',
+    '50d': '🌫️',
+    '50n': '🌫️',
+  };
+
+  return iconMap[iconCode] || '🌡️';
+};
+
 interface StatusConfig {
   label: string;
   icon: string;
@@ -1190,11 +1217,9 @@ export const TicketDetailScreen: React.FC = () => {
               });
             }}
             style={styles.headerCardWeatherRow}>
-            <Icon
-              name="weather-partly-cloudy"
-              size={ms(14)}
-              color={colors.info.main}
-            />
+            <Text style={styles.weatherEmoji}>
+              {getWeatherIcon(weatherData.weather_icon)}
+            </Text>
             <Text
               style={[styles.headerCardWeatherDescText, { color: themeColors.text.secondary }]}
               numberOfLines={1}>
@@ -1791,6 +1816,9 @@ const styles = StyleSheet.create({
     gap: ms(4),
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.semiTransparent.black08,
+  },
+  weatherEmoji: {
+    fontSize: ms(14),
   },
   headerCardWeatherDescText: {
     fontSize: ms(10),

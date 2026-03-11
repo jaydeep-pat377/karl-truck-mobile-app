@@ -236,6 +236,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
       windSpeed: weatherData.wind_speed_mph ?? weatherData.windSpeed ?? null,
       humidity: weatherData.humidity ?? null,
       condition: weatherData.weather_condition || weatherData.condition || '',
+      iconCode: weatherData.weather_icon || weatherData.iconCode || null,
     };
   };
 
@@ -262,15 +263,31 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   };
 
 
-  const getWeatherIconName = (condition: string) => {
-    const conditionLower = condition.toLowerCase();
-    if (conditionLower.includes('cloud')) return 'weather-cloudy';
-    if (conditionLower.includes('rain')) return 'weather-rainy';
-    if (conditionLower.includes('sun') || conditionLower.includes('clear')) return 'weather-sunny';
-    if (conditionLower.includes('storm') || conditionLower.includes('thunder')) return 'weather-lightning';
-    if (conditionLower.includes('snow')) return 'weather-snowy';
-    if (conditionLower.includes('fog') || conditionLower.includes('mist')) return 'weather-fog';
-    return 'weather-partly-cloudy';
+  const getWeatherIcon = (iconCode: string | null | undefined): string => {
+    if (!iconCode) return '🌡️';
+
+    const iconMap: Record<string, string> = {
+      '01d': '☀️',
+      '01n': '🌙',
+      '02d': '🌤️',
+      '02n': '☁️',
+      '03d': '⛅',
+      '03n': '☁️',
+      '04d': '☁️',
+      '04n': '☁️',
+      '09d': '🌧️',
+      '09n': '🌧️',
+      '10d': '🌧️',
+      '10n': '🌧️',
+      '11d': '⛈️',
+      '11n': '⛈️',
+      '13d': '🌨️',
+      '13n': '🌨️',
+      '50d': '🌫️',
+      '50n': '🌫️',
+    };
+
+    return iconMap[iconCode] || '🌡️';
   };
 
   return (
@@ -322,11 +339,9 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Icon
-                  name={getWeatherIconName(weatherData?.condition || '')}
-                  size={ms(headerSizes.weatherIcon)}
-                  color={colors.info.main}
-                />
+                <Text style={styles.weatherEmoji}>
+                  {getWeatherIcon(weatherData?.iconCode)}
+                </Text>
                 <Text
                   variant="captionSmall"
                   style={[styles.headerWeatherTemp, { color: isDark ? themeColors.text.hint : colors.grey[60], fontSize: ms(headerSizes.weatherTempFont) }]}>
@@ -615,6 +630,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: ms(2),
     flexShrink: 0,
+  },
+  weatherEmoji: {
+    fontSize: ms(14),
   },
   headerWeatherTemp: {
     fontFamily: fontFamily.medium,

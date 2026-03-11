@@ -127,6 +127,7 @@ export interface WeatherData {
   feelsLike?: number;
   forecast?: WeatherForecast[];
   evaporationRate?: number;
+  iconCode?: string;
 }
 
 export interface WeatherForecast {
