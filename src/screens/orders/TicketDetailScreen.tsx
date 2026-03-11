@@ -1199,7 +1199,7 @@ export const TicketDetailScreen: React.FC = () => {
             <Text
               style={[styles.headerCardWeatherDescText, { color: themeColors.text.secondary }]}
               numberOfLines={1}>
-              Partly cloudy
+              {weatherData.weather_description || 'Partly cloudy'}
             </Text>
             {weatherData.temperature_fahrenheit !== null && weatherData.temperature_fahrenheit !== undefined && (
               <>

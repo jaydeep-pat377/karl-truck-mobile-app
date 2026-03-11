@@ -226,7 +226,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
     if (!weatherData) return null;
 
     return {
-      description: weatherData.weather_description || weatherData.description || '',
+      description: weatherData.weather_description || weatherData.description || 'Partly cloudy',
       temperature: weatherData.temperature_fahrenheit ?? weatherData.temperature ?? null,
       windSpeed: weatherData.wind_speed_mph ?? weatherData.windSpeed ?? null,
       humidity: weatherData.humidity ?? null,
@@ -312,7 +312,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
               style={[styles.dateTime, { color: isDark ? themeColors.text.hint : colors.grey[80] }]}>
               {formatDate(order.scheduledDate)} • {order.scheduledTime}
             </Text>
-            {weatherData?.temperature !== null && (
+            {weatherData && weatherData.temperature !== null && (
               <View style={styles.headerWeatherRow}>
                 <Icon
                   name={getWeatherIconName(weatherData?.condition || '')}

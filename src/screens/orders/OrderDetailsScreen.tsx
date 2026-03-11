@@ -1643,6 +1643,7 @@ export const OrderDetailsScreen: React.FC = () => {
       orderedVolume: orderDetails.ordered_qty ?? 0,
       remainingVolume: orderDetails.remaining_qty ?? 0,
       estimatedFinish: orderDetails.estimated_finish_time || 'N/A',
+      hasWeatherData: !!orderDetails.weather_data,
       temperature: orderDetails.weather_data?.temperature_fahrenheit ?? null,
       windSpeed: orderDetails.weather_data?.wind_speed_mph || null,
       humidity: orderDetails.weather_data?.humidity || null,
@@ -2114,110 +2115,112 @@ export const OrderDetailsScreen: React.FC = () => {
               </Text>
             </View>
 
-            {/* Weather Info Row */}
-            <TouchableOpacity
-              style={styles.headerWeatherRow}
-              onPress={handleWeatherPress}
-              activeOpacity={0.7}>
-              <Icon
-                name="weather-partly-cloudy"
-                size={ms(14)}
-                color={colors.info.main}
-              />
-              <Text
-                numberOfLines={1}
-                style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
-                Partly cloudy
-              </Text>
-              {jobData.temperature !== null && (
-                <>
-                  <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
-                  <Text style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
-                    {jobData.temperature}°F
-                  </Text>
-                </>
-              )}
-              {jobData.windSpeed !== null && (
-                <>
-                  <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
-                  <Text style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
-                    {jobData.windSpeed} mph wind
-                  </Text>
-                </>
-              )}
-              {jobData.humidity !== null && (
-                <>
-                  <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
-                  <Text style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
-                    {jobData.humidity}% RH
-                  </Text>
-                </>
-              )}
-              {jobData.evaporationRate !== null && jobData.evaporationRate !== undefined && (
-                <TouchableOpacity
-                  onPress={handleWeatherPress}
-                  activeOpacity={0.7}
-                  style={[styles.headerEvapBadge, { backgroundColor: getEvaporationBgColor(jobData.evaporationRate) }]}>
-                  <Text style={styles.headerEvapText}>
-                    {getEvaporationText(jobData.evaporationRate)}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </TouchableOpacity>
+            {/* Weather Info Row - Only show when weather data exists */}
+            {jobData.hasWeatherData && (
+              <TouchableOpacity
+                style={styles.headerWeatherRow}
+                onPress={handleWeatherPress}
+                activeOpacity={0.7}>
+                <Icon
+                  name="weather-partly-cloudy"
+                  size={ms(14)}
+                  color={colors.info.main}
+                />
+                <Text
+                  numberOfLines={1}
+                  style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
+                  {jobData.weatherDescription}
+                </Text>
+                {jobData.temperature !== null && (
+                  <>
+                    <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+                    <Text style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
+                      {jobData.temperature}°F
+                    </Text>
+                  </>
+                )}
+                {jobData.windSpeed !== null && (
+                  <>
+                    <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+                    <Text style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
+                      {jobData.windSpeed} mph wind
+                    </Text>
+                  </>
+                )}
+                {jobData.humidity !== null && (
+                  <>
+                    <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+                    <Text style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
+                      {jobData.humidity}% RH
+                    </Text>
+                  </>
+                )}
+                {jobData.evaporationRate !== null && jobData.evaporationRate !== undefined && (
+                  <TouchableOpacity
+                    onPress={handleWeatherPress}
+                    activeOpacity={0.7}
+                    style={[styles.headerEvapBadge, { backgroundColor: getEvaporationBgColor(jobData.evaporationRate) }]}>
+                    <Text style={styles.headerEvapText}>
+                      {getEvaporationText(jobData.evaporationRate)}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
         <View style={styles.contentContainer}>
           <View style={[styles.metricsCard, { backgroundColor: themeColors.card }, SHADOWS.md]}>
 
-              <View style={styles.headerStatusContainer}>
-                <View style={[styles.headerStatusBadge, { backgroundColor: statusColor + '20' }]}>
-                  <View style={[styles.headerStatusPulse, { backgroundColor: statusColor }]} />
-                  <Text style={[styles.headerStatusText, { color: statusColor }]}>{getStatusLabel(order.status)}</Text>
+            <View style={styles.headerStatusContainer}>
+              <View style={[styles.headerStatusBadge, { backgroundColor: statusColor + '20' }]}>
+                <View style={[styles.headerStatusPulse, { backgroundColor: statusColor }]} />
+                <Text style={[styles.headerStatusText, { color: statusColor }]}>{getStatusLabel(order.status)}</Text>
+              </View>
+            </View>
+
+            <View style={styles.metricsMainRow}>
+              <View style={styles.metricItem}>
+                <View style={styles.metricValueRow}>
+                  <Text style={[styles.metricValue, { color: themeColors.text.primary }]} numberOfLines={1} adjustsFontSizeToFit>
+                    {formatQty(jobData.deliveredVolume)}
+                  </Text>
+                  <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>CY</Text>
                 </View>
+                <Text style={[styles.metricLabel, { color: themeColors.text.hint }]}>Delivered</Text>
               </View>
 
-              <View style={styles.metricsMainRow}>
-                <View style={styles.metricItem}>
-                  <View style={styles.metricValueRow}>
-                    <Text style={[styles.metricValue, { color: themeColors.text.primary }]} numberOfLines={1} adjustsFontSizeToFit>
-                      {formatQty(jobData.deliveredVolume)}
-                    </Text>
-                    <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>CY</Text>
-                  </View>
-                  <Text style={[styles.metricLabel, { color: themeColors.text.hint }]}>Delivered</Text>
+              <CircularProgress
+                time={`${Math.round(order.progress ?? 0)}%`}
+                label="Poured"
+                progress={order.progress ?? 0}
+                isDark={isDark}
+                unitValue={formatQty(jobData.pouredVolume)}
+                unit="CY"
+              />
+
+              <View style={styles.metricItem}>
+                <View style={styles.metricValueRow}>
+                  <Text style={[styles.metricValue, { color: themeColors.text.primary }]} numberOfLines={1} adjustsFontSizeToFit>
+                    {formatQty(jobData.orderedVolume)}
+                  </Text>
+                  <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>CY</Text>
                 </View>
-
-                <CircularProgress
-                  time={`${Math.round(order.progress ?? 0)}%`}
-                  label="Poured"
-                  progress={order.progress ?? 0}
-                  isDark={isDark}
-                  unitValue={formatQty(jobData.pouredVolume)}
-                  unit="CY"
-                />
-
-                <View style={styles.metricItem}>
-                  <View style={styles.metricValueRow}>
-                    <Text style={[styles.metricValue, { color: themeColors.text.primary }]} numberOfLines={1} adjustsFontSizeToFit>
-                      {formatQty(jobData.orderedVolume)}
-                    </Text>
-                    <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>CY</Text>
-                  </View>
-                  <Text style={[styles.metricLabel, { color: themeColors.text.hint }]}>Ordered</Text>
-                </View>
+                <Text style={[styles.metricLabel, { color: themeColors.text.hint }]}>Ordered</Text>
               </View>
+            </View>
 
-              <View style={[styles.estimatedRow, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
-                <Icon name="clock-fast" size={16} color={colors.secondary.main} />
-                <Text style={[styles.estimatedText, { color: themeColors.text.secondary }]}>
-                  Estimated Finish:
-                </Text>
-                <Text style={[styles.estimatedTime, { color: themeColors.text.primary }]}>
-                  {jobData.estimatedFinish}
-                </Text>
-                <Icon name="information-outline" size={14} color={themeColors.text.hint} />
-              </View>
+            <View style={[styles.estimatedRow, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
+              <Icon name="clock-fast" size={16} color={colors.secondary.main} />
+              <Text style={[styles.estimatedText, { color: themeColors.text.secondary }]}>
+                Estimated Finish:
+              </Text>
+              <Text style={[styles.estimatedTime, { color: themeColors.text.primary }]}>
+                {jobData.estimatedFinish}
+              </Text>
+              <Icon name="information-outline" size={14} color={themeColors.text.hint} />
+            </View>
           </View>
 
           <StatusPipeline statuses={jobData.statusPills} isDark={isDark} />
