@@ -6,7 +6,6 @@ let isInitialized = false;
 const SENTRY_DSN_VALUE = SENTRY_DSN || '';
 const hasDsn = !!SENTRY_DSN_VALUE && SENTRY_DSN_VALUE !== 'your_sentry_dsn_here';
 
-// Custom JS fetch transport - bypasses broken native transport
 const makeFetchTransport = (options: any) => {
   const { url } = options;
   return {

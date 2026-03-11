@@ -215,7 +215,6 @@ export function calculateDeliveredData(
       }
     }
 
-
     let actualSpacingMin: number | undefined;
     if (previousTime !== null) {
       actualSpacingMin = (onJobTime - previousTime) / 60000;
@@ -250,7 +249,6 @@ export function calculatePouredData(
     .sort((a, b) => new Date(a.pour_time!).getTime() - new Date(b.pour_time!).getTime());
 
   if (validTickets.length === 0) return [];
-
 
   if (!firstDeliveryTime) {
     const ticketsWithOnJob = filterValidTickets(tickets)
@@ -313,14 +311,12 @@ export function calculatePourSpeedYMax(
 
   const maxDataValue = Math.max(...allRates);
 
-
   let yMax: number;
   if (maxDataValue > scheduleRate * 10) {
     yMax = roundToNiceValue(scheduleRate * 5);
   } else {
     yMax = roundToNiceValue(maxDataValue);
   }
-
 
   if (yMax < roundToNiceValue(scheduleRate)) {
     yMax = roundToNiceValue(scheduleRate);
@@ -361,9 +357,7 @@ export function processTruckStates(tickets: TicketData[]): TruckState[] {
 
       const onJobTime = ticket.on_job_time || ticket.loaded_time || ticket.printed_time || now;
 
-
       let toPlantTime = ticket.to_plant_time || now;
-
 
       if (new Date(toPlantTime).getTime() < new Date(onJobTime).getTime()) {
         toPlantTime = onJobTime;
@@ -390,11 +384,9 @@ export function getTruckStateAtTime(
   const onJobTime = new Date(truck.onJobTime).getTime();
   const toPlantTime = truck.toPlantTime ? new Date(truck.toPlantTime).getTime() : null;
 
-
   if (time < onJobTime || (toPlantTime && time > toPlantTime)) {
     return null;
   }
-
 
   if (truck.unloadTime) {
     const unloadTime = new Date(truck.unloadTime).getTime();
@@ -402,7 +394,6 @@ export function getTruckStateAtTime(
     if (time < unloadTime) {
       return 'waiting';
     }
-
 
     if (truck.washTime) {
       const washTime = new Date(truck.washTime).getTime();
@@ -501,12 +492,10 @@ export function calculateOverallAverages(truckStates: TruckState[]): TrucksOnJob
       if (waiting > 0) waitingTimes.push(waiting);
     }
 
-
     if (truck.unloadTime && truck.washTime) {
       const pouring = (new Date(truck.washTime).getTime() - new Date(truck.unloadTime).getTime()) / 60000;
       if (pouring > 0) pouringTimes.push(pouring);
     }
-
 
     if (truck.washTime && truck.toPlantTime && truck.toPlantTime !== truck.washTime) {
       const washout = (new Date(truck.toPlantTime).getTime() - new Date(truck.washTime).getTime()) / 60000;
@@ -530,11 +519,9 @@ export function calculateTimeRange(
   const now = Date.now();
   const validTickets = filterValidTickets(tickets);
 
-
   let chartStartTime = schedule?.start_time
     ? new Date(schedule.start_time).getTime()
     : now;
-
 
   const ticketsWithOnJob = validTickets.filter(t => t.on_job_time);
   if (ticketsWithOnJob.length > 0) {
@@ -546,9 +533,7 @@ export function calculateTimeRange(
     }
   }
 
-
   let endTime = now;
-
 
   const ticketsWithAtPlant = validTickets.filter(t => t.at_plant_time);
   if (ticketsWithAtPlant.length > 0) {
@@ -561,7 +546,6 @@ export function calculateTimeRange(
       endTime = lastAtPlantTime;
     }
   }
-
 
   if (endTime <= chartStartTime) {
     endTime = chartStartTime + 3600000;
@@ -577,7 +561,6 @@ export function generateTimeIntervals(
 ): number[] {
   const times: number[] = [];
   const intervalMs = intervalMinutes * 60 * 1000;
-
 
   const start = Math.floor(minTime / intervalMs) * intervalMs;
 
@@ -639,45 +622,34 @@ export function generateUnifiedChartData(
 ): PerformanceDataPoint[] {
   const scheduleRate = schedule ? Number(schedule.delivery_rate_per_hour) || 0 : 0;
 
-
   const orderedData = schedule ? calculateOrderedData(schedule) : [];
   const deliveredData = calculateDeliveredData(tickets, scheduleRate);
   const pouredData = calculatePouredData(tickets, scheduleRate);
   const truckStates = processTruckStates(tickets);
 
-
   const eventTimes = new Set<number>();
-
 
   orderedData.forEach(d => eventTimes.add(new Date(d.time).getTime()));
 
-
   deliveredData.forEach(d => eventTimes.add(new Date(d.time).getTime()));
 
-
   pouredData.forEach(d => eventTimes.add(new Date(d.time).getTime()));
-
 
   const { minTime, maxTime } = calculateTimeRange(schedule, tickets);
   eventTimes.add(minTime);
   eventTimes.add(maxTime);
 
-
   const intervals = generateTimeIntervals(minTime, maxTime, 5);
   intervals.forEach(t => eventTimes.add(t));
 
-
   const sortedTimes = Array.from(eventTimes).sort((a, b) => a - b);
-
 
   const chartData: PerformanceDataPoint[] = sortedTimes.map(time => {
     const timeStr = new Date(time).toISOString();
 
-
     const orderedPoint = orderedData.find(d => new Date(d.time).getTime() === time);
     const deliveredPoint = deliveredData.find(d => new Date(d.time).getTime() === time);
     const pouredPoint = pouredData.find(d => new Date(d.time).getTime() === time);
-
 
     const truckCounts = calculateTrucksOnJob(time, truckStates);
     const avgDurations = calculateAverageTimeDurations(time, truckStates);
@@ -710,13 +682,11 @@ export default {
   roundToNiceValue,
   getYAxisTicks,
 
-
   calculateOrderedData,
   calculateDeliveredData,
   calculatePouredData,
   calculatePourSpeedYMax,
   calculatePourSpeedGraph,
-
 
   processTruckStates,
   getTruckStateAtTime,
@@ -726,7 +696,6 @@ export default {
   calculateTimeRange,
   generateTimeIntervals,
   calculateTrucksOnJobGraph,
-
 
   generateUnifiedChartData,
 };

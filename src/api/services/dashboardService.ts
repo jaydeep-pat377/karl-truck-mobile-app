@@ -6,8 +6,8 @@ export type DashboardDateFilter = 'today' | 'yesterday' | 'tomorrow' | 'next_wee
 
 export interface DashboardParams {
   date_filter?: DashboardDateFilter;
-  start_date?: string; // YYYY-MM-DD format
-  end_date?: string; // YYYY-MM-DD format
+  start_date?: string;
+  end_date?: string;
   page?: number;
   limit?: number;
 }
@@ -16,7 +16,7 @@ export const dashboardService = {
   getDashboard: async (params?: DashboardParams): Promise<DashboardApiResponse> => {
     const queryParams: Record<string, string | number> = {};
 
-    // If start_date and end_date are provided, use them (overrides date_filter)
+
     if (params?.start_date && params?.end_date) {
       queryParams.start_date = params.start_date;
       queryParams.end_date = params.end_date;

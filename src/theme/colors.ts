@@ -252,21 +252,21 @@ export const colors = {
     plant: '#2f7ed8',
   },
   trackingStatus: {
-    pending: '#9E9E9E',         // Grey
-    ticketed: '#FFC107',        // Yellow
-    loading: '#FF9800',         // Yellow Orange
-    loaded: '#FF5722',          // Orange
-    toJob: '#8BC34A',           // Green
-    atJob: '#4CAF50',           // Yellow Green
-    pouring: '#009688',         // Blue Green
-    poured: '#2196F3',          // Blue
-    washing: '#03A9F4',         // Light Blue
-    toPlant: '#9C27B0',         // Violet
-    atPlant: '#a5244f',         // Red Violet
-    cancelled: '#F44336',       // Red
-    voided: '#F44336',          // Red
+    pending: '#9E9E9E',
+    ticketed: '#FFC107',
+    loading: '#FF9800',
+    loaded: '#FF5722',
+    toJob: '#8BC34A',
+    atJob: '#4CAF50',
+    pouring: '#009688',
+    poured: '#2196F3',
+    washing: '#03A9F4',
+    toPlant: '#9C27B0',
+    atPlant: '#a5244f',
+    cancelled: '#F44336',
+    voided: '#F44336',
     live: '#4CAF50',
-    remaining: '#E0E0E0',       // Light grey
+    remaining: '#E0E0E0',
   },
   chat: {
     light: {

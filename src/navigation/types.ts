@@ -30,9 +30,9 @@ export interface OrdersFilterParams {
   plant_code?: string;
   plant_name?: string;
   date_filter?: DateFilterType;
-  selected_date?: string; // ISO date string for calendar selection
+  selected_date?: string;
   is_favourite?: boolean;
-  tab?: OrderTabFilter; // Tab filter for order status tabs
+  tab?: OrderTabFilter;
   _timestamp?: number;
 }
 

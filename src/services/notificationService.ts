@@ -40,10 +40,10 @@ class NotificationService {
     try {
       console.log('[Notifications] displayNotification called:', { title, body });
 
-      // Ensure channel exists
+
       await this.createNotificationChannel();
 
-      // Display notification using Notifee
+
       const notificationId = await notifee.displayNotification({
         title,
         body,
@@ -78,11 +78,11 @@ class NotificationService {
     try {
       console.log('[Notifications] Requesting permission...');
 
-      // Request FCM permission
+
       const authStatus = await messaging().requestPermission();
       console.log('[Notifications] FCM Auth status:', authStatus);
 
-      // Also request Notifee permission
+
       const notifeeSettings = await notifee.requestPermission();
       console.log('[Notifications] Notifee permission:', notifeeSettings);
 
@@ -118,7 +118,7 @@ class NotificationService {
 
   async getToken(): Promise<string | null> {
     try {
-      // Return cached token if available
+
       const cachedToken = useNotificationStore.getState().fcmToken;
       if (cachedToken) {
         console.log('[Notifications] Using cached FCM token');
@@ -157,15 +157,15 @@ class NotificationService {
   }
 
   async syncTokenToServer(_token?: string): Promise<boolean> {
-    // Device token API is not available on the backend
-    // Skip the API call until backend implements this endpoint
+
+
     return false;
   }
 
   setupListeners(): void {
     console.log('[Notifications] Setting up listeners...');
 
-    // Handle foreground FCM messages
+
     this.unsubscribeOnMessage = messaging().onMessage(
       async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
         console.log('[Notifications] Received foreground message:', JSON.stringify(remoteMessage, null, 2));
@@ -176,7 +176,7 @@ class NotificationService {
           console.log('[Notifications] Parsed notification:', notification);
           useNotificationStore.getState().addNotification(notification);
 
-          // Display notification using Notifee
+
           await this.displayNotification(
             notification.title,
             notification.body,
@@ -196,7 +196,7 @@ class NotificationService {
       },
     );
 
-    // Handle token refresh
+
     this.unsubscribeOnTokenRefresh = messaging().onTokenRefresh(
       async (token: string) => {
         console.log('[Notifications] Token refreshed, syncing...');
@@ -205,7 +205,7 @@ class NotificationService {
       },
     );
 
-    // Handle notification opened from background
+
     this.unsubscribeOnNotificationOpened = messaging().onNotificationOpenedApp(
       (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
         console.log('[Notifications] App opened from notification:', remoteMessage);
@@ -217,7 +217,7 @@ class NotificationService {
       },
     );
 
-    // Setup Notifee foreground event handler
+
     notifee.onForegroundEvent(({ type, detail }) => {
       console.log('[Notifee] Foreground event:', type, detail);
 
@@ -233,7 +233,7 @@ class NotificationService {
   }
 
   async checkInitialNotification(): Promise<void> {
-    // Check FCM initial notification
+
     const remoteMessage = await messaging().getInitialNotification();
     if (remoteMessage) {
       console.log('[Notifications] FCM initial notification:', remoteMessage);
@@ -245,7 +245,7 @@ class NotificationService {
       return;
     }
 
-    // Check Notifee initial notification
+
     const initialNotification = await notifee.getInitialNotification();
     if (initialNotification) {
       console.log('[Notifee] Initial notification:', initialNotification);
@@ -286,16 +286,16 @@ class NotificationService {
   ): void {
     const { data } = remoteMessage;
 
-    // If deepLink is provided, use it directly
+
     if (data?.deepLink) {
       console.log('[Notifications] Deep link provided:', data.deepLink);
     }
 
-    // If we have notification data, navigate based on event_code
+
     if (data) {
       navigateFromNotification(data as Record<string, string>);
     } else {
-      // Default to notifications tab
+
       navigateToTab('Notifications');
     }
   }

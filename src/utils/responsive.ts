@@ -28,11 +28,9 @@ export const isTablet = (): boolean => {
   const adjustedWidth = SCREEN_WIDTH * pixelDensity;
   const adjustedHeight = SCREEN_HEIGHT * pixelDensity;
 
-
   if (pixelDensity < 2 && (SCREEN_WIDTH >= TABLET_BREAKPOINT || SCREEN_HEIGHT >= TABLET_BREAKPOINT)) {
     return true;
   }
-
 
   return Math.min(adjustedWidth, adjustedHeight) >= TABLET_BREAKPOINT * 2;
 };

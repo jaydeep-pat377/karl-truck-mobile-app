@@ -68,7 +68,7 @@ export const NotificationScreen: React.FC = () => {
   const themeColors = isDark ? colors.dark : colors.light;
   const tenantId = user?.metadata?.tenant?.tenant_id ?? 1;
 
-  // Use Supabase real-time notifications directly
+
   const {
     notifications,
     unreadCount,

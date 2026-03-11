@@ -1,18 +1,4 @@
-/**
- * Supabase Real-Time Notifications Hook
- *
- * Fetches initial notifications from Supabase and subscribes to real-time updates.
- * No API calls - everything goes through Supabase directly.
- *
- * Features (matching web implementation):
- * - Real-time INSERT/UPDATE subscription
- * - Network reconnection via NetInfo
- * - App state reconnection (foreground/background)
- * - Exponential backoff reconnection
- * - Periodic relative time updates
- * - Event code to notification type mapping
- * - Optimistic UI updates
- */
+
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { AppState, AppStateStatus, Platform, PermissionsAndroid } from 'react-native';
 import { createClient, RealtimeChannel } from '@supabase/supabase-js';
@@ -22,11 +8,9 @@ import 'react-native-url-polyfill/auto';
 
 const CHANNEL_ID = 'truckast_heads_up';
 
-// Supabase credentials (Notification Supabase instance - separate from main app)
 const SUPABASE_URL = 'https://tabpplqpetdgruqmliix.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhYnBwbHFwZXRkZ3J1cW1saWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0NzMxNTgsImV4cCI6MjA4MjA0OTE1OH0.JqG84aRxD88qT1rlY_Rbe2r8QSX9U_ksP3IV9RqYSZg';
 
-// Create Supabase client for notifications
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     autoRefreshToken: false,
@@ -40,7 +24,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   },
 });
 
-// ─── Event Code Mapping (same as web) ───────────────────────────
 const EVENT_CODE_MAP: Record<string, 'order' | 'truck' | 'alert' | 'info'> = {
   ORDER_CREATED: 'order',
   ORDER_UPDATED: 'order',
@@ -59,18 +42,12 @@ const EVENT_CODE_MAP: Record<string, 'order' | 'truck' | 'alert' | 'info'> = {
 
 export type NotificationType = 'order' | 'truck' | 'alert' | 'info';
 
-/**
- * Map event code to notification type for UI display
- */
 export function mapEventCodeToType(eventCode: string | null): NotificationType {
   if (!eventCode) return 'info';
   const upperCode = eventCode.toUpperCase();
   return EVENT_CODE_MAP[upperCode] ?? 'info';
 }
 
-/**
- * Format timestamp to relative time string (same as web)
- */
 export function formatRelativeTime(dateString: string): string {
   const diffSeconds = Math.floor(
     (Date.now() - new Date(dateString).getTime()) / 1000
@@ -85,7 +62,6 @@ export function formatRelativeTime(dateString: string): string {
   return `${days} day${days > 1 ? 's' : ''} ago`;
 }
 
-/** Raw row from notification_queue (database schema) */
 export interface Notification {
   id: string;
   queue_uuid: string;
@@ -99,10 +75,9 @@ export interface Notification {
   priority: number;
   created_at: string;
   tenant_id: number;
-  isNew?: boolean; // Flag for newly received notifications
+  isNew?: boolean;
 }
 
-/** UI display format (for components) */
 export interface NotificationItem {
   id: string;
   queueUuid: string;
@@ -119,9 +94,6 @@ export interface NotificationItem {
   isNew?: boolean;
 }
 
-/**
- * Convert raw notification row to UI display format
- */
 export function mapRowToNotificationItem(row: Notification): NotificationItem {
   return {
     id: row.id,
@@ -144,14 +116,14 @@ interface UseSupabaseNotificationsProps {
   userId: string | null;
   tenantId: number | null;
   enabled?: boolean;
-  /** Callback when a new notification is received */
+
   onNewNotification?: (notification: NotificationItem) => void;
 }
 
 interface UseSupabaseNotificationsReturn {
-  /** Raw notifications from database */
+
   notifications: Notification[];
-  /** Formatted notifications for UI display */
+
   notificationItems: NotificationItem[];
   unreadCount: number;
   isLoading: boolean;
@@ -160,11 +132,10 @@ interface UseSupabaseNotificationsReturn {
   refetch: () => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
-  /** Force reconnect to realtime channel */
+
   reconnect: () => void;
 }
 
-// Max reconnect attempts with exponential backoff
 const MAX_RECONNECT_ATTEMPTS = 5;
 
 export function useSupabaseNotifications({
@@ -185,17 +156,17 @@ export function useSupabaseNotifications({
   const fetchRef = useRef<() => Promise<void>>(async () => {});
   const onNewNotificationRef = useRef(onNewNotification);
 
-  // Keep callback ref updated
+
   useEffect(() => {
     onNewNotificationRef.current = onNewNotification;
   }, [onNewNotification]);
 
-  // Update notificationItems when notifications change
+
   useEffect(() => {
     setNotificationItems(notifications.map(mapRowToNotificationItem));
   }, [notifications]);
 
-  // Periodic relative time update (every 60s, same as web)
+
   useEffect(() => {
     const interval = setInterval(() => {
       setNotificationItems((prev) =>
@@ -208,7 +179,7 @@ export function useSupabaseNotifications({
     return () => clearInterval(interval);
   }, []);
 
-  // Request notification permission using Notifee (works for both Android and iOS)
+
   const requestNotificationPermission = useCallback(async (): Promise<boolean> => {
     try {
       const settings = await notifee.requestPermission();
@@ -221,24 +192,24 @@ export function useSupabaseNotifications({
     }
   }, []);
 
-  // Request permission on mount
+
   useEffect(() => {
     requestNotificationPermission();
   }, [requestNotificationPermission]);
 
-  // Show local notification when app is in foreground using Notifee
+
   const showLocalNotification = useCallback(async (notification: Notification) => {
     console.log('[useSupabaseNotifications] 📱 Attempting to show local notification...');
     console.log('[useSupabaseNotifications] App state:', appStateRef.current);
 
-    // Only show when app is in foreground
+
     if (appStateRef.current !== 'active') {
       console.log('[useSupabaseNotifications] ⚠️ App not active, skipping notification');
       return;
     }
 
     try {
-      // Create channel for Android with HIGH importance for heads-up
+
       if (Platform.OS === 'android') {
         await notifee.createChannel({
           id: CHANNEL_ID,
@@ -287,7 +258,7 @@ export function useSupabaseNotifications({
     }
   }, []);
 
-  // Fetch notifications from Supabase
+
   const fetchNotifications = useCallback(async () => {
     if (!userId) {
       setIsLoading(false);
@@ -312,7 +283,7 @@ export function useSupabaseNotifications({
         return;
       }
 
-      // Client-side tenant filter
+
       let filteredData = data || [];
       if (tenantId) {
         filteredData = filteredData.filter(
@@ -330,7 +301,7 @@ export function useSupabaseNotifications({
     }
   }, [userId, tenantId]);
 
-  // Handle reconnection with exponential backoff
+
   const handleReconnect = useCallback(() => {
     if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
       console.warn('[useSupabaseNotifications] Max reconnect attempts reached');
@@ -350,14 +321,14 @@ export function useSupabaseNotifications({
     }, delay);
   }, [userId, enabled]);
 
-  // Subscribe to real-time changes
+
   const subscribe = useCallback(() => {
     if (!userId || !enabled) {
       console.log('[useSupabaseNotifications] Not subscribing - userId:', userId, 'enabled:', enabled);
       return;
     }
 
-    // Clean up existing channel
+
     if (channelRef.current) {
       console.log('[useSupabaseNotifications] Removing existing channel');
       supabase.removeChannel(channelRef.current);
@@ -383,12 +354,12 @@ export function useSupabaseNotifications({
             isNew: true,
           };
 
-          // Client-side tenant filter
+
           if (tenantId && newNotification.tenant_id !== null && newNotification.tenant_id !== tenantId) {
             return;
           }
 
-          // Add to the beginning of the list
+
           setNotifications((prev) => {
             if (prev.some((n) => n.id === newNotification.id)) {
               return prev;
@@ -396,15 +367,15 @@ export function useSupabaseNotifications({
             return [newNotification, ...prev];
           });
 
-          // Show local notification in foreground
+
           showLocalNotification(newNotification);
 
-          // Call the onNewNotification callback
+
           if (onNewNotificationRef.current) {
             onNewNotificationRef.current(mapRowToNotificationItem(newNotification));
           }
 
-          // Remove the "new" highlight after 5 seconds
+
           setTimeout(() => {
             setNotifications((prev) =>
               prev.map((n) =>
@@ -437,7 +408,7 @@ export function useSupabaseNotifications({
         console.log('[useSupabaseNotifications] Subscription status:', status);
 
         if (status === 'SUBSCRIBED') {
-          reconnectAttempts.current = 0; // Reset on successful connection
+          reconnectAttempts.current = 0;
           setIsConnected(true);
           setError(null);
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -455,7 +426,7 @@ export function useSupabaseNotifications({
     channelRef.current = channel;
   }, [userId, tenantId, enabled, showLocalNotification, handleReconnect]);
 
-  // Force reconnect function
+
   const reconnect = useCallback(() => {
     if (userId && enabled) {
       console.log('[useSupabaseNotifications] Manual reconnect triggered');
@@ -465,13 +436,13 @@ export function useSupabaseNotifications({
     }
   }, [userId, enabled, subscribe, fetchNotifications]);
 
-  // Keep refs updated
+
   useEffect(() => {
     subscribeRef.current = subscribe;
     fetchRef.current = fetchNotifications;
   }, [subscribe, fetchNotifications]);
 
-  // Initial fetch and subscribe
+
   useEffect(() => {
     if (userId && enabled) {
       fetchNotifications();
@@ -487,7 +458,7 @@ export function useSupabaseNotifications({
     };
   }, [userId, enabled, fetchNotifications, subscribe]);
 
-  // Reconnect when app becomes active
+
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
       appStateRef.current = state;
@@ -501,7 +472,7 @@ export function useSupabaseNotifications({
     return () => subscription.remove();
   }, [userId, enabled, subscribe, fetchNotifications]);
 
-  // Network reconnection listener
+
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
       if (state.isConnected && userId && enabled) {
@@ -514,15 +485,15 @@ export function useSupabaseNotifications({
     return () => unsubscribe();
   }, [userId, enabled, subscribe, fetchNotifications]);
 
-  // Mark single notification as read (optimistic update + persist to Supabase)
+
   const markAsRead = useCallback(async (id: string) => {
-    // Find the notification
+
     const notification = notifications.find((n) => n.id === id || n.queue_uuid === id);
     if (!notification || notification.status === 'delivered' || notification.status === 'read') {
       return;
     }
 
-    // Optimistic update
+
     setNotifications((prev) =>
       prev.map((n) => (n.id === id || n.queue_uuid === id ? { ...n, status: 'delivered' } : n))
     );
@@ -535,7 +506,7 @@ export function useSupabaseNotifications({
 
       if (updateError) {
         console.error('[useSupabaseNotifications] Failed to mark as read:', updateError);
-        // Revert on error
+
         fetchNotifications();
       }
     } catch (err) {
@@ -544,7 +515,7 @@ export function useSupabaseNotifications({
     }
   }, [notifications, fetchNotifications]);
 
-  // Mark all as read (optimistic update + persist to Supabase)
+
   const markAllAsRead = useCallback(async () => {
     if (!userId) return;
 
@@ -554,7 +525,7 @@ export function useSupabaseNotifications({
 
     if (unreadIds.length === 0) return;
 
-    // Optimistic update
+
     setNotifications((prev) => prev.map((n) => ({ ...n, status: 'delivered' })));
 
     try {
@@ -573,7 +544,7 @@ export function useSupabaseNotifications({
     }
   }, [userId, notifications, fetchNotifications]);
 
-  // Calculate unread count
+
   const unreadCount = notifications.filter(
     (n) => n.status !== 'read' && n.status !== 'delivered'
   ).length;

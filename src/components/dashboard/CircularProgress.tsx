@@ -27,7 +27,6 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   const center = scaledSize / 2;
   const clampedProgress = Math.min(Math.max(progress, 0), 100);
 
-
   const getArcPath = (percentage: number) => {
     if (percentage >= 100) {
 
@@ -42,7 +41,6 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
     const x = center + radius * Math.cos(radians);
     const y = center + radius * Math.sin(radians);
     const largeArcFlag = angle > 180 ? 1 : 0;
-
 
     return `M ${center} ${center} L ${center} ${scaledStroke / 2} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x} ${y} Z`;
   };

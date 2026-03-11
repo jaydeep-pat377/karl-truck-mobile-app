@@ -222,7 +222,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 }) => {
   const { isDark } = useTheme();
 
-  // Check if status contains "cancel" (case insensitive) for cancelled-199 type statuses
+
   const isCancelledStatus = status?.toLowerCase().includes('cancel');
 
   const colorConfig = isCancelledStatus
@@ -230,7 +230,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     : (statusColors[status] || defaultColorConfig);
   const displayLabel = label || (isCancelledStatus ? 'Voided' : (statusLabels[status] || status));
 
-  // Use customColor if provided, otherwise use default status color
+
   const textColor = customColor || (isDark ? colorConfig.textDark : colorConfig.text);
 
   const baseColor = customColor || (isDark ? colorConfig.textDark : colorConfig.text);

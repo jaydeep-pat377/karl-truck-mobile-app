@@ -22,7 +22,7 @@ export const ConcreteMixerIcon: React.FC<ConcreteMixerIconProps> = ({
       style={style}
     >
       <G>
-        {/* Truck cab */}
+
         <Path
           d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"
           fill="none"
@@ -31,7 +31,7 @@ export const ConcreteMixerIcon: React.FC<ConcreteMixerIconProps> = ({
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        {/* Mixer drum */}
+
         <Path
           d="M5 6.5h7c1.1 0 2 .9 2 2v3c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2v-3c0-1.1.9-2 2-2z"
           fill={color}
@@ -53,11 +53,11 @@ export const ConcreteMixerIcon: React.FC<ConcreteMixerIconProps> = ({
           strokeLinejoin="round"
           fill="none"
         />
-        {/* Front wheel */}
+
         <Circle cx="6" cy="17" r="2" fill={color} />
-        {/* Back wheel */}
+
         <Circle cx="18" cy="17" r="2" fill={color} />
-        {/* Cab window */}
+
         <Rect x="17" y="9" width="3" height="3" rx={0.5} fill={color} opacity={0.5} />
       </G>
     </Svg>

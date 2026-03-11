@@ -155,7 +155,6 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   loadMoreNotifications: async (userId: string, tenantId: number) => {
     const { pagination, isLoadingMore, notifications: existingNotifications } = get();
 
-    // Don't load if already loading or no more pages
     if (isLoadingMore || !pagination || pagination.page >= pagination.totalPages) {
       return;
     }

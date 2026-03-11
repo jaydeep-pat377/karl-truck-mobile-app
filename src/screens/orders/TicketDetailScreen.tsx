@@ -35,7 +35,6 @@ const RADIUS = { sm: 8, md: 12, lg: 16, xl: 24 };
 const HEADER_GRADIENT_LIGHT = ['#FFFFFF', '#F8F8F8', '#F0F0F0'];
 const HEADER_GRADIENT_DARK = ['#3A3A3A', '#2A2A2A', '#1E1E1E'];
 
-// Weather helper functions
 const getEvaporationBgColor = (rate: number | null | undefined): string => {
   if (rate === null || rate === undefined) return colors.grey[40];
   if (rate < 0.10) return colors.success.main;
@@ -403,7 +402,7 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, duratio
       at_plant: durations.atPlant,
     };
     const value = durationMap[key];
-    // Filter out "--" or null/undefined values
+
     if (value === null || value === undefined || value === '--') {
       return null;
     }
@@ -411,12 +410,12 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, duratio
   };
 
   const formatDuration = (value: string | number): string => {
-    // If it's already a string (from API), fix pluralization if needed
+
     if (typeof value === 'string') {
-      // Fix "1 minutes" to "1 minute"
+
       return value.replace(/\b1 minutes\b/g, '1 minute');
     }
-    // If it's a number, format it
+
     if (value < 60) {
       return `${value} minute${value !== 1 ? 's' : ''}`;
     }
@@ -431,7 +430,7 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, duratio
   const statusOrder = TIMELINE_STEPS.map(s => s.key);
   const currentIndex = statusOrder.indexOf(currentStatus);
 
-  // Get the next step's duration to show after current step
+
   const getNextStepDuration = (index: number): string | number | null => {
     if (index >= TIMELINE_STEPS.length - 1) return null;
     const nextStep = TIMELINE_STEPS[index + 1];
@@ -591,22 +590,22 @@ const DeliveryMetricsCard: React.FC<DeliveryMetricsCardProps> = ({
       return isDark ? colors.grey[40] : colors.grey[60];
     }
 
-    // If idle equals spacing, return black/neutral
+
     if (spacingValue !== null && idleValue === spacingValue) {
       return isDark ? colors.common.white : colors.grey[85];
     }
 
-    // If positive, return green
+
     if (idleValue > 0) {
       return isDark ? colors.success.light : colors.success.main;
     }
 
-    // If negative, return red
+
     if (idleValue < 0) {
       return isDark ? colors.error.light : colors.error.main;
     }
 
-    // Default (zero)
+
     return isDark ? colors.common.white : colors.grey[85];
   };
 
@@ -667,7 +666,7 @@ const DeliveryMetricsCard: React.FC<DeliveryMetricsCardProps> = ({
         </View>
         <Text style={[styles.deliveryMetricsTitle, { color: titleColor }]}>Delivery Metrics</Text>
       </View>
-      {/* Row 1: First 2 items */}
+
       <View style={styles.deliveryMetricsRow}>
         {metrics.slice(0, 2).map((metric) => (
           <View
@@ -695,7 +694,7 @@ const DeliveryMetricsCard: React.FC<DeliveryMetricsCardProps> = ({
           </View>
         ))}
       </View>
-      {/* Row 2: Next 2 items */}
+
       <View style={styles.deliveryMetricsRow}>
         {metrics.slice(2, 4).map((metric) => (
           <View
@@ -723,7 +722,7 @@ const DeliveryMetricsCard: React.FC<DeliveryMetricsCardProps> = ({
           </View>
         ))}
       </View>
-      {/* Row 3: Last item centered */}
+
       <View style={styles.deliveryMetricsRowCenter}>
         {metrics.slice(4).map((metric) => (
           <View
@@ -816,7 +815,7 @@ export const TicketDetailScreen: React.FC = () => {
 
   const statusConfigMap = isDark ? STATUS_CONFIG_DARK : STATUS_CONFIG_LIGHT;
 
-  // Format ETA time to readable format (e.g., "2:30 PM")
+
   const formatEtaTime = (etaString: string | null | undefined): string => {
     if (!etaString) return '';
     try {
@@ -840,7 +839,7 @@ export const TicketDetailScreen: React.FC = () => {
   const isAtPlant = currentStatus === 'at_plant';
   const isCancelled = currentStatus === 'cancelled' || currentStatus?.toLowerCase().includes('cancel');
 
-  // Use passed status color from navigation or calculate from status
+
   const currentStatusColor = passedStatusColor || getHeaderBadgeColors(currentStatus, isDark).textColor;
   const headerBadgeColors = passedStatusColor
     ? {
@@ -1104,7 +1103,7 @@ export const TicketDetailScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={headerGradient[0]} />
 
-      {/* Static Header Bar */}
+
       <View style={[styles.staticHeaderBar, { paddingTop: insets.top, backgroundColor: headerGradient[0] }]}>
         <View style={styles.headerBar}>
           <TouchableOpacity
@@ -1123,12 +1122,12 @@ export const TicketDetailScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Fixed Header Section - Card Style */}
+
       <View style={[
         styles.headerCard,
         { backgroundColor: themeColors.card }
       ]}>
-        {/* Top Row: Order Info */}
+
         <View style={styles.headerCardTopRow}>
           <View style={styles.headerCardOrderInfo}>
             {apiOrderCode && (
@@ -1144,7 +1143,7 @@ export const TicketDetailScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Main Row: Ticket Number & Status */}
+
         <View style={styles.headerCardMainRow}>
           <Text
             style={[styles.headerCardTicketNumber, { color: themeColors.text.primary }]}
@@ -1162,7 +1161,7 @@ export const TicketDetailScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Additional Info Row */}
+
         {(isCancelled && removeReasonCode) || (isAtPlant && timestamps.atPlant) ? (
           <View style={styles.headerCardInfoRow}>
             {isCancelled && removeReasonCode && (
@@ -1178,7 +1177,7 @@ export const TicketDetailScreen: React.FC = () => {
           </View>
         ) : null}
 
-        {/* Weather Info Row */}
+
         {weatherData && (
           <TouchableOpacity
             activeOpacity={0.7}
@@ -1240,7 +1239,7 @@ export const TicketDetailScreen: React.FC = () => {
         )}
       </View>
 
-      {/* Fixed Quick Actions Menu */}
+
       <View style={[styles.quickActionsRow, styles.quickActionsFixed, { backgroundColor: themeColors.background }]}>
         <QuickAction
           icon="map-marker-radius"
@@ -1266,7 +1265,7 @@ export const TicketDetailScreen: React.FC = () => {
         />
       </View>
 
-      {/* Scrollable Content */}
+
       <ScrollView
         style={styles.fullScreenScrollView}
         contentContainerStyle={[
@@ -1563,7 +1562,7 @@ export const TicketDetailScreen: React.FC = () => {
         </View>
       </Modal>
 
-      {/* QR Code Modal */}
+
       <Modal
         visible={showQRCodeModal}
         transparent
@@ -1708,7 +1707,7 @@ const styles = StyleSheet.create({
   headerContainerLoading: {
     paddingBottom: GRID.md,
   },
-  // Card-style header
+
   headerCard: {
     marginHorizontal: GRID.md,
     marginTop: GRID.sm,

@@ -22,7 +22,6 @@ const STATUS_NORMALIZATION_MAP: Record<string, NormalizedStatus> = {
   'NORMAL': 'NORMAL',
   'Normal': 'NORMAL',
 
-
   'pre_pour': 'PRE_POUR',
   'PRE_POUR': 'PRE_POUR',
   'Pre-Pour': 'PRE_POUR',
@@ -32,7 +31,6 @@ const STATUS_NORMALIZATION_MAP: Record<string, NormalizedStatus> = {
   'prepour': 'PRE_POUR',
   'pending': 'PRE_POUR',
 
-
   'in_process': 'IN_PROCESS',
   'IN_PROCESS': 'IN_PROCESS',
   'In Progress': 'IN_PROCESS',
@@ -40,11 +38,9 @@ const STATUS_NORMALIZATION_MAP: Record<string, NormalizedStatus> = {
   'inprogress': 'IN_PROCESS',
   'InProgress': 'IN_PROCESS',
 
-
   'completed': 'COMPLETED',
   'COMPLETED': 'COMPLETED',
   'Completed': 'COMPLETED',
-
 
   'will_call': 'WILL_CALL',
   'WILL_CALL': 'WILL_CALL',
@@ -53,7 +49,6 @@ const STATUS_NORMALIZATION_MAP: Record<string, NormalizedStatus> = {
   'willcall': 'WILL_CALL',
   'WillCall': 'WILL_CALL',
 
-
   'wait_list': 'WAIT_LIST',
   'WAIT_LIST': 'WAIT_LIST',
   'Wait List': 'WAIT_LIST',
@@ -61,7 +56,6 @@ const STATUS_NORMALIZATION_MAP: Record<string, NormalizedStatus> = {
   'waitlist': 'WAIT_LIST',
   'Waitlist': 'WAIT_LIST',
   'WaitList': 'WAIT_LIST',
-
 
   'hold': 'HOLD',
   'HOLD': 'HOLD',
@@ -75,7 +69,6 @@ const STATUS_NORMALIZATION_MAP: Record<string, NormalizedStatus> = {
   'hold delivery': 'HOLD',
   'HoldDelivery': 'HOLD',
 
-
   'cancelled': 'CANCELLED',
   'CANCELLED': 'CANCELLED',
   'Cancelled': 'CANCELLED',
@@ -83,11 +76,9 @@ const STATUS_NORMALIZATION_MAP: Record<string, NormalizedStatus> = {
   'CANCELED': 'CANCELLED',
   'Canceled': 'CANCELLED',
 
-
   'delayed': 'DELAYED',
   'DELAYED': 'DELAYED',
   'Delayed': 'DELAYED',
-
 
   'weather_permitting': 'WEATHER_PERMITTING',
   'WEATHER_PERMITTING': 'WEATHER_PERMITTING',
@@ -95,12 +86,10 @@ const STATUS_NORMALIZATION_MAP: Record<string, NormalizedStatus> = {
   'weather permitting': 'WEATHER_PERMITTING',
   'weatherpermitting': 'WEATHER_PERMITTING',
 
-
   'enrt': 'ENRT',
   'ENRT': 'ENRT',
   'en route': 'ENRT',
   'En Route': 'ENRT',
-
 
   'onsit': 'ONSIT',
   'ONSIT': 'ONSIT',
@@ -143,20 +132,16 @@ const DEFAULT_STATUS_COLOR = colors.secondary.main;
 export const normalizeStatus = (status: string): NormalizedStatus => {
   if (!status) return 'NORMAL';
 
-
   const normalized = STATUS_NORMALIZATION_MAP[status];
   if (normalized) return normalized;
-
 
   const lowerStatus = status.toLowerCase();
   const normalizedLower = STATUS_NORMALIZATION_MAP[lowerStatus];
   if (normalizedLower) return normalizedLower;
 
-
   const trimmed = status.trim().toLowerCase().replace(/[\s_-]+/g, '_');
   const normalizedTrimmed = STATUS_NORMALIZATION_MAP[trimmed];
   if (normalizedTrimmed) return normalizedTrimmed;
-
 
   return 'NORMAL';
 };
@@ -164,11 +149,9 @@ export const normalizeStatus = (status: string): NormalizedStatus => {
 export const getStatusColor = (status: string, progress?: number): string => {
   const normalized = normalizeStatus(status);
 
-
   if (normalized === 'IN_PROCESS') {
     return colors.success.main;
   }
-
 
   if (normalized === 'COMPLETED') {
     return colors.success.main;
@@ -181,11 +164,9 @@ export const getStatusColor = (status: string, progress?: number): string => {
 export const getProgressBarColor = (status: string, progress?: number): string => {
   const normalized = normalizeStatus(status);
 
-
   if ((normalized === 'IN_PROCESS' || normalized === 'COMPLETED') && progress !== undefined) {
     return getPerformanceColor(progress);
   }
-
 
   return STATUS_COLOR_MAP[normalized] || DEFAULT_STATUS_COLOR;
 };

@@ -30,7 +30,6 @@ const GRID = {
   lg: 24,
 } as const;
 
-// Format quantity - removes trailing zeros after decimal point
 const formatQty = (num: number): string => {
   if (num === null || num === undefined) return '0';
   return parseFloat(num.toFixed(2)).toString();
@@ -149,7 +148,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
 
   const statusColor = progressColor || colors.primary.main;
 
-  // Get evaporation rate background color
+
   const getEvaporationBgColor = (rate: number | null) => {
     if (rate === null || rate === undefined) return colors.grey[40];
     if (rate < 0.10) return colors.success.main;
@@ -159,7 +158,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
     return colors.error.main;
   };
 
-  // Get evaporation rate text label
+
   const getEvaporationText = (rate: number | null) => {
     if (rate === null || rate === undefined) return '';
     if (rate < 0.10) return 'Low';
@@ -169,7 +168,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
     return 'Severe';
   };
 
-  // Get weather icon name based on condition
+
   const getWeatherIconName = (condition: string | null | undefined) => {
     if (!condition) return 'weather-partly-cloudy';
     const conditionLower = condition.toLowerCase();
@@ -333,7 +332,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
         const productSchedule = (orderDetails as any).product_schedule_details?.[0];
         const combined: CombinedProductItem[] = [];
 
-        // Add primary product first
+
         const primaryProduct = productSchedule?.primary_product as PrimaryProduct | undefined;
         if (primaryProduct) {
           combined.push({
@@ -348,7 +347,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
           });
         }
 
-        // Add associated products
+
         const associatedProducts = productSchedule?.associated_products as AssociatedProduct[] | undefined;
         if (associatedProducts && associatedProducts.length > 0) {
           associatedProducts.forEach((ap) => {
@@ -526,10 +525,10 @@ export const OrderProductDetailsScreen: React.FC = () => {
           />
         }
       >
-        {/* Order Info Card - Customer, Project, Weather (Compact) */}
+
         {(jobData.customerName || jobData.projectName || jobData.weatherData) && (
           <View style={[styles.orderInfoCard, { backgroundColor: themeColors.card }]}>
-            {/* Customer & Project Info - Compact */}
+
             {(jobData.customerName || jobData.projectName) && (
               <View style={styles.orderInfoCompactContainer}>
                 {jobData.customerName && (
@@ -551,7 +550,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
               </View>
             )}
 
-            {/* Weather Info Row - Same as Order List */}
+
             {jobData.weatherData && (
               <TouchableOpacity
                 activeOpacity={0.7}
@@ -598,7 +597,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Product Schedule Card */}
+
         <View style={[styles.card, { backgroundColor: themeColors.card }]}>
           <View style={styles.cardHeader}>
             <View style={styles.cardTitleRow}>
@@ -686,7 +685,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
             </View>
           )}
 
-          {/* Pour Rate Row - Spacing, Scheduled Rate, Actual Spacing */}
+
           {(jobData.spacingMinutes > 0 || jobData.scheduledRate > 0 || jobData.actualSpacingMinutes > 0) && (
             <View style={[styles.timingRow, { backgroundColor: isDark ? themeColors.surface : colors.grey[3], marginTop: GRID.xs, marginHorizontal: GRID.md }]}>
               <View style={styles.timingItem}>
@@ -743,11 +742,11 @@ export const OrderProductDetailsScreen: React.FC = () => {
             </View>
           )}
 
-          {/* Bottom spacer for proper padding */}
+
           <View style={{ height: GRID.md }} />
         </View>
 
-        {/* Product SKU Details Card */}
+
         {product && (
           <View style={styles.skuSection}>
             <View style={[
@@ -757,7 +756,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 borderColor: isDark ? themeColors.border : colors.grey[10],
               }
             ]}>
-              {/* Products List Section - Primary + Associated (Moved above Delivery Schedule) */}
+
               {jobData.combinedProducts.length > 0 && (
                 <View style={[styles.associatedProductsSection, { borderTopColor: 'transparent' }]}>
                   <View style={styles.associatedProductsHeader}>
@@ -772,7 +771,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                     </View>
                   </View>
 
-                  {/* Products List */}
+
                   {jobData.combinedProducts.map((item, index) => (
                     <View
                       key={`${item.itemCode}-${index}`}
@@ -786,7 +785,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                         }
                       ]}
                     >
-                      {/* Product Header Row */}
+
                       <View style={styles.productListHeader}>
                         <View style={styles.productTypeLabelRow}>
                           <View style={[
@@ -805,16 +804,16 @@ export const OrderProductDetailsScreen: React.FC = () => {
                         </Text>
                       </View>
 
-                      {/* Description Row */}
+
                       {item.description && (
                         <Text style={[styles.productListDesc, { color: themeColors.text.secondary }]} numberOfLines={2}>
                           {item.description}
                         </Text>
                       )}
 
-                      {/* Details Grid */}
+
                       <View style={styles.productListDetailsGrid}>
-                        {/* Quantity */}
+
                         <View style={styles.productListDetailItem}>
                           <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Qty</Text>
                           <Text style={[styles.productListDetailValue, { color: colors.success.main }]}>
@@ -822,7 +821,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                           </Text>
                         </View>
 
-                        {/* Slump - only for concrete/mix products */}
+
                         {item.isPrimary && (
                           <View style={styles.productListDetailItem}>
                             <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Slump</Text>
@@ -837,7 +836,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 </View>
               )}
 
-              {/* Card Header with Delivery Schedule Title */}
+
               <View style={[styles.skuCardHeader, { borderTopWidth: 1, borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
                 <View style={styles.cardTitleRow}>
                   <View style={[styles.cardIconContainer, { backgroundColor: colors.secondary.main }]}>
@@ -857,11 +856,11 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 </View>
               )}
 
-              {/* Schedule Details Grid */}
+
               {schedule && (
                 <View style={[styles.skuScheduleSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
 
-                  {/* Row 1 - Loads & Quantity */}
+
                   <View style={styles.skuScheduleRow}>
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                       <Icon name="layers-triple" size={ms(18)} color={colors.secondary.main} />
@@ -888,7 +887,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                     </View>
                   </View>
 
-                  {/* Row 2 - Spacing & Distance */}
+
                   <View style={styles.skuScheduleRow}>
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                       <Icon name="clock-outline" size={ms(18)} color={colors.info.main} />
@@ -915,7 +914,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                     </View>
                   </View>
 
-                  {/* Row 3 - Travel & Times */}
+
                   <View style={styles.skuScheduleRow}>
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                       <ConcreteTruck width={ms(22)} height={ms(16)} color={colors.secondary.main} />
@@ -944,7 +943,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 </View>
               )}
 
-              {/* Plant Details Section */}
+
               <View style={[styles.associatedProductsSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
                 <View style={styles.associatedProductsHeader}>
                   <View style={[styles.associatedProductsIconBox, { backgroundColor: isDark ? colors.info.main + '25' : colors.info.main + '12' }]}>
@@ -1009,7 +1008,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 </View>
               </View>
 
-              {/* Scheduled Loads Button */}
+
               {jobData.scheduledLoads && jobData.scheduledLoads.length > 0 && (
                 <View style={[styles.skuLoadsSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
                   <TouchableOpacity
@@ -1592,7 +1591,7 @@ const styles = StyleSheet.create({
   bottomSpacer: {
     height: ms(100),
   },
-  // Order Info Compact styles
+
   orderInfoCard: {
     borderRadius: ms(10),
     marginBottom: spacing.sm,
@@ -1613,7 +1612,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     flex: 1,
   },
-  // Weather Compact styles
+
   weatherInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1646,7 +1645,7 @@ const styles = StyleSheet.create({
     color: colors.common.white,
     lineHeight: ms(13),
   },
-  // Primary Product Grid styles
+
   primaryProductGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1680,7 +1679,7 @@ const styles = StyleSheet.create({
     marginTop: ms(2),
     lineHeight: ms(16),
   },
-  // Product List styles
+
   productListItem: {
     borderRadius: ms(10),
     paddingHorizontal: GRID.xs + 2,

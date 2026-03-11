@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { MainTabParamList } from './types';
 import { DashboardScreen } from '../screens/home';
 import { OrdersNavigator } from './OrdersNavigator';
-// import { TodayOrdersScreen } from '../screens/orders/TodayOrdersScreen'; // Temporarily hidden
+
 import { NotificationScreen } from '../screens/notifications/NotificationScreen';
 import { SettingsNavigator } from './SettingsNavigator';
 import { CustomTabBar } from '../components/navigation';
@@ -36,15 +36,7 @@ export const MainNavigator: React.FC = () => {
           tabBarLabel: t('navigation.orders'),
         }}
       />
-      {/* Temporarily hidden
-      <Tab.Screen
-        name="Today"
-        component={TodayOrdersScreen}
-        options={{
-          tabBarLabel: t('navigation.today'),
-        }}
-      />
-      */}
+
       <Tab.Screen
         name="Notifications"
         component={NotificationScreen}

@@ -11,8 +11,8 @@ interface ApiErrorResponse {
 
 interface UseDashboardParams {
   dateFilter?: DashboardDateFilter | 'calendar';
-  startDate?: string; // YYYY-MM-DD format for custom date
-  endDate?: string; // YYYY-MM-DD format for custom date
+  startDate?: string;
+  endDate?: string;
   deliveriesLimit?: number;
 }
 
@@ -53,7 +53,7 @@ export const useDashboard = (params?: UseDashboardParams) => {
     const allOrders = query.data.pages.flatMap(
       (page) => page.data?.active_deliveries?.orders ?? []
     );
-    // Remove duplicates based on order_id
+
     const uniqueOrders = allOrders.filter(
       (order, index, self) => index === self.findIndex((o) => o.order_id === order.order_id)
     );

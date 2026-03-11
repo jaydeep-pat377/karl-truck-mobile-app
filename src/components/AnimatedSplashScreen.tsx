@@ -317,7 +317,7 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
         </Animated.View>
 
         <Animated.Text style={[styles.footer, { opacity: footerOpacity }]}>
-          Powered by Truckast AI 
+          Powered by Truckast AI
         </Animated.Text>
       </LinearGradient>
     </Animated.View>

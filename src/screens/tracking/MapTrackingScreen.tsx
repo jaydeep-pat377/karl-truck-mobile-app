@@ -47,19 +47,17 @@ const STATUS_COLORS: Record<string, string> = {
   idle: colors.grey[50],
 };
 
-// Default center coordinates (Oklahoma) - used when no valid coordinates available
 const DEFAULT_CENTER: [number, number] = [-97.5164, 35.4676];
 
-// Validate coordinates to prevent showing ocean/water
 const isValidCoordinate = (lat: number, lng: number): boolean => {
-  // Check for NaN, null, undefined
+
   if (lat === null || lat === undefined || lng === null || lng === undefined) return false;
   if (isNaN(lat) || isNaN(lng)) return false;
-  // Check valid range
+
   if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
-  // Check for 0,0 (ocean) - likely invalid data
+
   if (lat === 0 && lng === 0) return false;
-  // Check for very small values that are likely invalid
+
   if (Math.abs(lat) < 0.001 && Math.abs(lng) < 0.001) return false;
   return true;
 };
@@ -132,7 +130,7 @@ export const MapTrackingScreen: React.FC = () => {
       }
     }
 
-    // Filter trucks with valid coordinates
+
     const validTrucks = trucks.filter(t => isValidCoordinate(t.latitude, t.longitude));
     if (validTrucks.length === 0) return DEFAULT_CENTER;
 
@@ -186,9 +184,9 @@ export const MapTrackingScreen: React.FC = () => {
     };
   }, [paramPlantLatitude, paramPlantLongitude, paramPlantName]);
 
-  // Check if two locations are near each other (within ~500 meters)
+
   const areLocationsNear = (lat1: number, lng1: number, lat2: number, lng2: number): boolean => {
-    const threshold = 0.005; // approximately 500 meters
+    const threshold = 0.005;
     return Math.abs(lat1 - lat2) < threshold && Math.abs(lng1 - lng2) < threshold;
   };
 
@@ -210,7 +208,7 @@ export const MapTrackingScreen: React.FC = () => {
     };
   }, [paramJobLatitude, paramJobLongitude, paramDestination, paramCustomerName]);
 
-  // Check if truck and job location are near each other
+
   const isTruckNearJob = useMemo(() => {
     if (!highlightedTruck || !jobLocation) return false;
     return areLocationsNear(
@@ -256,7 +254,7 @@ export const MapTrackingScreen: React.FC = () => {
 
   const displayRouteGeoJSON = routeGeoJSON || fallbackRouteGeoJSON;
 
-  // Calculate bounds to fit all locations (truck, plant, job) with offset padding
+
   const allLocationsBounds = useMemo(() => {
     const locations: { lat: number; lng: number }[] = [];
 
@@ -270,7 +268,7 @@ export const MapTrackingScreen: React.FC = () => {
       locations.push({ lat: jobLocation.latitude, lng: jobLocation.longitude });
     }
 
-    // Need at least 1 location
+
     if (locations.length === 0) return null;
 
     const lats = locations.map(l => l.lat);
@@ -281,13 +279,13 @@ export const MapTrackingScreen: React.FC = () => {
     const minLng = Math.min(...lngs);
     const maxLng = Math.max(...lngs);
 
-    // Calculate dynamic padding based on the distance between points
+
     const latDiff = maxLat - minLat;
     const lngDiff = maxLng - minLng;
 
-    // Use larger padding for closer points, smaller for distant points
+
     const basePadding = Math.max(latDiff, lngDiff) * 0.3;
-    const minPadding = 0.01; // Minimum padding
+    const minPadding = 0.01;
     const padding = Math.max(basePadding, minPadding);
 
     return {
@@ -311,7 +309,7 @@ export const MapTrackingScreen: React.FC = () => {
     };
   }, [plantLocation, jobLocation]);
 
-  // Calculate initial camera bounds - used as Camera prop directly
+
   const initialCameraBounds = useMemo(() => {
     if (!allLocationsBounds) return undefined;
 
@@ -325,7 +323,7 @@ export const MapTrackingScreen: React.FC = () => {
     };
   }, [allLocationsBounds]);
 
-  // Determine if we should use bounds or centerCoordinate
+
   const hasAnyLocation = useMemo(() => {
     return !!(highlightedTruck || plantLocation || jobLocation);
   }, [highlightedTruck, plantLocation, jobLocation]);
@@ -338,7 +336,7 @@ export const MapTrackingScreen: React.FC = () => {
     return count >= 2;
   }, [highlightedTruck, plantLocation, jobLocation]);
 
-  // Only set single location camera if we don't have bounds to show
+
   useEffect(() => {
     if (cameraRef.current && !allLocationsBounds) {
       if (paramLatitude && paramLongitude) {
@@ -365,17 +363,17 @@ export const MapTrackingScreen: React.FC = () => {
     }
   }, [paramLatitude, paramLongitude, paramJobLatitude, paramJobLongitude, allLocationsBounds]);
 
-  // Fit bounds when map is ready to show all markers (truck, plant, job)
+
   useEffect(() => {
     if (mapReady && allLocationsBounds && cameraRef.current) {
-      // Use longer delay to ensure map is fully rendered
+
       const timer = setTimeout(() => {
         if (cameraRef.current && allLocationsBounds) {
           cameraRef.current.fitBounds(
             allLocationsBounds.ne,
             allLocationsBounds.sw,
-            [100, 80, 250, 80], // [top, right, bottom, left] padding
-            1000 // animation duration
+            [100, 80, 250, 80],
+            1000
           );
         }
       }, 500);
@@ -441,7 +439,7 @@ export const MapTrackingScreen: React.FC = () => {
               />
             </Mapbox.ShapeSource>
           )}
-          {/* Plant location - render first (bottom layer) */}
+
           {plantLocation && (
             <Mapbox.MarkerView
               key="plant-location"
@@ -461,7 +459,7 @@ export const MapTrackingScreen: React.FC = () => {
               </View>
             </Mapbox.MarkerView>
           )}
-          {/* Trucks - render second */}
+
           {trucks.filter(truck => isValidCoordinate(truck.latitude, truck.longitude)).map((truck) => {
             const truckImage = truckImagesByStatus[truck.status] || truckImagesByStatus.ticketed;
             return (
@@ -478,7 +476,7 @@ export const MapTrackingScreen: React.FC = () => {
               </Mapbox.MarkerView>
             );
           })}
-          {/* Highlighted truck - render after other markers so it's visible on top */}
+
           {highlightedTruck && (
             <Mapbox.MarkerView
               key="highlighted-truck"
@@ -504,7 +502,7 @@ export const MapTrackingScreen: React.FC = () => {
               </TouchableOpacity>
             </Mapbox.MarkerView>
           )}
-          {/* Job location - render LAST (top layer) so it's always visible */}
+
           {jobLocation && (
             <Mapbox.MarkerView
               key="job-location"
@@ -603,7 +601,7 @@ export const MapTrackingScreen: React.FC = () => {
                 cameraRef.current?.fitBounds(
                   allLocationsBounds.ne,
                   allLocationsBounds.sw,
-                  [100, 80, 250, 80], // [top, right, bottom, left] padding
+                  [100, 80, 250, 80],
                   1000
                 );
               }}
@@ -649,7 +647,7 @@ export const MapTrackingScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Loading overlay - shows while map and data are loading */}
+
         {(!mapReady || isTrucksLoading) && (
           <View style={[styles.loadingOverlay, { backgroundColor: themeColors.background }]}>
             <TruckLoader

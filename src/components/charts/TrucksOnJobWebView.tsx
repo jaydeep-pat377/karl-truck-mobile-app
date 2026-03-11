@@ -10,7 +10,6 @@ import { ScheduledLoadItem } from './TrucksOnJobChart';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 
-// Legend colors matching Highcharts
 const CHART_COLORS = {
   waiting: '#434348',
   pouring: '#90ed7d',
@@ -23,8 +22,6 @@ export interface TrucksOnJobWebViewProps {
   scheduledLoads: ScheduledLoadItem[];
   isDark: boolean;
 }
-
-// ============= SAME LOGIC AS WEB =============
 
 interface TruckState {
   ticketId: string;
@@ -40,18 +37,18 @@ interface TruckState {
 function parseTimeString(timeStr: string | null | undefined, referenceDate?: Date): Date | null {
   if (!timeStr) return null;
 
-  // Try ISO format first
+
   const isoDate = new Date(timeStr);
   if (!isNaN(isoDate.getTime()) && timeStr.includes('T')) {
     return isoDate;
   }
 
-  // Try parsing as ISO without T check (some APIs return ISO without T)
+
   if (!isNaN(isoDate.getTime()) && timeStr.includes('-')) {
     return isoDate;
   }
 
-  // Parse format like "11:08 CST" or "11:08"
+
   const match = timeStr.match(/(\d{1,2}):(\d{2})/);
   if (match) {
     const hours = parseInt(match[1], 10);
@@ -66,11 +63,11 @@ function parseTimeString(timeStr: string | null | undefined, referenceDate?: Dat
 
 function filterValidLoads(loads: ScheduledLoadItem[]): ScheduledLoadItem[] {
   return loads.filter((load) => {
-    // Exclude canceled loads
+
     if (load.ticket_remove_reason_code && load.ticket_remove_reason_code.trim() !== '') {
       return false;
     }
-    // Must have truck code
+
     if (!load.truck_code || load.truck_code.trim() === '') {
       return false;
     }
@@ -88,7 +85,7 @@ function processTruckStates(loads: ScheduledLoadItem[]): TruckState[] {
       const onJobDate = parseTimeString(load.actual_on_job_time, referenceDate);
       if (!onJobDate) return null;
 
-      // toPlant fallback: actual_to_plant_time → actual_at_plant_time
+
       const toPlantDate = parseTimeString(load.actual_to_plant_time || load.actual_at_plant_time, referenceDate);
 
       let safeToPlant: string | null = null;
@@ -99,11 +96,11 @@ function processTruckStates(loads: ScheduledLoadItem[]): TruckState[] {
             : onJobDate.toISOString();
       }
 
-      // unload_time = actual_begin_pour_time or actual_unload_time
+
       const unloadDate = parseTimeString(load.actual_begin_pour_time || load.actual_unload_time, referenceDate);
-      // end_unload = actual_end_pour_time
+
       const endUnloadDate = parseTimeString(load.actual_end_pour_time, referenceDate);
-      // wash_time = actual_wash_time
+
       const washDate = parseTimeString(load.actual_wash_time, referenceDate);
 
       let loadQty = 0;
@@ -145,7 +142,7 @@ function calculateTrucksOnJob(
   for (const state of truckStates) {
     const onJobMs = new Date(state.onJobTime).getTime();
 
-    // End Pour time (cascade: wash_time → end_unload → to_plant_time)
+
     const endPourMs = state.washTime
       ? new Date(state.washTime).getTime()
       : state.endUnloadTime
@@ -156,7 +153,7 @@ function calculateTrucksOnJob(
 
     const departureMs = endPourMs ?? Infinity;
 
-    // Truck must be on job at this time
+
     if (timeMs < onJobMs || timeMs >= departureMs) {
       continue;
     }
@@ -190,15 +187,15 @@ function generateTrucksOnJobData(truckStates: TruckState[]): {
   const eventTimesMs: number[] = [];
 
   for (const state of truckStates) {
-    // Arrival event
+
     eventTimesMs.push(new Date(state.onJobTime).getTime());
 
-    // Pour start event
+
     if (state.unloadTime) {
       eventTimesMs.push(new Date(state.unloadTime).getTime());
     }
 
-    // Departure event (endPour)
+
     const endPour = state.washTime || state.endUnloadTime || state.toPlantTime;
     if (endPour) {
       eventTimesMs.push(new Date(endPour).getTime());
@@ -210,7 +207,7 @@ function generateTrucksOnJobData(truckStates: TruckState[]): {
 
   const dataPoints = new Map<number, { waiting: number; pouring: number }>();
 
-  // First event
+
   const firstEventMs = uniqueEvents[0];
   const firstState = calculateTrucksOnJob(new Date(firstEventMs), truckStates);
   dataPoints.set(firstEventMs, {
@@ -218,10 +215,10 @@ function generateTrucksOnJobData(truckStates: TruckState[]): {
     pouring: firstState.pouring,
   });
 
-  // Subsequent events: (T-1min, old_state) + (T, new_state)
+
   for (let i = 1; i < uniqueEvents.length; i++) {
     const eventMs = uniqueEvents[i];
-    const beforeMs = eventMs - 60000; // 1 minute before
+    const beforeMs = eventMs - 60000;
 
     if (!dataPoints.has(beforeMs)) {
       const beforeState = calculateTrucksOnJob(new Date(beforeMs), truckStates);
@@ -245,8 +242,6 @@ function generateTrucksOnJobData(truckStates: TruckState[]): {
   return { waitingData, pouringData };
 }
 
-// ============= HIGHCHARTS HTML TEMPLATE =============
-
 function generateHighchartsHTML(
   waitingData: [number, number][],
   pouringData: [number, number][],
@@ -261,7 +256,7 @@ function generateHighchartsHTML(
   const textColor = isDark ? '#e5e7eb' : '#333333';
   const gridColor = isDark ? '#374151' : '#e6e6e6';
 
-  // Calculate X-axis domain - show full hour boundaries containing all data points
+
   let xMin: number;
   let xMax: number;
 
@@ -274,18 +269,18 @@ function generateHighchartsHTML(
     const minTime = Math.min(...allTimestamps);
     const maxTime = Math.max(...allTimestamps);
 
-    // Round down to the start of the hour for xMin
+
     const startDate = new Date(minTime);
     startDate.setMinutes(0, 0, 0);
     xMin = startDate.getTime();
 
-    // Round up to the next hour for xMax
+
     const endDate = new Date(maxTime);
     endDate.setMinutes(0, 0, 0);
     endDate.setHours(endDate.getHours() + 1);
     xMax = endDate.getTime();
   } else {
-    // Default X-axis range when no data: show current time +/- 2 hours
+
     const now = new Date();
     const startDate = new Date(now);
     startDate.setHours(startDate.getHours() - 2);
@@ -510,27 +505,25 @@ function generateHighchartsHTML(
 `;
 }
 
-// ============= COMPONENT =============
-
 export const TrucksOnJobWebView: React.FC<TrucksOnJobWebViewProps> = ({
   scheduledLoads,
   isDark,
 }) => {
-  // Card height = chart (25% of screen) + header + swipe indicator + legend
+
   const cardHeight = (SCREEN_HEIGHT * 0.22) + ms(150);
   const themeColors = isDark ? colors.dark : colors.light;
   const webViewRef = useRef<WebView>(null);
   const scrollViewRef = useRef<ScrollViewType>(null);
   const currentScrollX = useRef(0);
 
-  // Zoom state (same as Pour Speed)
+
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isAtEnd, setIsAtEnd] = useState(false);
   const MIN_ZOOM = 1;
   const MAX_ZOOM = 5;
   const ZOOM_STEP = 0.5;
 
-  // Series visibility state (like web version)
+
   const [visibleSeries, setVisibleSeries] = useState<{ waiting: boolean; pouring: boolean }>({
     waiting: true,
     pouring: true,
@@ -542,48 +535,48 @@ export const TrucksOnJobWebView: React.FC<TrucksOnJobWebViewProps> = ({
     [truckStates]
   );
 
-  // Chart dimensions
+
   const horizontalPadding = ms(16);
   const yAxisWidth = ms(35);
   const baseChartWidth = SCREEN_WIDTH - horizontalPadding * 2 - yAxisWidth;
-  // Chart height is always 25% of screen height
+
   const chartHeight = SCREEN_HEIGHT * 0.25;
   const zoomedChartWidth = baseChartWidth * zoomLevel;
 
-  // Calculate max Y value for Y-axis labels
-  // Dynamically rescale based on which series are currently visible (like web)
-  // Round up to nearest even number for clean middle value (0, mid, max)
+
+
+
   const maxYValue = useMemo(() => {
     if (waitingData.length === 0 && pouringData.length === 0) return 10;
 
-    // Create a map of timestamp -> total (only for visible series)
+
     const totalsMap = new Map<number, number>();
 
-    // Add waiting values only if waiting is visible
+
     if (visibleSeries.waiting) {
       waitingData.forEach(([timestamp, value]) => {
         totalsMap.set(timestamp, (totalsMap.get(timestamp) || 0) + value);
       });
     }
 
-    // Add pouring values only if pouring is visible (stacked on top of waiting when both visible)
+
     if (visibleSeries.pouring) {
       pouringData.forEach(([timestamp, value]) => {
         totalsMap.set(timestamp, (totalsMap.get(timestamp) || 0) + value);
       });
     }
 
-    // If no series visible, default to 10
+
     if (totalsMap.size === 0) return 10;
 
-    // Find the maximum stacked total
+
     const maxTotal = Math.max(...Array.from(totalsMap.values()));
 
     if (maxTotal === 0) return 10;
 
-    // Round up to nearest even number so middle value is a clean integer
+
     const rounded = Math.ceil(maxTotal / 2) * 2;
-    return Math.max(rounded, 2); // Minimum of 2 for proper scale
+    return Math.max(rounded, 2);
   }, [waitingData, pouringData, visibleSeries]);
 
   const htmlContent = useMemo(
@@ -593,13 +586,13 @@ export const TrucksOnJobWebView: React.FC<TrucksOnJobWebViewProps> = ({
 
   const hasData = waitingData.length > 0 || pouringData.length > 0;
 
-  // Debug: Log data info
+
   console.log('[TrucksOnJobWebView] scheduledLoads:', scheduledLoads.length);
   console.log('[TrucksOnJobWebView] truckStates:', truckStates.length);
   console.log('[TrucksOnJobWebView] waitingData:', waitingData.length);
   console.log('[TrucksOnJobWebView] pouringData:', pouringData.length);
 
-  // Zoom handlers (same as Pour Speed)
+
   const handleZoomIn = useCallback(() => {
     if (isAtEnd || zoomLevel >= MAX_ZOOM) return;
     setZoomLevel(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
@@ -610,7 +603,7 @@ export const TrucksOnJobWebView: React.FC<TrucksOnJobWebViewProps> = ({
     const newZoom = Math.max(zoomLevel - ZOOM_STEP, MIN_ZOOM);
     setZoomLevel(newZoom);
     setIsAtEnd(false);
-    // Adjust scroll position to prevent blank screen
+
     setTimeout(() => {
       const newMaxScroll = baseChartWidth * newZoom - baseChartWidth;
       if (currentScrollX.current > newMaxScroll) {
@@ -626,11 +619,11 @@ export const TrucksOnJobWebView: React.FC<TrucksOnJobWebViewProps> = ({
     scrollViewRef.current?.scrollTo({ x: 0, animated: true });
   }, []);
 
-  // Toggle series visibility (like web version)
+
   const toggleSeriesVisibility = useCallback((seriesKey: 'waiting' | 'pouring') => {
     setVisibleSeries(prev => {
       const newState = { ...prev, [seriesKey]: !prev[seriesKey] };
-      // Send message to WebView to update chart
+
       if (webViewRef.current) {
         webViewRef.current.postMessage(JSON.stringify({
           type: 'toggleSeries',
@@ -645,12 +638,12 @@ export const TrucksOnJobWebView: React.FC<TrucksOnJobWebViewProps> = ({
   const handleScroll = useCallback((event: any) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     currentScrollX.current = contentOffset.x;
-    // Check if scrolled to the end (with small threshold)
+
     const isEnd = contentOffset.x + layoutMeasurement.width >= contentSize.width - 5;
     setIsAtEnd(isEnd);
   }, []);
 
-  // Handle messages from WebView
+
   const handleWebViewMessage = useCallback((event: WebViewMessageEvent) => {
     try {
       const message = JSON.parse(event.nativeEvent.data);
@@ -662,7 +655,7 @@ export const TrucksOnJobWebView: React.FC<TrucksOnJobWebViewProps> = ({
 
   return (
     <View style={[styles.container, { height: cardHeight, backgroundColor: themeColors.card }]}>
-      {/* Header with title and zoom controls */}
+
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>
           Trucks on the Job
@@ -702,16 +695,16 @@ export const TrucksOnJobWebView: React.FC<TrucksOnJobWebViewProps> = ({
         </View>
       </View>
 
-      {/* Chart container with fixed Y-axis */}
+
       <View style={styles.chartContainer}>
-        {/* Fixed Y-axis */}
+
         <View style={[styles.yAxis, { width: yAxisWidth, height: chartHeight }]}>
           <Text style={[styles.yAxisLabel, { color: themeColors.text.primary }]}>{maxYValue}</Text>
           <Text style={[styles.yAxisLabel, { color: themeColors.text.primary }]}>{maxYValue / 2}</Text>
           <Text style={[styles.yAxisLabel, { color: themeColors.text.primary }]}>0</Text>
         </View>
 
-        {/* Scrollable Chart Area */}
+
         <ScrollView
           ref={scrollViewRef}
           horizontal
@@ -750,7 +743,7 @@ export const TrucksOnJobWebView: React.FC<TrucksOnJobWebViewProps> = ({
         </ScrollView>
       </View>
 
-      {/* Swipe indicator - only show when zoomed in */}
+
       {zoomLevel > 1 && (
         <View style={styles.swipeIndicator}>
           <Icon name="gesture-swipe-horizontal" size={ms(16)} color={themeColors.text.hint} />
@@ -760,7 +753,7 @@ export const TrucksOnJobWebView: React.FC<TrucksOnJobWebViewProps> = ({
         </View>
       )}
 
-      {/* Legend - matching Pour Speed style with toggle functionality */}
+
       <View style={[styles.legend, { marginTop: zoomLevel > 1 ? 0 : ms(12) }]}>
         <TouchableOpacity
           style={[

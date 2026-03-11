@@ -30,7 +30,7 @@ export interface PerformanceChartsProps {
   showTrucksOnJob?: boolean;
   scrollable?: boolean;
   pointSpacing?: number;
-  /** Use WebView with Highcharts for Trucks on Job chart (exact web parity) */
+
   useHighchartsWebView?: boolean;
 }
 

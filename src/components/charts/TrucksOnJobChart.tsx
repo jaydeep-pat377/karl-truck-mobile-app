@@ -25,16 +25,12 @@ import { fontFamily } from '../../theme/typography';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-// Colors matching web Highcharts: Waiting = #434348 (dark gray), Pouring = #90ed7d (light green)
 const COLORS = {
   waiting: '#434348',
   pouring: '#90ed7d',
   grid: '#E0E0E0',
 };
 
-// ============= INTERFACES =============
-
-// ScheduledLoad from API - matches the actual API response structure
 export interface ScheduledLoadItem {
   id?: string;
   ticket_id?: string;
@@ -45,15 +41,15 @@ export interface ScheduledLoadItem {
   load_qty?: number;
   scheduled_qty_raw?: number;
   actual_qty_raw?: number;
-  // String formats for qty (from some API responses)
+
   scheduled_qty?: string;
   actual_qty?: string | null;
-  // Scheduled timing fields
+
   scheduled_time?: string;
   scheduled_on_job_time?: string;
   scheduled_fin_pour_time?: string;
   scheduled_at_plant_time?: string;
-  // Actual timing fields from API
+
   actual_time?: string | null;
   actual_on_job_time?: string | null;
   actual_begin_pour_time?: string | null;
@@ -62,7 +58,7 @@ export interface ScheduledLoadItem {
   actual_wash_time?: string | null;
   actual_to_plant_time?: string | null;
   actual_at_plant_time?: string | null;
-  // Remove reason
+
   ticket_remove_reason_code?: string | null;
   is_completed?: boolean;
 }
@@ -91,19 +87,16 @@ export interface TrucksOnJobChartProps {
   horizontalPadding?: number;
 }
 
-// ============= CORE LOGIC FUNCTIONS (Same as Web) =============
-
-// Parse time string like "11:08 CST" or ISO date to Date object
 function parseTimeString(timeStr: string | null | undefined, referenceDate?: Date): Date | null {
   if (!timeStr) return null;
 
-  // Try ISO format first
+
   const isoDate = new Date(timeStr);
   if (!isNaN(isoDate.getTime()) && timeStr.includes('T')) {
     return isoDate;
   }
 
-  // Parse format like "11:08 CST" or "11:08"
+
   const match = timeStr.match(/(\d{1,2}):(\d{2})/);
   if (match) {
     const hours = parseInt(match[1], 10);
@@ -116,14 +109,13 @@ function parseTimeString(timeStr: string | null | undefined, referenceDate?: Dat
   return null;
 }
 
-// Filter valid scheduled loads - exclude canceled and loads without truck codes
 function filterValidLoads(loads: ScheduledLoadItem[]): ScheduledLoadItem[] {
   return loads.filter((load) => {
-    // Exclude canceled loads
+
     if (load.ticket_remove_reason_code && load.ticket_remove_reason_code.trim() !== '') {
       return false;
     }
-    // Exclude loads without truck code
+
     if (!load.truck_code || load.truck_code.trim() === '') {
       return false;
     }
@@ -131,11 +123,10 @@ function filterValidLoads(loads: ScheduledLoadItem[]): ScheduledLoadItem[] {
   });
 }
 
-// Process scheduled loads to TruckState objects
 function processTruckStates(loads: ScheduledLoadItem[]): TruckState[] {
   const validLoads = filterValidLoads(loads);
 
-  // Use today as reference date for time parsing
+
   const referenceDate = new Date();
 
   return validLoads
@@ -144,10 +135,10 @@ function processTruckStates(loads: ScheduledLoadItem[]): TruckState[] {
       const onJobDate = parseTimeString(load.actual_on_job_time, referenceDate);
       if (!onJobDate) return null;
 
-      // toPlant fallback: actual_to_plant_time → actual_at_plant_time
+
       const toPlantDate = parseTimeString(load.actual_to_plant_time || load.actual_at_plant_time, referenceDate);
 
-      // Ensure ordering: if toPlant exists and is before onJob, clamp
+
       let safeToPlant: string | null = null;
       if (toPlantDate) {
         safeToPlant =
@@ -156,14 +147,14 @@ function processTruckStates(loads: ScheduledLoadItem[]): TruckState[] {
             : onJobDate.toISOString();
       }
 
-      // unload_time = actual_begin_pour_time or actual_unload_time
+
       const unloadDate = parseTimeString(load.actual_begin_pour_time || load.actual_unload_time, referenceDate);
-      // end_unload = actual_end_pour_time
+
       const endUnloadDate = parseTimeString(load.actual_end_pour_time, referenceDate);
-      // wash_time = actual_wash_time
+
       const washDate = parseTimeString(load.actual_wash_time, referenceDate);
 
-      // Parse quantities - handle both number and string formats
+
       let loadQty = 0;
       if (typeof load.actual_qty_raw === 'number') {
         loadQty = load.actual_qty_raw;
@@ -191,7 +182,6 @@ function processTruckStates(loads: ScheduledLoadItem[]): TruckState[] {
     .filter((state): state is TruckState => state !== null);
 }
 
-// Calculate trucks on job at a specific time (CORE CALCULATION)
 function calculateTrucksOnJob(
   time: Date,
   truckStates: TruckState[]
@@ -204,7 +194,7 @@ function calculateTrucksOnJob(
   for (const state of truckStates) {
     const onJobMs = new Date(state.onJobTime).getTime();
 
-    // End Pour time (cascade: wash_time → end_unload → to_plant_time)
+
     const endPourMs = state.washTime
       ? new Date(state.washTime).getTime()
       : state.endUnloadTime
@@ -213,11 +203,11 @@ function calculateTrucksOnJob(
           ? new Date(state.toPlantTime).getTime()
           : null;
 
-    // Departure = endPour; if no endPour data, truck is still on job
+
     const departureMs = endPourMs ?? Infinity;
 
-    // Truck must be on job at this time
-    // At departure time, truck is GONE (count drops AT event time)
+
+
     if (timeMs < onJobMs || timeMs >= departureMs) {
       continue;
     }
@@ -225,14 +215,14 @@ function calculateTrucksOnJob(
     if (state.unloadTime) {
       const unloadMs = new Date(state.unloadTime).getTime();
       if (timeMs < unloadMs) {
-        // Before unload → Waiting
+
         waiting++;
       } else {
-        // From unload to endPour → Pouring
+
         pouring++;
       }
     } else {
-      // No unload time → still waiting
+
       waiting++;
     }
   }
@@ -240,37 +230,36 @@ function calculateTrucksOnJob(
   return { waiting, pouring };
 }
 
-// Generate chart data points with step pattern
 function generateTrucksOnJobData(truckStates: TruckState[]): ChartDataPoint[] {
   if (truckStates.length === 0) return [];
 
-  // Step 1: Collect all event timestamps
+
   const eventTimesMs: number[] = [];
 
   for (const state of truckStates) {
-    // Arrival event
+
     eventTimesMs.push(new Date(state.onJobTime).getTime());
 
-    // Pour start event
+
     if (state.unloadTime) {
       eventTimesMs.push(new Date(state.unloadTime).getTime());
     }
 
-    // Departure event (endPour)
+
     const endPour = state.washTime || state.endUnloadTime || state.toPlantTime;
     if (endPour) {
       eventTimesMs.push(new Date(endPour).getTime());
     }
   }
 
-  // Step 2: Sort and deduplicate
+
   const uniqueEvents = [...new Set(eventTimesMs)].sort((a, b) => a - b);
   if (uniqueEvents.length === 0) return [];
 
-  // Step 3: Generate data points with step pattern
+
   const dataPoints = new Map<number, { waiting: number; pouring: number }>();
 
-  // First event
+
   const firstEventMs = uniqueEvents[0];
   const firstState = calculateTrucksOnJob(new Date(firstEventMs), truckStates);
   dataPoints.set(firstEventMs, {
@@ -278,12 +267,12 @@ function generateTrucksOnJobData(truckStates: TruckState[]): ChartDataPoint[] {
     pouring: firstState.pouring,
   });
 
-  // Subsequent events: (T-1min, old_state) + (T, new_state)
+
   for (let i = 1; i < uniqueEvents.length; i++) {
     const eventMs = uniqueEvents[i];
-    const beforeMs = eventMs - 60000; // 1 minute before
+    const beforeMs = eventMs - 60000;
 
-    // Add "before" point if it doesn't collide
+
     if (!dataPoints.has(beforeMs)) {
       const beforeState = calculateTrucksOnJob(new Date(beforeMs), truckStates);
       dataPoints.set(beforeMs, {
@@ -292,7 +281,7 @@ function generateTrucksOnJobData(truckStates: TruckState[]): ChartDataPoint[] {
       });
     }
 
-    // State at the event
+
     const atState = calculateTrucksOnJob(new Date(eventMs), truckStates);
     dataPoints.set(eventMs, {
       waiting: atState.waiting,
@@ -300,7 +289,7 @@ function generateTrucksOnJobData(truckStates: TruckState[]): ChartDataPoint[] {
     });
   }
 
-  // Step 4: Sort and return
+
   const sorted = [...dataPoints.entries()].sort((a, b) => a[0] - b[0]);
   return sorted.map(([timestamp, state]) => ({
     timestamp,
@@ -308,8 +297,6 @@ function generateTrucksOnJobData(truckStates: TruckState[]): ChartDataPoint[] {
     pouring: state.pouring,
   }));
 }
-
-// ============= CHART COMPONENT =============
 
 export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   scheduledLoads,
@@ -325,12 +312,12 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     pouring: number;
   } | null>(null);
 
-  // Legend toggles
+
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(
     new Set(['waiting', 'pouring'])
   );
 
-  // Zoom state
+
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isAtEnd, setIsAtEnd] = useState(false);
   const MIN_ZOOM = 1;
@@ -339,7 +326,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   const chartScrollRef = useRef<ScrollViewType>(null);
   const currentScrollX = useRef(0);
 
-  // Process scheduled loads data using web logic
+
   const truckStates = useMemo(() => processTruckStates(scheduledLoads), [scheduledLoads]);
   const chartData = useMemo(() => generateTrucksOnJobData(truckStates), [truckStates]);
 
@@ -381,7 +368,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     setSelectedFilters(prev => {
       const newSet = new Set(prev);
       if (newSet.has(key)) {
-        // Don't allow deselecting if it's the only selected item
+
         if (newSet.size === 1) return prev;
         newSet.delete(key);
       } else {
@@ -399,7 +386,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   const baseChartWidth = containerWidth - yAxisWidth;
   const zoomedChartWidth = baseChartWidth * zoomLevel;
 
-  // Calculate maxY based on visible series
+
   const maxY = useMemo(() => {
     if (!hasData) return 6;
 
@@ -416,12 +403,12 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
       maxValue = Math.max(...chartData.map(d => d.pouring), 0);
     }
 
-    // Round up to next even number + padding
+
     const roundedUp = Math.ceil(maxValue / 2) * 2 + 2;
     return Math.max(roundedUp, 6);
   }, [chartData, hasData, selectedFilters]);
 
-  // Y-axis values (even numbers only)
+
   const yAxisValues = useMemo(() => {
     const values: number[] = [];
     for (let i = maxY; i >= 0; i -= 2) {
@@ -430,7 +417,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     return values;
   }, [maxY]);
 
-  // X-axis configuration
+
   const xAxisConfig = useMemo(() => {
     if (!hasData || chartData.length === 0) {
       return { startMs: Date.now(), endMs: Date.now() + 3600000, tickInterval: 30 };
@@ -439,12 +426,12 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     const firstTime = chartData[0].timestamp;
     const lastTime = chartData[chartData.length - 1].timestamp;
 
-    // Add equal padding on both sides (30 minutes) for horizontal centering
-    const PADDING_MS = 30 * 60 * 1000; // 30 minutes in milliseconds
+
+    const PADDING_MS = 30 * 60 * 1000;
     const startMs = firstTime - PADDING_MS;
     const endMs = lastTime + PADDING_MS;
 
-    // Tick interval based on duration
+
     const durationHours = (endMs - startMs) / (60 * 60 * 1000);
     let tickInterval: number;
     if (durationHours <= 4) {
@@ -458,7 +445,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     return { startMs, endMs, tickInterval };
   }, [chartData, hasData]);
 
-  // Get X position for a timestamp
+
   const getX = (timestamp: number): number => {
     const { startMs, endMs } = xAxisConfig;
     const totalRange = endMs - startMs;
@@ -476,7 +463,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     return chartPadding.top + chartAreaHeight - (value / maxY) * chartAreaHeight;
   };
 
-  // Format timestamp to HH:MM
+
   const formatTime = (timestamp: number): string => {
     const date = new Date(timestamp);
     const hours = date.getHours();
@@ -484,7 +471,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     return `${hours}:${mins.toString().padStart(2, '0')}`;
   };
 
-  // Generate X-axis labels
+
   const xAxisLabels = useMemo(() => {
     const { startMs, endMs, tickInterval } = xAxisConfig;
     const labels: Array<{ timestamp: number; display: string; position: number }> = [];
@@ -501,7 +488,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     return labels;
   }, [xAxisConfig]);
 
-  // Create Waiting area path with step pattern
+
   const createWaitingAreaPath = (): string => {
     if (!hasData || chartData.length === 0) return '';
     if (!selectedFilters.has('waiting')) return '';
@@ -509,14 +496,14 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     const n = chartData.length;
     const baseY = getY(0);
 
-    // Build top edge with step pattern
+
     const topEdge: Array<{ x: number; y: number }> = [];
     topEdge.push({ x: getX(chartData[0].timestamp), y: getY(chartData[0].waiting) });
 
     for (let i = 1; i < n; i++) {
-      // Horizontal step to current X at previous Y
+
       topEdge.push({ x: getX(chartData[i].timestamp), y: getY(chartData[i - 1].waiting) });
-      // Vertical step to current Y
+
       topEdge.push({ x: getX(chartData[i].timestamp), y: getY(chartData[i].waiting) });
     }
 
@@ -533,7 +520,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
     return path;
   };
 
-  // Create Pouring area path (stacked on top of Waiting)
+
   const createPouringAreaPath = (): string => {
     if (!hasData || chartData.length === 0) return '';
     if (!selectedFilters.has('pouring')) return '';
@@ -544,7 +531,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
 
     const n = chartData.length;
 
-    // Build top edge
+
     const topEdge: Array<{ x: number; y: number }> = [];
     topEdge.push({ x: getX(chartData[0].timestamp), y: getY(getTopValue(chartData[0])) });
 
@@ -553,7 +540,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
       topEdge.push({ x: getX(chartData[i].timestamp), y: getY(getTopValue(chartData[i])) });
     }
 
-    // Build bottom edge
+
     const bottomEdge: Array<{ x: number; y: number }> = [];
     bottomEdge.push({ x: getX(chartData[0].timestamp), y: getY(getBaseValue(chartData[0])) });
 
@@ -770,7 +757,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
         </View>
       )}
 
-      {/* Legend */}
+
       <View style={styles.legend}>
         <TouchableOpacity
           style={[

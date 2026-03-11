@@ -99,7 +99,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
   useEffect(() => {
     if (visible) {
-      // Reset animation value before opening
+
       slideAnim.setValue(SCREEN_HEIGHT);
       backdropAnim.setValue(0);
       openSheet();
@@ -128,7 +128,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Backdrop */}
+
         <TouchableWithoutFeedback onPress={handleBackdropPress}>
           <Animated.View
             style={[
@@ -138,7 +138,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           />
         </TouchableWithoutFeedback>
 
-        {/* Sheet */}
+
         <Animated.View
           style={[
             styles.sheet,
@@ -149,7 +149,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             },
           ]}
         >
-          {/* Handle Bar - for visual indication only */}
+
           {showHandle && (
             <View style={styles.handleContainer}>
               <View
@@ -161,7 +161,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             </View>
           )}
 
-          {/* Header */}
+
           {(title || showCloseButton) && (
             <View style={[
               styles.header,
@@ -219,7 +219,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             </View>
           )}
 
-          {/* Scrollable Content */}
+
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={[

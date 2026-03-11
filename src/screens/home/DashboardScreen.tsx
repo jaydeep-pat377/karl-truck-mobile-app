@@ -32,7 +32,6 @@ import { fontFamily } from '../../theme/typography';
 import { useAuthStore } from '../../store/authStore';
 import { DeliveryProgress } from '../../types/order';
 
-// Get delivery progress segment color based on status
 const getSegmentColor = (status: string): string => {
   const statusColorMap: Record<string, string> = {
     pending: colors.trackingStatus.pending,
@@ -49,13 +48,12 @@ const getSegmentColor = (status: string): string => {
     at_plant: colors.trackingStatus.atPlant,
     cancelled: colors.trackingStatus.cancelled,
     voided: colors.trackingStatus.voided,
-    remaining: colors.trackingStatus.remaining,    // Light grey for remaining
+    remaining: colors.trackingStatus.remaining,
   };
 
   return statusColorMap[status.toLowerCase()] || colors.grey[40];
 };
 
-// Get display label for status
 const getStatusDisplayLabel = (status: string | undefined): string => {
   if (!status) return '';
   const labelMap: Record<string, string> = {
@@ -78,7 +76,6 @@ const getStatusDisplayLabel = (status: string | undefined): string => {
   return labelMap[status.toLowerCase()] || status;
 };
 
-// Allowed statuses to show in progress bar
 const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'pouring', 'remaining'];
 
 interface ActiveDelivery {
@@ -134,7 +131,7 @@ const DashboardScreen: React.FC = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [apiAnnouncements, setApiAnnouncements] = useState<ApiAnnouncement[]>([]);
 
-  // Format date as YYYY-MM-DD for API
+
   const formatDateForApi = (date: Date): string => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -142,7 +139,7 @@ const DashboardScreen: React.FC = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // Get start_date and end_date for custom calendar selection
+
   const customDateParams = dateFilter === 'calendar' ? {
     startDate: formatDateForApi(selectedDate),
     endDate: formatDateForApi(selectedDate),
@@ -168,7 +165,7 @@ const DashboardScreen: React.FC = () => {
     deliveriesLimit: 10,
   });
 
-  // Map market summary companies to CompanyData format
+
   const companies: CompanyData[] = useMemo(() => {
     if (!marketSummary?.companies) return [];
     return marketSummary.companies.map((company) => ({
@@ -183,7 +180,7 @@ const DashboardScreen: React.FC = () => {
     }));
   }, [marketSummary?.companies]);
 
-  // Map market summary regions to RegionData format
+
   const regions: RegionData[] = useMemo(() => {
     if (!marketSummary?.regions) return [];
     return marketSummary.regions.map((region) => ({
@@ -197,7 +194,7 @@ const DashboardScreen: React.FC = () => {
     }));
   }, [marketSummary?.regions]);
 
-  // Map market summary plants to PlantData format
+
   const plants: PlantData[] = useMemo(() => {
     if (!marketSummary?.plants) return [];
     return marketSummary.plants.map((plant) => ({
@@ -265,13 +262,12 @@ const DashboardScreen: React.FC = () => {
     }
   }, [todayOverview]);
 
-  // Reset filter changing state when data is loaded
+
   useEffect(() => {
     if (isFilterChanging && !isLoading && !isRefetching) {
       setIsFilterChanging(false);
     }
   }, [isFilterChanging, isLoading, isRefetching]);
-
 
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -299,29 +295,27 @@ const DashboardScreen: React.FC = () => {
   }, []);
 
 
-
-  // Helper to generate gradient colors from a base color
   const generateGradientFromColor = (hexColor: string, isDarkMode: boolean): string[] => {
-    // Create lighter/darker variants for gradient
+
     if (isDarkMode) {
       return [hexColor, hexColor + 'DD', hexColor + 'BB'];
     }
     return [hexColor + '30', hexColor + '20', hexColor + '10'];
   };
 
-  // Helper to determine illustration type from tile_type
+
   const getIllustrationType = (tileType: string, hasImage: boolean): 'delivery' | 'weather' | 'promo' | 'custom' => {
-    // If there's a custom image, use 'custom' type to display it
+
     if (hasImage) return 'custom';
 
     const type = tileType?.toLowerCase() || '';
     if (type.includes('delivery') || type.includes('truck')) return 'delivery';
     if (type.includes('weather')) return 'weather';
-    return 'delivery'; // Default fallback
+    return 'delivery';
   };
 
   const advertisements: Advertisement[] = useMemo(() => {
-    // Only show API announcements, no static fallback
+
     return apiAnnouncements.map((announcement) => {
       const hasImage = !!announcement.icon_or_percent;
       return {
@@ -336,7 +330,7 @@ const DashboardScreen: React.FC = () => {
         gradientColors: announcement.color ? generateGradientFromColor(announcement.color, isDark) : undefined,
         accentColor: announcement.color || undefined,
         onAction: announcement.url ? () => {
-          // Open URL in WebView
+
           const rawTitle = announcement.title || announcement.name || 'Announcement';
           const capitalizedTitle = rawTitle
             .split(' ')
@@ -351,18 +345,17 @@ const DashboardScreen: React.FC = () => {
     });
   }, [navigation, apiAnnouncements, isDark]);
 
-
   const quickLaunchActions = useMemo(() => {
     return defaultQuickLaunchActions;
   }, []);
 
   const handleQuickLaunchPress = useCallback((action: QuickLaunchAction) => {
     if (action.id === 'order_concrete') {
-      // Convert dashboard date filter format to orderlist format
+
       const orderListDateFilter = dateFilter === 'next_week' ? 'nextWeek'
         : dateFilter === 'last_week' ? 'lastWeek'
         : dateFilter;
-      // Navigate to Orders screen with saved tab and current date filter
+
       navigation.navigate('Main', {
         screen: 'Orders',
         params: {
@@ -378,7 +371,7 @@ const DashboardScreen: React.FC = () => {
   const getStatusColor = (status: string) => {
     const normalizedStatus = status.toLowerCase().replace(/\s+/g, '_');
     switch (normalizedStatus) {
-      // Ticket tracking statuses
+
       case 'pending':
         return colors.trackingStatus.pending;
       case 'ticketed':
@@ -401,7 +394,7 @@ const DashboardScreen: React.FC = () => {
         return colors.trackingStatus.toPlant;
       case 'at_plant':
         return colors.trackingStatus.atPlant;
-      // Order level statuses
+
       case 'in_progress':
         return colors.primary.main;
       case 'completed':
@@ -425,12 +418,12 @@ const DashboardScreen: React.FC = () => {
 
   const renderDeliveryCard = ({ item, onPress }: { item: ActiveDelivery; onPress?: () => void }) => {
     const progressPercent = Math.min(item.progressPercent, 100);
-    // Use only recent_ticket.status for card shadow and border color
+
     const progressColor = item.recentTicketStatus
       ? getSegmentColor(item.recentTicketStatus)
       : colors.grey[40];
 
-    // Safe formatter that handles null, undefined, and 0
+
     const formatQty = (qty: number | null | undefined): string => {
       if (qty === null || qty === undefined) return '0';
       return qty % 1 === 0 ? qty.toString() : qty.toFixed(1);
@@ -535,7 +528,7 @@ const DashboardScreen: React.FC = () => {
 
           {item.deliveryProgress?.segments && item.deliveryProgress.segments.length > 0 ? (
             <View style={styles.deliveryProgressSection}>
-              {/* Status Labels Row - Above Progress Bar */}
+
               <View style={styles.deliveryProgressLabelsRow}>
                 {item.deliveryProgress.segments
                   .filter((segment) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))
@@ -555,7 +548,7 @@ const DashboardScreen: React.FC = () => {
                   ))}
               </View>
 
-              {/* Progress Bar */}
+
               <View
                 style={[
                   styles.deliveryProgressTrack,
@@ -582,7 +575,7 @@ const DashboardScreen: React.FC = () => {
                 </View>
               </View>
 
-              {/* CY Values Row - Below Progress Bar */}
+
               <View style={styles.deliveryProgressValuesRow}>
                 {item.deliveryProgress.segments
                   .filter((segment) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))
@@ -796,7 +789,7 @@ const DashboardScreen: React.FC = () => {
             regions={regions}
             plants={plants}
             onCompanyPress={(company) => {
-              // Convert dashboard date filter format to orderlist format
+
               const orderListDateFilter = dateFilter === 'next_week' ? 'nextWeek'
                 : dateFilter === 'last_week' ? 'lastWeek'
                 : dateFilter;
@@ -904,8 +897,8 @@ const DashboardScreen: React.FC = () => {
                         item: deliveryItem,
                         onPress: () => {
                           const statusBasedColor = getStatusColor(order.status);
-                          // Navigate to OrderDetailInTab within Orders, but with sourceTab='Home'
-                          // This keeps tab bar visible but the tab bar will detect this and not highlight any tab
+
+
                           navigation.navigate('Orders', {
                             screen: 'OrderDetailInTab',
                             params: {

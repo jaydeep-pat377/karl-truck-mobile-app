@@ -132,7 +132,7 @@ export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
 
-  // Format date as YYYY-MM-DD in local timezone (avoids UTC conversion issues)
+
   const formatDateString = (date: Date): string => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -147,7 +147,7 @@ export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
   const handleConfirm = () => {
     onDateSelect?.(tempDate);
 
-    // Check if selected date matches today, yesterday, or tomorrow
+
     if (isSameDay(tempDate, today)) {
       onFilterChange('today');
     } else if (isSameDay(tempDate, yesterday)) {
@@ -185,7 +185,7 @@ export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.container}
       >
-        {/* Calendar Icon Chip - First */}
+
         <TouchableOpacity
           onLayout={(event) => {
             const { x, width } = event.nativeEvent.layout;
@@ -240,7 +240,7 @@ export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
           </View>
         </TouchableOpacity>
 
-        {/* Date Filter Options */}
+
         {filterOptions.map((option) => {
           const isSelected = selectedFilter === option.key;
           return (
@@ -298,7 +298,7 @@ export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
         </View>
       )}
 
-      {/* Date Picker Modal */}
+
       {showDatePicker && (
         <Modal transparent visible={showDatePicker} animationType="none" onRequestClose={handleCancel} statusBarTranslucent>
           <View style={styles.centeredModalContainer}>
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     fontSize: ms(13),
     fontFamily: fontFamily.bold,
   },
-  // Calendar chip styles
+
   calendarChip: {
     paddingHorizontal: ms(10),
     paddingVertical: ms(6),
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     fontSize: ms(12),
   },
-  // Modal styles
+
   centeredModalContainer: {
     flex: 1,
     justifyContent: 'center',

@@ -105,7 +105,7 @@ export const ChatRoomScreen: React.FC = () => {
 
   const themeColors = isDark ? colors.dark : colors.light;
 
-  // DEBUG: Initialize sound and test on mount
+
   useEffect(() => {
     console.log('[ChatRoom DEBUG] Initializing sound...');
     initMessageSound().then((success) => {
@@ -114,14 +114,14 @@ export const ChatRoomScreen: React.FC = () => {
     });
   }, []);
 
-  // DEBUG: Log when messages change and test sound for new messages from others
+
   const prevMessagesLengthRef = useRef(messages?.length || 0);
   useEffect(() => {
     if (!messages) return;
 
     console.log('[ChatRoom DEBUG] Messages updated, count:', messages.length, 'previous:', prevMessagesLengthRef.current);
 
-    // Check for new messages from others
+
     if (messages.length > prevMessagesLengthRef.current) {
       const newMessages = messages.slice(prevMessagesLengthRef.current);
       console.log('[ChatRoom DEBUG] New messages:', newMessages.length);
@@ -129,7 +129,7 @@ export const ChatRoomScreen: React.FC = () => {
       newMessages.forEach((msg) => {
         console.log('[ChatRoom DEBUG] New msg from:', msg.sender_name, 'sender_id:', msg.sender_id, 'my_id:', user?.id);
 
-        // Play sound for messages from others (not own messages)
+
         if (msg.sender_id !== user?.id && !msg.id.startsWith('temp-')) {
           console.log('[ChatRoom DEBUG] Playing sound for message from:', msg.sender_name);
           const played = playMessageSound();
@@ -389,7 +389,7 @@ export const ChatRoomScreen: React.FC = () => {
           backgroundColor={colors.primary.main}
           barStyle="light-content"
         />
-        {/* Status bar background for iOS */}
+
         <View style={[styles.statusBarBackground, { height: insets.top, backgroundColor: colors.primary.main }]} />
         <ChatHeader
           title={roomName}
@@ -412,7 +412,7 @@ export const ChatRoomScreen: React.FC = () => {
         backgroundColor={colors.primary.main}
         barStyle="light-content"
       />
-      {/* Status bar background for iOS */}
+
       <View style={[styles.statusBarBackground, { height: insets.top, backgroundColor: colors.primary.main }]} />
       <ChatHeader
         title={roomName}

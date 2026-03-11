@@ -38,7 +38,6 @@ export const useNotifications = () => {
     }
   }, []);
 
-
   const syncTokenIfNeeded = useCallback(async () => {
     if (hasSyncedToken.current) return;
 
@@ -61,7 +60,6 @@ export const useNotifications = () => {
       notificationService.cleanup();
     };
   }, [initialize]);
-
 
   useEffect(() => {
     syncTokenIfNeeded();

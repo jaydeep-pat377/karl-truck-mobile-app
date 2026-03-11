@@ -33,7 +33,6 @@ export const useTickets = (params?: Omit<TicketsQueryParams, 'page'>) => {
     refetchOnMount: 'always',
   });
 
-
   const tickets: ApiTicket[] = useMemo(() => {
     if (!query.data?.pages) return [];
     return query.data.pages.flatMap((page) =>
@@ -41,20 +40,17 @@ export const useTickets = (params?: Omit<TicketsQueryParams, 'page'>) => {
     );
   }, [query.data?.pages]);
 
-
   const pagination: TicketsPagination | null = useMemo(() => {
     if (!query.data?.pages?.length) return null;
     const lastPage = query.data.pages[query.data.pages.length - 1];
     return lastPage.success ? lastPage.data.pagination : null;
   }, [query.data?.pages]);
 
-
   const statusCounts: TicketsStatusCounts | null = useMemo(() => {
     if (!query.data?.pages?.length) return null;
     const firstPage = query.data.pages[0];
     return firstPage.success ? firstPage.data.status_counts : null;
   }, [query.data?.pages]);
-
 
   const orderSummary: ApiOrderSummary[] = useMemo(() => {
     if (!query.data?.pages?.length) return [];

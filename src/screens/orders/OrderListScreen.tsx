@@ -829,10 +829,10 @@ export const OrderListScreen: React.FC = () => {
   const { getOrCreateRoom } = useChatRooms();
   const { showAlert } = useGlobalAlert();
 
-  // State to hold params from parent tab navigator
+
   const [parentTabParams, setParentTabParams] = useState<typeof route.params | undefined>(undefined);
 
-  // Check for parent tab params when screen gains focus
+
   useFocusEffect(
     useCallback(() => {
       const parentRoute = navigation.getParent()?.getState()?.routes?.find(r => r.name === 'Orders');
@@ -843,7 +843,7 @@ export const OrderListScreen: React.FC = () => {
     }, [navigation, parentTabParams?._timestamp])
   );
 
-  // Merge parent params with direct route params (direct params take priority)
+
   const effectiveParams = { ...parentTabParams, ...route.params };
 
   const statusFilterFromRoute = effectiveParams?.statusFilter;
@@ -872,7 +872,7 @@ export const OrderListScreen: React.FC = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [favoriteOverrides, setFavoriteOverrides] = useState<Record<string, boolean>>({});
 
-  // Dashboard filter state
+
   const [dashboardFilter, setDashboardFilter] = useState<{
     company_name?: string;
     region_name?: string;
@@ -880,10 +880,10 @@ export const OrderListScreen: React.FC = () => {
     plant_name?: string;
   }>({});
 
-  // Favourite filter state
+
   const [isFavouriteFilter, setIsFavouriteFilter] = useState<boolean>(false);
 
-  // Order status tabs filter
+
   const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatusFilter>('all');
   const [isTabLoading, setIsTabLoading] = useState(false);
   const [isDateFilterLoading, setIsDateFilterLoading] = useState(false);
@@ -937,10 +937,10 @@ export const OrderListScreen: React.FC = () => {
     }, [statusFilterFromRoute, filterTimestamp])
   );
 
-  // Handle dashboard filters and date filter from route params
+
   useEffect(() => {
     if (filterTimestamp) {
-      // Handle dashboard filters (company, region, plant)
+
       if (companyNameFromRoute || regionNameFromRoute || plantCodeFromRoute) {
         setDashboardFilter({
           company_name: companyNameFromRoute,
@@ -950,22 +950,22 @@ export const OrderListScreen: React.FC = () => {
         });
       }
 
-      // Handle favourite filter
+
       if (isFavouriteFromRoute !== undefined) {
         setIsFavouriteFilter(isFavouriteFromRoute);
       }
 
-      // Handle tab filter from route (e.g., 'saved' from dashboard)
+
       if (tabFromRoute) {
         setOrderStatusFilter(tabFromRoute);
       }
 
-      // Apply date filter from route (from dashboard)
+
       if (dateFilterFromRoute) {
         setActiveFilter(dateFilterFromRoute);
         setDebouncedFilter(dateFilterFromRoute);
 
-        // If calendar date was selected, also set the selected date
+
         if (dateFilterFromRoute === 'calendar' && selectedDateFromRoute) {
           const date = new Date(selectedDateFromRoute);
           setSelectedDate(date);
@@ -1035,7 +1035,7 @@ export const OrderListScreen: React.FC = () => {
     params.sort_by = sortParams.sort_by;
     params.sort_order = sortParams.sort_order;
 
-    // Add dashboard filters
+
     if (dashboardFilter.company_name) {
       params.company_name = dashboardFilter.company_name;
     }
@@ -1049,12 +1049,12 @@ export const OrderListScreen: React.FC = () => {
       params.plant_name = dashboardFilter.plant_name;
     }
 
-    // Add favourite filter (from route params)
+
     if (isFavouriteFilter) {
       params.is_favourite = true;
     }
 
-    // Add tab filter based on order status tabs
+
     if (orderStatusFilter !== 'all') {
       params.tab = orderStatusFilter as 'saved' | 'scheduled' | 'active' | 'completed' | 'cancelled' | 'requested';
     }
@@ -1086,8 +1086,8 @@ export const OrderListScreen: React.FC = () => {
     return count;
   }, [appliedFilters]);
 
-  // Order status tabs counts - use tab_counts from API response
-  // "all" is calculated as sum of scheduled + active + completed + cancelled (excludes saved as it overlaps)
+
+
   const orderStatusCounts: OrderStatusCount = useMemo(() => {
     const allCount = (tabCounts?.scheduled || 0) +
                      (tabCounts?.active || 0) +
@@ -1122,7 +1122,7 @@ export const OrderListScreen: React.FC = () => {
     wasRefetchingRef.current = isRefetching;
   }, [isRefetching]);
 
-  // Clear loading states when not fetching anymore
+
   useEffect(() => {
     if ((isTabLoading || isDateFilterLoading) && !isFetching && !isLoading) {
       const timer = setTimeout(() => {
@@ -1147,8 +1147,8 @@ export const OrderListScreen: React.FC = () => {
   const filteredOrders = useMemo(() => {
     let orders = mappedOrders;
 
-    // Tab filtering is now handled by the API via the 'tab' parameter
-    // No need for client-side status filtering
+
+
 
     if (appliedFilters.productType !== 'all') {
       const productMap: Record<string, string> = {
@@ -1185,7 +1185,7 @@ export const OrderListScreen: React.FC = () => {
     setIsDateFilterLoading(true);
     setSelectedDate(date);
     setActiveFilter('calendar');
-    // Reset order status tab to 'all' when date filter changes
+
     setOrderStatusFilter('all');
   }, []);
 
@@ -1219,7 +1219,7 @@ export const OrderListScreen: React.FC = () => {
 
     setIsTabLoading(true);
     setOrderStatusFilter(status);
-    // Loading state will be cleared when API fetch completes (via isFetching effect)
+
   }, [orderStatusFilter]);
 
   const handleRefresh = useCallback(() => {
@@ -1269,7 +1269,7 @@ export const OrderListScreen: React.FC = () => {
   const scrollToFilter = useCallback((filterId: string) => {
     const position = filterChipPositions.current[filterId];
     if (position && dateFilterScrollRef.current) {
-      // Calculate scroll position to center the chip
+
       const screenWidth = Dimensions.get('window').width;
       const scrollX = Math.max(0, position.x - (screenWidth / 2) + (position.width / 2));
       dateFilterScrollRef.current.scrollTo({ x: scrollX, animated: true });
@@ -1281,7 +1281,7 @@ export const OrderListScreen: React.FC = () => {
 
     setIsDateFilterLoading(true);
     setActiveFilter(id);
-    // Reset order status tab to 'all' when date filter changes
+
     setOrderStatusFilter('all');
     if (id) {
       scrollToFilter(id);
@@ -1554,7 +1554,7 @@ export const OrderListScreen: React.FC = () => {
             </ScrollView>
           </View>
 
-          {/* Dashboard Filter Chip */}
+
           {(dashboardFilter.company_name || dashboardFilter.region_name || dashboardFilter.plant_code) && (
             <View style={styles.dashboardFilterContainer}>
               <View style={[styles.dashboardFilterChip, { backgroundColor: colors.primary.main + '15' }]}>
@@ -1572,7 +1572,7 @@ export const OrderListScreen: React.FC = () => {
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
-                    // Only clear company/region/plant filter, keep date filter as is
+
                     setDashboardFilter({});
                     navigation.setParams({
                       company_name: undefined,
@@ -1591,7 +1591,7 @@ export const OrderListScreen: React.FC = () => {
             </View>
           )}
 
-          {/* Saved Orders Filter Chip */}
+
           {isFavouriteFilter && (
             <View style={styles.dashboardFilterContainer}>
               <View style={[styles.dashboardFilterChip, { backgroundColor: colors.warning.main + '15' }]}>
@@ -1712,7 +1712,7 @@ export const OrderListScreen: React.FC = () => {
         </View>
       ) : (
         <>
-          {/* Static Order Count Header */}
+
           <View style={styles.staticListHeader}>
             <View style={styles.ordersFoundRow}>
               {isFilterLoading ? (

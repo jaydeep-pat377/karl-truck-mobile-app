@@ -219,7 +219,7 @@ export const TopGradientBackground: React.FC<TopGradientBackgroundProps> = memo(
   }, [isDark, customColors]);
 
   const gradientLocations = useMemo(() => {
-    // Match locations to the number of gradient colors
+
     const colorCount = gradientColors.length;
     if (colorCount === 5) {
       return [0, 0.2, 0.4, 0.7, 1];

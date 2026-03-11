@@ -30,7 +30,7 @@ export const WebViewScreen: React.FC = () => {
     navigation.goBack();
   };
 
-  // JavaScript to hide back button/link from webpage content
+
   const injectedJS = `
     (function() {
       var style = document.createElement('style');
@@ -61,7 +61,7 @@ export const WebViewScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={backgroundColor} />
 
-      {/* Header */}
+
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm, backgroundColor, borderBottomColor: borderColor }]}>
         <TouchableOpacity
           style={[styles.backButton, { backgroundColor: isDark ? colors.grey[80] : colors.grey[10] }]}
@@ -76,14 +76,14 @@ export const WebViewScreen: React.FC = () => {
         <View style={styles.headerSpacer} />
       </View>
 
-      {/* Progress Bar */}
+
       {isLoading && loadProgress > 0 && loadProgress < 1 && (
         <View style={[styles.progressBarContainer, { backgroundColor: isDark ? colors.grey[80] : colors.grey[20] }]}>
           <View style={[styles.progressBar, { width: `${loadProgress * 100}%`, backgroundColor: colors.primary.main }]} />
         </View>
       )}
 
-      {/* WebView */}
+
       <View style={styles.webViewContainer}>
         <WebView
           source={{ uri: url }}
@@ -119,7 +119,7 @@ export const WebViewScreen: React.FC = () => {
         )}
       </View>
 
-      {/* Bottom Safe Area */}
+
       <View style={{ height: insets.bottom, backgroundColor }} />
     </View>
   );

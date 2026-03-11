@@ -17,7 +17,6 @@ import { ms, isSmallDevice, spacing } from '../../utils/responsive';
 import { getStatusColor, getProgressBarColor } from '../../utils/statusUtils';
 import { TicketTrackingStatus, DeliveryProgress } from '../../types';
 
-// Get progress bar color based on recent ticket status
 const getTicketStatusColor = (status: TicketTrackingStatus | undefined): string | undefined => {
   if (!status) return undefined;
 
@@ -40,30 +39,28 @@ const getTicketStatusColor = (status: TicketTrackingStatus | undefined): string 
   return statusColorMap[status];
 };
 
-// Get delivery progress segment color based on status
 const getSegmentColor = (status: string): string => {
   const statusColorMap: Record<string, string> = {
-    pending: colors.trackingStatus.pending,        // Grey
-    ticketed: colors.trackingStatus.ticketed,      // Yellow #FFC107
-    loading: colors.trackingStatus.loading,        // Yellow Orange #FF9800
-    loaded: colors.trackingStatus.loaded,          // Orange #FF5722
-    to_job: colors.trackingStatus.toJob,           // Green #8BC34A
-    at_job: colors.trackingStatus.atJob,           // Yellow Green #4CAF50
-    on_job: colors.trackingStatus.atJob,           // Yellow Green #4CAF50
-    pouring: colors.trackingStatus.pouring,        // Blue Green #009688
-    poured: colors.trackingStatus.poured,          // Blue #2196F3
-    washing: colors.trackingStatus.washing,        // Light Blue #03A9F4
-    to_plant: colors.trackingStatus.toPlant,       // Violet #9C27B0
-    at_plant: colors.trackingStatus.atPlant,       // Red Violet #a5244f
-    cancelled: colors.trackingStatus.cancelled,    // Red #F44336
-    voided: colors.trackingStatus.voided,          // Red #F44336
-    remaining: colors.trackingStatus.remaining,    // Light grey for remaining
+    pending: colors.trackingStatus.pending,
+    ticketed: colors.trackingStatus.ticketed,
+    loading: colors.trackingStatus.loading,
+    loaded: colors.trackingStatus.loaded,
+    to_job: colors.trackingStatus.toJob,
+    at_job: colors.trackingStatus.atJob,
+    on_job: colors.trackingStatus.atJob,
+    pouring: colors.trackingStatus.pouring,
+    poured: colors.trackingStatus.poured,
+    washing: colors.trackingStatus.washing,
+    to_plant: colors.trackingStatus.toPlant,
+    at_plant: colors.trackingStatus.atPlant,
+    cancelled: colors.trackingStatus.cancelled,
+    voided: colors.trackingStatus.voided,
+    remaining: colors.trackingStatus.remaining,
   };
 
   return statusColorMap[status.toLowerCase()] || colors.trackingStatus.remaining;
 };
 
-// Get display label for status
 const getStatusDisplayLabel = (status: string | undefined): string => {
   if (!status) return '';
   const labelMap: Record<string, string> = {
@@ -85,7 +82,6 @@ const getStatusDisplayLabel = (status: string | undefined): string => {
   return labelMap[status.toLowerCase()] || status;
 };
 
-// Allowed statuses to show in progress bar
 const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'pouring', 'remaining'];
 
 interface OrderCardProps {
@@ -192,11 +188,9 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
 
   const progress = order.progress || 0;
 
-
   const statusColor = getStatusColor(order.status, progress);
 
 
-  // Use only recent_ticket.status for card shadow and border color
   const progressBarColor = getTicketStatusColor(order.recentTicketStatus) || colors.grey[40];
 
   const formatDate = (dateStr: string) => {
@@ -220,7 +214,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
 
   const evaporationRateValue = getEvaporationRate();
 
-  // Get weather data from either format
+
   const getWeatherData = () => {
     const weatherData = order.weather_data || order.weather;
     if (!weatherData) return null;
@@ -236,17 +230,17 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
 
   const weatherData = getWeatherData();
 
-  // Get evaporation rate background color
+
   const getEvaporationBgColor = (rate: number | null) => {
     if (rate === null || rate === undefined) return colors.grey[40];
-    if (rate < 0.10) return colors.success.main; // green
-    if (rate < 0.20) return colors.warning.main; // yellow
+    if (rate < 0.10) return colors.success.main;
+    if (rate < 0.20) return colors.warning.main;
     if (rate < 0.30) return colors.unloadingRate.light;
     if (rate < 0.40) return colors.unloadingRate.medium;
     return colors.unloadingRate.dark;
   };
 
-  // Get evaporation rate text label
+
   const getEvaporationText = (rate: number | null) => {
     if (rate === null || rate === undefined) return '';
     if (rate < 0.10) return 'Low';
@@ -256,7 +250,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
     return 'Severe';
   };
 
-  // Get weather icon name based on condition
+
   const getWeatherIconName = (condition: string) => {
     const conditionLower = condition.toLowerCase();
     if (conditionLower.includes('cloud')) return 'weather-cloudy';
@@ -400,7 +394,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
             <>
               {order.deliveryProgress?.segments && order.deliveryProgress.segments.length > 0 ? (
                 <View style={styles.segmentedProgressSection}>
-                  {/* Status Labels Row - Above Progress Bar */}
+
                   <View style={styles.segmentLabelsRow}>
                     {order.deliveryProgress.segments
                       .filter((segment: any) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))
@@ -420,7 +414,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
                       ))}
                   </View>
 
-                  {/* Progress Bar */}
+
                   <View style={[styles.progressBarBg, { backgroundColor: isDark ? colors.progress.trackDark : colors.progress.trackLight }]}>
                     <View style={styles.segmentedProgressContainer}>
                       {order.deliveryProgress.segments
@@ -442,7 +436,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
                     </View>
                   </View>
 
-                  {/* CY Values Row - Below Progress Bar */}
+
                   <View style={styles.segmentValuesRow}>
                     {order.deliveryProgress.segments
                       .filter((segment: any) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))

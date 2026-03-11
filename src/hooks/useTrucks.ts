@@ -38,7 +38,6 @@ export const useTrucks = (params?: Omit<TrucksQueryParams, 'page'>) => {
     refetchInterval: 30 * 1000,
   });
 
-
   const trucks: Truck[] = useMemo(() => {
     if (!query.data?.pages) return [];
 
@@ -46,7 +45,6 @@ export const useTrucks = (params?: Omit<TrucksQueryParams, 'page'>) => {
       page.success ? page.data.map(mapApiTruckToTruck) : []
     );
   }, [query.data?.pages]);
-
 
   const pagination: TrucksPagination | null = useMemo(() => {
     if (!query.data?.pages?.length) return null;

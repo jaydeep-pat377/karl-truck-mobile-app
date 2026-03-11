@@ -100,7 +100,6 @@ export interface RecentAlert {
   timestamp: string;
 }
 
-// Market Summary Types
 export interface MarketCompany {
   id: string;
   code: string;

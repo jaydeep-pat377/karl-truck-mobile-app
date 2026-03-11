@@ -2,28 +2,24 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Platform } from 'react-native';
 import Sound from 'react-native-sound';
 
-// Enable playback in silence mode (iOS)
 Sound.setCategory('Playback');
 
 interface UseNotificationSoundOptions {
-  /** Enable/disable sound playback */
+
   enabled?: boolean;
-  /** Volume level (0 to 1) */
+
   volume?: number;
 }
 
 interface UseNotificationSoundReturn {
-  /** Plays the notification sound, returns success status */
+
   playSound: () => Promise<boolean>;
-  /** Whether the sound system is supported/ready */
+
   isSupported: boolean;
-  /** Whether sound is currently playing */
+
   isPlaying: boolean;
 }
 
-/**
- * Base hook for playing notification sounds
- */
 export const useNotificationSound = (
   options: UseNotificationSoundOptions = {}
 ): UseNotificationSoundReturn => {
@@ -34,14 +30,14 @@ export const useNotificationSound = (
   const [isSupported, setIsSupported] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Initialize sound on mount
+
   useEffect(() => {
-    // Sound file paths:
-    // Android: android/app/src/main/res/raw/message_notification_sound.mp3
-    //          (referenced WITHOUT extension)
-    // iOS: added to Xcode project bundle (with extension)
+
+
+
+
     const soundFile = Platform.OS === 'android'
-      ? 'message_notification_sound'  // No extension for Android!
+      ? 'message_notification_sound'
       : 'message-notification-sound.mp3';
 
     console.log('[useNotificationSound] Loading sound file:', soundFile);
@@ -62,12 +58,12 @@ export const useNotificationSound = (
         setIsSupported(true);
         isLoadedRef.current = true;
 
-        // Set volume to max
+
         soundRef.current?.setVolume(volume);
       }
     );
 
-    // Cleanup on unmount
+
     return () => {
       if (soundRef.current) {
         soundRef.current.stop();
@@ -78,7 +74,7 @@ export const useNotificationSound = (
     };
   }, []);
 
-  // Update volume when it changes
+
   useEffect(() => {
     if (soundRef.current && isLoadedRef.current) {
       soundRef.current.setVolume(volume);
@@ -105,7 +101,7 @@ export const useNotificationSound = (
       try {
         setIsPlaying(true);
 
-        // Stop any current playback and reset to beginning
+
         soundRef.current?.stop(() => {
           soundRef.current?.setCurrentTime(0);
 

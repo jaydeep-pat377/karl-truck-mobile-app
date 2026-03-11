@@ -40,7 +40,7 @@ const AppContentWithSplash: React.FC<AppContentProps> = ({ onReady }) => {
   const { theme, isDark } = useTheme();
   const { user } = useAuthStore();
 
-  // Get user and tenant info for notifications
+
   const userId = user?.id ?? null;
   const tenantId = user?.metadata?.tenant?.tenant_id ?? null;
 

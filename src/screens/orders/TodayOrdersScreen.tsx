@@ -115,7 +115,7 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
       condition: mapWeatherCondition(apiOrder.weather_data.weather_condition),
       temperature: apiOrder.weather_data.temperature_fahrenheit,
       temperatureUnit: 'F',
-      description: 'Partly cloudy', // Placeholder, as API doesn't provide a description
+      description: 'Partly cloudy',
       humidity: apiOrder.weather_data.humidity,
       windSpeed: apiOrder.weather_data.wind_speed_mph,
       evaporationRate: apiOrder.weather_data.evaporation_rate,

@@ -27,30 +27,28 @@ import { useTicketsByOrder } from '../../hooks';
 import { ApiTicketStatus, TicketByOrderItem } from '../../types/ticket';
 import { DeliveryProgress, DeliveryProgressSegment } from '../../types/order';
 
-// Get delivery progress segment color based on status
 const getSegmentColor = (status: string): string => {
   const statusColorMap: Record<string, string> = {
-    pending: colors.trackingStatus.pending,        // Grey
-    ticketed: colors.trackingStatus.ticketed,      // Yellow #FFC107
-    loading: colors.trackingStatus.loading,        // Yellow Orange #FF9800
-    loaded: colors.trackingStatus.loaded,          // Orange #FF5722
-    to_job: colors.trackingStatus.toJob,           // Green #8BC34A
-    at_job: colors.trackingStatus.atJob,           // Yellow Green #4CAF50
-    on_job: colors.trackingStatus.atJob,           // Yellow Green #4CAF50
-    pouring: colors.trackingStatus.pouring,        // Blue Green #009688
-    poured: colors.trackingStatus.poured,          // Blue #2196F3
-    washing: colors.trackingStatus.washing,        // Light Blue #03A9F4
-    to_plant: colors.trackingStatus.toPlant,       // Violet #9C27B0
-    at_plant: colors.trackingStatus.atPlant,       // Red Violet #a5244f
-    cancelled: colors.trackingStatus.cancelled,    // Red #F44336
-    voided: colors.trackingStatus.voided,          // Red #F44336
-    remaining: colors.trackingStatus.remaining,    // Light grey for remaining
+    pending: colors.trackingStatus.pending,
+    ticketed: colors.trackingStatus.ticketed,
+    loading: colors.trackingStatus.loading,
+    loaded: colors.trackingStatus.loaded,
+    to_job: colors.trackingStatus.toJob,
+    at_job: colors.trackingStatus.atJob,
+    on_job: colors.trackingStatus.atJob,
+    pouring: colors.trackingStatus.pouring,
+    poured: colors.trackingStatus.poured,
+    washing: colors.trackingStatus.washing,
+    to_plant: colors.trackingStatus.toPlant,
+    at_plant: colors.trackingStatus.atPlant,
+    cancelled: colors.trackingStatus.cancelled,
+    voided: colors.trackingStatus.voided,
+    remaining: colors.trackingStatus.remaining,
   };
 
   return statusColorMap[status.toLowerCase()] || colors.grey[40];
 };
 
-// Get display label for status
 const getStatusDisplayLabel = (status: string | undefined): string => {
   if (!status) return '';
   const labelMap: Record<string, string> = {
@@ -73,7 +71,6 @@ const getStatusDisplayLabel = (status: string | undefined): string => {
   return labelMap[status.toLowerCase()] || status;
 };
 
-// Allowed statuses to show in progress bar
 const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'pouring', 'remaining'];
 
 type TicketScreenRouteProp = RouteProp<RootStackParamList, 'Ticket'>;
@@ -221,11 +218,10 @@ const STATUS_CONFIG: Record<TicketStatus, StatusConfig> = {
   },
 };
 
-// Weather helper functions (matching OrderCard logic)
 const getEvaporationBgColor = (rate: number | null | undefined): string => {
   if (rate === null || rate === undefined) return colors.grey[40];
-  if (rate < 0.10) return colors.success.main; // green
-  if (rate < 0.20) return colors.warning.main; // yellow
+  if (rate < 0.10) return colors.success.main;
+  if (rate < 0.20) return colors.warning.main;
   if (rate < 0.30) return colors.unloadingRate.light;
   if (rate < 0.40) return colors.unloadingRate.medium;
   return colors.unloadingRate.dark;
@@ -353,7 +349,7 @@ interface StatusBadgeProps {
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status, displayLabel }) => {
-  // Use displayLabel if provided (from API), fallback to status.label
+
   const label = displayLabel?.toUpperCase() || status.label || '';
 
   return (
@@ -583,7 +579,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
     };
   }, [totalDeliveredQty, orderedQty, totalTickets]);
 
-  // Accordion state for delivery progress legend
+
   const [isProgressExpanded, setIsProgressExpanded] = React.useState(false);
   const progressAnimatedHeight = React.useRef(new Animated.Value(0)).current;
 
@@ -599,7 +595,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
     setIsProgressExpanded(!isProgressExpanded);
   };
 
-  // Calculate max height based on number of segments (including bottom margin)
+
   const progressLegendMaxHeight = deliveryProgress?.segments
     ? deliveryProgress.segments.length * 24 + ms(6) + ms(8)
     : 0;
@@ -684,7 +680,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
         </View>
       </View>
 
-      {/* Weather Info Row */}
+
       {weatherData && (
         <TouchableOpacity
           activeOpacity={0.7}
@@ -749,7 +745,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
 
         {deliveryProgress?.segments && deliveryProgress.segments.length > 0 ? (
           <View style={styles.segmentedProgressSection}>
-            {/* Status Labels Row - Above Progress Bar */}
+
             <View style={styles.segmentLabelsRow}>
               {deliveryProgress.segments
                 .filter((segment) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))
@@ -769,7 +765,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
                 ))}
             </View>
 
-            {/* Progress Bar */}
+
             <View style={[styles.progressBarContainer, { backgroundColor: isDark ? colors.dark.surface : colors.grey[10] }]}>
               <View style={styles.progressSegmentsContainer}>
                 {deliveryProgress.segments
@@ -791,7 +787,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
               </View>
             </View>
 
-            {/* CY Values Row - Below Progress Bar */}
+
             <View style={styles.segmentValuesRow}>
               {deliveryProgress.segments
                 .filter((segment) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()))
@@ -1333,7 +1329,7 @@ export const TicketScreen: React.FC = () => {
   const getDisplayStatus = useCallback((status: string, statusDisplay: string): string => {
     const lowerStatus = status?.toLowerCase() || '';
     const lowerDisplay = statusDisplay?.toLowerCase() || '';
-    // Show "Voided" for any cancelled-related status
+
     if (lowerStatus.includes('cancel') || lowerDisplay.includes('cancel')) {
       return 'Voided';
     }
@@ -1343,7 +1339,7 @@ export const TicketScreen: React.FC = () => {
   const getTimestampForStatus = useCallback((status: string, timestamps: TicketByOrderItem['timestamps']): string => {
     if (!timestamps) return '';
 
-    // Map status to corresponding timestamp field
+
     const statusTimestampMap: Record<string, string | null | undefined> = {
       pending: timestamps.ticketed,
       ticketed: timestamps.ticketed,
@@ -1363,12 +1359,12 @@ export const TicketScreen: React.FC = () => {
 
   const allTickets = useMemo(
     () => (apiTickets || []).map((ticket: TicketByOrderItem): DeliveryTicket => {
-      // Extract truck code - handle both string and object formats
+
       const truckCode = typeof ticket.truck === 'string'
         ? ticket.truck
         : ticket.truck?.truck_code || '';
 
-      // Extract truck location if truck is an object
+
       const truckLocation = typeof ticket.truck === 'object' && ticket.truck
         ? { latitude: ticket.truck.latitude, longitude: ticket.truck.longitude }
         : null;

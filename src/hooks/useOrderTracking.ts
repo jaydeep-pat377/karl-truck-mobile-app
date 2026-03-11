@@ -65,12 +65,10 @@ export const useOrderTracking = (
     },
   });
 
-
   const tickets = useMemo(() => {
     if (!data?.pages) return [];
     return data.pages.flatMap(page => page?.data?.tickets || []);
   }, [data?.pages]);
-
 
   const trackingData = useMemo(() => {
     if (!data?.pages?.[0]?.data) return null;
@@ -80,7 +78,6 @@ export const useOrderTracking = (
       tickets,
     };
   }, [data?.pages, tickets]);
-
 
   const pagination = useMemo(() => {
     if (!data?.pages?.length) return null;

@@ -37,13 +37,13 @@ export const BiometricToggleItem: React.FC<BiometricToggleItemProps> = ({
   } = useBiometrics();
   const [isToggling, setIsToggling] = useState(false);
 
-  // Only hide while loading
+
   if (isLoading) {
     return null;
   }
 
   const handleToggle = async () => {
-    // If biometrics not available, show alert to redirect to settings
+
     if (!isAvailable) {
       openBiometricSettings();
       return;

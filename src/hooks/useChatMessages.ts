@@ -117,7 +117,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
           if (newMessages.length > 0) {
             console.log(`[Chat Poll] Found ${newMessages.length} new message(s)`);
 
-            // Play sound if user is not viewing this chat room
+
             if (currentRoomId !== roomId) {
               playMessageSound();
             }
@@ -171,7 +171,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
                 const msg = payload.new as RawChatMessage;
 
-                // Ignore messages from the current user
+
                 if (supabaseUserId && msg.sender_id === supabaseUserId) {
                   return;
                 }
@@ -205,7 +205,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
                 addMessage(roomId, newMessage);
 
-                // Play sound and increment unread if user is NOT viewing this chat room
+
                 if (currentRoomId !== roomId) {
                   incrementUnreadCount(roomId);
                   playMessageSound();

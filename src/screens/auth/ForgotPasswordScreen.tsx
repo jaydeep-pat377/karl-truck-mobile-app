@@ -35,7 +35,6 @@ interface ForgotPasswordScreenProps {
   navigation?: any;
 }
 
-// Custom Animated Input Component
 const AnimatedInput: React.FC<{
   value: string;
   onChangeText: (text: string) => void;
@@ -173,7 +172,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
     try {
       await forgotPassword(email);
     } catch (err) {
-      // Error handled by hook
+
     }
   };
 
@@ -216,7 +215,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
         translucent
       />
 
-      {/* Gradient Background */}
+
       <LinearGradient
         colors={loginColors.gradient}
         start={{ x: 0, y: 0 }}
@@ -224,7 +223,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
         style={styles.gradientBackground}
       />
 
-      {/* Decorative Circles */}
+
       <View style={[styles.decorativeCircle, styles.circle1, { backgroundColor: loginColors.decorativeCircle, opacity: loginColors.circleOpacity1 }]} />
       <View style={[styles.decorativeCircle, styles.circle2, { backgroundColor: loginColors.decorativeCircle, opacity: loginColors.circleOpacity2 }]} />
       <View style={[styles.decorativeCircle, styles.circle3, { backgroundColor: loginColors.decorativeCircle, opacity: loginColors.circleOpacity3 }]} />
@@ -240,7 +239,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
           extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
           extraHeight={120}
         >
-          {/* Icon Section */}
+
           <Animated.View
             entering={FadeInDown.delay(150).springify()}
             style={styles.iconSection}
@@ -254,7 +253,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
             </View>
           </Animated.View>
 
-          {/* Form Container */}
+
           <Animated.View
             entering={FadeInUp.delay(200).springify()}
             style={[
@@ -266,7 +265,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
               },
             ]}
           >
-            {/* Header Text */}
+
             <View style={styles.headerSection}>
               <Text
                 variant="h2"
@@ -286,7 +285,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
               </Text>
             </View>
 
-            {/* Form Section */}
+
             <View style={styles.form}>
               <AnimatedInput
                 value={email}
@@ -305,7 +304,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
                 isDark={isDark}
               />
 
-              {/* Submit Button */}
+
               <AnimatedTouchable
                 onPress={handleSubmit}
                 onPressIn={handlePressIn}
@@ -328,7 +327,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
                 </LinearGradient>
               </AnimatedTouchable>
 
-              {/* Back to Login */}
+
               <TouchableOpacity
                 onPress={handleBack}
                 activeOpacity={0.7}
@@ -342,7 +341,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
             </View>
           </Animated.View>
 
-          {/* Footer */}
+
           <Animated.View
             entering={FadeInUp.delay(500).springify()}
             style={styles.footer}>

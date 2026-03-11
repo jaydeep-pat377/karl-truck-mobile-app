@@ -14,10 +14,8 @@ import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
 import { useTheme } from '../../contexts/ThemeContext';
 
-// Detail screen names that should NOT highlight any tab
-// Note: Do NOT include initial/main screens of each tab here (OrderList, SettingsMain, etc.)
 const DETAIL_SCREEN_NAMES = [
-  // Order detail screens
+
   'OrderDetail',
   'OrderDetailInTab',
   'TicketDetail',
@@ -30,7 +28,7 @@ const DETAIL_SCREEN_NAMES = [
   'ProductCode',
   'EvaporationList',
   'OrderProductDetails',
-  // Settings sub-screens
+
   'Profile',
   'EditProfile',
   'ChangePassword',
@@ -43,32 +41,31 @@ const DETAIL_SCREEN_NAMES = [
   'About',
 ];
 
-// Helper to check if user is on a detail screen within the currently focused tab
 const isOnDetailScreen = (state: any): boolean => {
   if (!state || !state.routes) return false;
 
-  // Get the currently focused tab
+
   const focusedTabIndex = state.index;
   const focusedTab = state.routes[focusedTabIndex];
 
   if (!focusedTab) return false;
 
-  // Check if the focused tab has a nested navigator state
+
   if (focusedTab.state && focusedTab.state.routes && focusedTab.state.routes.length > 0) {
     const nestedRoutes = focusedTab.state.routes;
     const nestedIndex = focusedTab.state.index;
 
-    // Get the current screen in the nested navigator
+
     if (typeof nestedIndex === 'number' && nestedIndex >= 0) {
       const currentNestedRoute = nestedRoutes[nestedIndex];
       const screenName = currentNestedRoute?.name;
 
-      // Check if this is a detail screen by name
+
       if (DETAIL_SCREEN_NAMES.includes(screenName)) {
         return true;
       }
 
-      // Also check if nested index > 0 (not on the first/main screen of the tab)
+
       if (nestedIndex > 0) {
         return true;
       }
@@ -78,16 +75,14 @@ const isOnDetailScreen = (state: any): boolean => {
   return false;
 };
 
-// Helper to get the actual focused tab index
 const getActualFocusedIndex = (state: any, routes: any[]): number => {
-  // Check if state.index is a valid number within bounds
+
   if (typeof state.index === 'number' && state.index >= 0 && state.index < routes.length) {
     return state.index;
   }
-  return 0; // Default to Home
+  return 0;
 };
 
-// Helper to get the initial screen name for each tab (for resetting when on detail screens)
 const getInitialScreenForTab = (tabName: string): string | undefined => {
   switch (tabName) {
     case 'Orders':
@@ -95,7 +90,7 @@ const getInitialScreenForTab = (tabName: string): string | undefined => {
     case 'Settings':
       return 'SettingsMain';
     default:
-      return undefined; // Home, Notifications don't have nested navigators
+      return undefined;
   }
 };
 
@@ -185,12 +180,12 @@ const TabItem: React.FC<TabItemProps> = ({
   const routes = state?.routes || [];
   const focusedIndex = getActualFocusedIndex(state || {}, routes);
 
-  // Check if user is on a detail screen in the currently focused tab
+
   const onDetailScreen = isOnDetailScreen(state);
 
-  // Determine if this tab should be focused/highlighted:
-  // - If on ANY detail screen → NO tab highlighted
-  // - If on a main tab screen (first screen of each tab) → highlight that tab
+
+
+
   const isFocused = !onDetailScreen && focusedIndex === index;
 
   const themeColors = tabBarTheme[theme];
@@ -262,25 +257,25 @@ const TabItem: React.FC<TabItemProps> = ({
 
     const initialScreen = getInitialScreenForTab(route.name);
 
-    // Check if we're on a detail screen - if so, always navigate to reset the tab
+
     if (onDetailScreen) {
-      // Navigate to the tab and reset to its initial screen
+
       if (initialScreen) {
         navigation.navigate(route.name, { screen: initialScreen });
       } else {
-        // For tabs without nested navigators (Home, Notifications)
+
         navigation.navigate(route.name);
       }
     } else if (!isFocused) {
-      // Normal navigation when switching tabs
+
       if (initialScreen) {
         navigation.navigate(route.name, { screen: initialScreen });
       } else {
         navigation.navigate(route.name);
       }
     } else {
-      // Already on this tab's main screen - still navigate to ensure responsiveness
-      // This handles cases where navigation state might be stale
+
+
       if (initialScreen) {
         navigation.navigate(route.name, { screen: initialScreen });
       } else {

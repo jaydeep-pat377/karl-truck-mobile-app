@@ -48,7 +48,6 @@ interface LoginScreenProps {
 const REMEMBER_ME_EMAIL = 'rememberMeEmail';
 const REMEMBER_ME_PASSWORD = 'rememberMePassword';
 
-// Custom Animated Input Component
 const AnimatedInput: React.FC<{
   value: string;
   onChangeText: (text: string) => void;
@@ -245,18 +244,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
     setErrors({});
 
     try {
-      // Save credentials before login attempt if Remember Me is checked
-      // This ensures credentials are saved before navigation happens
+
+
       await handleRememberMe(rememberMe, email, password);
 
       const deviceToken = await notificationService.getToken();
       await login(email, password, deviceToken || undefined);
     } catch (error) {
       console.log('Login error:', error);
-      // If login fails and Remember Me was checked, clear the saved credentials
+
       if (rememberMe) {
         await handleRememberMe(false, '', '');
-        // Keep the checkbox checked for user to try again
+
         setRememberMe(true);
       }
     }
@@ -301,7 +300,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
         translucent
       />
 
-      {/* Gradient Background */}
+
       <LinearGradient
         colors={loginColors.gradient}
         start={{ x: 0, y: 0 }}
@@ -309,7 +308,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
         style={styles.gradientBackground}
       />
 
-      {/* Decorative Circles */}
+
       <View style={[styles.decorativeCircle, styles.circle1, { backgroundColor: loginColors.decorativeCircle, opacity: loginColors.circleOpacity1 }]} />
       <View style={[styles.decorativeCircle, styles.circle2, { backgroundColor: loginColors.decorativeCircle, opacity: loginColors.circleOpacity2 }]} />
       <View style={[styles.decorativeCircle, styles.circle3, { backgroundColor: loginColors.decorativeCircle, opacity: loginColors.circleOpacity3 }]} />
@@ -325,7 +324,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
           extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
           extraHeight={120}
         >
-          {/* Logo Section */}
+
           <Animated.View
             entering={FadeInDown.delay(100).springify()}
             style={styles.logoSection}
@@ -345,7 +344,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
             </Text>
           </Animated.View>
 
-          {/* Form Container */}
+
           <Animated.View
             entering={FadeInUp.delay(200).springify()}
             style={[
@@ -357,7 +356,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
               },
             ]}
           >
-            {/* Welcome Text */}
+
             <View style={styles.welcomeSection}>
               <Text
                 variant="h2"
@@ -399,7 +398,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
               </Animated.View>
             )}
 
-            {/* Form Section */}
+
             <View style={styles.form}>
               <AnimatedInput
                 value={email}
@@ -435,7 +434,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
                 isDark={isDark}
               />
 
-              {/* Options Row */}
+
               <View style={styles.optionsRow}>
                 <TouchableOpacity
                   style={styles.rememberMe}
@@ -469,7 +468,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
             </View>
           </Animated.View>
 
-          {/* Login Button - Outside form card to avoid iOS clipping */}
+
           <Animated.View
             entering={FadeInUp.delay(300).springify()}
             style={styles.loginButtonWrapper}
@@ -497,7 +496,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
             </AnimatedTouchable>
           </Animated.View>
 
-          {/* Footer */}
+
           <Animated.View
             entering={FadeInUp.delay(500).springify()}
             style={styles.footer}>

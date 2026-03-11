@@ -28,17 +28,14 @@ const getDeviceLanguage = (): SupportedLanguage => {
     if (locales && locales.length > 0) {
       const deviceLang = locales[0].languageTag;
 
-
       if (deviceLang in supportedLanguages) {
         return deviceLang as SupportedLanguage;
       }
-
 
       const langCode = deviceLang.split('-')[0];
       if (langCode in supportedLanguages) {
         return langCode as SupportedLanguage;
       }
-
 
       if (langCode === 'fr') {
         return 'fr-CA';
@@ -62,21 +59,16 @@ i18n
       escapeValue: false,
     },
 
-
     react: {
       useSuspense: false,
     },
 
-
     debug: __DEV__,
-
 
     defaultNS: 'translation',
     ns: ['translation'],
 
-
     keySeparator: '.',
-
 
     returnEmptyString: false,
     returnNull: false,

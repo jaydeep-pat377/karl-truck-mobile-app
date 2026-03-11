@@ -628,7 +628,7 @@ export const WeatherScreen: React.FC = () => {
         style={styles.gradientBackground}
       />
 
-      {/* Static Header - Only Top Row */}
+
       <View style={[styles.staticHeader, { paddingTop: insets.top }]}>
         <View style={styles.headerTopRow}>
           <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
@@ -652,7 +652,7 @@ export const WeatherScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Scrollable Content */}
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + GRID.xl * 2 }]}

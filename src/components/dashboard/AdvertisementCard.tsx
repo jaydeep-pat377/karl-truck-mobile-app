@@ -21,7 +21,6 @@ import { fontFamily } from '../../theme/typography';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - spacing.lg * 2;
 
-// Promotional Illustration - Delivery Truck with packages
 const DeliveryIllustration: React.FC = () => (
   <Svg width={100} height={80} viewBox="0 0 100 80">
     <Defs>
@@ -35,28 +34,28 @@ const DeliveryIllustration: React.FC = () => (
       </SvgGradient>
     </Defs>
 
-    {/* Road */}
+
     <Rect x="0" y="65" width="100" height="15" fill="#E0E0E0" rx="3" />
     <Path d="M10 72 L25 72 M35 72 L50 72 M60 72 L75 72 M85 72 L95 72" stroke="#BDBDBD" strokeWidth="2" strokeLinecap="round" strokeDasharray="8 6" />
 
-    {/* Truck body */}
+
     <Rect x="25" y="35" width="45" height="30" rx="4" fill="url(#truckGrad)" />
 
-    {/* Truck cabin */}
+
     <Path d="M70 45 L70 65 L85 65 L85 50 Q85 45 80 45 Z" fill="url(#truckGrad)" />
     <Rect x="73" y="48" width="8" height="8" rx="1" fill="#B3E5FC" />
 
-    {/* Truck details */}
+
     <Rect x="28" y="40" width="15" height="10" rx="2" fill="rgba(255,255,255,0.3)" />
     <Rect x="46" y="40" width="15" height="10" rx="2" fill="rgba(255,255,255,0.3)" />
 
-    {/* Wheels */}
+
     <Circle cx="38" cy="65" r="8" fill="#424242" />
     <Circle cx="38" cy="65" r="4" fill="#757575" />
     <Circle cx="78" cy="65" r="8" fill="#424242" />
     <Circle cx="78" cy="65" r="4" fill="#757575" />
 
-    {/* Flying packages */}
+
     <G transform="translate(5, 15) rotate(-15)">
       <Rect width="18" height="14" rx="2" fill="url(#boxGrad)" />
       <Path d="M0 7 L18 7" stroke="#E65100" strokeWidth="1.5" />
@@ -69,14 +68,13 @@ const DeliveryIllustration: React.FC = () => (
       <Path d="M7 0 L7 11" stroke="#0288D1" strokeWidth="1" />
     </G>
 
-    {/* Speed lines */}
+
     <Path d="M5 50 L15 50" stroke="#BDBDBD" strokeWidth="2" strokeLinecap="round" />
     <Path d="M0 55 L12 55" stroke="#BDBDBD" strokeWidth="1.5" strokeLinecap="round" />
     <Path d="M8 60 L18 60" stroke="#BDBDBD" strokeWidth="1" strokeLinecap="round" />
   </Svg>
 );
 
-// Weather/Sunny Illustration
 const WeatherIllustration: React.FC = () => (
   <Svg width={100} height={80} viewBox="0 0 100 80">
     <Defs>
@@ -90,10 +88,10 @@ const WeatherIllustration: React.FC = () => (
       </SvgGradient>
     </Defs>
 
-    {/* Sun */}
+
     <Circle cx="70" cy="25" r="18" fill="url(#sunGrad)" />
 
-    {/* Sun rays */}
+
     <G stroke="#FFB300" strokeWidth="2.5" strokeLinecap="round">
       <Path d="M70 2 L70 8" />
       <Path d="M70 42 L70 48" />
@@ -105,20 +103,20 @@ const WeatherIllustration: React.FC = () => (
       <Path d="M83 13 L87 9" />
     </G>
 
-    {/* Cloud */}
+
     <Path
       d="M15 55 Q5 55 5 45 Q5 38 12 38 Q12 30 22 30 Q28 30 32 34 Q35 28 45 28 Q58 28 58 40 Q65 40 65 48 Q65 55 55 55 Z"
       fill="url(#cloudGrad)"
     />
 
-    {/* Small cloud */}
+
     <Path
       d="M75 60 Q68 60 68 53 Q68 48 73 48 Q73 44 80 44 Q88 44 88 52 Q92 52 92 56 Q92 60 86 60 Z"
       fill="url(#cloudGrad)"
       opacity="0.8"
     />
 
-    {/* Ground indicator */}
+
     <Ellipse cx="50" cy="75" rx="35" ry="5" fill="#C8E6C9" />
   </Svg>
 );
@@ -243,12 +241,12 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
                 end={{ x: 1, y: 1 }}
                 style={styles.card}
               >
-                {/* Ad Label */}
+
                 <View style={[styles.adLabel, { backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.6)' }]}>
                   <Text style={styles.adLabelText}>Ad</Text>
                 </View>
 
-                {/* Promotional Badge */}
+
                 {ad.badge && (
                   <View style={[styles.promoBadge, { backgroundColor: accentColor }]}>
                     <Icon name="tag" size={ms(10)} color={colors.common.white} />
@@ -258,7 +256,7 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
                   </View>
                 )}
 
-                {/* Close Button */}
+
                 <TouchableOpacity
                   style={[styles.closeBtn, { backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.8)' }]}
                   onPress={() => handleClose(ad.id)}
@@ -268,23 +266,23 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
                   <Icon name="close" size={ms(14)} color={isDark ? colors.common.white : colors.grey[60]} />
                 </TouchableOpacity>
 
-                {/* Content Layout */}
+
                 <View style={styles.content}>
-                  {/* Left Side - Text */}
+
                   <View style={styles.textContent}>
-                    {/* Headline */}
+
                     <Text style={[styles.headline, { color: isDark ? colors.common.white : colors.grey[100] }]}>
                       {ad.headline}
                     </Text>
 
-                    {/* Subheadline */}
+
                     {ad.subheadline && (
                       <Text style={[styles.subheadline, { color: isDark ? 'rgba(255,255,255,0.85)' : colors.grey[70] }]}>
                         {ad.subheadline}
                       </Text>
                     )}
 
-                    {/* Description */}
+
                     <Text
                       style={[styles.description, { color: isDark ? 'rgba(255,255,255,0.75)' : colors.grey[60] }]}
                       numberOfLines={2}
@@ -292,7 +290,7 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
                       {ad.description}
                     </Text>
 
-                    {/* CTA Button */}
+
                     <TouchableOpacity
                       style={[styles.ctaButton, { backgroundColor: accentColor }]}
                       onPress={() => {
@@ -306,13 +304,13 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
                     </TouchableOpacity>
                   </View>
 
-                  {/* Right Side - Illustration */}
+
                   <View style={styles.illustrationContainer}>
                     {renderIllustration(ad)}
                   </View>
                 </View>
 
-                {/* Page Indicator */}
+
                 {visibleAds.length > 1 && (
                   <View style={[styles.pageIndicator, { backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)' }]}>
                     <Text style={[styles.pageText, { color: isDark ? colors.common.white : colors.grey[70] }]}>
@@ -321,7 +319,7 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
                   </View>
                 )}
 
-                {/* Decorative Elements */}
+
                 <View pointerEvents="none" style={[styles.decorCircle1, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.4)' }]} />
                 <View pointerEvents="none" style={[styles.decorCircle2, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.3)' }]} />
               </LinearGradient>
@@ -330,7 +328,7 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
         })}
       </ScrollView>
 
-      {/* Pagination Dots */}
+
       {visibleAds.length > 1 && (
         <View style={styles.dotsContainer}>
           {visibleAds.map((_, idx) => (
@@ -447,7 +445,7 @@ const styles = StyleSheet.create({
     paddingVertical: ms(6),
     borderRadius: ms(12),
     gap: ms(3),
-    // Button shadow
+
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -501,7 +499,7 @@ const styles = StyleSheet.create({
     height: ms(6),
     borderRadius: ms(3),
   },
-  // Decorative circles
+
   decorCircle1: {
     position: 'absolute',
     width: ms(120),

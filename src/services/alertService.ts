@@ -21,14 +21,11 @@ class AlertService {
   private queue: AlertConfig[] = [];
   private isReady: boolean = false;
 
-
   subscribe(listener: AlertListener): () => void {
     this.listeners.add(listener);
     this.isReady = true;
 
-
     this.processQueue();
-
 
     return () => {
       this.listeners.delete(listener);
@@ -38,7 +35,6 @@ class AlertService {
     };
   }
 
-
   show(config: AlertConfig): void {
     if (!this.isReady || this.listeners.size === 0) {
 
@@ -46,10 +42,8 @@ class AlertService {
       return;
     }
 
-
     this.listeners.forEach(listener => listener(config));
   }
-
 
   private processQueue(): void {
     while (this.queue.length > 0 && this.isReady) {
@@ -61,7 +55,6 @@ class AlertService {
     }
   }
 
-
   showError(title: string, message?: string, onOk?: () => void): void {
     this.show({
       type: 'error',
@@ -70,7 +63,6 @@ class AlertService {
       buttons: [{ text: 'OK', onPress: onOk, style: 'default' }],
     });
   }
-
 
   showSuccess(title: string, message?: string, onOk?: () => void): void {
     this.show({
@@ -81,7 +73,6 @@ class AlertService {
     });
   }
 
-
   showWarning(title: string, message?: string, onOk?: () => void): void {
     this.show({
       type: 'warning',
@@ -90,7 +81,6 @@ class AlertService {
       buttons: [{ text: 'OK', onPress: onOk, style: 'default' }],
     });
   }
-
 
   showInfo(title: string, message?: string, onOk?: () => void): void {
     this.show({
@@ -101,12 +91,11 @@ class AlertService {
     });
   }
 
-
   showApiError(error: any): void {
     let title = 'Error';
     let message = 'Something went wrong. Please try again.';
 
-    // Log full error details for debugging
+
     console.log('[AlertService] showApiError called with:', JSON.stringify({
       message: error?.message,
       status: error?.response?.status,
@@ -131,7 +120,6 @@ class AlertService {
       } else if (data?.error) {
         message = data.error;
       }
-
 
       switch (status) {
         case 400:
@@ -186,7 +174,7 @@ class AlertService {
       }
     }
 
-    // Send to Sentry for tracking
+
     addBreadcrumb({
       category: 'api.error',
       message: `${title}: ${message}`,

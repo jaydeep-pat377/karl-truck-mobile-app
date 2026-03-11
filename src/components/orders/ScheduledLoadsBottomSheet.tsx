@@ -27,7 +27,6 @@ export interface ScheduledLoadItem {
   actual_at_plant_time?: string | null;
 }
 
-// Status config for load status colors and icons
 const LOAD_STATUS_CONFIG: Record<string, { color: string; icon: string; label: string }> = {
   pending: { color: colors.grey[50], icon: 'clock-outline', label: 'Pending' },
   ticketed: { color: colors.trackingStatus.ticketed, icon: 'ticket-outline', label: 'Ticketed' },
@@ -101,7 +100,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
       height="full"
     >
       <View style={styles.container}>
-        {/* Summary Stats */}
+
         <View style={styles.summaryRow}>
           <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[5] }]}>
             <Text style={[styles.summaryValue, { color: themeColors.text.primary }]}>{loads.length}</Text>
@@ -117,7 +116,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
           </View>
         </View>
 
-        {/* Loads List */}
+
         <View style={styles.loadsList}>
           {loads.map((load, index) => {
             const isCompleted = !!load.actual_time;
@@ -130,9 +129,9 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                   { backgroundColor: isDark ? themeColors.cardElevated : colors.common.white }
                 ]}
               >
-                {/* Card Header */}
+
                 <View style={styles.loadCardHeader}>
-                  {/* Left Group: Load Number, Quantity & Status */}
+
                   <View style={styles.headerLeftGroup}>
                     <View style={[
                       styles.loadBadge,
@@ -147,7 +146,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                     <Text style={[styles.loadCardQtyText, { color: themeColors.text.primary }]} numberOfLines={1}>
                       {load.scheduled_qty}
                     </Text>
-                    {/* Status */}
+
                     {load.load_status && (
                       <View style={[styles.loadStatusTag, {
                         backgroundColor: isDark
@@ -168,9 +167,9 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                     )}
                   </View>
 
-                  {/* Right Group: Ticket, Truck */}
+
                   <View style={styles.headerRightGroup}>
-                    {/* Ticket */}
+
                     {load.ticket_code && (
                       <View style={[styles.loadTicketTag, { backgroundColor: isDark ? colors.secondary.main + '20' : colors.secondary.main + '12' }]}>
                         <Icon name="ticket-outline" size={ms(10)} color={colors.secondary.main} />
@@ -178,7 +177,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                       </View>
                     )}
 
-                    {/* Truck */}
+
                     {load.truck_code && (
                       <View style={[styles.loadTruckTag, { backgroundColor: isDark ? colors.info.main + '20' : colors.info.main + '12' }]}>
                         <ConcreteTruck width={ms(16)} height={ms(12)} color={colors.info.main} />
@@ -188,7 +187,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                   </View>
                 </View>
 
-                {/* Time Row */}
+
                 <View style={[styles.loadTimeRow, {
                   borderTopColor: isDark ? themeColors.border : colors.grey[10],
                   backgroundColor: isDark ? colors.semiTransparent.white03 : colors.common.transparent
@@ -223,7 +222,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                   </View>
                 </View>
 
-                {/* Wash & Return Info */}
+
                 {(load.actual_wash_time || load.actual_at_plant_time) && (
                   <View style={[styles.loadInfoRow, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
                     {load.actual_wash_time && (

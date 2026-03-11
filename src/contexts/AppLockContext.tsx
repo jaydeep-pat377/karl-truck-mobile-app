@@ -5,7 +5,7 @@ import { STORAGE_KEYS } from '../utils/storage';
 import { useAuthStore } from '../store/authStore';
 import { useBiometrics } from '../hooks/useBiometrics';
 
-const LOCK_TIMEOUT_MS = 60 * 1000; // 1 minute
+const LOCK_TIMEOUT_MS = 60 * 1000;
 
 interface AppLockContextType {
   isLocked: boolean;
@@ -26,7 +26,7 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
   const { isAuthenticated, isInitialized } = useAuthStore();
   const { isEnabled, authenticate, isLoading: isBiometricsLoading } = useBiometrics();
 
-  // Check if app should be locked on initial launch (app killed and reopened)
+
   const checkInitialLock = useCallback(async () => {
     console.log('[AppLock] Checking initial lock:', { isAuthenticated, isEnabled, isInitialized, isBiometricsLoading });
 
@@ -42,7 +42,7 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
       console.log('[AppLock] Last background time:', lastBackgroundTime);
 
       if (lastBackgroundTime) {
-        // App was backgrounded before - check timeout
+
         const elapsed = Date.now() - parseInt(lastBackgroundTime, 10);
         console.log('[AppLock] Elapsed time:', elapsed, 'Timeout:', LOCK_TIMEOUT_MS);
         if (elapsed >= LOCK_TIMEOUT_MS) {
@@ -50,21 +50,21 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
           setIsLocked(true);
         }
       } else {
-        // No background time stored = app was killed and reopened
-        // Lock the app immediately if biometrics are enabled
+
+
         console.log('[AppLock] Locking - fresh app start with biometrics enabled');
         setIsLocked(true);
       }
     } catch (error) {
       console.error('[AppLock] Error checking initial lock state:', error);
-      // On error, lock the app for security
+
       setIsLocked(true);
     } finally {
       setHasCheckedInitialLock(true);
     }
   }, [isAuthenticated, isEnabled, isInitialized, isBiometricsLoading]);
 
-  // Check on app mount - wait for both auth and biometrics to be ready
+
   useEffect(() => {
     const isReady = isInitialized && !isBiometricsLoading;
     console.log('[AppLock] Ready check:', { isInitialized, isBiometricsLoading, isReady, hasCheckedInitialLock });
@@ -74,14 +74,14 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
     }
   }, [isInitialized, isBiometricsLoading, hasCheckedInitialLock, checkInitialLock]);
 
-  // Handle app state changes (background/foreground)
+
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       if (
         appStateRef.current.match(/active/) &&
         nextAppState.match(/inactive|background/)
       ) {
-        // App going to background - store timestamp
+
         if (isAuthenticated && isEnabled) {
           console.log('[AppLock] Going to background - saving timestamp');
           await AsyncStorage.setItem(
@@ -93,7 +93,7 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
         appStateRef.current.match(/inactive|background/) &&
         nextAppState === 'active'
       ) {
-        // App coming to foreground - check if should lock
+
         if (isAuthenticated && isEnabled) {
           try {
             const lastBackgroundTime = await AsyncStorage.getItem(STORAGE_KEYS.APP_LAST_BACKGROUND_TIME);
@@ -122,7 +122,7 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
     };
   }, [isAuthenticated, isEnabled]);
 
-  // Reset lock state when user logs out
+
   useEffect(() => {
     if (!isAuthenticated && isInitialized) {
       console.log('[AppLock] User logged out - clearing lock state');
@@ -139,7 +139,7 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
     if (result.success) {
       console.log('[AppLock] Unlock successful');
       setIsLocked(false);
-      // Clear the background time so app won't lock again immediately
+
       await AsyncStorage.removeItem(STORAGE_KEYS.APP_LAST_BACKGROUND_TIME);
     } else {
       console.log('[AppLock] Unlock failed:', result.error);

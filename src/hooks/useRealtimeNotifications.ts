@@ -1,26 +1,18 @@
-/**
- * Real-Time Notifications Hook
- *
- * Subscribes to Supabase Realtime for live notification updates.
- * Uses PostgreSQL Changes to receive INSERT/UPDATE events on notification_queue table.
- */
+
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { notificationSupabase } from '../lib/notification-client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
-// ---------------------
-// Types
-// ---------------------
 export interface RealtimeNotificationItem {
-  id: string;           // queue_uuid (stable unique ID)
-  dbId: number | string;         // auto-increment id from DB
-  title: string;        // subject field
-  description: string;  // body field
+  id: string;
+  dbId: number | string;
+  title: string;
+  description: string;
   type: 'order' | 'truck' | 'alert' | 'info';
-  time: string;         // created_at (ISO timestamp)
-  read: boolean;        // status === 'delivered'
-  eventCode: string;    // event_code
+  time: string;
+  read: boolean;
+  eventCode: string;
   tenantId: number | null;
   entityType?: string;
   entityId?: string;
@@ -43,9 +35,6 @@ interface UseRealtimeNotificationsReturn {
   isConnected: boolean;
 }
 
-// ---------------------
-// Event code to type mapper
-// ---------------------
 function mapEventCodeToType(eventCode: string): RealtimeNotificationItem['type'] {
   if (!eventCode) return 'info';
   const upper = eventCode.toUpperCase();
@@ -56,9 +45,6 @@ function mapEventCodeToType(eventCode: string): RealtimeNotificationItem['type']
   return 'info';
 }
 
-// ---------------------
-// Map database row to NotificationItem
-// ---------------------
 function mapRow(row: any): RealtimeNotificationItem {
   return {
     id: row.queue_uuid || String(row.id),
@@ -75,9 +61,6 @@ function mapRow(row: any): RealtimeNotificationItem {
   };
 }
 
-// ---------------------
-// Hook
-// ---------------------
 export function useRealtimeNotifications({
   userId,
   tenantId,
@@ -92,14 +75,14 @@ export function useRealtimeNotifications({
   const channelRef = useRef<RealtimeChannel | null>(null);
   const onNewNotificationRef = useRef(onNewNotification);
 
-  // Keep callback ref up to date
+
   useEffect(() => {
     onNewNotificationRef.current = onNewNotification;
   }, [onNewNotification]);
 
-  // ---------------------
-  // Fetch initial notifications (last 50)
-  // ---------------------
+
+
+
   const fetchInitial = useCallback(async () => {
     if (!userId || !notificationSupabase) {
       setIsLoading(false);
@@ -120,7 +103,7 @@ export function useRealtimeNotifications({
 
       let items = (data || []).map(mapRow);
 
-      // Client-side tenant filter (Supabase Realtime only supports single-column filter)
+
       if (tenantId) {
         items = items.filter(
           (n) => n.tenantId === null || n.tenantId === tenantId
@@ -136,9 +119,9 @@ export function useRealtimeNotifications({
     }
   }, [userId, tenantId]);
 
-  // ---------------------
-  // Subscribe to real-time changes
-  // ---------------------
+
+
+
   useEffect(() => {
     console.log('[RealtimeNotifications] Setup check:', {
       userId,
@@ -159,7 +142,7 @@ export function useRealtimeNotifications({
 
     const channel = notificationSupabase
       .channel(channelName)
-      // --- INSERT event: new notification ---
+
       .on(
         'postgres_changes',
         {
@@ -172,7 +155,7 @@ export function useRealtimeNotifications({
           console.log('[RealtimeNotifications] INSERT received:', payload);
           const newItem = mapRow(payload.new);
 
-          // Client-side tenant filter
+
           if (
             tenantId &&
             newItem.tenantId !== null &&
@@ -181,7 +164,7 @@ export function useRealtimeNotifications({
             return;
           }
 
-          // Deduplicate
+
           setNotifications((prev) => {
             if (prev.some((n) => n.id === newItem.id)) return prev;
             return [newItem, ...prev];
@@ -191,11 +174,11 @@ export function useRealtimeNotifications({
             setUnreadCount((prev) => prev + 1);
           }
 
-          // Trigger sound + push notification callback
+
           onNewNotificationRef.current?.(newItem);
         }
       )
-      // --- UPDATE event: status change (read/unread) ---
+
       .on(
         'postgres_changes',
         {
@@ -234,9 +217,9 @@ export function useRealtimeNotifications({
     };
   }, [userId, tenantId, enabled, fetchInitial]);
 
-  // ---------------------
-  // Re-fetch when app comes to foreground
-  // ---------------------
+
+
+
   useEffect(() => {
     const handleAppState = (state: AppStateStatus) => {
       if (state === 'active' && userId && enabled) {
@@ -248,16 +231,16 @@ export function useRealtimeNotifications({
     return () => subscription.remove();
   }, [fetchInitial, userId, enabled]);
 
-  // ---------------------
-  // Mark single notification as read (optimistic)
-  // ---------------------
+
+
+
   const markAsRead = useCallback(
     async (notificationId: string) => {
-      // Find the notification to check if already read
+
       const notification = notifications.find((n) => n.id === notificationId);
       if (!notification || notification.read) return;
 
-      // Optimistic UI update
+
       setNotifications((prev) =>
         prev.map((n) =>
           n.id === notificationId ? { ...n, read: true } : n
@@ -275,19 +258,19 @@ export function useRealtimeNotifications({
         if (error) throw error;
       } catch (err) {
         console.error('[RealtimeNotifications] Failed to mark as read:', err);
-        fetchInitial(); // Revert on error
+        fetchInitial();
       }
     },
     [notifications, fetchInitial]
   );
 
-  // ---------------------
-  // Mark all as read (optimistic)
-  // ---------------------
+
+
+
   const markAllAsRead = useCallback(async () => {
     if (!userId || !notificationSupabase) return;
 
-    // Optimistic UI update
+
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
 
@@ -301,7 +284,7 @@ export function useRealtimeNotifications({
       if (error) throw error;
     } catch (err) {
       console.error('[RealtimeNotifications] Failed to mark all as read:', err);
-      fetchInitial(); // Revert on error
+      fetchInitial();
     }
   }, [userId, fetchInitial]);
 

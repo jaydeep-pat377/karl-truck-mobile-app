@@ -976,7 +976,7 @@ const DashboardScreen: React.FC = () => {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => navigation.navigate('Settings')}>
-            {user?.avatarUrl && user.avatarUrl !== 'https://example.com/avatar.jpg' ? (
+            {user?.avatarUrl ? (
               <Image
                 source={{ uri: user.avatarUrl }}
                 style={styles.avatarImage}

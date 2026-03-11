@@ -1,17 +1,9 @@
-/**
- * Local Push Notifications Hook
- *
- * Handles local push notifications using @notifee/react-native.
- * Shows system-level notifications on the device.
- */
+
 import { useEffect, useRef, useCallback } from 'react';
 import { Platform } from 'react-native';
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 import { RealtimeNotificationItem } from './useRealtimeNotifications';
 
-// ---------------------
-// Android Channel IDs
-// ---------------------
 const CHANNEL_IDS = {
   orders: 'orders',
   trucks: 'trucks',
@@ -19,9 +11,6 @@ const CHANNEL_IDS = {
   general: 'general',
 } as const;
 
-// ---------------------
-// Map notification type to Android channel
-// ---------------------
 function getAndroidChannelId(type: RealtimeNotificationItem['type']): string {
   switch (type) {
     case 'order':
@@ -35,9 +24,6 @@ function getAndroidChannelId(type: RealtimeNotificationItem['type']): string {
   }
 }
 
-// ---------------------
-// Create Android notification channels
-// ---------------------
 async function createAndroidChannels(): Promise<void> {
   if (Platform.OS !== 'android') return;
 
@@ -84,13 +70,10 @@ async function createAndroidChannels(): Promise<void> {
   }
 }
 
-// ---------------------
-// Request notification permissions
-// ---------------------
 async function requestPermissions(): Promise<boolean> {
   try {
     const settings = await notifee.requestPermission();
-    const granted = settings.authorizationStatus >= 1; // AUTHORIZED or PROVISIONAL
+    const granted = settings.authorizationStatus >= 1;
     console.log('[LocalPush] Permission', granted ? 'granted' : 'denied');
     return granted;
   } catch (error) {
@@ -99,40 +82,34 @@ async function requestPermissions(): Promise<boolean> {
   }
 }
 
-// ---------------------
-// Hook Props
-// ---------------------
 interface UseLocalPushNotificationsProps {
   onNotificationTap?: (data: any) => void;
 }
 
-// ---------------------
-// Hook
-// ---------------------
 export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps) {
   const { onNotificationTap } = props || {};
   const onNotificationTapRef = useRef(onNotificationTap);
 
-  // Keep callback ref up to date
+
   useEffect(() => {
     onNotificationTapRef.current = onNotificationTap;
   }, [onNotificationTap]);
 
-  // ---------------------
-  // Initialize on mount
-  // ---------------------
+
+
+
   useEffect(() => {
     const initialize = async () => {
-      // Request permissions
+
       await requestPermissions();
 
-      // Create Android channels
+
       await createAndroidChannels();
     };
 
     initialize();
 
-    // Setup foreground event handler for notification taps
+
     const unsubscribe = notifee.onForegroundEvent(({ type, detail }) => {
       if (type === EventType.PRESS) {
         console.log('[LocalPush] Notification pressed:', detail.notification?.id);
@@ -148,9 +125,9 @@ export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps
     };
   }, []);
 
-  // ---------------------
-  // Show a local notification immediately
-  // ---------------------
+
+
+
   const showLocalNotification = useCallback(async (item: RealtimeNotificationItem) => {
     try {
       const channelId = getAndroidChannelId(item.type);
@@ -192,9 +169,9 @@ export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps
     }
   }, []);
 
-  // ---------------------
-  // Update app icon badge count
-  // ---------------------
+
+
+
   const setBadgeCount = useCallback(async (count: number) => {
     try {
       await notifee.setBadgeCount(count);
@@ -204,9 +181,9 @@ export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps
     }
   }, []);
 
-  // ---------------------
-  // Clear all notifications from tray
-  // ---------------------
+
+
+
   const clearAllNotifications = useCallback(async () => {
     try {
       await notifee.cancelAllNotifications();
@@ -216,9 +193,9 @@ export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps
     }
   }, []);
 
-  // ---------------------
-  // Cancel a specific notification
-  // ---------------------
+
+
+
   const cancelNotification = useCallback(async (notificationId: string) => {
     try {
       await notifee.cancelNotification(notificationId);

@@ -33,14 +33,11 @@ export const useChatRooms = () => {
     enabled: isConfigured,
   });
 
-
   useEffect(() => {
     if (query.data) {
       setRooms(query.data);
     }
   }, [query.data, setRooms]);
-
-
 
   useEffect(() => {
     if (!isConfigured || !supabase) return;
@@ -61,7 +58,6 @@ export const useChatRooms = () => {
             (payload) => {
               try {
                 const msg = payload.new as RawChatMessage;
-
 
                 const existingRooms = query.data || [];
                 const roomExists = existingRooms.some(
@@ -88,7 +84,6 @@ export const useChatRooms = () => {
                     last_message_preview: msg.message_text || '',
                   });
                 }
-
 
                 queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
               } catch (payloadError) {
@@ -123,7 +118,6 @@ export const useChatRooms = () => {
       }
     };
   }, [addRoom, updateRoom, queryClient, isConfigured, query.data]);
-
 
   const getOrCreateRoom = async (orderId: number): Promise<ChatRoom> => {
     return chatService.getOrCreateRoom(orderId);

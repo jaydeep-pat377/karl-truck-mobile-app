@@ -43,11 +43,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
 
-
       setAuthCredentials(accessToken, WIDGET_API_URL).catch((err) =>
         console.log('Widget auth setup error:', err)
       );
-
 
       setWidgetLoggedIn(true);
       reloadWidget();
@@ -73,11 +71,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         STORAGE_KEYS.USER,
       ]);
 
-
       clearWidgetData().catch((err) =>
         console.log('Widget clear error:', err)
       );
-
 
       setWidgetLoggedIn(false);
       reloadWidget();
@@ -107,11 +103,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
       if (accessToken && refreshToken) {
-
         const isValid = await get().verifyAuth();
-
         if (!isValid) {
-
           await get().logout();
         }
       }
@@ -138,16 +131,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           isAuthenticated: true,
         });
 
-
         await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data.user));
-
 
         if (accessToken) {
           setAuthCredentials(accessToken, WIDGET_API_URL).catch((err) =>
             console.log('Widget auth setup error:', err)
           );
         }
-
 
         setWidgetLoggedIn(true);
         reloadWidget();

@@ -1,9 +1,4 @@
-/**
- * Notifee Notification Service
- *
- * Handles displaying notifications using Notifee library for proper
- * heads-up display in foreground, background, and killed states.
- */
+
 import notifee, {
   AndroidImportance,
   AndroidVisibility,
@@ -13,13 +8,8 @@ import notifee, {
 import { Platform } from 'react-native';
 import { navigateFromNotification, navigateToTab } from './navigationService';
 
-// Channel ID for all notifications
 const CHANNEL_ID = 'truckast_heads_up';
 
-/**
- * Create notification channel for Android
- * Must be called before displaying any notification
- */
 export async function createNotificationChannel(): Promise<string> {
   if (Platform.OS !== 'android') {
     return CHANNEL_ID;
@@ -40,10 +30,6 @@ export async function createNotificationChannel(): Promise<string> {
   return channelId;
 }
 
-/**
- * Display a notification using Notifee
- * Works in foreground, background, and killed state
- */
 export async function displayNotification(
   title: string,
   body: string,
@@ -52,10 +38,10 @@ export async function displayNotification(
   try {
     console.log('[Notifee] Displaying notification:', { title, body });
 
-    // Ensure channel exists
+
     const channelId = await createNotificationChannel();
 
-    // Display the notification
+
     const notificationId = await notifee.displayNotification({
       title,
       body,
@@ -89,11 +75,8 @@ export async function displayNotification(
   }
 }
 
-/**
- * Handle notification events (tap, dismiss, etc.)
- */
 export function setupNotifeeEventHandlers(): void {
-  // Foreground event handler
+
   notifee.onForegroundEvent(({ type, detail }: Event) => {
     console.log('[Notifee] Foreground event:', type, detail);
 
@@ -108,10 +91,6 @@ export function setupNotifeeEventHandlers(): void {
   });
 }
 
-/**
- * Handle background notification events
- * This should be called in index.js
- */
 export function setupNotifeeBackgroundHandler(): void {
   notifee.onBackgroundEvent(async ({ type, detail }: Event) => {
     console.log('[Notifee] Background event:', type, detail);
@@ -119,22 +98,19 @@ export function setupNotifeeBackgroundHandler(): void {
     if (type === EventType.PRESS) {
       const { notification } = detail;
       if (notification?.data) {
-        // Navigation will be handled when app opens
+
         console.log('[Notifee] Background press with data:', notification.data);
       }
     }
   });
 }
 
-/**
- * Request notification permissions
- */
 export async function requestNotificationPermission(): Promise<boolean> {
   try {
     const settings = await notifee.requestPermission();
     console.log('[Notifee] Permission settings:', settings);
 
-    // Check if authorized
+
     const authorized = settings.authorizationStatus >= 1;
     return authorized;
   } catch (error) {
@@ -143,9 +119,6 @@ export async function requestNotificationPermission(): Promise<boolean> {
   }
 }
 
-/**
- * Set badge count
- */
 export async function setBadgeCount(count: number): Promise<void> {
   try {
     await notifee.setBadgeCount(count);
@@ -155,9 +128,6 @@ export async function setBadgeCount(count: number): Promise<void> {
   }
 }
 
-/**
- * Cancel all notifications
- */
 export async function cancelAllNotifications(): Promise<void> {
   try {
     await notifee.cancelAllNotifications();
@@ -167,9 +137,6 @@ export async function cancelAllNotifications(): Promise<void> {
   }
 }
 
-/**
- * Get initial notification (if app was opened from a notification)
- */
 export async function getInitialNotification(): Promise<any> {
   try {
     const initialNotification = await notifee.getInitialNotification();

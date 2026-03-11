@@ -20,7 +20,6 @@ export const storageUtils = {
     return AsyncStorage.getItem(key);
   },
 
-
   setObject: async <T>(key: string, value: T) => {
     await AsyncStorage.setItem(key, JSON.stringify(value));
   },
@@ -36,7 +35,6 @@ export const storageUtils = {
     return null;
   },
 
-
   remove: async (key: string) => {
     await AsyncStorage.removeItem(key);
   },
@@ -44,11 +42,9 @@ export const storageUtils = {
     await AsyncStorage.multiRemove(keys);
   },
 
-
   clearAll: async () => {
     await AsyncStorage.clear();
   },
-
 
   getAllKeys: async () => {
     return AsyncStorage.getAllKeys();

@@ -59,7 +59,6 @@ const getDelayBgColor = (value: number, isDark: boolean): string => {
   return isDark ? colors.grey[80] : colors.grey[10];
 };
 
-// Format ISO timestamp or time string to HH:MM format with rounding at 30 seconds
 const formatTime = (time: string | null | undefined): string => {
   if (!time) return '--:--';
 
@@ -67,11 +66,11 @@ const formatTime = (time: string | null | undefined): string => {
   let minutes: number;
   let seconds: number;
 
-  // Check if it's an ISO timestamp (e.g., "2026-03-04T16:29:55.000Z")
+
   if (time.includes('T')) {
     const timePart = time.split('T')[1];
     if (timePart) {
-      const timeOnly = timePart.split('.')[0]; // Remove milliseconds
+      const timeOnly = timePart.split('.')[0];
       const parts = timeOnly.split(':');
       hours = parseInt(parts[0], 10);
       minutes = parseInt(parts[1], 10);
@@ -80,14 +79,14 @@ const formatTime = (time: string | null | undefined): string => {
       return '--:--';
     }
   } else {
-    // Handle HH:MM:SS format
+
     const parts = time.split(':');
     hours = parseInt(parts[0], 10);
     minutes = parseInt(parts[1], 10);
     seconds = parseInt(parts[2] || '0', 10);
   }
 
-  // Round up if seconds >= 30
+
   if (seconds >= 30) {
     minutes += 1;
     if (minutes >= 60) {
@@ -119,7 +118,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
     border: isDark ? colors.grey[70] : colors.grey[15],
   };
 
-  // Don't render if no data
+
   if (!data || data.length === 0) {
     return null;
   }
@@ -138,7 +137,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
           borderLeftColor: hasDelay ? colors.error.main : isEarly ? colors.success.main : colors.primary.main,
         }
       ]}>
-        {/* Ticket Row - Top of Card */}
+
         {item.ticket && (
           <TouchableOpacity
             style={[styles.ticketTopRow, { backgroundColor: colors.info.main + '15' }]}
@@ -151,7 +150,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
           </TouchableOpacity>
         )}
 
-        {/* Card Header */}
+
         <View style={styles.cardInfoRow}>
           <View style={[styles.infoBadge, { backgroundColor: colors.primary.main + '15' }]}>
             <Text style={[styles.infoLabel, { color: colors.primary.main }]}>Load</Text>
@@ -173,7 +172,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
           </View>
         </View>
 
-        {/* Time Details */}
+
         <View style={[styles.timeSection, { borderColor: themeColors.border }]}>
           <View style={styles.timeRow}>
             <View style={styles.timeItem}>
@@ -195,7 +194,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
           </View>
         </View>
 
-        {/* Delay Metrics */}
+
         <View style={styles.metricsRow}>
           <View style={[styles.metricItemSmall, { backgroundColor: getDelayBgColor(item.producer_delay, isDark) }]}>
             <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>{"Producer\nDelay"}</Text>
@@ -234,7 +233,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.card }]}>
-      {/* Header */}
+
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
           <Icon name="clock-alert-outline" size={ms(20)} color={colors.primary.main} />
@@ -254,7 +253,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
         </View>
       </View>
 
-      {/* Info Modal */}
+
       <Modal
         visible={showInfoModal}
         transparent
@@ -285,7 +284,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
         </TouchableOpacity>
       </Modal>
 
-      {/* Cards */}
+
       <View style={styles.cardsContainer}>
         {displayData.map((item, index) => (
           <React.Fragment key={`${item.load_order}-${item.ticket || index}`}>
@@ -294,7 +293,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
         ))}
       </View>
 
-      {/* See More Button */}
+
       {data.length > 1 && (
         <TouchableOpacity
           style={styles.seeMoreButton}

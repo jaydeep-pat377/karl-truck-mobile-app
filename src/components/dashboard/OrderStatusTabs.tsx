@@ -72,7 +72,7 @@ export const OrderStatusTabs: React.FC<OrderStatusTabsProps> = ({
     scrollToTab(status);
   }, [onStatusChange, scrollToTab]);
 
-  // Animate underline position when selected tab changes
+
   useEffect(() => {
     const position = tabPositions.current[selectedStatus];
     if (position) {
@@ -93,9 +93,9 @@ export const OrderStatusTabs: React.FC<OrderStatusTabsProps> = ({
     }
   }, [selectedStatus, underlineAnim, underlineWidth]);
 
-  // Auto-scroll to selected tab when component mounts (after loader finishes)
+
   useEffect(() => {
-    // Small delay to ensure onLayout has fired for all tabs
+
     const timer = setTimeout(() => {
       scrollToTab(selectedStatus);
     }, 100);
@@ -122,7 +122,7 @@ export const OrderStatusTabs: React.FC<OrderStatusTabsProps> = ({
               onLayout={(event) => {
                 const { x, width } = event.nativeEvent.layout;
                 tabPositions.current[option.key] = { x, width };
-                // Set initial underline position
+
                 if (isSelected) {
                   underlineAnim.setValue(x);
                   underlineWidth.setValue(width);
@@ -149,7 +149,7 @@ export const OrderStatusTabs: React.FC<OrderStatusTabsProps> = ({
           );
         })}
 
-        {/* Animated underline */}
+
         <Animated.View
           style={[
             styles.underline,

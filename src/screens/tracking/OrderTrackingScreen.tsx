@@ -42,7 +42,7 @@ const TruckMarkerContent: React.FC<TruckMarkerProps> = React.memo(({ ticket, isS
 
   useEffect(() => {
     if (isSelected) {
-      // Pulsing animation for selected truck
+
       const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -69,7 +69,7 @@ const TruckMarkerContent: React.FC<TruckMarkerProps> = React.memo(({ ticket, isS
       style={truckMarkerStyles.wrap}
       onPress={onPress}
       activeOpacity={0.8}>
-      {/* Outer glow ring with pulse animation */}
+
       {isSelected && (
         <Animated.View
           style={[
@@ -78,9 +78,9 @@ const TruckMarkerContent: React.FC<TruckMarkerProps> = React.memo(({ ticket, isS
           ]}
         />
       )}
-      {/* Inner highlight ring */}
+
       {isSelected && <View style={truckMarkerStyles.selectedRing} />}
-      {/* Pointer/Arrow indicator */}
+
       {isSelected && <View style={truckMarkerStyles.pointerArrow} />}
 
       <Image
@@ -133,7 +133,7 @@ const truckMarkerStyles = StyleSheet.create({
     backgroundColor: `${colors.primary.main}25`,
     borderWidth: 3,
     borderColor: colors.primary.main,
-    // Shadow for depth
+
     shadowColor: colors.primary.main,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
@@ -175,7 +175,7 @@ const truckMarkerStyles = StyleSheet.create({
     borderRadius: ms(12),
     borderWidth: 2,
     borderColor: colors.common.white,
-    // Shadow for badge
+
     shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -193,7 +193,6 @@ const truckMarkerStyles = StyleSheet.create({
   },
 });
 
-// Initialize Mapbox with token
 console.log('[Mapbox] Token:', MAPBOX_ACCESS_TOKEN ? 'Present' : 'MISSING');
 if (MAPBOX_ACCESS_TOKEN) {
   Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN);
@@ -343,8 +342,8 @@ export const OrderTrackingScreen: React.FC = () => {
     return tickets.find(t => t.ticket_id === selectedTicketId) || null;
   }, [selectedTicketId, tickets]);
 
-  // Auto-select ticket when ticketCode is provided from navigation params
-  // Sheet size remains constant (at minimum height), only highlights the ticket and zooms map
+
+
   useEffect(() => {
     if (ticketCode && tickets.length > 0 && !hasAutoSelected && isMapReady) {
       const ticketIndex = tickets.findIndex(t => t.ticket_code === ticketCode);
@@ -353,7 +352,7 @@ export const OrderTrackingScreen: React.FC = () => {
         setSelectedTicketId(matchingTicket.ticket_id);
         setHasAutoSelected(true);
 
-        // Scroll to the ticket in the list (within current sheet height - no expansion)
+
         setTimeout(() => {
           flatListRef.current?.scrollToIndex({
             index: ticketIndex,
@@ -362,7 +361,7 @@ export const OrderTrackingScreen: React.FC = () => {
           });
         }, 300);
 
-        // Zoom to the truck on the map with highlight
+
         if (cameraRef.current && matchingTicket.truck?.latitude && matchingTicket.truck?.longitude) {
           setTimeout(() => {
             cameraRef.current?.setCamera({
@@ -493,7 +492,7 @@ export const OrderTrackingScreen: React.FC = () => {
 
   const fmtQty = (qty: number) => (qty % 1 === 0 ? qty.toString() : qty.toFixed(1));
 
-  // Get first ticket's status color for progress bar
+
   const firstTicketStatusColor = useMemo(() => {
     if (tickets.length === 0) return colors.primary.main;
     const firstTicket = tickets[0];
@@ -651,7 +650,7 @@ export const OrderTrackingScreen: React.FC = () => {
           onDidFinishLoadingMap={() => {
             console.log('[Mapbox] Map finished loading');
             setIsMapReady(true);
-            // Trigger camera update once map is ready
+
             if (cameraRef.current && mapBounds) {
               setTimeout(() => {
                 cameraRef.current?.fitBounds(mapBounds.ne, mapBounds.sw, [50, 50, 80, 50], 500);
@@ -670,7 +669,7 @@ export const OrderTrackingScreen: React.FC = () => {
             }}
           />
 
-          {/* Plant marker renders first (behind trucks) */}
+
           {isMapReady && plantLocation && (
             <Mapbox.MarkerView coordinate={[plantLocation.longitude, plantLocation.latitude]} anchor={{ x: 0.5, y: 1 }} allowOverlap={true}>
               <View style={styles.markerWrap}>
@@ -690,9 +689,9 @@ export const OrderTrackingScreen: React.FC = () => {
             </Mapbox.MarkerView>
           )}
 
-          {/* Truck markers render after plant (always on top) */}
+
           {isMapReady && tickets.map(ticket => {
-            // Don't show trucks that are at plant on the map
+
             if (!ticket.truck?.latitude || !ticket.truck?.longitude || ticket.status === 'at_plant') return null;
             const isSelected = selectedTicketId === ticket.ticket_id;
             return (
@@ -817,7 +816,7 @@ export const OrderTrackingScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Order Info Section */}
+
         <View style={[styles.orderInfoCard, { backgroundColor: themeColors.card }]}>
           <View style={styles.orderInfoHeader}>
             <Text style={[styles.orderInfoCode, { color: themeColors.text.primary }]}>

@@ -24,7 +24,7 @@ export const RootNavigator: React.FC = () => {
   const theme = useAppTheme();
   const { isAuthenticated, isInitialized, isLoading, initialize } = useAuthStore();
 
-  // Global chat message listener for notification sounds
+
   useGlobalChatListener();
 
   useEffect(() => {

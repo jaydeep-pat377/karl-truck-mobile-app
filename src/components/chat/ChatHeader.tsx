@@ -59,7 +59,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           </Text>
         </TouchableOpacity>
 
-        {/* Date and Customer Row */}
+
         <View style={styles.infoRow}>
           {orderDate && (
             <View style={styles.infoItem}>
@@ -78,7 +78,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           )}
         </View>
 
-        {/* Project Name Row */}
+
         {projectName && (
           <View style={styles.addressRow}>
             <Icon name="clipboard-text-outline" size={ms(14)} color={colors.common.white} />
@@ -86,7 +86,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           </View>
         )}
 
-        {/* Address Row */}
+
         {deliveryAddress && (
           <View style={styles.addressRow}>
             <Icon name="map-marker" size={ms(14)} color={colors.common.white} />

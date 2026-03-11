@@ -43,7 +43,7 @@ export const LockScreen: React.FC = () => {
     }
   }, [unlock]);
 
-  // Auto-prompt on mount
+
   useEffect(() => {
     if (isLocked && isAuthenticated) {
       const timer = setTimeout(() => {

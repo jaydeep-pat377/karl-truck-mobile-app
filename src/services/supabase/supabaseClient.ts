@@ -62,7 +62,6 @@ export const getAnonymousUserId = async (): Promise<string> => {
       return storedId;
     }
 
-
     const newId = generateUUID();
     await AsyncStorage.setItem(ANON_USER_ID_KEY, newId);
     anonymousUserId = newId;
@@ -85,7 +84,6 @@ export const initializeSupabaseAuth = async (): Promise<{ userId: string } | nul
 
   try {
     console.log('Initializing Supabase...');
-
 
     const userId = await getAnonymousUserId();
 

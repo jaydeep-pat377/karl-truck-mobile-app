@@ -55,7 +55,6 @@ const RADIUS = {
   full: 999,
 } as const;
 
-// Weather helper functions
 const getEvaporationBgColor = (rate: number | null | undefined): string => {
   if (rate === null || rate === undefined) return colors.grey[40];
   if (rate < 0.10) return colors.success.main;
@@ -74,37 +73,34 @@ const getEvaporationText = (rate: number | null | undefined): string => {
   return 'Severe';
 };
 
-// Format quantity - removes trailing zeros after decimal point
 const formatQty = (num: number): string => {
   if (num === null || num === undefined) return '0';
-  // toFixed(2) then parseFloat removes unnecessary trailing zeros
+
   return parseFloat(num.toFixed(2)).toString();
 };
 
-// Get delivery progress segment color based on status
 const getSegmentColor = (status: string): string => {
   const statusColorMap: Record<string, string> = {
-    pending: colors.trackingStatus.pending,        // Grey
-    ticketed: colors.trackingStatus.ticketed,      // Yellow #FFC107
-    loading: colors.trackingStatus.loading,        // Yellow Orange #FF9800
-    loaded: colors.trackingStatus.loaded,          // Orange #FF5722
-    to_job: colors.trackingStatus.toJob,           // Green #8BC34A
-    at_job: colors.trackingStatus.atJob,           // Yellow Green #4CAF50
-    on_job: colors.trackingStatus.atJob,           // Yellow Green #4CAF50
-    pouring: colors.trackingStatus.pouring,        // Blue Green #009688
-    poured: colors.trackingStatus.poured,          // Blue #2196F3
-    washing: colors.trackingStatus.washing,        // Light Blue #03A9F4
-    to_plant: colors.trackingStatus.toPlant,       // Violet #9C27B0
-    at_plant: colors.trackingStatus.atPlant,       // Red Violet #a5244f
-    cancelled: colors.trackingStatus.cancelled,    // Red #F44336
-    voided: colors.trackingStatus.voided,          // Red #F44336
-    remaining: colors.trackingStatus.remaining,    // Light grey for remaining
+    pending: colors.trackingStatus.pending,
+    ticketed: colors.trackingStatus.ticketed,
+    loading: colors.trackingStatus.loading,
+    loaded: colors.trackingStatus.loaded,
+    to_job: colors.trackingStatus.toJob,
+    at_job: colors.trackingStatus.atJob,
+    on_job: colors.trackingStatus.atJob,
+    pouring: colors.trackingStatus.pouring,
+    poured: colors.trackingStatus.poured,
+    washing: colors.trackingStatus.washing,
+    to_plant: colors.trackingStatus.toPlant,
+    at_plant: colors.trackingStatus.atPlant,
+    cancelled: colors.trackingStatus.cancelled,
+    voided: colors.trackingStatus.voided,
+    remaining: colors.trackingStatus.remaining,
   };
 
   return statusColorMap[status.toLowerCase()] || colors.grey[40];
 };
 
-// Get display label for status
 const getStatusDisplayLabel = (status: string | undefined): string => {
   if (!status) return '';
   const labelMap: Record<string, string> = {
@@ -127,7 +123,6 @@ const getStatusDisplayLabel = (status: string | undefined): string => {
   return labelMap[status.toLowerCase()] || status;
 };
 
-// Allowed statuses to show in progress bar
 const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'pouring', 'remaining'];
 
 const SHADOWS = {
@@ -450,10 +445,10 @@ const StatusPipeline: React.FC<StatusPipelineProps> = ({ statuses, isDark }) => 
   const activeIndex = statuses.findIndex(s => s.active);
 
   const indicatorColors = [
-    colors.trackingStatus.loading,   // yellow orange
-    colors.trackingStatus.toJob,     // green
-    colors.trackingStatus.atJob,     // yellow green
-    colors.trackingStatus.pouring,   // blue green (teal)
+    colors.trackingStatus.loading,
+    colors.trackingStatus.toJob,
+    colors.trackingStatus.atJob,
+    colors.trackingStatus.pouring,
   ];
 
   const getIndicatorColor = (index: number) => {
@@ -548,7 +543,7 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
     return null;
   }
 
-  // Filter segments by allowed statuses
+
   const filteredSegments = segments
     .filter((segment) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()));
 
@@ -563,7 +558,7 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
         </View>
       </View>
 
-      {/* Status Labels Row - Above Progress Bar */}
+
       <View style={styles.deliveryProgressLabelsRow}>
         {filteredSegments.map((segment, index) => (
           <View
@@ -581,7 +576,7 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
         ))}
       </View>
 
-      {/* Progress Bar */}
+
       <View style={[styles.deliveryProgressBarBg, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}>
         <View style={styles.deliveryProgressSegments}>
           {filteredSegments.map((segment, index, arr) => (
@@ -601,7 +596,7 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
         </View>
       </View>
 
-      {/* CY Values Row - Below Progress Bar */}
+
       <View style={styles.deliveryProgressValuesRow}>
         {filteredSegments.map((segment, index) => (
           <View
@@ -671,17 +666,13 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
     return `${date.getDate()} ${date.toLocaleString('en-US', { month: 'short' })} ${date.getFullYear()}`;
   };
 
-
   const formattedDate = displayDate || formatDateOnly(scheduleDate);
-
 
   const scheduleDisplay = estimatedFinish
     ? `${scheduleTime || 'N/A'} - ${estimatedFinish}`
     : scheduleTime || 'N/A';
 
-
   const hasAverages = (avgWaitingMinutes ?? 0) > 0 || (avgPouringMinutes ?? 0) > 0 || (avgWashoutMinutes ?? 0) > 0;
-
 
   const hasPourData = (deliveredQty ?? 0) > 0 || (pouredQty ?? 0) > 0;
 
@@ -966,7 +957,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
         Product & Schedule
       </Text>
 
-      {/* Main Product Card */}
+
       <View style={[
         styles.skuMainCard,
         {
@@ -974,7 +965,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
           borderColor: isDark ? themeColors.border : colors.grey[10],
         }
       ]}>
-        {/* Header with Item Code */}
+
         <View style={[styles.skuHeader, { backgroundColor: isDark ? colors.primary.main + '20' : colors.primary.main + '08' }]}>
           <View style={styles.skuHeaderLeft}>
             <View style={[styles.skuIconBox, { backgroundColor: colors.primary.main }]}>
@@ -1000,14 +991,14 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
           </View>
         </View>
 
-        {/* Schedule Details Grid */}
+
         {schedule && (
           <View style={[styles.skuScheduleSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
             <Text style={[styles.skuScheduleTitle, { color: themeColors.text.primary }]}>
               Schedule Information
             </Text>
 
-            {/* Row 0 - Start Time */}
+
             {schedule.start_time && (
               <View style={styles.skuScheduleRow}>
                 <View style={[styles.skuScheduleItemWide, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
@@ -1020,7 +1011,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
               </View>
             )}
 
-            {/* Row 1 - Loads & Quantity */}
+
             <View style={styles.skuScheduleRow}>
               <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                 <Icon name="layers-triple" size={ms(18)} color={colors.secondary.main} />
@@ -1047,7 +1038,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
               </View>
             </View>
 
-            {/* Row 2 - Spacing & Distance */}
+
             <View style={styles.skuScheduleRow}>
               <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                 <Icon name="clock-outline" size={ms(18)} color={colors.info.main} />
@@ -1074,7 +1065,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
               </View>
             </View>
 
-            {/* Row 3 - Travel & Times */}
+
             <View style={styles.skuScheduleRow}>
               <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                 <Icon name="download" size={ms(18)} color={colors.secondary.main} />
@@ -1101,16 +1092,9 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
               </View>
             </View>
 
-            {/* Additional Info Row */}
+
             <View style={styles.skuAdditionalInfo}>
-              {/* {schedule.truck_type_name && (
-                <View style={[styles.skuInfoChip, { backgroundColor: isDark ? themeColors.surface : colors.grey[5] }]}>
-                  <Icon name="truck-outline" size={ms(14)} color={isDark ? colors.grey[40] : themeColors.text.secondary} />
-                  <Text style={[styles.skuInfoChipText, { color: themeColors.text.primary }]}>
-                    {schedule.truck_type_name}
-                  </Text>
-                </View>
-              )} */}
+
               {schedule.plant_description && (
                 <View style={[styles.skuInfoChip, { backgroundColor: isDark ? themeColors.surface : colors.grey[5] }]}>
                   <Icon name="factory" size={ms(14)} color={isDark ? colors.grey[40] : themeColors.text.secondary} />
@@ -1123,7 +1107,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
           </View>
         )}
 
-        {/* Scheduled Loads Button */}
+
         {scheduledLoads && scheduledLoads.length > 0 && onOpenLoads && (
           <View style={[styles.skuLoadsSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
             <TouchableOpacity
@@ -1523,7 +1507,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
               ));
             }
 
-
             const labelsToShow: { index: number; time: string }[] = [];
             const step = (totalPoints - 1) / (maxLabels - 1);
             for (let i = 0; i < maxLabels; i++) {
@@ -1552,7 +1535,6 @@ const SmartChart: React.FC<SmartChartProps> = ({
   );
 };
 
-
 export const OrderDetailsScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<OrderDetailsRouteProp>();
@@ -1564,7 +1546,7 @@ export const OrderDetailsScreen: React.FC = () => {
   const [showLoadsSheet, setShowLoadsSheet] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // Animated header background opacity - becomes visible as user scrolls
+
   const headerBackgroundOpacity = scrollY.interpolate({
     inputRange: [0, 100],
     outputRange: [0, 1],
@@ -1587,7 +1569,7 @@ export const OrderDetailsScreen: React.FC = () => {
       return getMockOrder(orderId);
     }
 
-    // Use poured_percentage from API if available, otherwise calculate
+
     const progress = orderDetails.poured_percentage ?? (
       (orderDetails.ordered_qty ?? 0) > 0
         ? Math.round(((orderDetails.delivered_qty ?? 0) / (orderDetails.ordered_qty ?? 1)) * 100)
@@ -1629,7 +1611,7 @@ export const OrderDetailsScreen: React.FC = () => {
       return mockJobData;
     }
 
-    // Use poured_percentage from API if available, otherwise calculate
+
     const pouredPercentage = orderDetails.poured_percentage ?? (
       (orderDetails.ordered_qty ?? 0) > 0
         ? Math.round(((orderDetails.delivered_qty ?? 0) / (orderDetails.ordered_qty ?? 1)) * 100)
@@ -1681,7 +1663,6 @@ export const OrderDetailsScreen: React.FC = () => {
         ];
       })(),
 
-
       pourSpeedRaw: {
         ordered: orderDetails.graphs?.pour_speed?.ordered || [],
         delivered: orderDetails.graphs?.pour_speed?.delivered || [],
@@ -1696,7 +1677,6 @@ export const OrderDetailsScreen: React.FC = () => {
       },
 
       pourSpeedData: mockJobData.pourSpeedData,
-
 
       trucksOnJobRaw: {
         timePoints: orderDetails.graphs?.trucks_on_job?.time_points || [],
@@ -1730,7 +1710,7 @@ export const OrderDetailsScreen: React.FC = () => {
       avgPouringMinutes: orderDetails.graphs?.trucks_on_job?.averages?.avg_pouring_minutes || 0,
       avgWashoutMinutes: orderDetails.graphs?.trucks_on_job?.averages?.avg_washout_minutes || 0,
 
-      // Product Schedule Details
+
       scheduleDetails: (orderDetails as any).product_schedule_details?.map((s: any) => ({
         schedule_id: s.schedule_id,
         item_code: s.item_code,
@@ -1766,7 +1746,7 @@ export const OrderDetailsScreen: React.FC = () => {
         })) || [],
       })) || [],
 
-      // Scheduled Loads
+
       scheduledLoads: (orderDetails as any).scheduled_loads?.items?.map((l: any) => ({
         load_number: l.load_number,
         scheduled_time: l.scheduled_time,
@@ -1800,7 +1780,6 @@ export const OrderDetailsScreen: React.FC = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showAllUpdates, setShowAllUpdates] = useState(false);
 
-
   useEffect(() => {
     if (orderDetails?.is_favourite !== undefined) {
       setIsFavorite(orderDetails.is_favourite);
@@ -1820,11 +1799,8 @@ export const OrderDetailsScreen: React.FC = () => {
     navigation.goBack();
   }, [navigation]);
 
-
-
-
   const statusColor = useMemo(() => {
-    // Use progressColor if passed from navigation, otherwise calculate it
+
     if (progressColor) {
       console.log('🎨 OrderDetails Status Debug: Using passed progressColor:', progressColor);
       return progressColor;
@@ -1833,7 +1809,6 @@ export const OrderDetailsScreen: React.FC = () => {
     const status = passedStatus || order.status;
     const progress = order.progress || 0;
     const color = getStatusColor(status, progress);
-
 
     console.log('🎨 OrderDetails Status Debug:', {
       passedStatus,
@@ -1853,9 +1828,7 @@ export const OrderDetailsScreen: React.FC = () => {
   const handleToggleFavorite = useCallback(() => {
     const previousValue = isFavorite;
 
-
     setIsFavorite(prev => !prev);
-
 
     orderService.toggleFavourite(order.id)
       .then(() => {
@@ -2031,7 +2004,7 @@ export const OrderDetailsScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      {/* Fixed Header */}
+
       <View style={[styles.fixedHeader, { paddingTop: insets.top }]}>
         <Animated.View
           style={[
@@ -2115,7 +2088,7 @@ export const OrderDetailsScreen: React.FC = () => {
               </Text>
             </View>
 
-            {/* Weather Info Row - Only show when weather data exists */}
+
             {jobData.hasWeatherData && (
               <TouchableOpacity
                 style={styles.headerWeatherRow}
@@ -2278,7 +2251,7 @@ export const OrderDetailsScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Product Details Card */}
+
           <TouchableOpacity
             style={[styles.productDetailsCard, { backgroundColor: themeColors.card }]}
             onPress={handleProductDetailsPress}
@@ -2348,17 +2321,17 @@ export const OrderDetailsScreen: React.FC = () => {
             useHighchartsWebView={true}
           />
 
-          {/* Delay Details Table */}
+
           <DelayDetailsTable
             isDark={isDark}
             data={orderDetails?.delay_details}
             onTicketPress={(ticketCode) => {
-              // Navigate to ticket details when API is ready
+
               console.log('Ticket pressed:', ticketCode);
             }}
           />
 
-          {/* Order Activity Section - Combined Order Updates and Order Created */}
+
           {orderDetails?.realtime_order_updates && orderDetails.realtime_order_updates.items.length > 0 && (() => {
             const orderCreatedItem = orderDetails.realtime_order_updates.items.find(
               (item): item is OrderCreatedItem => item.change_type === 'order_created'
@@ -2367,7 +2340,7 @@ export const OrderDetailsScreen: React.FC = () => {
 
             return (
               <View style={[styles.orderUpdatesSection, { backgroundColor: themeColors.card }]}>
-                {/* Header with total count */}
+
                 <View style={styles.orderUpdatesSectionHeader}>
                   <View style={styles.orderUpdatesTitleRow}>
                     <Icon name="history" size={ms(20)} color={colors.primary.main} />
@@ -2382,7 +2355,7 @@ export const OrderDetailsScreen: React.FC = () => {
                   </View>
                 </View>
 
-                {/* Order Updates Timeline - Shown first */}
+
                 {updateItems.length > 0 && (
                   <View style={styles.orderUpdatesTimeline}>
                     {(showAllUpdates ? updateItems : updateItems.slice(0, 1)).map((update) => (
@@ -2409,7 +2382,7 @@ export const OrderDetailsScreen: React.FC = () => {
                   </View>
                 )}
 
-                {/* Order Created Section - Visible when expanded OR when no update items */}
+
                 {(showAllUpdates || updateItems.length === 0) && orderCreatedItem && (
                   <View style={styles.orderCreatedInCard}>
                     <View style={styles.orderCreatedHeader}>
@@ -2461,7 +2434,7 @@ export const OrderDetailsScreen: React.FC = () => {
                   </View>
                 )}
 
-                {/* Products Section - Below Order Created */}
+
                 {(showAllUpdates || updateItems.length === 0) && orderCreatedItem && orderCreatedItem.products && orderCreatedItem.products.length > 0 && (
                   <View style={[styles.orderCreatedProducts, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
                     <Text style={[styles.orderCreatedProductsTitle, { color: themeColors.text.secondary }]}>

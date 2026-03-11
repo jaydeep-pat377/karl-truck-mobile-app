@@ -7,7 +7,7 @@ import { ms, spacing } from '../../utils/responsive';
 import { fontFamily } from '../../theme/typography';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH - (spacing.lg * 2); // Full screen width minus margins
+const CARD_WIDTH = SCREEN_WIDTH - (spacing.lg * 2);
 
 export type SummaryTabType = 'company' | 'region' | 'plant';
 
@@ -70,7 +70,6 @@ interface ProductionSummaryProps {
   onTabChange?: (tab: SummaryTabType, itemCount: number) => void;
 }
 
-
 export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
   title = 'Ready Mix Producer',
   totalOrders,
@@ -89,7 +88,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
 
-  // Determine default tab based on available data
+
   const getDefaultTab = (): SummaryTabType => {
     if (companies.length > 0) return 'company';
     if (regions.length > 0) return 'region';
@@ -115,7 +114,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
     return qty.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  // Render a summary card item (Company/Region/Plant) matching top card design
+
   const renderSummaryListItem = (
     item: CompanyData | RegionData | PlantData,
     type: 'company' | 'region' | 'plant',
@@ -134,9 +133,9 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
 
     const getBadgeColor = () => {
       switch (type) {
-        case 'company': return '#8B5CF6'; // Purple
-        case 'region': return '#F97316'; // Orange
-        case 'plant': return '#3B82F6'; // Blue
+        case 'company': return '#8B5CF6';
+        case 'region': return '#F97316';
+        case 'plant': return '#3B82F6';
       }
     };
 
@@ -147,7 +146,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
         onPress={onPress}
         activeOpacity={0.7}
       >
-        {/* Header - matching top card */}
+
         <View style={styles.header}>
           <View style={styles.titleRow}>
             <Icon name={getIcon()} size={ms(18)} color={themeColors.text.primary} />
@@ -162,7 +161,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
           </View>
         </View>
 
-        {/* Stats Row - matching top card */}
+
         <View style={[styles.statsRow, { backgroundColor: isDark ? colors.dark.surface : colors.grey[3] }]}>
           <View style={styles.statItem}>
             <View style={[styles.statIcon, { backgroundColor: colors.dashboard.statBlue + '15' }]}>
@@ -195,7 +194,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
           </View>
         </View>
 
-        {/* Production & Delivery - matching top card */}
+
         <View style={styles.productionSection}>
           <View style={styles.productionHeader}>
             <Text style={[styles.productionTitle, { color: themeColors.text.primary }]}>Production & Delivery</Text>
@@ -232,7 +231,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
 
   return (
     <View style={styles.regionsOnlyContainer}>
-      {/* Tabs */}
+
       <View style={styles.tabsContainer}>
         {tabs.map((tab) => {
           const isSelected = selectedTab === tab.key;
@@ -287,7 +286,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
         })}
       </View>
 
-      {/* Horizontal Scroll Cards */}
+
       {(companies.length > 0 || regions.length > 0 || plants.length > 0) && (
         <ScrollView
           key={selectedTab}

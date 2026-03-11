@@ -1,17 +1,4 @@
-/**
- * Notification Provider
- *
- * Combines: API-based notifications + real-time subscription + sound + local push
- *
- * - Initial data is fetched via API (notificationStore)
- * - Real-time updates come from Supabase and are added to the store
- * - Plays sound and shows local push notification for new notifications
- *
- * Usage:
- *   <NotificationProvider userId={user?.id} tenantId={tenantId}>
- *     <App />
- *   </NotificationProvider>
- */
+
 console.log('[NotificationProvider] 📦 MODULE LOADING...');
 
 import React, { createContext, useContext, useEffect, useCallback, useMemo } from 'react';
@@ -27,9 +14,6 @@ import {
 } from '../utils/notificationSound';
 import { testNotificationConnection } from '../lib/notification-client';
 
-// ---------------------
-// Context Type
-// ---------------------
 interface NotificationContextType {
   notifications: AppNotification[];
   unreadCount: number;
@@ -42,9 +26,6 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
-// ---------------------
-// Provider Props
-// ---------------------
 interface NotificationProviderProps {
   children: React.ReactNode;
   userId: string | null;
@@ -53,9 +34,6 @@ interface NotificationProviderProps {
   enabled?: boolean;
 }
 
-// ---------------------
-// Provider Component
-// ---------------------
 export function NotificationProvider({
   children,
   userId,
@@ -71,7 +49,7 @@ export function NotificationProvider({
     clearAllNotifications,
   } = useLocalPushNotifications({ onNotificationTap });
 
-  // Initialize sound on mount
+
   useEffect(() => {
     if (!isSoundReady()) {
       initMessageSound().then((success) => {
@@ -80,7 +58,7 @@ export function NotificationProvider({
     }
   }, []);
 
-  // Test Supabase connection and fetch initial notifications
+
   useEffect(() => {
     console.log('[NotificationProvider] ========================================');
     console.log('[NotificationProvider] 📱 NOTIFICATION PROVIDER MOUNTED');
@@ -93,7 +71,7 @@ export function NotificationProvider({
     console.log('[NotificationProvider] ========================================');
 
     if (userId && enabled) {
-      // Test the notification Supabase connection
+
       testNotificationConnection(userId).then((success) => {
         console.log('[NotificationProvider] Connection test:', success ? '✅ PASSED' : '❌ FAILED');
       });
@@ -101,24 +79,24 @@ export function NotificationProvider({
       console.log('[NotificationProvider] ⚠️ Not enabling - userId:', userId, 'enabled:', enabled);
     }
 
-    // Temporarily disabled - backend missing NOTIFICATION_SUPABASE env vars
-    // if (userId && tenantId && enabled) {
-    //   console.log('[NotificationProvider] Fetching initial notifications via API for user:', userId);
-    //   store.fetchNotifications(userId, tenantId);
-    // }
+
+
+
+
+
   }, [userId, tenantId, enabled]);
 
-  // Handler for new real-time notifications
+
   const handleNewNotification = useCallback(
     async (notification: AppNotification) => {
       const appState = AppState.currentState;
       console.log('[NotificationProvider] New notification received:', notification.title, 'App state:', appState);
 
-      // Always play sound (throttled internally)
+
       playMessageSound();
 
-      // Show local push notification in all app states (foreground, background, inactive)
-      // Supabase real-time notifications are not handled by FCM, so we must display them ourselves
+
+
       await showLocalNotification({
         id: notification.id,
         dbId: notification.id,
@@ -138,7 +116,7 @@ export function NotificationProvider({
     [showLocalNotification, tenantId]
   );
 
-  // Subscribe to real-time updates
+
   const { isConnected } = useRealtimeSubscription({
     userId,
     tenantId,
@@ -146,12 +124,12 @@ export function NotificationProvider({
     enabled,
   });
 
-  // Update app icon badge count whenever unread count changes
+
   useEffect(() => {
     setBadgeCount(store.unreadCount);
   }, [store.unreadCount, setBadgeCount]);
 
-  // Clear notification tray when app comes to foreground
+
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
@@ -161,15 +139,15 @@ export function NotificationProvider({
     return () => subscription.remove();
   }, [clearAllNotifications]);
 
-  // Refetch function - temporarily disabled
+
   const refetch = useCallback(async () => {
-    // Temporarily disabled - backend missing NOTIFICATION_SUPABASE env vars
-    // if (userId && tenantId) {
-    //   await store.fetchNotifications(userId, tenantId);
-    // }
+
+
+
+
   }, [userId, tenantId, store]);
 
-  // Memoize context value
+
   const contextValue = useMemo<NotificationContextType>(
     () => ({
       notifications: store.notifications,
@@ -190,9 +168,6 @@ export function NotificationProvider({
   );
 }
 
-// ---------------------
-// Consumer Hook
-// ---------------------
 export function useNotificationContext() {
   const context = useContext(NotificationContext);
   if (!context) {
@@ -203,9 +178,6 @@ export function useNotificationContext() {
   return context;
 }
 
-// ---------------------
-// Optional: Hook that doesn't throw if outside provider
-// ---------------------
 export function useNotificationContextOptional() {
   return useContext(NotificationContext);
 }

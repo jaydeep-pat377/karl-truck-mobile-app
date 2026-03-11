@@ -142,14 +142,12 @@ export const getDirections = async (
   validateCoordinate(origin, 'Origin');
   validateCoordinate(destination, 'Destination');
 
-
   if (
     Math.abs(origin.latitude - destination.latitude) < 0.0001 &&
     Math.abs(origin.longitude - destination.longitude) < 0.0001
   ) {
     throw new DirectionsError('INVALID_COORDINATES', 'Origin and destination are too close together');
   }
-
 
   const {
     profile = 'driving-traffic',
@@ -160,9 +158,7 @@ export const getDirections = async (
     annotations = [],
   } = options;
 
-
   const coordinates = `${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}`;
-
 
   const params = new URLSearchParams({
     access_token: MAPBOX_ACCESS_TOKEN,
@@ -181,11 +177,9 @@ export const getDirections = async (
   try {
     const response = await fetch(url);
 
-
     if (response.status === 429) {
       throw new DirectionsError('RATE_LIMITED', 'Too many requests. Please try again later.');
     }
-
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -194,7 +188,6 @@ export const getDirections = async (
     }
 
     const data: DirectionsResponse = await response.json();
-
 
     if (data.code !== 'Ok') {
       if (data.code === 'NoRoute') {
@@ -206,17 +199,13 @@ export const getDirections = async (
       throw new DirectionsError('API_ERROR', `API error: ${data.code}`);
     }
 
-
     if (!data.routes || data.routes.length === 0) {
       throw new DirectionsError('NO_ROUTE_FOUND', 'No routes returned from API');
     }
 
-
     const route = data.routes[0];
 
-
     const routeCoordinates = route.geometry.coordinates;
-
 
     const summary = route.legs.map(leg => leg.summary).filter(Boolean).join(' → ') || 'Route';
 
@@ -235,11 +224,9 @@ export const getDirections = async (
       throw error;
     }
 
-
     if (error instanceof TypeError && error.message.includes('Network')) {
       throw new DirectionsError('NETWORK_ERROR', 'Network error. Please check your internet connection.');
     }
-
 
     console.error('[Directions API] Unexpected error:', error);
     throw new DirectionsError('API_ERROR', 'Failed to fetch directions');
@@ -260,7 +247,6 @@ export const getDirectionsWithRetry = async (
     } catch (error) {
       lastError = error as Error;
 
-
       if (error instanceof DirectionsError) {
         if (
           error.code === 'INVALID_COORDINATES' ||
@@ -269,7 +255,6 @@ export const getDirectionsWithRetry = async (
           throw error;
         }
       }
-
 
       if (attempt < maxRetries) {
         await new Promise<void>(resolve => setTimeout(() => resolve(), Math.pow(2, attempt) * 1000));

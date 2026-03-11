@@ -61,7 +61,6 @@ export interface NotificationQueueResponse {
   };
 }
 
-// Map event_code to notification type
 const mapEventCodeToType = (eventCode: string): AppNotification['type'] => {
   const typeMap: Record<string, AppNotification['type']> = {
     'ORDER_CREATED': 'order_update',
@@ -76,7 +75,6 @@ const mapEventCodeToType = (eventCode: string): AppNotification['type'] => {
   return typeMap[eventCode] || 'system';
 };
 
-// Map priority number to priority level
 const mapPriorityToLevel = (priority: number): AppNotification['priority'] => {
   if (priority >= 8) return 'high';
   if (priority >= 4) return 'medium';

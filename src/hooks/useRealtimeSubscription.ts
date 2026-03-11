@@ -1,8 +1,4 @@
-/**
- * Real-Time Subscription Hook
- *
- * Subscribes to Supabase Realtime for live notification updates.
- */
+
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -25,7 +21,6 @@ interface UseRealtimeSubscriptionReturn {
   reconnect: () => void;
 }
 
-// Map event code to notification type
 function mapEventCodeToType(eventCode: string): AppNotification['type'] {
   const typeMap: Record<string, AppNotification['type']> = {
     'ORDER_CREATED': 'order_update',
@@ -40,14 +35,12 @@ function mapEventCodeToType(eventCode: string): AppNotification['type'] {
   return typeMap[eventCode] || 'system';
 }
 
-// Map priority number to level
 function mapPriorityToLevel(priority: number): AppNotification['priority'] {
   if (priority >= 8) return 'high';
   if (priority >= 4) return 'medium';
   return 'low';
 }
 
-// Map database row to AppNotification
 function mapRowToNotification(row: any): AppNotification {
   return {
     id: row.queue_uuid || String(row.id),
@@ -81,12 +74,12 @@ export function useRealtimeSubscription({
   const onNewNotificationRef = useRef(onNewNotification);
   const { addNotification } = useNotificationStore();
 
-  // Keep callback ref up to date
+
   useEffect(() => {
     onNewNotificationRef.current = onNewNotification;
   }, [onNewNotification]);
 
-  // Subscribe function
+
   const subscribe = useCallback(() => {
     console.log('[useRealtimeSubscription] Subscribe called:', { userId, tenantId, enabled });
 
@@ -95,35 +88,35 @@ export function useRealtimeSubscription({
       return;
     }
 
-    // Clean up existing subscription
+
     if (channelRef.current) {
       unsubscribeFromNotifications(channelRef.current);
       channelRef.current = null;
     }
 
-    // Create new subscription
+
     const channel = subscribeToNotifications(
       userId,
       tenantId,
-      // onInsert callback
+
       (payload) => {
         console.log('[useRealtimeSubscription] New notification received!');
         const notification = mapRowToNotification(payload.new);
 
-        // Client-side tenant filter
+
         const notifTenantId = payload.new.tenant_id;
         if (tenantId && notifTenantId !== null && notifTenantId !== tenantId) {
           console.log('[useRealtimeSubscription] Tenant mismatch, skipping');
           return;
         }
 
-        // Add to store
+
         addNotification(notification);
 
-        // Trigger callback
+
         onNewNotificationRef.current?.(notification);
       },
-      // onStatusChange callback
+
       (status) => {
         console.log('[useRealtimeSubscription] Status changed:', status);
         setIsConnected(status === 'SUBSCRIBED');
@@ -133,7 +126,7 @@ export function useRealtimeSubscription({
     channelRef.current = channel;
   }, [userId, tenantId, enabled, addNotification]);
 
-  // Setup subscription on mount and when dependencies change
+
   useEffect(() => {
     subscribe();
 
@@ -146,7 +139,7 @@ export function useRealtimeSubscription({
     };
   }, [subscribe]);
 
-  // Reconnect when app comes to foreground
+
   useEffect(() => {
     const handleAppState = (state: AppStateStatus) => {
       if (state === 'active' && userId && enabled) {

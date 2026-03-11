@@ -24,24 +24,20 @@ export interface UseDirectionsReturn {
   coordinates: [number, number][] | null;
   routeGeoJSON: GeoJSON.Feature<GeoJSON.LineString> | null;
 
-
   distance: number | null;
   duration: number | null;
   distanceFormatted: string | null;
   durationFormatted: string | null;
   summary: string | null;
 
-
   isLoading: boolean;
   isFetching: boolean;
   isError: boolean;
   isSuccess: boolean;
 
-
   error: DirectionsError | null;
   errorCode: DirectionsErrorCode | null;
   errorMessage: string | null;
-
 
   refetch: () => void;
 }
@@ -66,7 +62,6 @@ export const useDirections = ({
   const hasValidDestination = isValidCoordinate(destination);
   const canFetch = enabled && hasValidOrigin && hasValidDestination;
 
-
   const queryKey = useMemo(
     () => [
       'directions',
@@ -79,7 +74,6 @@ export const useDirections = ({
     [origin?.latitude, origin?.longitude, destination?.latitude, destination?.longitude, options.profile]
   );
 
-
   const query = useQuery<DirectionsResult, DirectionsError>({
     queryKey,
     queryFn: () => getDirectionsWithRetry(origin!, destination!, options),
@@ -90,7 +84,6 @@ export const useDirections = ({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
-
 
   const routeGeoJSON = useMemo(() => {
     if (!query.data?.coordinates || query.data.coordinates.length < 2) {
@@ -110,7 +103,6 @@ export const useDirections = ({
       },
     };
   }, [query.data]);
-
 
   const errorInfo = useMemo(() => {
     if (!query.error) {
@@ -136,24 +128,20 @@ export const useDirections = ({
     coordinates: query.data?.coordinates || null,
     routeGeoJSON,
 
-
     distance: query.data?.totalDistance || null,
     duration: query.data?.totalDuration || null,
     distanceFormatted: query.data?.distanceFormatted || null,
     durationFormatted: query.data?.durationFormatted || null,
     summary: query.data?.summary || null,
 
-
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     isError: query.isError,
     isSuccess: query.isSuccess,
 
-
     error: query.error || null,
     errorCode: errorInfo.code,
     errorMessage: errorInfo.message,
-
 
     refetch: query.refetch,
   };

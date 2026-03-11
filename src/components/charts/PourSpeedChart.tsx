@@ -100,17 +100,17 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     new Set(['ordered', 'delivered', 'poured'])
   );
 
-  // Zoom state
+
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isAtEnd, setIsAtEnd] = useState(false);
-  const MIN_ZOOM = 1; // 100%
-  const MAX_ZOOM = 5; // 500%
+  const MIN_ZOOM = 1;
+  const MAX_ZOOM = 5;
   const ZOOM_STEP = 0.5;
   const chartScrollRef = useRef<ScrollViewType>(null);
   const currentScrollX = useRef(0);
 
   const handleZoomIn = () => {
-    if (isAtEnd || zoomLevel >= MAX_ZOOM) return; // Don't zoom in if at the end or max zoom
+    if (isAtEnd || zoomLevel >= MAX_ZOOM) return;
     setZoomLevel(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
   };
 
@@ -118,8 +118,8 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     if (zoomLevel <= MIN_ZOOM) return;
     const newZoom = Math.max(zoomLevel - ZOOM_STEP, MIN_ZOOM);
     setZoomLevel(newZoom);
-    setIsAtEnd(false); // Reset end state when zooming out
-    // Adjust scroll position to prevent blank screen
+    setIsAtEnd(false);
+
     setTimeout(() => {
       const newMaxScroll = baseChartWidth * newZoom - baseChartWidth;
       if (currentScrollX.current > newMaxScroll) {
@@ -138,7 +138,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   const handleScroll = (event: any) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     currentScrollX.current = contentOffset.x;
-    // Check if scrolled to the end (with small threshold)
+
     const isEnd = contentOffset.x + layoutMeasurement.width >= contentSize.width - 5;
     setIsAtEnd(isEnd);
   };
@@ -154,7 +154,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     actualSpacing?: number;
   } | null>(null);
 
-
   const themeColors = isDark ? colors.dark : colors.light;
   const containerWidth = SCREEN_WIDTH - horizontalPadding * 2;
   const yAxisWidth = 40;
@@ -162,14 +161,12 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   const chartHeight = height - padding.top - padding.bottom;
   const baseChartWidth = containerWidth - yAxisWidth;
 
-
   const parseTimeToMinutes = (timeDisplay: string): number => {
-    // Handle time formats like "07:05 CST" or "07:05"
-    const timePart = timeDisplay.split(' ')[0]; // Remove timezone suffix
+
+    const timePart = timeDisplay.split(' ')[0];
     const [hours, minutes] = timePart.split(':').map(Number);
     return hours * 60 + (minutes || 0);
   };
-
 
   const timeRange = useMemo(() => {
     const allTimes = [
@@ -181,7 +178,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     const dataMinTime = allTimes.length > 0 ? Math.min(...allTimes) : 480;
     const dataMaxTime = allTimes.length > 0 ? Math.max(...allTimes) : 540;
 
-
     const minTime = Math.floor(dataMinTime / 15) * 15 - 15;
     const maxTime = Math.ceil(dataMaxTime / 15) * 15 + 15;
     const range = maxTime - minTime || 1;
@@ -189,13 +185,11 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     return { minTime, maxTime, range };
   }, [orderedData, deliveredData, pouredData]);
 
-  // Calculate zoomed chart width
-  const zoomedChartWidth = baseChartWidth * zoomLevel;
 
+  const zoomedChartWidth = baseChartWidth * zoomLevel;
 
   const maxValue = Math.max(yMax, 100);
   const yAxisValues = [100, 50, 0];
-
 
   const allSeriesConfig = useMemo(() => [
     {
@@ -226,7 +220,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
 
   const seriesWithData = allSeriesConfig.filter(s => s.data.length > 0);
 
-
   const getX = (time: number) => {
     const normalized = (time - timeRange.minTime) / timeRange.range;
     return padding.left + normalized * (zoomedChartWidth - padding.left - padding.right);
@@ -235,7 +228,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   const getY = (value: number) => {
     return padding.top + chartHeight - (value / maxValue) * chartHeight;
   };
-
 
   const createLinePath = (seriesData: TimeSeriesData[]) => {
     if (seriesData.length < 1) return '';
@@ -251,7 +243,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     }
     return path;
   };
-
 
   const createSmoothPath = (seriesData: TimeSeriesData[]) => {
     if (seriesData.length < 2) return createLinePath(seriesData);
@@ -269,7 +260,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
       const p2 = points[i + 1];
       const p3 = points[Math.min(i + 2, points.length - 1)];
 
-
       const cp1x = p1.x + (p2.x - p0.x) / 6;
       const cp1y = p1.y + (p2.y - p0.y) / 6;
       const cp2x = p2.x - (p3.x - p1.x) / 6;
@@ -280,7 +270,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
 
     return path;
   };
-
 
   const toggleFilter = (key: string) => {
     setSelectedFilters(prev => {
@@ -298,31 +287,29 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     s => selectedFilters.has(s.key) && s.data.length > 0
   );
 
-
   const formatMinutesToTime = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}:${mins.toString().padStart(2, '0')}`;
   };
 
-
   const xAxisLabels = useMemo(() => {
     const labels: { time: number; display: string; hasData: boolean }[] = [];
 
-    // Calculate how many labels can fit based on chart width
-    // Each rotated label needs approximately 50px of space
+
+
     const labelWidth = 50;
     const availableWidth = zoomedChartWidth - padding.left - padding.right;
     const maxLabels = Math.max(2, Math.floor(availableWidth / labelWidth));
 
-    // Calculate time interval based on how many labels can fit
+
     const totalMinutes = timeRange.maxTime - timeRange.minTime;
     const rawInterval = Math.ceil(totalMinutes / maxLabels);
 
-    // Round to nearest 15 minutes for cleaner labels
+
     const timeInterval = Math.max(15, Math.ceil(rawInterval / 15) * 15);
 
-    // Collect all data points times
+
     const allDataTimes = [
       ...orderedData.map(d => parseTimeToMinutes(d.time_display)),
       ...deliveredData.map(d => parseTimeToMinutes(d.time_display)),
@@ -330,7 +317,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     ];
 
     for (let time = timeRange.minTime; time <= timeRange.maxTime; time += timeInterval) {
-      // Check if there's any data point within the time interval
+
       const hasData = allDataTimes.some(dataTime =>
         dataTime >= time && dataTime < time + timeInterval
       );
@@ -343,7 +330,6 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
 
     return labels;
   }, [timeRange, zoomedChartWidth, orderedData, deliveredData, pouredData]);
-
 
   const renderMarker = (
     type: string,
@@ -549,7 +535,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                 {xAxisLabels.map((label, i) => {
                   const x = getX(label.time);
                   if (x < padding.left - 10 || x > zoomedChartWidth - padding.right + 10) return null;
-                  // Use darker color when no data at this time
+
                   const labelColor = label.hasData ? themeColors.text.hint : (isDark ? colors.grey[40] : colors.grey[70]);
                   return (
                     <SvgText

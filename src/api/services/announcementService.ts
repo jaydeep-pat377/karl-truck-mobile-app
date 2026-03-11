@@ -7,13 +7,13 @@ export interface Announcement {
   campaign: string;
   start_date: string;
   end_date: string | null;
-  tile_type: string; // 'promotion', etc.
+  tile_type: string;
   tagline: string;
   title: string;
   subtitle: string;
-  icon_or_percent: string; // Image URL
-  color: string; // Hex color e.g., "#458B00"
-  url: string; // Action URL
+  icon_or_percent: string;
+  color: string;
+  url: string;
   published: boolean;
   plant_ids: number[];
   message_details_code: string;
@@ -44,7 +44,7 @@ export interface AnnouncementParams {
 export const announcementService = {
   getAnnouncements: async (params?: AnnouncementParams): Promise<AnnouncementsResponse> => {
     const queryParams: Record<string, string | number | boolean> = {
-      active: true, // Always fetch active announcements
+      active: true,
     };
 
     if (params?.page) {

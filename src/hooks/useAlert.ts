@@ -34,7 +34,6 @@ export const useAlert = () => {
     setAlertState((prev) => ({ ...prev, visible: false }));
   }, []);
 
-
   const showSuccess = useCallback(
     (title: string, message?: string, onOk?: () => void) => {
       showAlert({

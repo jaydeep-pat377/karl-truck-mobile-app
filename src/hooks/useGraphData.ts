@@ -84,10 +84,8 @@ interface UseGraphDataProps {
 
   apiGraphData?: ApiGraphData;
 
-
   schedule?: OrderProductSchedule | null;
   tickets?: TicketData[];
-
 
   scheduledQty?: number;
   truckSpace?: number;
@@ -116,7 +114,6 @@ export function useGraphData({
         hasData: !!(api.ordered?.length || api.delivered?.length || api.poured?.length),
       };
     }
-
 
     if (!schedule && tickets.length === 0) {
       return {
@@ -149,7 +146,6 @@ export function useGraphData({
     };
   }, [apiGraphData?.pour_speed, schedule, tickets, scheduledQty, truckSpace]);
 
-
   const trucksOnJobData = useMemo(() => {
 
     if (apiGraphData?.trucks_on_job) {
@@ -164,7 +160,6 @@ export function useGraphData({
         hasData: !!(api.time_points?.length),
       };
     }
-
 
     if (tickets.length === 0) {
       return {
@@ -219,7 +214,6 @@ export function useGraphData({
       hasData: timePoints.length > 0,
     };
   }, [apiGraphData?.trucks_on_job, schedule, tickets]);
-
 
   const rawData = useMemo(() => {
     if (!schedule && tickets.length === 0) {

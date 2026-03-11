@@ -1,38 +1,15 @@
-/**
- * Notification Sound Utility
- *
- * Simple, standalone sound player for chat notifications.
- * Works reliably from any callback (Supabase realtime, etc.)
- *
- * Usage:
- *   import { playMessageSound, initMessageSound } from '../utils/notificationSound';
- *
- *   // Initialize once at app start
- *   initMessageSound();
- *
- *   // Play sound when message arrives
- *   playMessageSound();
- */
-
 import { Platform } from 'react-native';
 import Sound from 'react-native-sound';
 
-// Enable playback in silence mode (iOS)
 Sound.setCategory('Playback');
 
-// Singleton sound instance
 let messageSound: Sound | null = null;
 let isLoaded = false;
 let isInitializing = false;
 let lastPlayTime = 0;
 
-// Throttle duration (ms) - prevent rapid-fire sounds
 const THROTTLE_MS = 2000;
 
-/**
- * Initialize the notification sound
- * Call this once when app starts
- */
 export const initMessageSound = (): Promise<boolean> => {
   return new Promise((resolve) => {
     if (isLoaded && messageSound) {
@@ -49,9 +26,6 @@ export const initMessageSound = (): Promise<boolean> => {
 
     isInitializing = true;
 
-    // Sound file paths:
-    // Android: android/app/src/main/res/raw/message_notification_sound.mp3 (NO extension in code)
-    // iOS: message-notification-sound.mp3 in Xcode bundle
     const soundFile = Platform.OS === 'android'
       ? 'message_notification_sound'
       : 'message-notification-sound.mp3';
@@ -86,23 +60,15 @@ export const initMessageSound = (): Promise<boolean> => {
   });
 };
 
-/**
- * Play the notification sound
- * Automatically throttled to prevent rapid-fire sounds
- *
- * @returns true if sound played, false if skipped/failed
- */
 export const playMessageSound = (): boolean => {
   console.log('[NotificationSound] playMessageSound() called');
   const now = Date.now();
 
-  // Throttle check
   if (now - lastPlayTime < THROTTLE_MS) {
     console.log('[NotificationSound] Throttled - last play was', now - lastPlayTime, 'ms ago');
     return false;
   }
 
-  // Not loaded check
   if (!isLoaded || !messageSound) {
     console.log('[NotificationSound] Not loaded yet, isLoaded:', isLoaded, 'messageSound:', !!messageSound);
     console.log('[NotificationSound] Attempting to load...');
@@ -116,11 +82,9 @@ export const playMessageSound = (): boolean => {
     return false;
   }
 
-  // Update last play time
   lastPlayTime = now;
   console.log('[NotificationSound] About to play, sound duration:', messageSound.getDuration());
 
-  // Play the sound
   try {
     console.log('[NotificationSound] Stopping any current playback...');
     messageSound.stop(() => {
@@ -142,10 +106,6 @@ export const playMessageSound = (): boolean => {
   }
 };
 
-/**
- * Release sound resources
- * Call when app is terminating
- */
 export const releaseMessageSound = (): void => {
   if (messageSound) {
     messageSound.stop();
@@ -155,9 +115,6 @@ export const releaseMessageSound = (): void => {
   }
 };
 
-/**
- * Check if sound is ready to play
- */
 export const isSoundReady = (): boolean => isLoaded && messageSound !== null;
 
 export default {
