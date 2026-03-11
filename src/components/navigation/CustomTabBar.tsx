@@ -8,6 +8,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../common';
 import { colors } from '../../theme/colors';
@@ -180,12 +181,10 @@ const TabItem: React.FC<TabItemProps> = ({
   const routes = state?.routes || [];
   const focusedIndex = getActualFocusedIndex(state || {}, routes);
 
-
+  // Check if currently on a detail screen (used for navigation logic and tab highlight)
   const onDetailScreen = isOnDetailScreen(state);
 
-
-
-
+  // Tab is focused only when on the main screen (not detail screen)
   const isFocused = !onDetailScreen && focusedIndex === index;
 
   const themeColors = tabBarTheme[theme];
@@ -257,25 +256,34 @@ const TabItem: React.FC<TabItemProps> = ({
 
     const initialScreen = getInitialScreenForTab(route.name);
 
-
     if (onDetailScreen) {
-
+      // When on a detail screen, reset the tab's stack to initial screen
       if (initialScreen) {
-        navigation.navigate(route.name, { screen: initialScreen });
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              {
+                name: route.name,
+                state: {
+                  routes: [{ name: initialScreen }],
+                },
+              },
+            ],
+          })
+        );
       } else {
-
         navigation.navigate(route.name);
       }
     } else if (!isFocused) {
-
+      // Navigate to the tab
       if (initialScreen) {
         navigation.navigate(route.name, { screen: initialScreen });
       } else {
         navigation.navigate(route.name);
       }
     } else {
-
-
+      // Already on this tab's main screen, do nothing or scroll to top
       if (initialScreen) {
         navigation.navigate(route.name, { screen: initialScreen });
       } else {
