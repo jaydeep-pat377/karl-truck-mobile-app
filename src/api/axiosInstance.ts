@@ -7,8 +7,10 @@ import { useAuthStore } from '../store/authStore';
 
 const FALLBACK_URL = 'http://10.0.2.2:5000/api';
 const BASE_URL = API_BASE_URL || FALLBACK_URL;
-const TIMEOUT = Number(API_TIMEOUT) || 15000;
+const TIMEOUT = Number(API_TIMEOUT) || 60000;
 const ENABLE_API_LOGGING = __DEV__;
+
+console.log('API_BASE_URL:', BASE_URL);
 
 const PUBLIC_ENDPOINTS = [
   '/auth/login',
@@ -66,14 +68,26 @@ axiosInstance.interceptors.request.use(
     }
 
     if (ENABLE_API_LOGGING) {
+      console.log('\n========== API REQUEST ==========');
+      console.log('Method:', config.method?.toUpperCase());
+      console.log('Base URL:', config.baseURL);
+      console.log('Endpoint:', config.url);
+      console.log('Full URL:', `${config.baseURL}${config.url}`);
+      if (config.params && Object.keys(config.params).length > 0) {
+        console.log('Query Params:', JSON.stringify(config.params, null, 2));
+      }
+      if (config.data) {
+        console.log('Body:', JSON.stringify(config.data, null, 2));
+      }
       console.log('Headers:', JSON.stringify(config.headers, null, 2));
+      console.log('==================================\n');
     }
 
     return config;
   },
   (error: AxiosError) => {
     if (ENABLE_API_LOGGING) {
-      console.error('Error:', error.message);
+      console.error('[API] Request Error:', error.message);
     }
     return Promise.reject(error);
   }

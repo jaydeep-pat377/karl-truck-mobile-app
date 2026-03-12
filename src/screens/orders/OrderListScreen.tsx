@@ -833,17 +833,53 @@ export const OrderListScreen: React.FC = () => {
 
   const [parentTabParams, setParentTabParams] = useState<typeof route.params | undefined>(undefined);
 
+  // Helper to find Orders route params from any level of navigation
+  const findOrdersParams = useCallback(() => {
+    // Try different levels to find the Orders route params
+    let parent = navigation.getParent();
+    while (parent) {
+      const state = parent.getState?.();
+      const ordersRoute = state?.routes?.find((r: any) => r.name === 'Orders');
+      if (ordersRoute?.params?._timestamp) {
+        return ordersRoute.params as typeof route.params;
+      }
+      parent = parent.getParent?.();
+    }
+    return undefined;
+  }, [navigation]);
 
+  // Check for params and update state
+  const checkAndUpdateParams = useCallback(() => {
+    const params = findOrdersParams();
+    if (params?._timestamp) {
+      setParentTabParams(prev => {
+        if (prev?._timestamp !== params._timestamp) {
+          return params;
+        }
+        return prev;
+      });
+    }
+  }, [findOrdersParams]);
+
+  // Listen to focus events
   useFocusEffect(
     useCallback(() => {
-      const parentRoute = navigation.getParent()?.getState()?.routes?.find(r => r.name === 'Orders');
-      const parentParams = parentRoute?.params as typeof route.params | undefined;
-      if (parentParams?._timestamp && parentParams._timestamp !== parentTabParams?._timestamp) {
-        setParentTabParams(parentParams);
-      }
-    }, [navigation, parentTabParams?._timestamp])
+      checkAndUpdateParams();
+    }, [checkAndUpdateParams])
   );
 
+  // Also listen to navigation state changes
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('state', () => {
+      checkAndUpdateParams();
+    });
+    return unsubscribe;
+  }, [navigation, checkAndUpdateParams]);
+
+  // Check on mount
+  useEffect(() => {
+    checkAndUpdateParams();
+  }, [checkAndUpdateParams]);
 
   const effectiveParams = { ...parentTabParams, ...route.params };
 
@@ -939,33 +975,33 @@ export const OrderListScreen: React.FC = () => {
   );
 
 
+  // Track the last applied timestamp to detect new navigation
+  const lastAppliedTimestamp = useRef<number | undefined>(undefined);
+
   useEffect(() => {
-    if (filterTimestamp) {
+    if (filterTimestamp && filterTimestamp !== lastAppliedTimestamp.current) {
+      // New navigation from dashboard - update the last applied timestamp
+      lastAppliedTimestamp.current = filterTimestamp;
 
-      if (companyNameFromRoute || regionNameFromRoute || plantCodeFromRoute) {
-        setDashboardFilter({
-          company_name: companyNameFromRoute,
-          region_name: regionNameFromRoute,
-          plant_code: plantCodeFromRoute,
-          plant_name: plantNameFromRoute,
-        });
-      }
+      // Always reset dashboard filter first, then apply new values
+      // This ensures old filters are cleared when navigating with new params
+      setDashboardFilter({
+        company_name: companyNameFromRoute,
+        region_name: regionNameFromRoute,
+        plant_code: plantCodeFromRoute,
+        plant_name: plantNameFromRoute,
+      });
 
-
-      if (isFavouriteFromRoute !== undefined) {
-        setIsFavouriteFilter(isFavouriteFromRoute);
-      }
-
+      // Reset favourite filter - only set true if explicitly passed
+      setIsFavouriteFilter(isFavouriteFromRoute === true);
 
       if (tabFromRoute) {
         setOrderStatusFilter(tabFromRoute);
       }
 
-
       if (dateFilterFromRoute) {
         setActiveFilter(dateFilterFromRoute);
         setDebouncedFilter(dateFilterFromRoute);
-
 
         if (dateFilterFromRoute === 'calendar' && selectedDateFromRoute) {
           const date = new Date(selectedDateFromRoute);
@@ -1573,15 +1609,22 @@ export const OrderListScreen: React.FC = () => {
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
-
                     setDashboardFilter({});
-                    navigation.setParams({
-                      company_name: undefined,
-                      region_name: undefined,
-                      plant_code: undefined,
-                      plant_name: undefined,
-                      _timestamp: Date.now()
-                    });
+                    // Reset state so new navigation is detected
+                    setParentTabParams(undefined);
+                    lastAppliedTimestamp.current = undefined;
+                    // Clear params at all parent levels
+                    let parent = navigation.getParent();
+                    while (parent) {
+                      parent.setParams?.({
+                        company_name: undefined,
+                        region_name: undefined,
+                        plant_code: undefined,
+                        plant_name: undefined,
+                        _timestamp: undefined,
+                      });
+                      parent = parent.getParent?.();
+                    }
                   }}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   activeOpacity={0.7}
@@ -1607,10 +1650,18 @@ export const OrderListScreen: React.FC = () => {
                 <TouchableOpacity
                   onPress={() => {
                     setIsFavouriteFilter(false);
-                    navigation.setParams({
-                      is_favourite: undefined,
-                      _timestamp: Date.now()
-                    });
+                    // Reset state so new navigation is detected
+                    setParentTabParams(undefined);
+                    lastAppliedTimestamp.current = undefined;
+                    // Clear params at all parent levels
+                    let parent = navigation.getParent();
+                    while (parent) {
+                      parent.setParams?.({
+                        is_favourite: undefined,
+                        _timestamp: undefined,
+                      });
+                      parent = parent.getParent?.();
+                    }
                   }}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   activeOpacity={0.7}
