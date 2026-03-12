@@ -202,6 +202,7 @@ if (MAPBOX_ACCESS_TOKEN) {
 const MAP_STYLES = {
   light: Mapbox.StyleURL.Street,
   dark: Mapbox.StyleURL.Dark,
+  satellite: Mapbox.StyleURL.SatelliteStreet,
 };
 
 const STATUS_CONFIG: Record<string, { color: string; icon: string; label: string }> = {
@@ -240,6 +241,7 @@ export const OrderTrackingScreen: React.FC = () => {
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
   const [isLegendExpanded, setIsLegendExpanded] = useState(true);
+  const [isSatelliteView, setIsSatelliteView] = useState(false);
 
   const SHEET_MIN_HEIGHT = useMemo(() => screenHeight * 0.38 + insets.bottom, [screenHeight, insets.bottom]);
   const SHEET_MAX_HEIGHT = useMemo(() => screenHeight * 0.78 + insets.bottom, [screenHeight, insets.bottom]);
@@ -643,7 +645,7 @@ export const OrderTrackingScreen: React.FC = () => {
       <Animated.View style={[styles.mapWrap, { height: mapHeight }]}>
         <Mapbox.MapView
           style={styles.map}
-          styleURL={isDark ? MAP_STYLES.dark : MAP_STYLES.light}
+          styleURL={isSatelliteView ? MAP_STYLES.satellite : (isDark ? MAP_STYLES.dark : MAP_STYLES.light)}
           logoEnabled={false}
           attributionEnabled={false}
           onDidFinishLoadingMap={() => {
@@ -769,6 +771,12 @@ export const OrderTrackingScreen: React.FC = () => {
         )}
 
         <View style={[styles.mapControls, { top: insets.top + ms(70) }]}>
+          <TouchableOpacity
+            style={[styles.mapBtn, { backgroundColor: isSatelliteView ? colors.primary.main : themeColors.card }]}
+            onPress={() => setIsSatelliteView(!isSatelliteView)}
+          >
+            <Icon name="satellite-variant" size={ms(18)} color={isSatelliteView ? colors.common.white : themeColors.text.primary} />
+          </TouchableOpacity>
           <TouchableOpacity style={[styles.mapBtn, { backgroundColor: themeColors.card }]} onPress={handleFitAll}>
             <Icon name="fit-to-screen-outline" size={ms(18)} color={themeColors.text.primary} />
           </TouchableOpacity>
