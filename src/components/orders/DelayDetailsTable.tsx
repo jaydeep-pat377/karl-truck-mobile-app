@@ -153,22 +153,22 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
 
         <View style={styles.cardInfoRow}>
           <View style={[styles.infoBadge, { backgroundColor: colors.primary.main + '15' }]}>
-            <Text style={[styles.infoLabel, { color: colors.primary.main }]}>Load</Text>
-            <Text style={[styles.infoValue, { color: colors.primary.main }]}>{item.load_order}</Text>
+            <Text style={[styles.infoLabel, { color: colors.primary.main }]} numberOfLines={1}>Load</Text>
+            <Text style={[styles.infoValue, { color: colors.primary.main }]} numberOfLines={1}>{item.load_order}</Text>
           </View>
           {item.load_qty && (
             <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[60] : colors.grey[10] }]}>
-              <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]}>Qty</Text>
-              <Text style={[styles.infoValue, { color: themeColors.text }]}>{item.load_qty} CY</Text>
+              <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]} numberOfLines={1}>Qty</Text>
+              <Text style={[styles.infoValue, { color: themeColors.text }]} numberOfLines={1}>{item.load_qty}</Text>
             </View>
           )}
           <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[60] : colors.grey[10] }]}>
-            <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]}>Spacing</Text>
-            <Text style={[styles.infoValue, { color: themeColors.text }]}>{item.spacing} min</Text>
+            <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]} numberOfLines={1}>Spacing</Text>
+            <Text style={[styles.infoValue, { color: themeColors.text }]} numberOfLines={1}>{item.spacing} min</Text>
           </View>
           <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[60] : colors.grey[10] }]}>
-            <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]}>Pour Duration</Text>
-            <Text style={[styles.infoValue, { color: themeColors.text }]}>{item.pour_duration !== null ? `${item.pour_duration} min` : '--'}</Text>
+            <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{"Pour\nDuration"}</Text>
+            <Text style={[styles.infoValue, { color: themeColors.text }]} numberOfLines={1}>{item.pour_duration !== null ? `${item.pour_duration}` : '--'}</Text>
           </View>
         </View>
 
@@ -196,32 +196,32 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
 
 
         <View style={styles.metricsRow}>
-          <View style={[styles.metricItemSmall, { backgroundColor: getDelayBgColor(item.producer_delay, isDark) }]}>
-            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>{"Producer\nDelay"}</Text>
+          <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.producer_delay, isDark) }]}>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{"Producer\nDelay"}</Text>
             <Text style={[styles.metricValue, { color: getDelayColor(item.producer_delay) }]}>
               {item.producer_delay > 0 ? '+' : ''}{item.producer_delay}
             </Text>
           </View>
-          <View style={[styles.metricItemSmall, { backgroundColor: getDelayBgColor(item.contractor_delay, isDark) }]}>
-            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>{"Contractor\nDelay"}</Text>
+          <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.contractor_delay, isDark) }]}>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{"Contractor\nDelay"}</Text>
             <Text style={[styles.metricValue, { color: getDelayColor(item.contractor_delay) }]}>
               {item.contractor_delay > 0 ? '+' : ''}{item.contractor_delay}
             </Text>
           </View>
           <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.waiting_to_pour, isDark) }]}>
-            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>Waiting</Text>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{"Waiting\n "}</Text>
             <Text style={[styles.metricValue, { color: getDelayColor(item.waiting_to_pour) }]}>
               {item.waiting_to_pour}
             </Text>
           </View>
           <View style={[styles.metricItem, { backgroundColor: item.pour_out_minutes !== null && item.pour_out_minutes !== undefined ? getDelayBgColor(item.pour_out_minutes, isDark) : (isDark ? colors.grey[80] : colors.grey[10]) }]}>
-            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>{"Pour\nOut"}</Text>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{"Pour\nOut"}</Text>
             <Text style={[styles.metricValue, { color: item.pour_out_minutes !== null && item.pour_out_minutes !== undefined ? getDelayColor(item.pour_out_minutes) : themeColors.textHint }]}>
               {item.pour_out_minutes !== null && item.pour_out_minutes !== undefined ? item.pour_out_minutes : '--'}
             </Text>
           </View>
-          <View style={[styles.metricItemLarge, { backgroundColor: getDelayBgColor(item.pour_min_over, isDark) }]}>
-            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]}>{"Pour\nPerf"}</Text>
+          <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.pour_min_over, isDark) }]}>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{"Pour\nPerf"}</Text>
             <Text style={[styles.metricValue, { color: getDelayColor(item.pour_min_over) }]}>
               {item.pour_min_over > 0 ? '+' : ''}{item.pour_min_over}
             </Text>
@@ -390,7 +390,6 @@ const styles = StyleSheet.create({
   },
   infoBadge: {
     flex: 1,
-    flexShrink: 1,
     paddingHorizontal: 2,
     paddingVertical: spacing.xs,
     borderRadius: ms(4),
@@ -400,13 +399,13 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontFamily: fontFamily.regular,
-    fontSize: ms(10),
+    fontSize: ms(9),
     marginBottom: 1,
     textAlign: 'center',
   },
   infoValue: {
     fontFamily: fontFamily.semiBold,
-    fontSize: ms(12),
+    fontSize: ms(11),
     textAlign: 'center',
   },
   timeSection: {
@@ -437,37 +436,22 @@ const styles = StyleSheet.create({
   },
   metricsRow: {
     flexDirection: 'row',
-    gap: 4,
+    gap: 3,
   },
   metricItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.xs,
-    paddingHorizontal: 2,
+    paddingHorizontal: 1,
     borderRadius: ms(6),
-  },
-  metricItemSmall: {
-    flex: 0.75,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xs,
-    paddingHorizontal: 2,
-    borderRadius: ms(6),
-  },
-  metricItemLarge: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xs,
-    paddingHorizontal: 2,
-    borderRadius: ms(6),
+    minWidth: 0,
   },
   metricLabel: {
-    fontFamily: fontFamily.regular,
-    fontSize: ms(9),
+    fontFamily: fontFamily.medium,
+    fontSize: ms(8),
     textAlign: 'center',
-    lineHeight: ms(12),
+    lineHeight: ms(11),
     marginBottom: 2,
   },
   metricValue: {

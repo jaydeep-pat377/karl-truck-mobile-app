@@ -239,6 +239,12 @@ export const OrderProductDetailsScreen: React.FC = () => {
           weather_description?: string | null;
         } | null,
         combinedProducts: [] as CombinedProductItem[],
+        scheduledLoadsSummary: null as {
+          total: number;
+          count: number;
+          completedCount: number;
+          cancelledCount: number;
+        } | null,
       };
     }
 
@@ -380,6 +386,12 @@ export const OrderProductDetailsScreen: React.FC = () => {
 
         return combined;
       })(),
+      scheduledLoadsSummary: (orderDetails as any).scheduled_loads ? {
+        total: (orderDetails as any).scheduled_loads.total || 0,
+        count: (orderDetails as any).scheduled_loads.count || 0,
+        completedCount: (orderDetails as any).scheduled_loads.completed_count || 0,
+        cancelledCount: (orderDetails as any).scheduled_loads.cancelled_count || 0,
+      } : null,
     };
   }, [orderDetails]);
 
@@ -1024,7 +1036,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
               </View>
 
 
-              {jobData.scheduledLoads && jobData.scheduledLoads.length > 0 && (
+              {jobData.scheduledLoadsSummary && jobData.scheduledLoadsSummary.total > 0 && (
                 <View style={[styles.skuLoadsSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
                   <TouchableOpacity
                     style={styles.skuLoadsButton}
@@ -1035,17 +1047,17 @@ export const OrderProductDetailsScreen: React.FC = () => {
                       <View style={[styles.skuLoadsIconBox, { backgroundColor: isDark ? colors.secondary.main + '25' : colors.secondary.main + '15' }]}>
                         <ConcreteTruck width={ms(22)} height={ms(16)} color={colors.secondary.main} />
                       </View>
-                      <View style={styles.skuLoadsButtonText}>
+                      <View style={styles.skuLoadsTextContainer}>
                         <Text style={[styles.skuLoadsTitle, { color: themeColors.text.primary }]}>
                           Scheduled Loads
                         </Text>
                         <Text style={[styles.skuLoadsSubtitle, { color: themeColors.text.secondary }]}>
-                          {jobData.scheduledLoads.filter(l => !!l.actual_time).length} of {jobData.scheduledLoads.length} completed
+                          {jobData.scheduledLoadsSummary.completedCount} of {jobData.scheduledLoadsSummary.total} completed
                         </Text>
                       </View>
                     </View>
                     <View style={[styles.skuLoadsCountBadge, { backgroundColor: colors.secondary.main }]}>
-                      <Text style={styles.skuLoadsCountText}>{jobData.scheduledLoads.length}</Text>
+                      <Text style={styles.skuLoadsCountText}>{jobData.scheduledLoadsSummary.total}</Text>
                     </View>
                     <Icon name="chevron-right" size={ms(22)} color={themeColors.text.hint} />
                   </TouchableOpacity>
@@ -1062,7 +1074,9 @@ export const OrderProductDetailsScreen: React.FC = () => {
         visible={showLoadsSheet}
         onClose={() => setShowLoadsSheet(false)}
         loads={showLoadsSheet ? scheduledLoadsData : jobData.scheduledLoads}
-        totalLoads={scheduledLoadsTotalCount || jobData.scheduleDetails?.[0]?.number_of_loads}
+        totalLoads={jobData.scheduledLoadsSummary?.total || scheduledLoadsTotalCount || jobData.scheduleDetails?.[0]?.number_of_loads}
+        completedCount={jobData.scheduledLoadsSummary?.completedCount}
+        cancelledCount={jobData.scheduledLoadsSummary?.cancelledCount}
         isLoading={isLoadingScheduledLoads}
         hasNextPage={hasMoreScheduledLoads}
         isFetchingNextPage={isFetchingMoreLoads}
@@ -1582,7 +1596,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  skuLoadsButtonText: {
+  skuLoadsTextContainer: {
     flex: 1,
   },
   skuLoadsTitle: {

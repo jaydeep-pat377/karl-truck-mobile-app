@@ -49,6 +49,8 @@ interface ScheduledLoadsBottomSheetProps {
   onClose: () => void;
   loads: ScheduledLoadItem[];
   totalLoads?: number;
+  completedCount?: number;
+  cancelledCount?: number;
   isLoading?: boolean;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
@@ -84,6 +86,8 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
   onClose,
   loads,
   totalLoads,
+  completedCount,
+  cancelledCount,
   isLoading,
   hasNextPage,
   isFetchingNextPage,
@@ -92,8 +96,10 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
 
-  const completedLoads = loads.filter(l => !!l.actual_time).length;
+  // Use API summary counts if provided, otherwise calculate from loaded items
   const displayTotal = totalLoads || loads.length;
+  const completedLoads = completedCount !== undefined ? completedCount : loads.filter(l => !!l.actual_time).length;
+  const pendingLoads = displayTotal - completedLoads - (cancelledCount || 0);
   const subtitle = `${completedLoads} of ${displayTotal} completed`;
 
   const handleEndReached = useCallback(() => {
@@ -141,8 +147,9 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                 />
                 <Text
                   style={[styles.loadStatusText, { color: LOAD_STATUS_CONFIG[load.load_status_code || '']?.color || colors.grey[50] }]}
+                  numberOfLines={1}
                 >
-                  {load.load_status}
+                  {LOAD_STATUS_CONFIG[load.load_status_code || '']?.label || load.load_status}
                 </Text>
               </View>
             )}
@@ -205,12 +212,12 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
               <View style={styles.loadInfoItem}>
                 <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>Wash</Text>
                 <View style={[styles.loadInfoTag, {
-                  backgroundColor: isDark ? colors.grey[70] : colors.grey[8],
+                  backgroundColor: isDark ? colors.grey[80] : colors.grey[8],
                   borderWidth: 1,
                   borderColor: isDark ? colors.grey[50] : colors.grey[15]
                 }]}>
                   <Icon name="car-wash" size={ms(12)} color={isDark ? colors.grey[25] : colors.grey[60]} />
-                  <Text style={[styles.loadInfoTagText, { color: isDark ? colors.grey[15] : colors.grey[70] }]}>{load.actual_wash_time}</Text>
+                  <Text style={[styles.loadInfoTagText, { color: isDark ? colors.grey[15] : colors.grey[80] }]}>{load.actual_wash_time}</Text>
                 </View>
               </View>
             )}
@@ -218,12 +225,12 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
               <View style={styles.loadInfoItem}>
                 <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>Return</Text>
                 <View style={[styles.loadInfoTag, {
-                  backgroundColor: isDark ? colors.grey[70] : colors.grey[8],
+                  backgroundColor: isDark ? colors.grey[80] : colors.grey[8],
                   borderWidth: 1,
                   borderColor: isDark ? colors.grey[50] : colors.grey[15]
                 }]}>
                   <Icon name="keyboard-return" size={ms(12)} color={isDark ? colors.grey[25] : colors.grey[60]} />
-                  <Text style={[styles.loadInfoTagText, { color: isDark ? colors.grey[15] : colors.grey[70] }]}>{load.actual_at_plant_time}</Text>
+                  <Text style={[styles.loadInfoTagText, { color: isDark ? colors.grey[15] : colors.grey[80] }]}>{load.actual_at_plant_time}</Text>
                 </View>
               </View>
             )}
@@ -256,11 +263,11 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
         <Text style={[styles.summaryLabel, { color: isDark ? colors.grey[25] : themeColors.text.secondary }]}>Completed</Text>
       </View>
       <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[5] }]}>
-        <Text style={[styles.summaryValue, { color: themeColors.text.primary }]}>{displayTotal - completedLoads}</Text>
+        <Text style={[styles.summaryValue, { color: themeColors.text.primary }]}>{pendingLoads}</Text>
         <Text style={[styles.summaryLabel, { color: isDark ? colors.grey[25] : themeColors.text.secondary }]}>Pending</Text>
       </View>
     </View>
-  ), [isDark, themeColors, displayTotal, completedLoads]);
+  ), [isDark, themeColors, displayTotal, completedLoads, pendingLoads]);
 
   const renderEmpty = useCallback(() => {
     if (isLoading) {
@@ -413,11 +420,11 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.full,
     gap: 3,
     flexShrink: 0,
+    minWidth: 0,
   },
   loadStatusText: {
     fontFamily: fontFamily.semiBold,
     fontSize: ms(10),
-    flexShrink: 0,
   },
   loadTruckTag: {
     flexDirection: 'row',
