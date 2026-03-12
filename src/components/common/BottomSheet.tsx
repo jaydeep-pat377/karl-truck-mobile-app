@@ -32,6 +32,7 @@ export interface BottomSheetProps {
   headerIcon?: string;
   headerIconColor?: string;
   closeOnBackdrop?: boolean;
+  disableScroll?: boolean;
 }
 
 export const BottomSheet: React.FC<BottomSheetProps> = ({
@@ -46,6 +47,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   headerIcon,
   headerIconColor = colors.primary.main,
   closeOnBackdrop = true,
+  disableScroll = false,
 }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -220,18 +222,30 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           )}
 
 
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={[
-              styles.contentContainer,
-              { paddingBottom: insets.bottom + ms(32) }
-            ]}
-            showsVerticalScrollIndicator={true}
-            bounces={true}
-            keyboardShouldPersistTaps="handled"
-          >
-            {children}
-          </ScrollView>
+{disableScroll ? (
+            <View
+              style={[
+                styles.scrollView,
+                styles.contentContainer,
+                { paddingBottom: insets.bottom + ms(32) }
+              ]}
+            >
+              {children}
+            </View>
+          ) : (
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={[
+                styles.contentContainer,
+                { paddingBottom: insets.bottom + ms(32) }
+              ]}
+              showsVerticalScrollIndicator={true}
+              bounces={true}
+              keyboardShouldPersistTaps="handled"
+            >
+              {children}
+            </ScrollView>
+          )}
         </Animated.View>
       </KeyboardAvoidingView>
     </Modal>

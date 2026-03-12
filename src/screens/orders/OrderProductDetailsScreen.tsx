@@ -18,7 +18,7 @@ import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, spacing } from '../../utils/responsive';
 import { RootStackParamList } from '../../navigation/types';
-import { useOrderDetails, useAlert } from '../../hooks';
+import { useOrderDetails, useScheduledLoads, useAlert } from '../../hooks';
 import { getStatusLabel } from '../../utils/statusUtils';
 
 type OrderProductDetailsRouteProp = RouteProp<RootStackParamList, 'OrderProductDetails'>;
@@ -145,6 +145,21 @@ export const OrderProductDetailsScreen: React.FC = () => {
     error,
     refetch,
   } = useOrderDetails({ order_code: orderCode, order_date: orderDate });
+
+  // Use paginated scheduled loads when bottom sheet is visible
+  const {
+    loads: scheduledLoadsData,
+    totalLoads: scheduledLoadsTotalCount,
+    isLoading: isLoadingScheduledLoads,
+    hasNextPage: hasMoreScheduledLoads,
+    isFetchingNextPage: isFetchingMoreLoads,
+    fetchNextPage: fetchMoreLoads,
+  } = useScheduledLoads({
+    order_code: orderCode,
+    order_date: orderDate,
+    limit: 10,
+    enabled: showLoadsSheet,
+  });
 
   const statusColor = progressColor || colors.primary.main;
 
@@ -1046,8 +1061,12 @@ export const OrderProductDetailsScreen: React.FC = () => {
       <ScheduledLoadsBottomSheet
         visible={showLoadsSheet}
         onClose={() => setShowLoadsSheet(false)}
-        loads={jobData.scheduledLoads}
-        totalLoads={jobData.scheduleDetails?.[0]?.number_of_loads}
+        loads={showLoadsSheet ? scheduledLoadsData : jobData.scheduledLoads}
+        totalLoads={scheduledLoadsTotalCount || jobData.scheduleDetails?.[0]?.number_of_loads}
+        isLoading={isLoadingScheduledLoads}
+        hasNextPage={hasMoreScheduledLoads}
+        isFetchingNextPage={isFetchingMoreLoads}
+        onLoadMore={fetchMoreLoads}
       />
     </View>
   );

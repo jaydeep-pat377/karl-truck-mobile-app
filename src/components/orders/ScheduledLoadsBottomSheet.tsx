@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useCallback } from 'react';
+import { View, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, BottomSheet } from '../common';
 import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
@@ -49,6 +49,10 @@ interface ScheduledLoadsBottomSheetProps {
   onClose: () => void;
   loads: ScheduledLoadItem[];
   totalLoads?: number;
+  isLoading?: boolean;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  onLoadMore?: () => void;
 }
 
 const GRID = {
@@ -80,14 +84,204 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
   onClose,
   loads,
   totalLoads,
+  isLoading,
+  hasNextPage,
+  isFetchingNextPage,
+  onLoadMore,
 }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
 
   const completedLoads = loads.filter(l => !!l.actual_time).length;
-  const subtitle = totalLoads
-    ? `${completedLoads} of ${totalLoads} completed`
-    : `${loads.length} loads`;
+  const displayTotal = totalLoads || loads.length;
+  const subtitle = `${completedLoads} of ${displayTotal} completed`;
+
+  const handleEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage && onLoadMore) {
+      onLoadMore();
+    }
+  }, [hasNextPage, isFetchingNextPage, onLoadMore]);
+
+  const renderLoadCard = useCallback(({ item: load, index }: { item: ScheduledLoadItem; index: number }) => {
+    const isCompleted = !!load.actual_time;
+
+    return (
+      <View
+        style={[
+          styles.loadCard,
+          { backgroundColor: isDark ? themeColors.cardElevated : colors.common.white }
+        ]}
+      >
+        <View style={styles.loadCardHeader}>
+          <View style={styles.headerLeftGroup}>
+            <View style={[
+              styles.loadBadge,
+              {
+                backgroundColor: isCompleted ? colors.success.main + '15' : colors.primary.main + '15',
+                borderWidth: 1,
+                borderColor: isCompleted ? colors.success.main : colors.primary.main
+              }
+            ]}>
+              <Text style={[styles.loadBadgeText, { color: isCompleted ? colors.success.main : colors.primary.main }]}>#{load.load_number}</Text>
+            </View>
+            <Text style={[styles.loadCardQtyText, { color: themeColors.text.primary }]} numberOfLines={1}>
+              {load.scheduled_qty}
+            </Text>
+
+            {load.load_status && (
+              <View style={[styles.loadStatusTag, {
+                backgroundColor: isDark
+                  ? (LOAD_STATUS_CONFIG[load.load_status_code || '']?.color || colors.grey[50]) + '20'
+                  : (LOAD_STATUS_CONFIG[load.load_status_code || '']?.color || colors.grey[50]) + '15'
+              }]}>
+                <Icon
+                  name={LOAD_STATUS_CONFIG[load.load_status_code || '']?.icon || 'circle-outline'}
+                  size={ms(10)}
+                  color={LOAD_STATUS_CONFIG[load.load_status_code || '']?.color || colors.grey[50]}
+                />
+                <Text
+                  style={[styles.loadStatusText, { color: LOAD_STATUS_CONFIG[load.load_status_code || '']?.color || colors.grey[50] }]}
+                >
+                  {load.load_status}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.headerRightGroup}>
+            {load.ticket_code && (
+              <View style={[styles.loadTicketTag, { backgroundColor: isDark ? colors.secondary.main + '20' : colors.secondary.main + '12' }]}>
+                <Icon name="ticket-outline" size={ms(10)} color={colors.secondary.main} />
+                <Text style={[styles.loadTicketText, { color: colors.secondary.main }]}>{load.ticket_code}</Text>
+              </View>
+            )}
+
+            {load.truck_code && (
+              <View style={[styles.loadTruckTag, { backgroundColor: isDark ? colors.info.main + '20' : colors.info.main + '12' }]}>
+                <ConcreteTruck width={ms(16)} height={ms(12)} color={colors.info.main} />
+                <Text style={[styles.loadTruckText, { color: colors.info.main }]}>{load.truck_code}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        <View style={[styles.loadTimeRow, {
+          borderTopColor: isDark ? themeColors.border : colors.grey[10],
+          backgroundColor: isDark ? colors.semiTransparent.white03 : colors.common.transparent
+        }]}>
+          <View style={styles.loadTimeBlock}>
+            <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>Scheduled</Text>
+            <Text style={[styles.loadTimeBlockValue, { color: themeColors.text.primary }]}>
+              {load.scheduled_time || '--:--'}
+            </Text>
+          </View>
+
+          <View style={styles.loadTimeArrow}>
+            <Icon name="arrow-right" size={ms(14)} color={isDark ? colors.grey[40] : themeColors.text.hint} />
+          </View>
+
+          <View style={styles.loadTimeBlock}>
+            <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>At Job</Text>
+            <Text style={[styles.loadTimeBlockValue, { color: themeColors.text.primary }]}>
+              {load.actual_on_job_time || load.scheduled_on_job_time || '--:--'}
+            </Text>
+          </View>
+
+          <View style={styles.loadTimeArrow}>
+            <Icon name="arrow-right" size={ms(14)} color={isDark ? colors.grey[40] : themeColors.text.hint} />
+          </View>
+
+          <View style={styles.loadTimeBlock}>
+            <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>Unload</Text>
+            <Text style={[styles.loadTimeBlockValue, { color: themeColors.text.primary }]}>
+              {load.actual_unload_time || load.scheduled_fin_pour_time || '--:--'}
+            </Text>
+          </View>
+        </View>
+
+        {(load.actual_wash_time || load.actual_at_plant_time) && (
+          <View style={[styles.loadInfoRow, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
+            {load.actual_wash_time && (
+              <View style={styles.loadInfoItem}>
+                <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>Wash</Text>
+                <View style={[styles.loadInfoTag, {
+                  backgroundColor: isDark ? colors.grey[70] : colors.grey[8],
+                  borderWidth: 1,
+                  borderColor: isDark ? colors.grey[50] : colors.grey[15]
+                }]}>
+                  <Icon name="car-wash" size={ms(12)} color={isDark ? colors.grey[25] : colors.grey[60]} />
+                  <Text style={[styles.loadInfoTagText, { color: isDark ? colors.grey[15] : colors.grey[70] }]}>{load.actual_wash_time}</Text>
+                </View>
+              </View>
+            )}
+            {load.actual_at_plant_time && (
+              <View style={styles.loadInfoItem}>
+                <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>Return</Text>
+                <View style={[styles.loadInfoTag, {
+                  backgroundColor: isDark ? colors.grey[70] : colors.grey[8],
+                  borderWidth: 1,
+                  borderColor: isDark ? colors.grey[50] : colors.grey[15]
+                }]}>
+                  <Icon name="keyboard-return" size={ms(12)} color={isDark ? colors.grey[25] : colors.grey[60]} />
+                  <Text style={[styles.loadInfoTagText, { color: isDark ? colors.grey[15] : colors.grey[70] }]}>{load.actual_at_plant_time}</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  }, [isDark, themeColors]);
+
+  const renderFooter = useCallback(() => {
+    if (!isFetchingNextPage) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={colors.primary.main} />
+        <Text style={[styles.footerLoaderText, { color: themeColors.text.secondary }]}>
+          Loading more...
+        </Text>
+      </View>
+    );
+  }, [isFetchingNextPage, themeColors]);
+
+  const renderHeader = useCallback(() => (
+    <View style={styles.summaryRow}>
+      <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[5] }]}>
+        <Text style={[styles.summaryValue, { color: themeColors.text.primary }]}>{displayTotal}</Text>
+        <Text style={[styles.summaryLabel, { color: isDark ? colors.grey[25] : themeColors.text.secondary }]}>Total</Text>
+      </View>
+      <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[5] }]}>
+        <Text style={[styles.summaryValue, { color: themeColors.text.primary }]}>{completedLoads}</Text>
+        <Text style={[styles.summaryLabel, { color: isDark ? colors.grey[25] : themeColors.text.secondary }]}>Completed</Text>
+      </View>
+      <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[5] }]}>
+        <Text style={[styles.summaryValue, { color: themeColors.text.primary }]}>{displayTotal - completedLoads}</Text>
+        <Text style={[styles.summaryLabel, { color: isDark ? colors.grey[25] : themeColors.text.secondary }]}>Pending</Text>
+      </View>
+    </View>
+  ), [isDark, themeColors, displayTotal, completedLoads]);
+
+  const renderEmpty = useCallback(() => {
+    if (isLoading) {
+      return (
+        <View style={styles.emptyState}>
+          <ActivityIndicator size="large" color={colors.primary.main} />
+          <Text style={[styles.emptyText, { color: themeColors.text.secondary }]}>
+            Loading scheduled loads...
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.emptyState}>
+        <Icon name="calendar-blank-outline" size={ms(48)} color={themeColors.text.hint} />
+        <Text style={[styles.emptyText, { color: themeColors.text.secondary }]}>
+          No scheduled loads available
+        </Text>
+      </View>
+    );
+  }, [isLoading, themeColors]);
 
   return (
     <BottomSheet
@@ -98,174 +292,22 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
       headerIcon="format-list-numbered"
       headerIconColor={colors.secondary.main}
       height="full"
+      disableScroll
     >
       <View style={styles.container}>
-
-        <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[5] }]}>
-            <Text style={[styles.summaryValue, { color: themeColors.text.primary }]}>{loads.length}</Text>
-            <Text style={[styles.summaryLabel, { color: isDark ? colors.grey[25] : themeColors.text.secondary }]}>Total</Text>
-          </View>
-          <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[5] }]}>
-            <Text style={[styles.summaryValue, { color: themeColors.text.primary }]}>{completedLoads}</Text>
-            <Text style={[styles.summaryLabel, { color: isDark ? colors.grey[25] : themeColors.text.secondary }]}>Completed</Text>
-          </View>
-          <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[5] }]}>
-            <Text style={[styles.summaryValue, { color: themeColors.text.primary }]}>{loads.length - completedLoads}</Text>
-            <Text style={[styles.summaryLabel, { color: isDark ? colors.grey[25] : themeColors.text.secondary }]}>Pending</Text>
-          </View>
-        </View>
-
-
-        <View style={styles.loadsList}>
-          {loads.map((load, index) => {
-            const isCompleted = !!load.actual_time;
-
-            return (
-              <View
-                key={load.load_number || index}
-                style={[
-                  styles.loadCard,
-                  { backgroundColor: isDark ? themeColors.cardElevated : colors.common.white }
-                ]}
-              >
-
-                <View style={styles.loadCardHeader}>
-
-                  <View style={styles.headerLeftGroup}>
-                    <View style={[
-                      styles.loadBadge,
-                      {
-                        backgroundColor: isCompleted ? colors.success.main + '15' : colors.primary.main + '15',
-                        borderWidth: 1,
-                        borderColor: isCompleted ? colors.success.main : colors.primary.main
-                      }
-                    ]}>
-                      <Text style={[styles.loadBadgeText, { color: isCompleted ? colors.success.main : colors.primary.main }]}>#{load.load_number}</Text>
-                    </View>
-                    <Text style={[styles.loadCardQtyText, { color: themeColors.text.primary }]} numberOfLines={1}>
-                      {load.scheduled_qty}
-                    </Text>
-
-                    {load.load_status && (
-                      <View style={[styles.loadStatusTag, {
-                        backgroundColor: isDark
-                          ? (LOAD_STATUS_CONFIG[load.load_status_code || '']?.color || colors.grey[50]) + '20'
-                          : (LOAD_STATUS_CONFIG[load.load_status_code || '']?.color || colors.grey[50]) + '15'
-                      }]}>
-                        <Icon
-                          name={LOAD_STATUS_CONFIG[load.load_status_code || '']?.icon || 'circle-outline'}
-                          size={ms(10)}
-                          color={LOAD_STATUS_CONFIG[load.load_status_code || '']?.color || colors.grey[50]}
-                        />
-                        <Text
-                          style={[styles.loadStatusText, { color: LOAD_STATUS_CONFIG[load.load_status_code || '']?.color || colors.grey[50] }]}
-                        >
-                          {load.load_status}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-
-                  <View style={styles.headerRightGroup}>
-
-                    {load.ticket_code && (
-                      <View style={[styles.loadTicketTag, { backgroundColor: isDark ? colors.secondary.main + '20' : colors.secondary.main + '12' }]}>
-                        <Icon name="ticket-outline" size={ms(10)} color={colors.secondary.main} />
-                        <Text style={[styles.loadTicketText, { color: colors.secondary.main }]}>{load.ticket_code}</Text>
-                      </View>
-                    )}
-
-
-                    {load.truck_code && (
-                      <View style={[styles.loadTruckTag, { backgroundColor: isDark ? colors.info.main + '20' : colors.info.main + '12' }]}>
-                        <ConcreteTruck width={ms(16)} height={ms(12)} color={colors.info.main} />
-                        <Text style={[styles.loadTruckText, { color: colors.info.main }]}>{load.truck_code}</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-
-
-                <View style={[styles.loadTimeRow, {
-                  borderTopColor: isDark ? themeColors.border : colors.grey[10],
-                  backgroundColor: isDark ? colors.semiTransparent.white03 : colors.common.transparent
-                }]}>
-                  <View style={styles.loadTimeBlock}>
-                    <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>Scheduled</Text>
-                    <Text style={[styles.loadTimeBlockValue, { color: themeColors.text.primary }]}>
-                      {load.scheduled_time || '--:--'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.loadTimeArrow}>
-                    <Icon name="arrow-right" size={ms(14)} color={isDark ? colors.grey[40] : themeColors.text.hint} />
-                  </View>
-
-                  <View style={styles.loadTimeBlock}>
-                    <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>At Job</Text>
-                    <Text style={[styles.loadTimeBlockValue, { color: themeColors.text.primary }]}>
-                      {load.actual_on_job_time || load.scheduled_on_job_time || '--:--'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.loadTimeArrow}>
-                    <Icon name="arrow-right" size={ms(14)} color={isDark ? colors.grey[40] : themeColors.text.hint} />
-                  </View>
-
-                  <View style={styles.loadTimeBlock}>
-                    <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>Unload</Text>
-                    <Text style={[styles.loadTimeBlockValue, { color: themeColors.text.primary }]}>
-                      {load.actual_unload_time || load.scheduled_fin_pour_time || '--:--'}
-                    </Text>
-                  </View>
-                </View>
-
-
-                {(load.actual_wash_time || load.actual_at_plant_time) && (
-                  <View style={[styles.loadInfoRow, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
-                    {load.actual_wash_time && (
-                      <View style={styles.loadInfoItem}>
-                        <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>Wash</Text>
-                        <View style={[styles.loadInfoTag, {
-                          backgroundColor: isDark ? colors.grey[70] : colors.grey[8],
-                          borderWidth: 1,
-                          borderColor: isDark ? colors.grey[50] : colors.grey[15]
-                        }]}>
-                          <Icon name="car-wash" size={ms(12)} color={isDark ? colors.grey[25] : colors.grey[60]} />
-                          <Text style={[styles.loadInfoTagText, { color: isDark ? colors.grey[15] : colors.grey[70] }]}>{load.actual_wash_time}</Text>
-                        </View>
-                      </View>
-                    )}
-                    {load.actual_at_plant_time && (
-                      <View style={styles.loadInfoItem}>
-                        <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>Return</Text>
-                        <View style={[styles.loadInfoTag, {
-                          backgroundColor: isDark ? colors.grey[70] : colors.grey[8],
-                          borderWidth: 1,
-                          borderColor: isDark ? colors.grey[50] : colors.grey[15]
-                        }]}>
-                          <Icon name="keyboard-return" size={ms(12)} color={isDark ? colors.grey[25] : colors.grey[60]} />
-                          <Text style={[styles.loadInfoTagText, { color: isDark ? colors.grey[15] : colors.grey[70] }]}>{load.actual_at_plant_time}</Text>
-                        </View>
-                      </View>
-                    )}
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </View>
-
-        {loads.length === 0 && (
-          <View style={styles.emptyState}>
-            <Icon name="calendar-blank-outline" size={ms(48)} color={themeColors.text.hint} />
-            <Text style={[styles.emptyText, { color: themeColors.text.secondary }]}>
-              No scheduled loads available
-            </Text>
-          </View>
-        )}
+        <FlatList
+          data={loads}
+          renderItem={renderLoadCard}
+          keyExtractor={(item, index) => `${item.load_number}-${index}`}
+          ListHeaderComponent={renderHeader}
+          ListFooterComponent={renderFooter}
+          ListEmptyComponent={renderEmpty}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.3}
+          ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+        />
       </View>
     </BottomSheet>
   );
@@ -274,6 +316,25 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  listContent: {
+    paddingHorizontal: GRID.xs,
+    paddingBottom: GRID.lg,
+    flexGrow: 1,
+  },
+  itemSeparator: {
+    height: GRID.xs + 2,
+  },
+  footerLoader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: GRID.md,
+    gap: GRID.sm,
+  },
+  footerLoaderText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(12),
   },
   summaryRow: {
     flexDirection: 'row',

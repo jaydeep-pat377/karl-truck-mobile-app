@@ -143,13 +143,33 @@ class AlertService {
           title = 'Error';
       }
     } else if (error?.request) {
-      title = 'Connection Error';
-      message = 'Unable to connect to the server. Please check your internet connection.';
+      // Request was made but no response received - differentiate between timeout and connection failure
+      const errorCode = error?.code;
+      const errorMessage = error?.message?.toLowerCase() || '';
+
+      if (errorCode === 'ECONNABORTED' || errorMessage.includes('timeout')) {
+        // Request timeout - server took too long to respond
+        title = 'Request Timeout';
+        message = 'The server is taking too long to respond. Please try again.';
+      } else if (errorCode === 'ERR_NETWORK' || errorMessage.includes('network error')) {
+        // Network error - device may be offline or server unreachable
+        title = 'Network Error';
+        message = 'Unable to reach the server. Please check your internet connection.';
+      } else if (errorMessage.includes('certificate') || errorMessage.includes('ssl') || errorMessage.includes('tls')) {
+        // SSL/TLS certificate issues
+        title = 'Security Error';
+        message = 'Unable to establish a secure connection. Please try again later.';
+      } else {
+        // Generic connection failure
+        title = 'Connection Error';
+        message = 'Unable to connect to the server. Please check your internet connection.';
+      }
     } else if (error?.message) {
-      if (error.message.includes('timeout')) {
+      const errorMessage = error.message.toLowerCase();
+      if (errorMessage.includes('timeout')) {
         title = 'Request Timeout';
         message = 'The request took too long. Please try again.';
-      } else if (error.message.includes('Network')) {
+      } else if (errorMessage.includes('network')) {
         title = 'Network Error';
         message = 'Please check your internet connection and try again.';
       } else {

@@ -51,5 +51,7 @@ export * from './useSupabaseNotifications';
 export { default as useSupabaseNotifications } from './useSupabaseNotifications';
 export * from './useBiometrics';
 export { default as useBiometrics } from './useBiometrics';
+export * from './useScheduledLoads';
+export { default as useScheduledLoads } from './useScheduledLoads';
 
 export { useGlobalAlert } from '../contexts/GlobalAlertContext';

@@ -477,6 +477,8 @@ export interface OrderDetailsApiResponse {
 export interface OrderDetailsQueryParams {
   order_code: string;
   order_date: string;
+  loads_page?: number;
+  loads_limit?: number;
 }
 
 export interface TicketDetailsTruck {

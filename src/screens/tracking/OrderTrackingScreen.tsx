@@ -243,6 +243,11 @@ export const OrderTrackingScreen: React.FC = () => {
   const [isLegendExpanded, setIsLegendExpanded] = useState(true);
   const [isSatelliteView, setIsSatelliteView] = useState(false);
 
+  // Reset map ready state when style changes to ensure markers re-render
+  useEffect(() => {
+    setIsMapReady(false);
+  }, [isSatelliteView, isDark]);
+
   const SHEET_MIN_HEIGHT = useMemo(() => screenHeight * 0.38 + insets.bottom, [screenHeight, insets.bottom]);
   const SHEET_MAX_HEIGHT = useMemo(() => screenHeight * 0.78 + insets.bottom, [screenHeight, insets.bottom]);
 
@@ -644,6 +649,7 @@ export const OrderTrackingScreen: React.FC = () => {
 
       <Animated.View style={[styles.mapWrap, { height: mapHeight }]}>
         <Mapbox.MapView
+          key={`map-${isSatelliteView ? 'satellite' : 'normal'}-${isDark ? 'dark' : 'light'}`}
           style={styles.map}
           styleURL={isSatelliteView ? MAP_STYLES.satellite : (isDark ? MAP_STYLES.dark : MAP_STYLES.light)}
           logoEnabled={false}
