@@ -446,12 +446,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, onMapPress, is
           borderColor: isDark ? 'transparent' : colors.grey[10],
         },
       ]}>
-      <Pressable
-        onPress={onPress}
-        style={({ pressed }) => [
-          styles.ticketPressableContent,
-          pressed && styles.ticketItemPressed,
-        ]}>
+      <View style={styles.ticketPressableContent}>
         <TruckVisual isDark={isDark} />
 
         <View style={styles.ticketContent}>
@@ -505,7 +500,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, onMapPress, is
               displayLabel={ticket.statusDisplay} />
           </View>
         </View>
-      </Pressable>
+      </View>
 
       <View style={styles.ticketActionsContainer}>
         <TouchableOpacity
