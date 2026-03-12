@@ -855,25 +855,12 @@ export const OrderListScreen: React.FC = () => {
     }
   }, [findOrdersParams]);
 
-  // Listen to focus events
+  // Listen to focus events - this handles both initial mount and returning to screen
   useFocusEffect(
     useCallback(() => {
       checkAndUpdateParams();
     }, [checkAndUpdateParams])
   );
-
-  // Also listen to navigation state changes
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('state', () => {
-      checkAndUpdateParams();
-    });
-    return unsubscribe;
-  }, [navigation, checkAndUpdateParams]);
-
-  // Check on mount
-  useEffect(() => {
-    checkAndUpdateParams();
-  }, [checkAndUpdateParams]);
 
   const effectiveParams = { ...parentTabParams, ...route.params };
 
