@@ -11,6 +11,7 @@ import {
   Modal,
   Animated,
   Keyboard,
+  Text as RNText,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, NavigationProp } from '@react-navigation/native';
@@ -1039,17 +1040,17 @@ const FilterModal: React.FC<FilterModalProps> = ({
   };
 
   const statusOptions: { id: TicketStatus; label: string; color: string }[] = [
-    { id: 'pending', label: 'Pending', color: colors.grey[60] },
-    { id: 'ticketed', label: 'Ticketed', color: colors.info.main },
-    { id: 'loading', label: 'Loading', color: colors.warning.dark },
-    { id: 'loaded', label: 'Loaded', color: colors.info.dark },
-    { id: 'to_job', label: 'To Job', color: colors.ticket.status.inTransit.text },
-    { id: 'at_job', label: 'At Job', color: colors.ticket.status.atSite.text },
-    { id: 'pouring', label: 'Pouring', color: colors.ticket.status.pouring.text },
-    { id: 'washing', label: 'Washing', color: colors.info.main },
-    { id: 'to_plant', label: 'To Plant', color: colors.ticket.status.returning.text },
-    { id: 'at_plant', label: 'At Plant', color: colors.ticket.status.atPlant.text },
-    { id: 'cancelled', label: 'Voided', color: colors.error.main },
+    { id: 'pending', label: 'Pending', color: colors.trackingStatus.pending },
+    { id: 'ticketed', label: 'Ticketed', color: colors.trackingStatus.ticketed },
+    { id: 'loading', label: 'Loading', color: colors.trackingStatus.loading },
+    { id: 'loaded', label: 'Loaded', color: colors.trackingStatus.loaded },
+    { id: 'to_job', label: 'To Job', color: colors.trackingStatus.toJob },
+    { id: 'at_job', label: 'At Job', color: colors.trackingStatus.atJob },
+    { id: 'pouring', label: 'Pouring', color: colors.trackingStatus.pouring },
+    { id: 'washing', label: 'Washing', color: colors.trackingStatus.washing },
+    { id: 'to_plant', label: 'To Plant', color: colors.trackingStatus.toPlant },
+    { id: 'at_plant', label: 'At Plant', color: colors.trackingStatus.atPlant },
+    { id: 'cancelled', label: 'Voided', color: colors.trackingStatus.cancelled },
   ];
 
   const sortOptions: { id: 'time'; label: string; icon: string }[] = [
@@ -1119,16 +1120,13 @@ const FilterModal: React.FC<FilterModalProps> = ({
                           },
                         ]}
                         onPress={() => toggleStatus(status.id)}>
-                        {isSelected && (
-                          <Icon name="check" size={ms(14)} color={status.color} />
-                        )}
-                        <Text
+                        <RNText
                           style={[
                             styles.filterChipOptionText,
                             { color: isSelected ? status.color : themeColors.text.secondary },
                           ]}>
                           {status.label}
-                        </Text>
+                        </RNText>
                       </TouchableOpacity>
                     );
                   })}
@@ -2312,6 +2310,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: ms(8),
+    alignItems: 'flex-start',
   },
   filterChipOption: {
     flexDirection: 'row',

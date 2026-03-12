@@ -53,9 +53,6 @@ const statusFilters = [
   { id: 'In Progress', label: 'In Progress', icon: 'progress-clock' },
   { id: 'Completed', label: 'Completed', icon: 'check-circle-outline' },
   { id: 'Will Call', label: 'Will Call', icon: 'phone-outline' },
-  { id: 'Weather Permitting', label: 'Weather Permitting', icon: 'weather-partly-cloudy' },
-  { id: 'Hold Delivery', label: 'Hold', icon: 'pause-circle-outline' },
-  { id: 'Wait List', label: 'Wait List', icon: 'clock-outline' },
   { id: 'Canceled', label: 'Canceled', icon: 'close-circle-outline' },
 ] as const;
 
@@ -482,9 +479,6 @@ const statusColorMap: Record<string, string> = {
   'In Progress': colors.success.main,
   'Completed': colors.success.main,
   'Will Call': colors.warning.main,
-  'Weather Permitting': colors.info.main,
-  'Hold Delivery': colors.error.main,
-  'Wait List': colors.grey[50],
   'Canceled': colors.error.main,
 };
 
@@ -957,7 +951,6 @@ export const OrderListScreen: React.FC = () => {
       if (statusFilterFromRoute) {
         const statusMap: Record<string, StatusFilterId> = {
           'Will Call': 'Will Call',
-          'Hold Delivery': 'Hold Delivery',
           'Canceled': 'Canceled',
           'Normal': 'Normal',
           'In Progress': 'In Progress',
