@@ -1921,25 +1921,8 @@ export const OrderDetailsScreen: React.FC = () => {
 
   const handleTrackOrder = useCallback(() => {
     setMenuVisible(false);
-    const status = orderDetails?.status?.toLowerCase() || '';
-    const isInProgress = status === 'in progress' || status === 'in_progress' || status === 'inprogress';
-
-    if (isInProgress) {
-      navigation.navigate('Tracking', { orderId: order.id });
-    } else {
-      navigation.navigate('MapTracking', {
-        orderCode: order.orderCode || undefined,
-        customerName: order.customerName || undefined,
-        destination: order.deliveryAddress || undefined,
-        jobLatitude: orderDetails?.order_location?.latitude ? String(orderDetails.order_location.latitude) : undefined,
-        jobLongitude: orderDetails?.order_location?.longitude ? String(orderDetails.order_location.longitude) : undefined,
-        plantName: orderDetails?.plant_details?.description || undefined,
-        plantCode: orderDetails?.plant_details?.code || undefined,
-        plantLatitude: orderDetails?.plant_details?.latitude ? String(orderDetails.plant_details.latitude) : undefined,
-        plantLongitude: orderDetails?.plant_details?.longitude ? String(orderDetails.plant_details.longitude) : undefined,
-      });
-    }
-  }, [navigation, order, orderDetails]);
+    navigation.navigate('Tracking', { orderId: order.id });
+  }, [navigation, order.id]);
 
   const handleWeatherPress = useCallback(() => {
     navigation.navigate('Weather', {

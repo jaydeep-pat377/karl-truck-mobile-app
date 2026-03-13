@@ -10,7 +10,6 @@ import { TicketScreen } from '../screens/orders/TicketScreen';
 import { TicketDetailScreen } from '../screens/orders/TicketDetailScreen';
 import { OrderProductDetailsScreen } from '../screens/orders/OrderProductDetailsScreen';
 import { WeatherScreen, ProductDetailsScreen, ProductCodeScreen, EvaporationListScreen } from '../screens/weather';
-import { MapTrackingScreen } from '../screens/tracking/MapTrackingScreen';
 import { OrderTrackingScreen } from '../screens/tracking/OrderTrackingScreen';
 import { ChatRoomScreen } from '../screens/chat/ChatRoomScreen';
 import { WebViewScreen } from '../screens/settings/WebViewScreen';
@@ -111,13 +110,6 @@ export const RootNavigator: React.FC = () => {
           <Stack.Screen
             name="Tracking"
             component={OrderTrackingScreen}
-            options={{
-              animation: 'slide_from_right',
-            }}
-          />
-          <Stack.Screen
-            name="MapTracking"
-            component={MapTrackingScreen}
             options={{
               animation: 'slide_from_right',
             }}

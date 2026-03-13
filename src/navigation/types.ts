@@ -181,26 +181,6 @@ export type ProductCodeScreenParams = {
   rate?: string;
 };
 
-export type MapTrackingScreenParams = {
-
-  latitude?: string;
-  longitude?: string;
-  truckCode?: string;
-  ticketCode?: string;
-  driverName?: string;
-  destination?: string;
-  orderCode?: string;
-  customerName?: string;
-
-  plantLatitude?: string;
-  plantLongitude?: string;
-  plantName?: string;
-  plantCode?: string;
-
-  jobLatitude?: string;
-  jobLongitude?: string;
-};
-
 export type ChatRoomScreenParams = {
   roomId: string;
   roomName: string;
@@ -237,7 +217,6 @@ export type RootStackParamList = {
   EvaporationList: EvaporationListScreenParams;
   Ticket: TicketScreenParams;
   TicketDetail: TicketDetailScreenParams;
-  MapTracking: MapTrackingScreenParams;
   ChatRoom: ChatRoomScreenParams;
   Appointments: NavigatorScreenParams<AppointmentsStackParamList>;
   OrderProductDetails: OrderProductDetailsScreenParams;

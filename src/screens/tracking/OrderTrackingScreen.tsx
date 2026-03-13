@@ -584,7 +584,7 @@ export const OrderTrackingScreen: React.FC = () => {
               </Text>
               <Text style={[styles.qtyUnit, { color: isDark ? colors.common.white : colors.common.black }]}>CY</Text>
             </View>
-            {ticket.timestamps?.eta_at_job && (
+            {ticket.timestamps?.eta_at_job && ['loading', 'loaded', 'to_job'].includes(ticket.status) && (
               <View style={[styles.etaChip, { backgroundColor: isDark ? `${colors.common.white}15` : `${colors.common.black}10` }]}>
                 <Icon name="clock-fast" size={ms(9)} color={isDark ? colors.common.white : colors.common.black} />
                 <Text style={[styles.etaText, { color: isDark ? colors.common.white : colors.common.black }]} numberOfLines={1}>

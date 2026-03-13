@@ -23,7 +23,6 @@ const DETAIL_SCREEN_NAMES = [
   'Ticket',
   'Weather',
   'ChatRoom',
-  'MapTracking',
   'Tracking',
   'ProductDetails',
   'ProductCode',
@@ -424,7 +423,9 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
     };
   }, [translateY]);
 
-  const bottomPadding = Math.max(insets.bottom, spacing.sm) + spacing.xs;
+  // Ensure enough bottom padding on Android for gesture navigation
+  const minBottomPadding = Platform.OS === 'android' ? spacing.md : spacing.sm;
+  const bottomPadding = Math.max(insets.bottom, minBottomPadding) + spacing.sm;
 
   return (
     <Animated.View
