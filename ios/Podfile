@@ -5,7 +5,7 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-platform :ios, min_ios_version_supported
+platform :ios, '15.1'
 prepare_react_native_project!
 
 # Firebase requires modular headers
@@ -52,5 +52,62 @@ target 'TruckApp' do
       # :ccache_enabled => true
     )
     $RNMapboxMaps.post_install(installer)
+
+    # Fix iOS deployment target for all pods
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |build_config|
+        build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+        if target.respond_to?(:product_type) && target.product_type == "com.apple.product-type.bundle"
+          build_config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+        end
+      end
+    end
+
+    # Remove duplicate privacy bundle target (the one without hash)
+    target_to_remove = installer.pods_project.targets.find { |t| t.name == 'React-Core-React-Core_privacy' }
+    target_to_remove.remove_from_project if target_to_remove
+
+    # Fix duplicate resources script entries and remove problematic React-Core_privacy.bundle
+    resource_script_path = File.join(installer.sandbox.root, 'Target Support Files', 'Pods-TruckApp', 'Pods-TruckApp-resources.sh')
+    if File.exist?(resource_script_path)
+      content = File.read(resource_script_path)
+      # Remove duplicate lines and fix React-Core path
+      lines = content.lines
+      unique_lines = []
+      seen = {}
+      lines.each do |line|
+        # Skip React-Core_privacy.bundle as it may not exist
+        if line.include?('React-Core') && line.include?('_privacy.bundle')
+          next
+        end
+        # Skip duplicate install_resource lines
+        if line.include?('install_resource')
+          # Replace hash-based path with non-hash path
+          fixed_line = line.gsub(/React-Core-[a-f0-9]+\//, 'React-Core/')
+          next if seen[fixed_line.strip]
+          seen[fixed_line.strip] = true
+          unique_lines << fixed_line
+        else
+          unique_lines << line
+        end
+      end
+      result = unique_lines.join
+      # Fix empty if blocks - simple approach: replace empty blocks with noop
+      result = result.gsub(/then\nfi/, "then\n  : # No resources for this configuration\nfi")
+      File.write(resource_script_path, result)
+    end
+
+    # Also fix xcfilelist files to remove React-Core_privacy.bundle references
+    ['Debug', 'Release'].each do |config|
+      ['input', 'output'].each do |type|
+        filelist_path = File.join(installer.sandbox.root, 'Target Support Files', 'Pods-TruckApp', "Pods-TruckApp-resources-#{config}-#{type}-files.xcfilelist")
+        if File.exist?(filelist_path)
+          content = File.read(filelist_path)
+          # Remove lines containing React-Core_privacy (handles both hashed and non-hashed paths)
+          fixed_content = content.lines.reject { |line| line.include?('React-Core') && line.include?('_privacy') }.join
+          File.write(filelist_path, fixed_content)
+        end
+      end
+    end
   end
 end
