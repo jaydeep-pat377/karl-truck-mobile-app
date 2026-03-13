@@ -366,10 +366,10 @@ export const chatService = {
 
   testConnection: async (): Promise<boolean> => {
     try {
-      const response = await fetch('https://lwplbyltqsfmfvsgmrjq.supabase.co/storage/v1/bucket', {
+      const response = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer SUPABASE_SERVICE_KEY_REMOVED',
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         },
       });
       return response.ok;
