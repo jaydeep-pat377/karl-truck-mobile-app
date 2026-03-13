@@ -31,38 +31,53 @@ export const WebViewScreen: React.FC = () => {
   };
 
 
-  const injectedJS = `
-    (function() {
-      var style = document.createElement('style');
-      style.innerHTML = 'a[href*="back"], a:contains("Back"), [class*="back"], .back-link, .back-button, a[onclick*="back"], button:contains("Back") { display: none !important; } a svg { display: none !important; }';
-      document.head.appendChild(style);
+  // Get theme colors as simple strings
+  const darkBg = colors.dark.background;
+  const darkText = colors.dark.text.primary;
+  const darkSecondary = colors.dark.text.secondary;
+  const darkBorder = colors.dark.border;
+  const lightBg = colors.light.background;
+  const lightText = colors.light.text.primary;
+  const lightSecondary = colors.light.text.secondary;
+  const primaryColor = colors.primary.main;
 
-      // Hide elements containing "Back" text at the top
-      var links = document.querySelectorAll('a');
-      links.forEach(function(link) {
-        if (link.textContent.trim() === 'Back' || link.textContent.trim() === '← Back') {
-          link.style.display = 'none';
-        }
-      });
+  // Build CSS strings without template literals for iOS compatibility
+  const hideBackCSS = 'a[href="/sms-optin"], a[href*="sms-optin"], .lucide-arrow-left, svg.lucide-arrow-left, [class*="lucide-arrow-left"], [class*="arrow-left"], a.inline-flex.items-center, a[class*="inline-flex"][class*="items-center"] { display: none !important; visibility: hidden !important; }';
 
-      // Also try to hide by checking for back navigation patterns
-      var allElements = document.querySelectorAll('a, button, div');
-      allElements.forEach(function(el) {
-        var text = el.textContent.trim();
-        if ((text === 'Back' || text === '← Back' || text === '< Back') && el.tagName !== 'BODY') {
-          el.style.display = 'none';
-        }
-      });
-    })();
-    true;
-  `;
+  const darkThemeCSS = 'html, body, div, section, article, main, header, footer, nav, aside { background-color: ' + darkBg + ' !important; } * { color: ' + darkText + ' !important; } h1, h2, h3, h4, h5, h6, p, span, li, ul, ol, td, th, label, strong, em, b, i, blockquote, pre, code { color: ' + darkText + ' !important; } a, a:visited, a:hover, a:active { color: ' + primaryColor + ' !important; } .text-muted-foreground, [class*="muted"], [class*="secondary"], small { color: ' + darkSecondary + ' !important; }';
+
+  const lightThemeCSS = 'html, body, div, section, article, main, header, footer, nav, aside { background-color: ' + lightBg + ' !important; } * { color: ' + lightText + ' !important; } h1, h2, h3, h4, h5, h6, p, span, li, ul, ol, td, th, label, strong, em, b, i, blockquote, pre, code { color: ' + lightText + ' !important; } a, a:visited, a:hover, a:active { color: ' + primaryColor + ' !important; } .text-muted-foreground, [class*="muted"], [class*="secondary"], small { color: ' + lightSecondary + ' !important; }';
+
+  const themeCSS = isDark ? darkThemeCSS : lightThemeCSS;
+
+  const getInjectedJS = () => {
+    const fullCSS = hideBackCSS + ' ' + themeCSS;
+    return '(function() { var style = document.createElement("style"); style.type = "text/css"; style.id = "app-theme-style"; var css = "' + fullCSS.replace(/"/g, '\\"') + '"; style.appendChild(document.createTextNode(css)); (document.head || document.documentElement).appendChild(style); function hideBackElements() { var links = document.querySelectorAll("a"); for (var i = 0; i < links.length; i++) { var link = links[i]; var href = link.getAttribute("href") || ""; var text = link.textContent || ""; if (href.indexOf("sms-optin") !== -1 || text.trim() === "Back") { link.style.cssText = "display: none !important;"; if (link.parentElement) { link.parentElement.style.cssText = "display: none !important;"; } } } var svgs = document.querySelectorAll("svg"); for (var j = 0; j < svgs.length; j++) { var svg = svgs[j]; var className = svg.getAttribute("class") || ""; if (className.indexOf("arrow-left") !== -1 || className.indexOf("lucide") !== -1) { svg.style.cssText = "display: none !important;"; var parent = svg.parentElement; if (parent && parent.tagName === "A") { parent.style.cssText = "display: none !important;"; } } } } hideBackElements(); document.addEventListener("DOMContentLoaded", hideBackElements); setTimeout(hideBackElements, 100); setTimeout(hideBackElements, 500); setTimeout(hideBackElements, 1000); })(); true;';
+  };
+
+  const injectedJS = getInjectedJS();
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={backgroundColor} />
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={backgroundColor}
+        translucent={Platform.OS === 'android'}
+      />
 
+      {/* Status bar background for iOS */}
+      {Platform.OS === 'ios' && (
+        <View style={[styles.statusBarBackground, { height: insets.top, backgroundColor }]} />
+      )}
 
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm, backgroundColor, borderBottomColor: borderColor }]}>
+      <View style={[
+        styles.header,
+        {
+          paddingTop: Platform.OS === 'ios' ? spacing.sm : insets.top + spacing.sm,
+          backgroundColor,
+          borderBottomColor: borderColor,
+        },
+      ]}>
         <TouchableOpacity
           style={[styles.backButton, { backgroundColor: isDark ? colors.grey[80] : colors.grey[10] }]}
           onPress={handleBack}
@@ -86,27 +101,34 @@ export const WebViewScreen: React.FC = () => {
 
       <View style={styles.webViewContainer}>
         <WebView
+          key={isDark ? 'dark' : 'light'}
           source={{ uri: url }}
           style={[styles.webView, { opacity: isLoading ? 0.3 : 1 }]}
           onLoadStart={() => setIsLoading(true)}
           onLoadEnd={() => setIsLoading(false)}
           onLoadProgress={({ nativeEvent }) => setLoadProgress(nativeEvent.progress)}
+          injectedJavaScriptBeforeContentLoaded={injectedJS}
           injectedJavaScript={injectedJS}
-          javaScriptEnabled
-          domStorageEnabled
+          injectedJavaScriptForMainFrameOnly={true}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
           startInLoadingState={false}
-          scalesPageToFit
+          scalesPageToFit={true}
           originWhitelist={['*']}
-          allowsFullscreenVideo
-          allowsInlineMediaPlayback
+          allowsFullscreenVideo={true}
+          allowsInlineMediaPlayback={true}
           mediaPlaybackRequiresUserAction={false}
+          cacheEnabled={false}
+          incognito={true}
           {...(Platform.OS === 'android' && {
             androidLayerType: 'hardware',
             overScrollMode: 'never',
             mixedContentMode: 'compatibility',
           })}
           {...(Platform.OS === 'ios' && {
-            allowsBackForwardNavigationGestures: true,
+            allowsBackForwardNavigationGestures: false,
+            allowsLinkPreview: false,
+            sharedCookiesEnabled: false,
           })}
         />
         {isLoading && (
@@ -120,7 +142,7 @@ export const WebViewScreen: React.FC = () => {
       </View>
 
 
-      <View style={{ height: insets.bottom, backgroundColor }} />
+      <View style={{ height: insets.bottom + spacing.xxxl, backgroundColor }} />
     </View>
   );
 };
@@ -128,6 +150,9 @@ export const WebViewScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  statusBarBackground: {
+    width: '100%',
   },
   header: {
     flexDirection: 'row',
