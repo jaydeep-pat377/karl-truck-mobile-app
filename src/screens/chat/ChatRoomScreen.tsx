@@ -9,7 +9,6 @@ import {
   RefreshControl,
   Keyboard,
   StatusBar,
-  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
@@ -90,11 +89,10 @@ export const ChatRoomScreen: React.FC = () => {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set());
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   const previousMessageCountRef = useRef(0);
   const lastMessageIdRef = useRef<string | null>(null);
-
-  const keyboardHeight = useRef(new Animated.Value(0)).current;
 
   const { roomId, roomName, chatId, orderId, orderDate, customerName, projectName, deliveryAddress } = route.params;
   const { messages, isLoading, sendMessage, isSending, loadMore, refetch } = useChatMessages({
@@ -131,31 +129,22 @@ export const ChatRoomScreen: React.FC = () => {
     const keyboardWillShowEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const keyboardWillHideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
-    const showSubscription = Keyboard.addListener(keyboardWillShowEvent, (event) => {
-      Animated.timing(keyboardHeight, {
-        toValue: Platform.OS === 'ios' ? event.endCoordinates.height - insets.bottom : 0,
-        duration: Platform.OS === 'ios' ? (event.duration || 250) : 0,
-        useNativeDriver: false,
-      }).start();
-
+    const showSubscription = Keyboard.addListener(keyboardWillShowEvent, () => {
+      setKeyboardVisible(true);
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     });
 
-    const hideSubscription = Keyboard.addListener(keyboardWillHideEvent, (event) => {
-      Animated.timing(keyboardHeight, {
-        toValue: 0,
-        duration: Platform.OS === 'ios' ? (event?.duration || 250) : 0,
-        useNativeDriver: false,
-      }).start();
+    const hideSubscription = Keyboard.addListener(keyboardWillHideEvent, () => {
+      setKeyboardVisible(false);
     });
 
     return () => {
       showSubscription.remove();
       hideSubscription.remove();
     };
-  }, [keyboardHeight]);
+  }, []);
 
   const processedMessages = useMemo((): ProcessedMessage[] => {
     if (!messages || messages.length === 0) return [];
@@ -356,7 +345,10 @@ export const ChatRoomScreen: React.FC = () => {
       <View
         style={[
           styles.inputWrapper,
-          { backgroundColor: themeColors.background, paddingBottom: insets.bottom },
+          {
+            backgroundColor: themeColors.background,
+            paddingBottom: keyboardVisible ? 0 : insets.bottom,
+          },
         ]}
       >
         <MessageInput
@@ -368,15 +360,18 @@ export const ChatRoomScreen: React.FC = () => {
     </>
   );
 
-  if (Platform.OS === 'ios') {
-    return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <StatusBar
-          backgroundColor={colors.primary.main}
-          barStyle="light-content"
-        />
-
-        <View style={[styles.statusBarBackground, { height: insets.top, backgroundColor: colors.primary.main }]} />
+  return (
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <StatusBar
+        backgroundColor={colors.primary.main}
+        barStyle="light-content"
+      />
+      <View style={[styles.statusBarBackground, { height: insets.top, backgroundColor: colors.primary.main }]} />
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'height' : undefined}
+        keyboardVerticalOffset={0}
+      >
         <ChatHeader
           title={roomName}
           onBack={() => navigation.goBack()}
@@ -385,33 +380,6 @@ export const ChatRoomScreen: React.FC = () => {
           projectName={projectName}
           deliveryAddress={deliveryAddress}
         />
-        <Animated.View style={[styles.keyboardAvoidingView, { paddingBottom: keyboardHeight }]}>
-          {chatContent}
-        </Animated.View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <StatusBar
-        backgroundColor={colors.primary.main}
-        barStyle="light-content"
-      />
-
-      <View style={[styles.statusBarBackground, { height: insets.top, backgroundColor: colors.primary.main }]} />
-      <ChatHeader
-        title={roomName}
-        onBack={() => navigation.goBack()}
-        orderDate={orderDate}
-        customerName={customerName}
-        deliveryAddress={deliveryAddress}
-      />
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoidingView}
-        behavior="height"
-        keyboardVerticalOffset={0}
-      >
         {chatContent}
       </KeyboardAvoidingView>
     </View>

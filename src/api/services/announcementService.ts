@@ -57,7 +57,10 @@ export const announcementService = {
       queryParams.active = params.active;
     }
 
-    return apiClient.get<AnnouncementsResponse>(API_ENDPOINTS.ANNOUNCEMENTS.ME, { params: queryParams });
+    return apiClient.get<AnnouncementsResponse>(API_ENDPOINTS.ANNOUNCEMENTS.ME, {
+      params: queryParams,
+      timeout: 30000,
+    });
   },
 };
 
