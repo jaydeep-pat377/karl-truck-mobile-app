@@ -1,0 +1,25 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "src/assets/fonts/BelyDisplay-Regular.ttf",
+      "sha1": "564432a58d8cf9ad85fb04538809b4f41c7affe3"
+    },
+    {
+      "path": "src/assets/fonts/Montserrat-Medium.ttf",
+      "sha1": "321d56022fc72f5e35decbc8e97442116a96908e"
+    },
+    {
+      "path": "src/assets/fonts/Montserrat-Bold.ttf",
+      "sha1": "8d25a921501a92977c63bbdc0545c9e8be0cac4b"
+    },
+    {
+      "path": "src/assets/fonts/BelyDisplay-Bold.ttf",
+      "sha1": "0482b34ad7fe734843451da543a6fbafb84030fc"
+    },
+    {
+      "path": "src/assets/fonts/Montserrat-Regular.ttf",
+      "sha1": "7a56bc06d2b862fb6d070dfc77e8ac366e2942b2"
+    }
+  ]
+}

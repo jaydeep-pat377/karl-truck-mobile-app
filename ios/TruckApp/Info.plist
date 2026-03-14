@@ -93,6 +93,11 @@
 	<true/>
 	<key>UIAppFonts</key>
 	<array>
+		<string>BelyDisplay-Regular.ttf</string>
+		<string>BelyDisplay-Bold.ttf</string>
+		<string>Montserrat-Regular.ttf</string>
+		<string>Montserrat-Medium.ttf</string>
+		<string>Montserrat-Bold.ttf</string>
 		<string>AntDesign.ttf</string>
 		<string>Entypo.ttf</string>
 		<string>EvilIcons.ttf</string>
