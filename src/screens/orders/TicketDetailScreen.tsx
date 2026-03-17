@@ -961,10 +961,6 @@ const VerifiDataCard: React.FC<VerifiDataCardProps> = ({ verifiJson, isDark }) =
             <Text style={[styles.vfQuickInfoValue, { color: valueColor }]} numberOfLines={1}>{verifiJson.truckName || '--'}</Text>
           </View>
           <View style={styles.vfQuickInfoItem}>
-            <Icon name="account" size={ms(16)} color={labelColor} />
-            <Text style={[styles.vfQuickInfoValue, { color: valueColor }]} numberOfLines={1}>{verifiJson.driverName || '--'}</Text>
-          </View>
-          <View style={styles.vfQuickInfoItem}>
             <Icon name="map-marker" size={ms(16)} color={labelColor} />
             <Text style={[styles.vfQuickInfoValue, { color: valueColor }]} numberOfLines={2}>{verifiJson.locationName || '--'}</Text>
           </View>
