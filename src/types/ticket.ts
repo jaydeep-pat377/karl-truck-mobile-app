@@ -539,6 +539,107 @@ export interface DeliveryMetrics {
   idle_minutes: string | null;
 }
 
+export interface VerifiLoadSize {
+  loadSize: string;
+  loadSizeUnits: string;
+}
+
+export interface VerifiVolume {
+  volumeUnits: string;
+  volumeValue: string;
+}
+
+export interface VerifiSlump {
+  slump: string;
+  slumpUnits: string;
+}
+
+export interface VerifiTemperature {
+  temperatureUnitsType: string;
+  temperatureUnitsValue: string;
+}
+
+export interface VerifiAge {
+  age: string;
+  ageUnits: string;
+}
+
+export interface VerifiJson {
+  mode: string;
+  deboot: string;
+  loaded: string;
+  endPour: string;
+  loading: string;
+  loadSize: VerifiLoadSize;
+  beginPour: string;
+  leaveSite: string;
+  pausePour: string;
+  plantName: string;
+  truckMode: string;
+  truckName: string;
+  admixTotal: VerifiVolume;
+  arriveSite: string | null;
+  driverName: string;
+  leavePlant: string;
+  ticketDate: string;
+  ticketSent: string;
+  mixCodeName: string;
+  orderNumber: string;
+  returnPlant: string;
+  locationName: string;
+  ticketNumber: string;
+  loadStartDate: string;
+  _verifiAccount: string;
+  admixAtArrival: VerifiVolume;
+  slumpAtArrival: VerifiSlump | null;
+  ticketReceived: string;
+  instructionName: string;
+  maxAllowedWater: string | null;
+  slumpFromTicket: VerifiSlump;
+  _verifiTimestamp: string;
+  admixAtDischarge: VerifiVolume;
+  admixTotalVolume: VerifiVolume;
+  slumpAtDischarge: VerifiSlump | null;
+  verifiWaterTotal: VerifiVolume;
+  admixAtLeavePlant: VerifiVolume;
+  slumpAtLeavePlant: VerifiSlump | null;
+  timeOnSiteMinutes: number | null;
+  totalRevsAtArrival: string;
+  _verifiAccountLogin: string;
+  ageAtArrivalMinutes: number | null;
+  slumpAtInitialSlump: VerifiSlump | null;
+  calculatedArriveSite: string;
+  plantBatchSystemCode: string;
+  temperatureAtArrival: VerifiTemperature;
+  totalRevsAtDischarge: string;
+  verifiWaterAtArrival: VerifiVolume;
+  ageAtDischargeMinutes: VerifiAge;
+  driverBatchSystemCode: string;
+  totalRevsAtLeavePlant: string;
+  ageAtLeavePlantMinutes: VerifiAge;
+  slumpVsTargetAtArrival: string | null;
+  startToEndTotalMinutes: string;
+  temperatureAtDischarge: VerifiTemperature;
+  verifiWaterAtDischarge: VerifiVolume;
+  verifiWaterTotalVolume: VerifiVolume;
+  loadSizeDischargeAtSite: VerifiLoadSize;
+  locationBatchSystemCode: string;
+  temperatureAtLeavePlant: VerifiTemperature;
+  verifiWaterAtLeavePlant: VerifiVolume;
+  slumpVsTargetAtDischarge: string | null;
+  admixTotalVolumeAtArrival: VerifiVolume;
+  slumpVsTargetInitialSlump: string | null;
+  loadStartLocationLocalTime: string;
+  admixTotalVolumeAtDischarge: VerifiVolume;
+  admixTotalVolumeAtLeavePlant: VerifiVolume;
+  totalRevsSinceLoadedAtArrival: string;
+  totalRevsSinceLoadedAtDischarge: string;
+  verifiWaterTotalVolumeAtArrival: VerifiVolume;
+  totalRevsSinceLoadedAtLeavePlant: string;
+  verifiWaterTotalVolumeAtDischarge: VerifiVolume;
+  verifiWaterTotalVolumeAtLeavePlant: VerifiVolume;
+}
+
 export interface TicketDetailsTicket {
   ticket_id: string;
   ticket_code: string;
@@ -568,6 +669,7 @@ export interface TicketDetailsTicket {
   products: TicketDetailsProduct[];
   delivery_metrics?: DeliveryMetrics | null;
   weather_data?: OrderDetailsWeatherData | null;
+  verifi_json?: VerifiJson | null;
 }
 
 export interface TicketDetailsData {

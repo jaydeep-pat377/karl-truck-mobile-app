@@ -25,7 +25,7 @@ import { fontFamily } from '../../theme/typography';
 import { ms, vs } from '../../utils/responsive';
 import { RootStackParamList } from '../../navigation/types';
 import { useTicketDetails, useAlert } from '../../hooks';
-import { ApiTicketStatus } from '../../types/ticket';
+import { ApiTicketStatus, VerifiJson } from '../../types/ticket';
 
 type TicketDetailRouteProp = RouteProp<RootStackParamList, 'TicketDetail'>;
 
@@ -781,6 +781,301 @@ const DeliveryMetricsCard: React.FC<DeliveryMetricsCardProps> = ({
   );
 };
 
+interface VerifiDataCardProps {
+  verifiJson: VerifiJson;
+  isDark: boolean;
+}
+
+interface VerifiSectionData {
+  key: string;
+  title: string;
+  icon: string;
+  color: string;
+}
+
+const VerifiDataCard: React.FC<VerifiDataCardProps> = ({ verifiJson, isDark }) => {
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['summary']));
+  const themeColors = isDark ? colors.dark : colors.light;
+  const titleColor = isDark ? colors.common.white : colors.grey[80];
+  const labelColor = isDark ? colors.grey[40] : colors.grey[60];
+  const valueColor = isDark ? colors.common.white : colors.grey[85];
+  const cardBgColor = isDark ? themeColors.surface : colors.grey[5];
+  const borderColor = isDark ? colors.semiTransparent.white08 : colors.grey[10];
+  const accentColor = isDark ? colors.primary.light : colors.primary.main;
+
+  const sections: VerifiSectionData[] = [
+    { key: 'timing', title: 'Timing Events', icon: 'clock-outline', color: isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light },
+    { key: 'slump', title: 'Slump & Age', icon: 'waves', color: isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light },
+    { key: 'temp', title: 'Temperature', icon: 'thermometer', color: isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light },
+    { key: 'mix', title: 'Mix & Water', icon: 'beaker-outline', color: isDark ? colors.infoIcons.purple.dark : colors.infoIcons.purple.light },
+    { key: 'revs', title: 'Drum Revolutions', icon: 'rotate-3d-variant', color: isDark ? colors.success.light : colors.success.main },
+  ];
+
+  const toggleSection = (key: string) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(key)) {
+        newSet.delete(key);
+      } else {
+        newSet.add(key);
+      }
+      return newSet;
+    });
+  };
+
+  const formatSlump = (slump: { slump: string; slumpUnits: string } | null | undefined): string => {
+    if (!slump) return '--';
+    return `${slump.slump} ${slump.slumpUnits === 'IN' ? 'in' : slump.slumpUnits}`;
+  };
+
+  const formatTemperature = (temp: { temperatureUnitsType: string; temperatureUnitsValue: string } | null | undefined): string => {
+    if (!temp) return '--';
+    return `${temp.temperatureUnitsValue}°${temp.temperatureUnitsType}`;
+  };
+
+  const formatVolume = (vol: { volumeUnits: string; volumeValue: string } | null | undefined): string => {
+    if (!vol) return '--';
+    let units = vol.volumeUnits;
+    if (units === 'GAL_YD_3') units = 'gal/yd³';
+    else if (units === 'GAL') units = 'gal';
+    else if (units === 'OZ_YD_3') units = 'oz/yd³';
+    else if (units === 'OZ') units = 'oz';
+    return `${vol.volumeValue} ${units}`;
+  };
+
+  const formatAge = (age: { age: string; ageUnits: string } | null | undefined): string => {
+    if (!age) return '--';
+    return `${age.age} ${age.ageUnits}`;
+  };
+
+  const formatLoadSize = (load: { loadSize: string; loadSizeUnits: string } | null | undefined): string => {
+    if (!load) return '--';
+    const units = load.loadSizeUnits === 'Y_3' ? 'yd³' : load.loadSizeUnits;
+    return `${load.loadSize} ${units}`;
+  };
+
+  const DataRow = ({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) => (
+    <View style={styles.vfDataRow}>
+      <Text style={[styles.vfDataLabel, { color: labelColor }]}>{label}</Text>
+      <Text style={[styles.vfDataValue, { color: highlight ? accentColor : valueColor }]}>{value}</Text>
+    </View>
+  );
+
+  const MetricCard = ({ icon, value, label, color }: { icon: string; value: string; label: string; color: string }) => (
+    <View style={[styles.vfMetricCard, { backgroundColor: cardBgColor }]}>
+      <View style={[styles.vfMetricIcon, { backgroundColor: `${color}15` }]}>
+        <Icon name={icon} size={ms(18)} color={color} />
+      </View>
+      <Text style={[styles.vfMetricValue, { color: valueColor }]} numberOfLines={1}>{value}</Text>
+      <Text style={[styles.vfMetricLabel, { color: labelColor }]}>{label}</Text>
+    </View>
+  );
+
+  const CollapsibleSection = ({ section, children }: { section: VerifiSectionData; children: React.ReactNode }) => {
+    const isExpanded = expandedSections.has(section.key);
+    return (
+      <View style={[styles.vfCollapsible, { borderColor }]}>
+        <TouchableOpacity
+          style={styles.vfCollapsibleHeader}
+          onPress={() => toggleSection(section.key)}
+          activeOpacity={0.7}>
+          <View style={[styles.vfCollapsibleIcon, { backgroundColor: `${section.color}15` }]}>
+            <Icon name={section.icon} size={ms(16)} color={section.color} />
+          </View>
+          <Text style={[styles.vfCollapsibleTitle, { color: titleColor }]}>{section.title}</Text>
+          <Icon
+            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            size={ms(20)}
+            color={labelColor}
+          />
+        </TouchableOpacity>
+        {isExpanded && <View style={styles.vfCollapsibleContent}>{children}</View>}
+      </View>
+    );
+  };
+
+  const StageIndicator = ({ label, value, color, isLast }: { label: string; value: string; color: string; isLast?: boolean }) => (
+    <View style={styles.vfStageItem}>
+      <View style={[styles.vfStageDot, { backgroundColor: color }]} />
+      <View style={styles.vfStageContent}>
+        <Text style={[styles.vfStageLabel, { color: labelColor }]}>{label}</Text>
+        <Text style={[styles.vfStageValue, { color: valueColor }]}>{value}</Text>
+      </View>
+      {!isLast && <View style={[styles.vfStageLine, { backgroundColor: borderColor }]} />}
+    </View>
+  );
+
+  return (
+    <View style={styles.vfContainer}>
+      {/* Main Header Card */}
+      <View style={[styles.vfMainCard, { backgroundColor: themeColors.card, borderColor }]}>
+        <View style={styles.vfHeader}>
+          <View style={[styles.vfHeaderIcon, { backgroundColor: `${accentColor}15` }]}>
+            <Icon name="chart-bar" size={ms(20)} color={accentColor} />
+          </View>
+          <View style={styles.vfHeaderText}>
+            <Text style={[styles.vfHeaderTitle, { color: titleColor }]}>Verifi Data</Text>
+            <Text style={[styles.vfHeaderSubtitle, { color: labelColor }]}>
+              {verifiJson.ticketNumber || 'Ticket'} • {verifiJson.ticketDate || ''}
+            </Text>
+          </View>
+          {verifiJson.truckMode && (
+            <View style={[styles.vfModeBadge, { backgroundColor: `${accentColor}15` }]}>
+              <Text style={[styles.vfModeText, { color: accentColor }]}>{verifiJson.truckMode}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Summary Metrics Grid */}
+        <View style={styles.vfMetricsGrid}>
+          <MetricCard
+            icon="package-variant"
+            value={formatLoadSize(verifiJson.loadSize)}
+            label="Load Size"
+            color={isDark ? colors.success.light : colors.success.main}
+          />
+          <MetricCard
+            icon="beaker"
+            value={verifiJson.mixCodeName || '--'}
+            label="Mix Code"
+            color={isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light}
+          />
+          <MetricCard
+            icon="timer-outline"
+            value={verifiJson.startToEndTotalMinutes || '--'}
+            label="Duration"
+            color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light}
+          />
+          <MetricCard
+            icon="thermometer"
+            value={formatTemperature(verifiJson.temperatureAtDischarge)}
+            label="Temp @Discharge"
+            color={isDark ? colors.error.light : colors.error.main}
+          />
+        </View>
+
+        {/* Quick Info */}
+        <View style={[styles.vfQuickInfo, { backgroundColor: cardBgColor }]}>
+          <View style={styles.vfQuickInfoItem}>
+            <Icon name="truck" size={ms(16)} color={labelColor} />
+            <Text style={[styles.vfQuickInfoValue, { color: valueColor }]} numberOfLines={1}>{verifiJson.truckName || '--'}</Text>
+          </View>
+          <View style={styles.vfQuickInfoItem}>
+            <Icon name="account" size={ms(16)} color={labelColor} />
+            <Text style={[styles.vfQuickInfoValue, { color: valueColor }]} numberOfLines={1}>{verifiJson.driverName || '--'}</Text>
+          </View>
+          <View style={styles.vfQuickInfoItem}>
+            <Icon name="map-marker" size={ms(16)} color={labelColor} />
+            <Text style={[styles.vfQuickInfoValue, { color: valueColor }]} numberOfLines={2}>{verifiJson.locationName || '--'}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Collapsible Sections */}
+      <CollapsibleSection section={sections[0]}>
+        <View style={styles.vfTimelineContainer}>
+          <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Plant</Text>
+          <StageIndicator label="Ticket Received" value={verifiJson.ticketReceived || '--'} color={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light} />
+          <StageIndicator label="Loading" value={verifiJson.loading || '--'} color={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light} />
+          <StageIndicator label="Loaded" value={verifiJson.loaded || '--'} color={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light} />
+          <StageIndicator label="Leave Plant" value={verifiJson.leavePlant || '--'} color={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light} isLast />
+        </View>
+        <View style={[styles.vfDivider, { backgroundColor: borderColor }]} />
+        <View style={styles.vfTimelineContainer}>
+          <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Job Site</Text>
+          <StageIndicator label="Arrive Site" value={verifiJson.arriveSite || verifiJson.calculatedArriveSite || '--'} color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light} />
+          <StageIndicator label="Begin Pour" value={verifiJson.beginPour || '--'} color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light} />
+          <StageIndicator label="End Pour" value={verifiJson.endPour || '--'} color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light} />
+          <StageIndicator label="Leave Site" value={verifiJson.leaveSite || '--'} color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light} isLast />
+        </View>
+        <View style={[styles.vfDivider, { backgroundColor: borderColor }]} />
+        <View style={styles.vfTimelineContainer}>
+          <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Return</Text>
+          <StageIndicator label="Return Plant" value={verifiJson.returnPlant || '--'} color={isDark ? colors.success.light : colors.success.main} isLast />
+        </View>
+      </CollapsibleSection>
+
+      <CollapsibleSection section={sections[1]}>
+        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Slump Readings</Text>
+        <DataRow label="Target (From Ticket)" value={formatSlump(verifiJson.slumpFromTicket)} highlight />
+        <DataRow label="At Leave Plant" value={formatSlump(verifiJson.slumpAtLeavePlant)} />
+        <DataRow label="At Arrival" value={formatSlump(verifiJson.slumpAtArrival)} />
+        <DataRow label="At Discharge" value={formatSlump(verifiJson.slumpAtDischarge)} />
+        <View style={[styles.vfDivider, { backgroundColor: borderColor }]} />
+        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Concrete Age</Text>
+        <DataRow label="At Leave Plant" value={formatAge(verifiJson.ageAtLeavePlantMinutes)} />
+        <DataRow label="At Discharge" value={formatAge(verifiJson.ageAtDischargeMinutes)} />
+      </CollapsibleSection>
+
+      <CollapsibleSection section={sections[2]}>
+        <View style={styles.vfTempFlow}>
+          <View style={[styles.vfTempCard, { backgroundColor: cardBgColor }]}>
+            <Icon name="factory" size={ms(22)} color={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light} />
+            <Text style={[styles.vfTempCardValue, { color: valueColor }]}>{formatTemperature(verifiJson.temperatureAtLeavePlant)}</Text>
+            <Text style={[styles.vfTempCardLabel, { color: labelColor }]}>Leave Plant</Text>
+          </View>
+          <Icon name="chevron-right" size={ms(24)} color={borderColor} />
+          <View style={[styles.vfTempCard, { backgroundColor: cardBgColor }]}>
+            <Icon name="map-marker-radius" size={ms(22)} color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light} />
+            <Text style={[styles.vfTempCardValue, { color: valueColor }]}>{formatTemperature(verifiJson.temperatureAtArrival)}</Text>
+            <Text style={[styles.vfTempCardLabel, { color: labelColor }]}>Arrival</Text>
+          </View>
+          <Icon name="chevron-right" size={ms(24)} color={borderColor} />
+          <View style={[styles.vfTempCard, { backgroundColor: cardBgColor }]}>
+            <Icon name="water" size={ms(22)} color={isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light} />
+            <Text style={[styles.vfTempCardValue, { color: valueColor }]}>{formatTemperature(verifiJson.temperatureAtDischarge)}</Text>
+            <Text style={[styles.vfTempCardLabel, { color: labelColor }]}>Discharge</Text>
+          </View>
+        </View>
+      </CollapsibleSection>
+
+      <CollapsibleSection section={sections[3]}>
+        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Mix Information</Text>
+        <DataRow label="Mix Code" value={verifiJson.mixCodeName || '--'} highlight />
+        <DataRow label="Instruction" value={verifiJson.instructionName || '--'} />
+        <View style={[styles.vfDivider, { backgroundColor: borderColor }]} />
+        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Water Additions</Text>
+        <DataRow label="Total Water" value={formatVolume(verifiJson.verifiWaterTotal)} />
+        <DataRow label="At Leave Plant" value={formatVolume(verifiJson.verifiWaterAtLeavePlant)} />
+        <DataRow label="At Arrival" value={formatVolume(verifiJson.verifiWaterAtArrival)} />
+        <DataRow label="At Discharge" value={formatVolume(verifiJson.verifiWaterAtDischarge)} />
+        <View style={[styles.vfDivider, { backgroundColor: borderColor }]} />
+        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Admix Volumes</Text>
+        <DataRow label="Total" value={formatVolume(verifiJson.admixTotal)} />
+        <DataRow label="At Discharge" value={formatVolume(verifiJson.admixAtDischarge)} />
+      </CollapsibleSection>
+
+      <CollapsibleSection section={sections[4]}>
+        <View style={styles.vfRevsContainer}>
+          <View style={[styles.vfRevsCard, { backgroundColor: cardBgColor }]}>
+            <View style={[styles.vfRevsCircle, { borderColor: isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light }]}>
+              <Text style={[styles.vfRevsNumber, { color: valueColor }]}>{verifiJson.totalRevsAtLeavePlant || '0'}</Text>
+            </View>
+            <Text style={[styles.vfRevsLabel, { color: labelColor }]}>Leave Plant</Text>
+          </View>
+          <View style={[styles.vfRevsCard, { backgroundColor: cardBgColor }]}>
+            <View style={[styles.vfRevsCircle, { borderColor: isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light }]}>
+              <Text style={[styles.vfRevsNumber, { color: valueColor }]}>{verifiJson.totalRevsAtArrival || '0'}</Text>
+            </View>
+            <Text style={[styles.vfRevsLabel, { color: labelColor }]}>Arrival</Text>
+          </View>
+          <View style={[styles.vfRevsCard, { backgroundColor: cardBgColor }]}>
+            <View style={[styles.vfRevsCircle, { borderColor: isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light }]}>
+              <Text style={[styles.vfRevsNumber, { color: valueColor }]}>{verifiJson.totalRevsAtDischarge || '0'}</Text>
+            </View>
+            <Text style={[styles.vfRevsLabel, { color: labelColor }]}>Discharge</Text>
+          </View>
+        </View>
+        <View style={[styles.vfDivider, { backgroundColor: borderColor }]} />
+        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Since Loaded</Text>
+        <DataRow label="At Leave Plant" value={verifiJson.totalRevsSinceLoadedAtLeavePlant || '--'} />
+        <DataRow label="At Arrival" value={verifiJson.totalRevsSinceLoadedAtArrival || '--'} />
+        <DataRow label="At Discharge" value={verifiJson.totalRevsSinceLoadedAtDischarge || '--'} />
+      </CollapsibleSection>
+    </View>
+  );
+};
+
 export const TicketDetailScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<TicketDetailRouteProp>();
@@ -830,6 +1125,7 @@ export const TicketDetailScreen: React.FC = () => {
     products,
     deliveryMetrics,
     weatherData,
+    verifiJson,
     isLoading,
     isRefetching,
     refetch,
@@ -1459,6 +1755,10 @@ export const TicketDetailScreen: React.FC = () => {
             idleMinutes={deliveryMetrics?.idle_minutes || null}
             isDark={isDark}
           />
+
+          {verifiJson && (
+            <VerifiDataCard verifiJson={verifiJson} isDark={isDark} />
+          )}
 
           <SectionCard
             title="Delivery Timeline"
@@ -2740,6 +3040,250 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bold,
     fontSize: ms(20),
     letterSpacing: 1,
+  },
+  // Verifi Modern Card-Based Styles
+  vfContainer: {
+    marginBottom: GRID.md,
+  },
+  vfMainCard: {
+    borderRadius: RADIUS.lg,
+    padding: GRID.md,
+    marginBottom: GRID.sm,
+    borderWidth: 1,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.common.black,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  vfHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: GRID.md,
+  },
+  vfHeaderIcon: {
+    width: ms(40),
+    height: ms(40),
+    borderRadius: RADIUS.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: GRID.sm,
+  },
+  vfHeaderText: {
+    flex: 1,
+  },
+  vfHeaderTitle: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(16),
+  },
+  vfHeaderSubtitle: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+    marginTop: ms(2),
+  },
+  vfModeBadge: {
+    paddingHorizontal: GRID.sm,
+    paddingVertical: ms(4),
+    borderRadius: RADIUS.sm,
+  },
+  vfModeText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(10),
+  },
+  vfMetricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: GRID.sm,
+    marginBottom: GRID.md,
+  },
+  vfMetricCard: {
+    width: '47%',
+    padding: GRID.sm,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+  },
+  vfMetricIcon: {
+    width: ms(36),
+    height: ms(36),
+    borderRadius: ms(18),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: GRID.xs,
+  },
+  vfMetricValue: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(14),
+    textAlign: 'center',
+    marginBottom: ms(2),
+  },
+  vfMetricLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(10),
+    textAlign: 'center',
+  },
+  vfQuickInfo: {
+    borderRadius: RADIUS.md,
+    padding: GRID.sm,
+    gap: GRID.xs,
+  },
+  vfQuickInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: GRID.sm,
+    paddingVertical: GRID.xs,
+  },
+  vfQuickInfoValue: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(12),
+    flex: 1,
+  },
+  vfCollapsible: {
+    borderRadius: RADIUS.lg,
+    marginBottom: GRID.sm,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  vfCollapsibleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: GRID.md,
+  },
+  vfCollapsibleIcon: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: RADIUS.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: GRID.sm,
+  },
+  vfCollapsibleTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(14),
+    flex: 1,
+  },
+  vfCollapsibleContent: {
+    paddingHorizontal: GRID.md,
+    paddingBottom: GRID.md,
+  },
+  vfDataRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: GRID.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.semiTransparent.black08,
+  },
+  vfDataLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
+    flex: 1,
+  },
+  vfDataValue: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+    textAlign: 'right',
+  },
+  vfSubsectionTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+    marginBottom: GRID.xs,
+    marginTop: GRID.sm,
+  },
+  vfDivider: {
+    height: 1,
+    marginVertical: GRID.sm,
+  },
+  vfTimelineContainer: {
+    paddingLeft: GRID.xs,
+  },
+  vfStageItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    position: 'relative',
+    paddingBottom: GRID.sm,
+  },
+  vfStageDot: {
+    width: ms(10),
+    height: ms(10),
+    borderRadius: ms(5),
+    marginTop: ms(4),
+    marginRight: GRID.sm,
+  },
+  vfStageContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  vfStageLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
+  },
+  vfStageValue: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+  },
+  vfStageLine: {
+    position: 'absolute',
+    left: ms(4),
+    top: ms(16),
+    width: 2,
+    height: '100%',
+  },
+  vfTempFlow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: GRID.sm,
+  },
+  vfTempCard: {
+    flex: 1,
+    alignItems: 'center',
+    padding: GRID.sm,
+    borderRadius: RADIUS.md,
+  },
+  vfTempCardValue: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(16),
+    marginTop: GRID.xs,
+  },
+  vfTempCardLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(10),
+    marginTop: ms(2),
+  },
+  vfRevsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: GRID.sm,
+  },
+  vfRevsCard: {
+    alignItems: 'center',
+    padding: GRID.sm,
+    borderRadius: RADIUS.md,
+  },
+  vfRevsCircle: {
+    width: ms(56),
+    height: ms(56),
+    borderRadius: ms(28),
+    borderWidth: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  vfRevsNumber: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(14),
+  },
+  vfRevsLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(10),
+    marginTop: GRID.xs,
   },
   });
 

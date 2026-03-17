@@ -116,6 +116,8 @@ export const useTicketDetails = (params: TicketDetailsQueryParams) => {
 
     weatherData: ticket?.weather_data || null,
 
+    verifiJson: ticket?.verifi_json || null,
+
     isLoading: query.isLoading,
     isError: query.isError,
     error: errorMessage,
