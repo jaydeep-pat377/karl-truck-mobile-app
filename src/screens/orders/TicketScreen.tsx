@@ -24,7 +24,7 @@ import { fontFamily } from '../../theme/typography';
 import { spacing, ms } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { RootStackParamList } from '../../navigation/types';
-import { useTicketsByOrder } from '../../hooks';
+import { useTicketsByOrder, useRealtimeTickets } from '../../hooks';
 import { ApiTicketStatus, TicketByOrderItem } from '../../types/ticket';
 import { DeliveryProgress, DeliveryProgressSegment } from '../../types/order';
 
@@ -1338,6 +1338,13 @@ export const TicketScreen: React.FC = () => {
   } = useTicketsByOrder({
     orderId,
     sort_order: advancedFilters.sortOrder,
+  });
+
+  // Supabase Realtime: auto-refetch tickets when changes detected
+  useRealtimeTickets({
+    orderCode,
+    enabled: !!orderCode,
+    onUpdate: refetch,
   });
 
   const displayDate = order?.order_date

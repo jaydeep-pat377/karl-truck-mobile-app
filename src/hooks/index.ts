@@ -57,4 +57,7 @@ export { default as useScheduledLoads } from './useScheduledLoads';
 export * from './useRealtimeDailyIntelligence';
 export { default as useRealtimeDailyIntelligence } from './useRealtimeDailyIntelligence';
 
+export * from './useRealtimeTickets';
+export { default as useRealtimeTickets } from './useRealtimeTickets';
+
 export { useGlobalAlert } from '../contexts/GlobalAlertContext';
