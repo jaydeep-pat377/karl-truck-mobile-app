@@ -22,7 +22,7 @@ import { CompositeNavigationProp } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card, ListFooterLoader, TruckLoader, Icon } from '../../components/common';
-import { OrderCard } from '../../components/orders';
+import { OrderCard, DailyStatsPanel } from '../../components/orders';
 import { OrderStatusTabs } from '../../components/dashboard';
 import type { OrderStatusFilter, OrderStatusCount } from '../../components/dashboard';
 import { Order, ApiOrder, OrdersQueryParams, WeatherCondition, TicketTrackingStatus } from '../../types';
@@ -825,6 +825,7 @@ export const OrderListScreen: React.FC = () => {
   const { showAlert } = useGlobalAlert();
 
 
+
   const [parentTabParams, setParentTabParams] = useState<typeof route.params | undefined>(undefined);
 
   // Helper to find Orders route params from any level of navigation
@@ -905,6 +906,20 @@ export const OrderListScreen: React.FC = () => {
   const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatusFilter>('all');
   const [isTabLoading, setIsTabLoading] = useState(false);
   const [isDateFilterLoading, setIsDateFilterLoading] = useState(false);
+
+  // KPI filter state for Daily Intelligence panel
+  const [kpiFilterOrderCodes, setKpiFilterOrderCodes] = useState<string[] | null>(null);
+  const [kpiFilterLabel, setKpiFilterLabel] = useState<string | null>(null);
+
+  const handleKpiFilter = useCallback((orderCodes: string[], kpiLabel: string) => {
+    setKpiFilterOrderCodes(orderCodes);
+    setKpiFilterLabel(kpiLabel);
+  }, []);
+
+  const handleKpiFilterClear = useCallback(() => {
+    setKpiFilterOrderCodes(null);
+    setKpiFilterLabel(null);
+  }, []);
 
   useEffect(() => {
     const keyboardShowEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -1164,9 +1179,6 @@ export const OrderListScreen: React.FC = () => {
   const filteredOrders = useMemo(() => {
     let orders = mappedOrders;
 
-
-
-
     if (appliedFilters.productType !== 'all') {
       const productMap: Record<string, string> = {
         mix_3000: 'Concrete Mix 3000',
@@ -1184,8 +1196,14 @@ export const OrderListScreen: React.FC = () => {
       orders = orders.filter((order) => order.hasAlert);
     }
 
+    // Apply KPI filter from Daily Intelligence panel
+    if (kpiFilterOrderCodes && kpiFilterOrderCodes.length > 0) {
+      const codeSet = new Set(kpiFilterOrderCodes);
+      orders = orders.filter((order) => codeSet.has(order.orderCode));
+    }
+
     return orders;
-  }, [mappedOrders, appliedFilters.productType, appliedFilters.hasAlertOnly]);
+  }, [mappedOrders, appliedFilters.productType, appliedFilters.hasAlertOnly, kpiFilterOrderCodes]);
 
   const handleSearch = useCallback(() => {
     Keyboard.dismiss();
@@ -1561,6 +1579,32 @@ export const OrderListScreen: React.FC = () => {
 
       {!isLoading && !isTabLoading && !isDateFilterLoading && (
         <>
+          <DailyStatsPanel
+            reportDate={debouncedFilter === 'calendar' ? debouncedDate.toISOString().split('T')[0] : undefined}
+            scope={dashboardFilter.plant_code ? 'plant' : dashboardFilter.region_name ? 'region' : 'company'}
+            plantCode={dashboardFilter.plant_code || null}
+            regionName={dashboardFilter.region_name || null}
+            onKpiFilter={handleKpiFilter}
+            onKpiFilterClear={handleKpiFilterClear}
+          />
+
+          {kpiFilterLabel && (
+            <View style={styles.kpiFilterBar}>
+              <View style={[styles.kpiFilterChip, { backgroundColor: colors.info.main + '15' }]}>
+                <Icon name="filter" size={ms(14)} color={colors.info.main} />
+                <Text style={[styles.kpiFilterText, { color: colors.info.main }]} numberOfLines={1}>
+                  {kpiFilterLabel} ({kpiFilterOrderCodes?.length || 0})
+                </Text>
+                <TouchableOpacity
+                  onPress={handleKpiFilterClear}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.7}>
+                  <Icon name="close-circle" size={ms(16)} color={colors.info.main} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
           <View style={styles.filtersContainer}>
             <ScrollView
               ref={dateFilterScrollRef}
@@ -1904,6 +1948,24 @@ const styles = StyleSheet.create({
   filtersScroll: {
     paddingHorizontal: spacing.md,
     gap: spacing.xs,
+  },
+  kpiFilterBar: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  kpiFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: ms(20),
+    gap: spacing.xs,
+    alignSelf: 'flex-start',
+  },
+  kpiFilterText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+    maxWidth: ms(200),
   },
   dashboardFilterContainer: {
     paddingHorizontal: spacing.md,

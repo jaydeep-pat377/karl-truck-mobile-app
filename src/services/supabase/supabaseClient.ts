@@ -44,6 +44,11 @@ export const supabaseAdmin: SupabaseClient = createClient(supabaseUrl, supabaseS
     persistSession: false,
     detectSessionInUrl: false,
   },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
 });
 
 let isInitialized = false;

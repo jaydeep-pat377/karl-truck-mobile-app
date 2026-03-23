@@ -54,4 +54,7 @@ export { default as useBiometrics } from './useBiometrics';
 export * from './useScheduledLoads';
 export { default as useScheduledLoads } from './useScheduledLoads';
 
+export * from './useRealtimeDailyIntelligence';
+export { default as useRealtimeDailyIntelligence } from './useRealtimeDailyIntelligence';
+
 export { useGlobalAlert } from '../contexts/GlobalAlertContext';
