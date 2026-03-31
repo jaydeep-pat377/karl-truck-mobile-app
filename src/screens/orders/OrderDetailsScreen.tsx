@@ -15,11 +15,12 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
-import Svg, { Circle, Path, Defs, LinearGradient as SvgGradient, Stop, G, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Path, Defs, LinearGradient as SvgGradient, Stop, G, Text as SvgText, Pattern, Line, Rect } from 'react-native-svg';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, TopGradientBackground, TruckLoader, Icon, AlertModal } from '../../components/common';
 import YellowTruck from '../../assets/svgs/yellowTruck.svg';
 import Isolation_Mode from '../../assets/svgs/Isolation_Mode.svg';
+import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { Order, OrderCreatedItem } from '../../types';
 import { colors } from '../../theme/colors';
 import { getStatusColor, getStatusLabel } from '../../utils/statusUtils';
@@ -151,6 +152,82 @@ const getStatusDisplayLabel = (status: string | undefined): string => {
 };
 
 const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'pouring', 'remaining'];
+
+// Same 5-segment progress bar as OrderCard / web
+const PROGRESS_STATUSES = [
+  { key: 'loading', label: 'Loading', color: '#FF9800' },
+  { key: 'to_job', label: 'To Job', color: '#8BC34A' },
+  { key: 'at_job', label: 'At Job', color: '#4CAF50' },
+  { key: 'pouring', label: 'Pouring', color: '#009688' },
+  { key: 'at_plant', label: 'Poured', color: '#1565C0' },
+];
+
+const SegmentStripes: React.FC<{ color: string; patternId: string }> = React.memo(({ color, patternId }) => (
+  <Svg style={StyleSheet.absoluteFill}>
+    <Defs>
+      <Pattern id={patternId} patternUnits="userSpaceOnUse" width={4} height={4} patternTransform="rotate(45)">
+        <Line x1={0} y1={0} x2={0} y2={4} stroke={color} strokeWidth={1.5} strokeOpacity={0.35} />
+      </Pattern>
+    </Defs>
+    <Rect width="100%" height="100%" fill={`url(#${patternId})`} />
+  </Svg>
+));
+
+const computeCumulativeFills = (
+  segments: any[],
+  totalLoads: number | null | undefined,
+  totalTickets: number,
+): { fills: number[]; atPlantQty: number } => {
+  const ticketCountByStatus: Record<string, number> = {};
+  let hasTicketCounts = false;
+  for (const { key } of PROGRESS_STATUSES) {
+    const seg = (segments || []).find((s: any) => s.status === key);
+    const tc = seg?.ticketCount ?? 0;
+    ticketCountByStatus[key] = tc;
+    if (tc > 0) hasTicketCounts = true;
+  }
+
+  let fills: number[];
+
+  if (hasTicketCounts) {
+    const cumulativeByStatus: Record<string, number> = {};
+    for (let i = 0; i < PROGRESS_STATUSES.length; i++) {
+      let sum = 0;
+      for (let j = i; j < PROGRESS_STATUSES.length; j++) {
+        sum += ticketCountByStatus[PROGRESS_STATUSES[j].key];
+      }
+      cumulativeByStatus[PROGRESS_STATUSES[i].key] = sum;
+    }
+    const total = totalLoads ?? totalTickets ?? cumulativeByStatus['loading'] ?? 0;
+    fills = PROGRESS_STATUSES.map(({ key }) => {
+      const cumulative = cumulativeByStatus[key];
+      return total > 0 ? Math.round((cumulative / total) * 100) : 0;
+    });
+  } else {
+    const percentByStatus: Record<string, number> = {};
+    for (const { key } of PROGRESS_STATUSES) {
+      const seg = (segments || []).find((s: any) => s.status === key);
+      percentByStatus[key] = seg?.percentage ?? 0;
+    }
+    fills = PROGRESS_STATUSES.map((_status, i) => {
+      let sum = 0;
+      for (let j = i; j < PROGRESS_STATUSES.length; j++) {
+        sum += percentByStatus[PROGRESS_STATUSES[j].key];
+      }
+      return Math.min(Math.round(sum), 100);
+    });
+  }
+
+  const atPlantSeg = (segments || []).find((s: any) => s.status === 'at_plant');
+  const atPlantQty = atPlantSeg?.qty ?? 0;
+  return { fills, atPlantQty };
+};
+
+const getCompletionColor = (percent: number): string => {
+  if (percent >= 90) return '#458B00';
+  if (percent >= 60) return '#F7BB00';
+  return '#C43926';
+};
 
 const SHADOWS = {
   sm: {
@@ -556,12 +633,22 @@ interface DeliveryProgressSegment {
 interface DeliveryProgressBarProps {
   segments: DeliveryProgressSegment[];
   overallPercentage: number;
+  orderedQty: number;
+  deliveredQty: number;
+  totalLoads?: number | null;
+  ticketsCount?: number;
+  completedLoads?: number;
   isDark: boolean;
 }
 
 const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
   segments,
   overallPercentage,
+  orderedQty,
+  deliveredQty,
+  totalLoads,
+  ticketsCount,
+  completedLoads,
   isDark,
 }) => {
   const themeColors = isDark ? colors.dark : colors.light;
@@ -570,9 +657,44 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
     return null;
   }
 
+  const { fills: progressFills, atPlantQty } = computeCumulativeFills(
+    segments,
+    totalLoads,
+    ticketsCount ?? 0,
+  );
+  const completionPercent = orderedQty > 0 ? ((atPlantQty / orderedQty) * 100).toFixed(2) : '0.00';
+  const deliveredPercent = orderedQty > 0 ? Math.round((deliveredQty / orderedQty) * 100) : 0;
 
-  const filteredSegments = segments
-    .filter((segment) => (segment.percentage > 0 || segment.status === 'remaining') && ALLOWED_PROGRESS_STATUSES.includes(segment.status?.toLowerCase()));
+  const segmentColors = PROGRESS_STATUSES.map(status => {
+    const apiSeg = segments.find((s: any) => s.status === status.key);
+    return apiSeg?.color || status.color;
+  });
+
+  // Tooltip state
+  const [tooltipKey, setTooltipKey] = useState<string | null>(null);
+  const [tooltipY, setTooltipY] = useState(0);
+  const progressBarRef = useRef<View>(null);
+
+  const showTooltip = (key: string) => {
+    if (tooltipKey === key) {
+      setTooltipKey(null);
+      return;
+    }
+    progressBarRef.current?.measureInWindow((_x, y, _w, h) => {
+      setTooltipY(y + h + ms(4));
+      setTooltipKey(key);
+    });
+  };
+
+  const handleInfoPress = () => showTooltip('all');
+  const handleSegmentPress = (key: string) => showTooltip(key);
+
+  // Build per-status qty map for tooltip
+  const segmentQtyMap: Record<string, number> = {};
+  for (const { key } of PROGRESS_STATUSES) {
+    const seg = (segments || []).find((s: any) => s.status === key);
+    segmentQtyMap[key] = seg?.qty ?? 0;
+  }
 
   return (
     <View style={[styles.deliveryProgressCard, { backgroundColor: themeColors.card }, SHADOWS.sm]}>
@@ -585,60 +707,99 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
         </View>
       </View>
 
-
-      <View style={styles.deliveryProgressLabelsRow}>
-        {filteredSegments.map((segment, index) => (
-          <View
-            key={`label-${segment.status}-${index}`}
-            style={[styles.deliveryProgressLabelContainer, { flex: segment.percentage || 1 }]}
-          >
-            <Text
-              style={[styles.deliveryProgressLabelText, { color: themeColors.text.secondary }]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {getStatusDisplayLabel(segment.status)}
-            </Text>
-          </View>
-        ))}
-      </View>
-
-
-      <View style={[styles.deliveryProgressBarBg, { backgroundColor: isDark ? themeColors.surface : colors.grey[10] }]}>
-        <View style={styles.deliveryProgressSegments}>
-          {filteredSegments.map((segment, index, arr) => (
-            <View
-              key={`${segment.status}-${index}`}
-              style={[
-                styles.deliveryProgressSegment,
-                {
-                  flex: segment.percentage || 1,
-                  backgroundColor: getSegmentColor(segment.status),
-                  borderRightWidth: index < arr.length - 1 ? 1 : 0,
-                  borderRightColor: themeColors.card,
-                },
-              ]}
-            />
+      <View ref={progressBarRef} style={styles.deliveryProgressSegmentedRow}>
+        <Pressable onPress={handleInfoPress} hitSlop={8}>
+          <Icon
+            name="information-outline"
+            size={ms(14)}
+            color={themeColors.text.hint}
+          />
+        </Pressable>
+        <View style={styles.deliverySegmentBarsRow}>
+          {PROGRESS_STATUSES.map((status, index) => (
+            <React.Fragment key={`bar-${status.key}`}>
+              <Pressable
+                style={styles.deliverySegmentBarWrapper}
+                onPress={() => handleSegmentPress(status.key)}
+              >
+                <View style={styles.deliverySegmentTrack}>
+                  <SegmentStripes color={segmentColors[index]} patternId={`detail-stripe-${status.key}`} />
+                  <View
+                    style={[
+                      styles.deliverySegmentFillOverlay,
+                      {
+                        width: `${progressFills[index]}%`,
+                        backgroundColor: segmentColors[index],
+                      },
+                    ]}
+                  />
+                </View>
+              </Pressable>
+              {index < PROGRESS_STATUSES.length - 1 && (
+                <View style={[styles.deliverySegmentDividerDotted, { borderColor: themeColors.text.hint }]} />
+              )}
+            </React.Fragment>
           ))}
         </View>
+        <Text
+          numberOfLines={1}
+          style={[styles.deliveryCyValueText, { color: themeColors.text.primary }]}
+        >
+          {orderedQty.toFixed(2)} CY
+        </Text>
       </View>
 
-
-      <View style={styles.deliveryProgressValuesRow}>
-        {filteredSegments.map((segment, index) => (
+      <Modal
+        visible={tooltipKey !== null}
+        transparent
+        animationType="none"
+        onRequestClose={() => setTooltipKey(null)}
+      >
+        <Pressable style={styles.deliveryTooltipBackdrop} onPress={() => setTooltipKey(null)}>
           <View
-            key={`value-${segment.status}-${index}`}
-            style={[styles.deliveryProgressValueContainer, { flex: segment.percentage || 1 }]}
+            style={[
+              styles.deliveryTooltipContainer,
+              {
+                top: tooltipY,
+                backgroundColor: isDark ? colors.dark.cardElevated : colors.common.white,
+                borderColor: isDark ? colors.dark.border : colors.grey[15],
+              },
+            ]}
           >
-            <Text
-              style={[styles.deliveryProgressValueText, { color: themeColors.text.hint }]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {segment.qty !== undefined ? `${segment.qty} CY` : ''}
-            </Text>
+            {tooltipKey === 'all' ? (
+              PROGRESS_STATUSES.map((status) => {
+                const colorIdx = PROGRESS_STATUSES.findIndex(s => s.key === status.key);
+                return (
+                  <View key={status.key} style={styles.deliveryTooltipRow}>
+                    <View style={[styles.deliveryTooltipDot, { backgroundColor: segmentColors[colorIdx] }]} />
+                    <Text style={[styles.deliveryTooltipLabel, { color: themeColors.text.primary }]}>
+                      {status.label}
+                    </Text>
+                  </View>
+                );
+              })
+            ) : (
+              <>
+                <Text style={[styles.deliveryTooltipText, { color: themeColors.text.primary }]}>
+                  {PROGRESS_STATUSES.find(s => s.key === tooltipKey)?.label}: {segmentQtyMap[tooltipKey || '']?.toFixed(2) ?? '0.00'} CY
+                </Text>
+              </>
+            )}
           </View>
-        ))}
+        </Pressable>
+      </Modal>
+
+      <View style={styles.deliveryCompletionRow}>
+        <Text style={[styles.deliveryCompletionText, { color: getCompletionColor(deliveredPercent) }]}>
+          {completionPercent}% Completed
+        </Text>
+      </View>
+
+      <View style={styles.deliveryLoadsCountRow}>
+        <ConcreteTruck width={ms(14)} height={ms(10)} color={themeColors.text.secondary} />
+        <Text style={[styles.deliveryLoadsCountText, { color: themeColors.text.secondary }]}>
+          {completedLoads ?? 0}/{totalLoads ?? 0} Loads
+        </Text>
       </View>
     </View>
   );
@@ -2201,6 +2362,11 @@ export const OrderDetailsScreen: React.FC = () => {
             <DeliveryProgressBar
               segments={orderDetails.delivery_progress.segments}
               overallPercentage={orderDetails.delivery_progress.overall_percentage ?? 0}
+              orderedQty={orderDetails.ordered_qty ?? 0}
+              deliveredQty={orderDetails.delivered_qty ?? 0}
+              totalLoads={jobData.scheduleDetails?.[0]?.number_of_loads ?? orderDetails.tickets?.length ?? 0}
+              ticketsCount={orderDetails.tickets_count ?? orderDetails.tickets?.length ?? 0}
+              completedLoads={orderDetails.tickets?.length ?? 0}
               isDark={isDark}
             />
           )}
@@ -3089,6 +3255,103 @@ const styles = StyleSheet.create({
   },
   deliveryProgressLegendText: {
     fontSize: ms(11),
+    fontFamily: fontFamily.medium,
+  },
+  // Segmented progress bar (same as OrderCard)
+  deliveryProgressSegmentedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(4),
+  },
+  deliverySegmentBarsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: ms(6),
+    flexGrow: 1,
+    flexShrink: 1,
+  },
+  deliverySegmentBarWrapper: {
+    flex: 1,
+    height: '100%',
+  },
+  deliverySegmentTrack: {
+    flex: 1,
+    height: '100%',
+    borderRadius: ms(2),
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+  },
+  deliverySegmentFillOverlay: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: ms(2),
+  },
+  deliverySegmentDividerDotted: {
+    width: 0,
+    height: ms(12),
+    borderLeftWidth: 1,
+    borderStyle: 'dashed',
+    opacity: 0.4,
+  },
+  deliveryCyValueText: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.bold,
+    flexShrink: 0,
+    flexGrow: 0,
+  },
+  deliveryCompletionRow: {
+    alignItems: 'flex-end',
+    marginTop: ms(2),
+  },
+  deliveryCompletionText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.bold,
+  },
+  deliveryLoadsCountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(4),
+    marginTop: ms(2),
+  },
+  deliveryLoadsCountText: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+  },
+  deliveryTooltipBackdrop: {
+    flex: 1,
+  },
+  deliveryTooltipContainer: {
+    position: 'absolute',
+    left: ms(12),
+    borderRadius: ms(6),
+    paddingVertical: ms(4),
+    paddingHorizontal: ms(8),
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  deliveryTooltipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: ms(1.5),
+  },
+  deliveryTooltipDot: {
+    width: ms(5),
+    height: ms(5),
+    borderRadius: ms(2.5),
+    marginRight: ms(5),
+  },
+  deliveryTooltipLabel: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+  },
+  deliveryTooltipText: {
+    fontSize: ms(10),
     fontFamily: fontFamily.medium,
   },
   pipelineSeparator: {

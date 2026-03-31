@@ -131,7 +131,7 @@ const computeCumulativeFills = (
   let hasTicketCounts = false;
   for (const { key } of PROGRESS_STATUSES) {
     const seg = (segments || []).find((s: any) => s.status === key);
-    const tc = seg?.ticket_count ?? seg?.ticketCount ?? 0;
+    const tc = seg?.ticketCount ?? 0;
     ticketCountByStatus[key] = tc;
     if (tc > 0) hasTicketCounts = true;
   }
@@ -184,6 +184,54 @@ const getCompletionColor = (percent: number): string => {
   if (percent >= 90) return '#458B00';
   if (percent >= 60) return '#F7BB00';
   return '#C43926';
+};
+
+// Same logic as web's getOrderStatusCategory (orderStatusValidation.ts)
+type OrderStatusCategory = 'PRE_POUR' | 'IN_PROCESS' | 'COMPLETED' | 'CANCELED';
+
+const getOrderStatusCategory = (order: {
+  isRemoved?: boolean;
+  currentStatus?: number;
+  deliveredQuantity?: number;
+  quantity?: number;
+  isLastLoadCompleted?: boolean;
+}): OrderStatusCategory => {
+  if (order.isRemoved === true) return 'CANCELED';
+
+  const ticketedQty = order.deliveredQuantity ?? 0; // delivered_qty = delv_qty = web's ticketed_qty
+  if (ticketedQty > 0) {
+    const lastLoadCompleted = order.isLastLoadCompleted ?? false;
+    const orderedQty = order.quantity ?? 0;
+    const gap = orderedQty - ticketedQty;
+    const roundedGap = Math.round(gap * 100) / 100;
+    if (lastLoadCompleted && roundedGap <= 0.02) return 'COMPLETED';
+    return 'IN_PROCESS';
+  }
+
+  if (order.currentStatus === 4) return 'COMPLETED';
+  return 'PRE_POUR';
+};
+
+// Same label mapping as web's getCardStatus
+const getStatusLabel = (order: any): string => {
+  const category = getOrderStatusCategory(order);
+  switch (category) {
+    case 'CANCELED': return 'Canceled';
+    case 'COMPLETED': return 'Completed';
+    case 'IN_PROCESS': return 'In-Process';
+    case 'PRE_POUR': {
+      const cs = order.currentStatus ?? 0;
+      switch (cs) {
+        case 0: return 'Pre-Pour - Normal';
+        case 1: return 'Pre-Pour - Will Call';
+        case 2: return 'Pre-Pour - Weather Permitting';
+        case 3: return 'Pre-Pour - Hold';
+        case 5: return 'Pre-Pour - Wait List';
+        default: return 'Normal';
+      }
+    }
+    default: return 'Normal';
+  }
 };
 
 interface OrderCardProps {
@@ -302,11 +350,16 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   );
   const orderedQty = order.quantity ?? order.ordered_qty ?? 0;
   const completionPercent = orderedQty > 0 ? ((atPlantQty / orderedQty) * 100).toFixed(2) : '0.00';
-  // Web uses delivered_percentage (not at_plant%) for the completion color thresholds
-  const deliveredPercent = order.deliveryProgress?.overall_percentage ?? progress ?? 0;
+  // Web uses delv_qty / ordered_qty (= order.progress) for the completion color thresholds.
+  // delivery_progress.overall_percentage is a different (lower) value that only counts
+  // at_job+ statuses, so we must NOT use it here — it would show red when web shows green.
+  const deliveredPercent = progress;
 
   // Card color (status badge, bottom border, shadow) driven by delivery % tier
   const cardTierColor = getCompletionColor(deliveredPercent);
+
+  // Status label — same logic as web's getCardStatus → getOrderStatusCategory
+  const statusLabel = getStatusLabel(order);
 
   // Use progress_bar_colors from API (system-level config), fall back to static defaults
   const segmentColors = PROGRESS_STATUSES.map(status => {
@@ -452,6 +505,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
             <View style={styles.statusBadgeContainer}>
               <StatusBadge
                 status={order.status}
+                label={statusLabel}
                 size="xsmall"
                 customColor={cardTierColor}
               />

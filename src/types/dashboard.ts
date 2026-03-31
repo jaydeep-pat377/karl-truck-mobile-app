@@ -75,6 +75,9 @@ export interface ActiveDeliveryOrder {
   remaining_qty: number;
   progress_percent: number;
   status: string;
+  current_status?: number;
+  is_removed?: boolean;
+  is_last_load_completed?: boolean;
   recent_ticket?: ActiveDeliveryRecentTicket | null;
   delivery_progress?: import('./order').DeliveryProgress;
   total_loads?: number;

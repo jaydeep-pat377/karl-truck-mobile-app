@@ -25,6 +25,7 @@ import { ms, spacing, fontSizes, iconSizes } from '../../utils/responsive';
 import { useResponsive } from '../../hooks/useResponsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useDashboard } from '../../hooks/useDashboard';
+import { useRealtimeOrders } from '../../hooks/useRealtimeOrders';
 import { notificationService } from '../../services/notificationService';
 import { announcementService, Announcement as ApiAnnouncement } from '../../api/services';
 import { updateWidgetData } from '../../modules/TodayOverviewWidget';
@@ -114,7 +115,7 @@ const computeCumulativeFills = (
   let hasTicketCounts = false;
   for (const { key } of PROGRESS_STATUSES) {
     const seg = (segments || []).find((s: any) => s.status === key);
-    const tc = seg?.ticket_count ?? seg?.ticketCount ?? 0;
+    const tc = seg?.ticketCount ?? 0;
     ticketCountByStatus[key] = tc;
     if (tc > 0) hasTicketCounts = true;
   }
@@ -169,6 +170,51 @@ const getCompletionColor = (percent: number): string => {
   return '#C43926';
 };
 
+// Same logic as web's getOrderStatusCategory (orderStatusValidation.ts)
+type OrderStatusCategory = 'PRE_POUR' | 'IN_PROCESS' | 'COMPLETED' | 'CANCELED';
+
+const getOrderStatusCategory = (order: {
+  isRemoved?: boolean;
+  currentStatus?: number;
+  deliveredQty?: number;
+  orderedQty?: number;
+  isLastLoadCompleted?: boolean;
+}): OrderStatusCategory => {
+  if (order.isRemoved === true) return 'CANCELED';
+  const ticketedQty = order.deliveredQty ?? 0;
+  if (ticketedQty > 0) {
+    const lastLoadCompleted = order.isLastLoadCompleted ?? false;
+    const orderedQty = order.orderedQty ?? 0;
+    const gap = orderedQty - ticketedQty;
+    const roundedGap = Math.round(gap * 100) / 100;
+    if (lastLoadCompleted && roundedGap <= 0.02) return 'COMPLETED';
+    return 'IN_PROCESS';
+  }
+  if (order.currentStatus === 4) return 'COMPLETED';
+  return 'PRE_POUR';
+};
+
+const getStatusLabel = (order: any): string => {
+  const category = getOrderStatusCategory(order);
+  switch (category) {
+    case 'CANCELED': return 'Canceled';
+    case 'COMPLETED': return 'Completed';
+    case 'IN_PROCESS': return 'In-Process';
+    case 'PRE_POUR': {
+      const cs = order.currentStatus ?? 0;
+      switch (cs) {
+        case 0: return 'Pre-Pour - Normal';
+        case 1: return 'Pre-Pour - Will Call';
+        case 2: return 'Pre-Pour - Weather Permitting';
+        case 3: return 'Pre-Pour - Hold';
+        case 5: return 'Pre-Pour - Wait List';
+        default: return 'Normal';
+      }
+    }
+    default: return 'Normal';
+  }
+};
+
 interface ActiveDelivery {
   id: string;
   orderCode: string;
@@ -183,6 +229,9 @@ interface ActiveDelivery {
   status: string;
   statusDisplay?: string;
   orderStatus: string;
+  isRemoved?: boolean;
+  currentStatus?: number;
+  isLastLoadCompleted?: boolean;
   deliveryProgress?: DeliveryProgress;
   recentTicketStatus?: string;
   totalLoads?: number;
@@ -256,6 +305,12 @@ const DashboardScreen: React.FC = () => {
     dateFilter,
     ...customDateParams,
     deliveriesLimit: 10,
+  });
+
+  // Real-time: refetch dashboard when orders table changes
+  useRealtimeOrders({
+    enabled: true,
+    onUpdate: refetch,
   });
 
 
@@ -509,10 +564,6 @@ const DashboardScreen: React.FC = () => {
   const renderDeliveryCard = ({ item, onPress }: { item: ActiveDelivery; onPress?: () => void }) => {
     const progressPercent = Math.min(item.progressPercent, 100);
 
-    const progressColor = item.recentTicketStatus
-      ? getSegmentColor(item.recentTicketStatus)
-      : colors.grey[40];
-
     const { fills: progressFills, atPlantQty } = computeCumulativeFills(
       item.deliveryProgress?.segments || [],
       item.totalLoads ?? 0,
@@ -520,7 +571,12 @@ const DashboardScreen: React.FC = () => {
     );
     const orderedQty = item.orderedQty || 0;
     const completionPercent = orderedQty > 0 ? ((atPlantQty / orderedQty) * 100).toFixed(2) : '0.00';
-    const deliveredPercent = item.deliveryProgress?.overall_percentage ?? progressPercent ?? 0;
+    // Use progressPercent (delv_qty / ordered_qty) to match web's tier color logic
+    const deliveredPercent = progressPercent;
+    // Tier color for badge, border, shadow — same as OrderCard
+    const cardTierColor = getCompletionColor(deliveredPercent);
+    // Status label — same as web's getCardStatus → getOrderStatusCategory
+    const statusLabel = getStatusLabel(item);
 
     const segmentColors = PROGRESS_STATUSES.map(status => {
       const apiSeg = (item.deliveryProgress?.segments || []).find(
@@ -545,13 +601,13 @@ const DashboardScreen: React.FC = () => {
           styles.deliveryCard,
           {
             backgroundColor: themeColors.card,
-            shadowColor: progressColor,
+            shadowColor: cardTierColor,
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.35,
             shadowRadius: 6,
             elevation: 4,
             borderBottomWidth: 3,
-            borderBottomColor: progressColor,
+            borderBottomColor: cardTierColor,
           }
         ]}>
           <View style={styles.deliveryHeader}>
@@ -569,9 +625,9 @@ const DashboardScreen: React.FC = () => {
                 <Text style={[styles.deliveryTime, { color: themeColors.text.hint }]}>{item.startTime}</Text>
               </View>
             </View>
-            <View style={[styles.deliveryStatusBadge, { backgroundColor: `${progressColor}15` }]}>
-              <View style={[styles.deliveryStatusDot, { backgroundColor: progressColor }]} />
-              <Text style={[styles.deliveryStatusText, { color: progressColor }]}>{item.orderStatus}</Text>
+            <View style={[styles.deliveryStatusBadge, { backgroundColor: `${cardTierColor}15` }]}>
+              <View style={[styles.deliveryStatusDot, { backgroundColor: cardTierColor }]} />
+              <Text style={[styles.deliveryStatusText, { color: cardTierColor }]}>{statusLabel}</Text>
             </View>
           </View>
 
@@ -624,7 +680,7 @@ const DashboardScreen: React.FC = () => {
             </View>
             <View style={[styles.deliveryStatDivider, { backgroundColor: themeColors.border }]} />
             <View style={styles.deliveryStatItem}>
-              <Text style={[styles.deliveryStatValue, { color: progressColor }]}>
+              <Text style={[styles.deliveryStatValue, { color: cardTierColor }]}>
                 {progressPercent}%
               </Text>
               <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Progress</Text>
@@ -959,6 +1015,9 @@ const DashboardScreen: React.FC = () => {
                     status: order.recent_ticket?.status || order.status || 'Normal',
                     statusDisplay: order.recent_ticket?.status_display || order.status || 'Normal',
                     orderStatus: order.status || 'Normal',
+                    isRemoved: order.is_removed,
+                    currentStatus: order.current_status,
+                    isLastLoadCompleted: order.is_last_load_completed,
                     deliveryProgress: order.delivery_progress,
                     recentTicketStatus: order.recent_ticket?.status,
                     totalLoads: order.total_loads || 0,

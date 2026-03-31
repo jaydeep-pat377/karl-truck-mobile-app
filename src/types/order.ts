@@ -80,6 +80,9 @@ export interface Order {
   weather?: WeatherData;
   canChat?: boolean;
   canTicketed?: boolean;
+  isRemoved?: boolean;
+  currentStatus?: number;
+  isLastLoadCompleted?: boolean;
   isFavorite?: boolean;
   recentTicketStatus?: TicketTrackingStatus;
   deliveryProgress?: DeliveryProgress;
@@ -203,7 +206,6 @@ export interface DeliveryProgressSegment {
   percentage: number;
   label: string;
   color: string;
-  ticket_count?: number;
   ticketCount?: number;
 }
 
@@ -236,6 +238,8 @@ export interface ApiOrder {
   can_chat: boolean;
   can_ticketed: boolean;
   is_removed: boolean;
+  current_status?: number;
+  is_last_load_completed?: boolean;
   has_notes: boolean;
   tickets_count: number;
   active_tickets?: number;
