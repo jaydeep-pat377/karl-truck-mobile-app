@@ -60,4 +60,7 @@ export { default as useRealtimeDailyIntelligence } from './useRealtimeDailyIntel
 export * from './useRealtimeTickets';
 export { default as useRealtimeTickets } from './useRealtimeTickets';
 
+export * from './useRealtimeOrders';
+export { default as useRealtimeOrders } from './useRealtimeOrders';
+
 export { useGlobalAlert } from '../contexts/GlobalAlertContext';

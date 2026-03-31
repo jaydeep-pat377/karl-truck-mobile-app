@@ -270,7 +270,7 @@ export const DailyStatsPanel: React.FC<DailyStatsPanelProps> = ({
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
   const [activeKpi, setActiveKpi] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const { data, isLoading } = useRealtimeDailyIntelligence({
     reportDate,

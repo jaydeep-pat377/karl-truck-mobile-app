@@ -1521,7 +1521,7 @@ export const TicketDetailScreen: React.FC = () => {
               <>
                 <View style={[styles.headerCardWeatherDot, { backgroundColor: themeColors.text.hint }]} />
                 <Text style={[styles.headerCardWeatherInfoText, { color: themeColors.text.secondary }]}>
-                  {weatherData.temperature_fahrenheit}°F
+                  {Math.round(weatherData.temperature_fahrenheit)}°F
                 </Text>
               </>
             )}

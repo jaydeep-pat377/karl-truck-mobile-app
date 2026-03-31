@@ -722,7 +722,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
             <>
               <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
               <Text style={[styles.headerWeatherInfoText, { color: themeColors.text.secondary }]}>
-                {weatherData.temperature_fahrenheit}°F
+                {Math.round(weatherData.temperature_fahrenheit)}°F
               </Text>
             </>
           )}

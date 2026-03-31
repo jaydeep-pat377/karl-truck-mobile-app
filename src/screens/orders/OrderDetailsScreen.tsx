@@ -2107,7 +2107,7 @@ export const OrderDetailsScreen: React.FC = () => {
                   <>
                     <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
                     <Text style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
-                      {jobData.temperature}°F
+                      {Math.round(jobData.temperature)}°F
                     </Text>
                   </>
                 )}

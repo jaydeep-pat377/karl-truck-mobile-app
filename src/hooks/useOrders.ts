@@ -7,6 +7,7 @@ import {
   OrdersPagination,
   OrdersStatusCounts,
   OrdersTabCounts,
+  ProgressBarColors,
 } from '../types/order';
 import { AxiosError } from 'axios';
 import { useMemo } from 'react';
@@ -70,6 +71,12 @@ export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
     return firstPage.success ? firstPage.data.tab_counts || null : null;
   }, [query.data?.pages]);
 
+  const progressBarColors: ProgressBarColors | null = useMemo(() => {
+    if (!query.data?.pages?.length) return null;
+    const firstPage = query.data.pages[0];
+    return firstPage.success ? firstPage.data.progress_bar_colors || null : null;
+  }, [query.data?.pages]);
+
   const errorMessage =
     query.error?.response?.data?.message ||
     (query.error ? 'Failed to load orders' : null);
@@ -83,6 +90,7 @@ export const useOrders = (params?: Omit<OrdersQueryParams, 'page'>) => {
     pagination,
     statusCounts,
     tabCounts,
+    progressBarColors,
     isLoading: isInitialLoading,
     isFilterLoading,
     isError: query.isError,

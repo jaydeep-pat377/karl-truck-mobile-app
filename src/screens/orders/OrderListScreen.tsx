@@ -30,7 +30,7 @@ import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { spacing, ms, iconSizes, wp, hp } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
-import { useOrders, useChatRooms, useGlobalAlert } from '../../hooks';
+import { useOrders, useChatRooms, useGlobalAlert, useRealtimeOrders } from '../../hooks';
 import { orderService } from '../../api/services/orderService';
 import { getProgressBarColor } from '../../utils/statusUtils';
 
@@ -148,6 +148,7 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
 
   const totalLoads = apiOrder.total_loads || 0;
   const completedLoads = apiOrder.active_tickets || 0;
+  const ticketsCount = apiOrder.tickets_count || 0;
 
   return {
     id: apiOrder.order_id,
@@ -165,6 +166,7 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     remainingQuantity: apiOrder.remaining_qty,
     totalLoads,
     completedLoads,
+    ticketsCount,
     progress,
     estimatedFinishTime: apiOrder.estimated_finish_time,
     hasAlert: apiOrder.has_notes,
@@ -1099,6 +1101,7 @@ export const OrderListScreen: React.FC = () => {
     pagination,
     statusCounts,
     tabCounts,
+    progressBarColors,
     isLoading,
     isFilterLoading,
     isRefetching,
@@ -1108,6 +1111,12 @@ export const OrderListScreen: React.FC = () => {
     hasNextPage,
     isFetchingNextPage,
   } = useOrders(queryParams);
+
+  // Real-time subscription on orders table
+  useRealtimeOrders({
+    enabled: true,
+    onUpdate: refetch,
+  });
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -1490,6 +1499,7 @@ export const OrderListScreen: React.FC = () => {
       <OrderCard
         order={item}
         showDetails={true}
+        progressBarColors={progressBarColors}
         onPress={() => handleOrderPress(item)}
         onOrderDetails={() => handleOrderDetails(item)}
         onTicket={() => handleTicket(item)}
@@ -1501,7 +1511,7 @@ export const OrderListScreen: React.FC = () => {
         isFavorite={item.isFavorite}
       />
     ),
-    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleMap, handleChat, handleToggleFavorite, chatLoadingOrderId]
+    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleMap, handleChat, handleToggleFavorite, chatLoadingOrderId, progressBarColors]
   );
 
   const ItemSeparator = useCallback(() => <View style={styles.separator} />, []);

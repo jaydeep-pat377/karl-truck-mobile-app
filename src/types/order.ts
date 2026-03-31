@@ -67,6 +67,7 @@ export interface Order {
   remainingQuantity?: number;
   totalLoads?: number;
   completedLoads?: number;
+  ticketsCount?: number;
   progress?: number;
   distance?: string;
   estimatedFinishTime?: string;
@@ -202,6 +203,8 @@ export interface DeliveryProgressSegment {
   percentage: number;
   label: string;
   color: string;
+  ticket_count?: number;
+  ticketCount?: number;
 }
 
 export interface DeliveryProgress {
@@ -277,12 +280,15 @@ export interface OrdersTabCounts {
   requested: number;
 }
 
+export type ProgressBarColors = Record<string, string>;
+
 export interface OrdersResponseData {
   orders: ApiOrder[];
   pagination: OrdersPagination;
   filters: OrdersFilters;
   status_counts: OrdersStatusCounts;
   tab_counts?: OrdersTabCounts;
+  progress_bar_colors?: ProgressBarColors;
 }
 
 export interface OrdersApiResponse {

@@ -76,6 +76,10 @@ export interface ActiveDeliveryOrder {
   progress_percent: number;
   status: string;
   recent_ticket?: ActiveDeliveryRecentTicket | null;
+  delivery_progress?: import('./order').DeliveryProgress;
+  total_loads?: number;
+  active_tickets?: number;
+  tickets_count?: number;
 }
 
 export interface ActiveDeliveriesPagination {
