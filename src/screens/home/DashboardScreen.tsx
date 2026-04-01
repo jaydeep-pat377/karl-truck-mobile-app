@@ -96,12 +96,14 @@ const SegmentStripes: React.FC<{ color: string; patternId: string }> = React.mem
   </Svg>
 ));
 
+const FALLBACK_SEGMENT_COLOR = '#6b7280';
+
 const PROGRESS_STATUSES = [
-  { key: 'loading', label: 'Loading', color: '#FF9800' },
-  { key: 'to_job', label: 'To Job', color: '#8BC34A' },
-  { key: 'at_job', label: 'At Job', color: '#4CAF50' },
-  { key: 'pouring', label: 'Pouring', color: '#009688' },
-  { key: 'at_plant', label: 'Poured', color: '#1565C0' },
+  { key: 'loading', colorKey: 'loading', label: 'Loading' },
+  { key: 'to_job', colorKey: 'to_job', label: 'To Job' },
+  { key: 'at_job', colorKey: 'at_job', label: 'At Job' },
+  { key: 'pouring', colorKey: 'pouring', label: 'Pouring' },
+  { key: 'at_plant', colorKey: 'poured', label: 'Poured' },
 ];
 
 // Exact same logic as web SegmentedProgressBar (order-card.tsx lines 227-277)
@@ -582,7 +584,7 @@ const DashboardScreen: React.FC = () => {
       const apiSeg = (item.deliveryProgress?.segments || []).find(
         (s) => s.status === status.key
       );
-      return apiSeg?.color || status.color;
+      return apiSeg?.color || FALLBACK_SEGMENT_COLOR;
     });
 
     const formatQty = (qty: number | null | undefined): string => {

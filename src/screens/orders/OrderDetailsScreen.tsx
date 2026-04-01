@@ -26,6 +26,7 @@ import { colors } from '../../theme/colors';
 import { getStatusColor, getStatusLabel } from '../../utils/statusUtils';
 import { fontFamily } from '../../theme/typography';
 import { ms } from '../../utils/responsive';
+import { WeatherIcon } from '../../utils/weatherIcon';
 import { RootStackParamList, OrdersStackParamList } from '../../navigation/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useOrderDetails, useAlert } from '../../hooks';
@@ -72,33 +73,6 @@ const getEvaporationText = (rate: number | null | undefined): string => {
   if (rate < 0.30) return 'High';
   if (rate < 0.40) return 'Very High';
   return 'Severe';
-};
-
-const getWeatherIcon = (iconCode: string | null | undefined): string => {
-  if (!iconCode) return '🌡️';
-
-  const iconMap: Record<string, string> = {
-    '01d': '☀️',
-    '01n': '🌙',
-    '02d': '🌤️',
-    '02n': '☁️',
-    '03d': '⛅',
-    '03n': '☁️',
-    '04d': '☁️',
-    '04n': '☁️',
-    '09d': '🌧️',
-    '09n': '🌧️',
-    '10d': '🌧️',
-    '10n': '🌧️',
-    '11d': '⛈️',
-    '11n': '⛈️',
-    '13d': '🌨️',
-    '13n': '🌨️',
-    '50d': '🌫️',
-    '50n': '🌫️',
-  };
-
-  return iconMap[iconCode] || '🌡️';
 };
 
 const formatQty = (num: number): string => {
@@ -153,13 +127,15 @@ const getStatusDisplayLabel = (status: string | undefined): string => {
 
 const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'pouring', 'remaining'];
 
+const FALLBACK_SEGMENT_COLOR = '#6b7280';
+
 // Same 5-segment progress bar as OrderCard / web
 const PROGRESS_STATUSES = [
-  { key: 'loading', label: 'Loading', color: '#FF9800' },
-  { key: 'to_job', label: 'To Job', color: '#8BC34A' },
-  { key: 'at_job', label: 'At Job', color: '#4CAF50' },
-  { key: 'pouring', label: 'Pouring', color: '#009688' },
-  { key: 'at_plant', label: 'Poured', color: '#1565C0' },
+  { key: 'loading', colorKey: 'loading', label: 'Loading' },
+  { key: 'to_job', colorKey: 'to_job', label: 'To Job' },
+  { key: 'at_job', colorKey: 'at_job', label: 'At Job' },
+  { key: 'pouring', colorKey: 'pouring', label: 'Pouring' },
+  { key: 'at_plant', colorKey: 'poured', label: 'Poured' },
 ];
 
 const SegmentStripes: React.FC<{ color: string; patternId: string }> = React.memo(({ color, patternId }) => (
@@ -542,13 +518,16 @@ interface StatusPipelineProps {
     icon: string;
   }>;
   isDark: boolean;
+  segmentColors?: Array<string | null>;
 }
 
-const StatusPipeline: React.FC<StatusPipelineProps> = ({ statuses, isDark }) => {
+const STATUS_PIPELINE_KEYS = ['loading', 'to_job', 'at_job', 'pouring'];
+
+const StatusPipeline: React.FC<StatusPipelineProps> = ({ statuses, isDark, segmentColors }) => {
   const themeColors = isDark ? colors.dark : colors.light;
   const activeIndex = statuses.findIndex(s => s.active);
 
-  const indicatorColors = [
+  const fallbackColors = [
     colors.trackingStatus.loading,
     colors.trackingStatus.toJob,
     colors.trackingStatus.atJob,
@@ -556,7 +535,7 @@ const StatusPipeline: React.FC<StatusPipelineProps> = ({ statuses, isDark }) => 
   ];
 
   const getIndicatorColor = (index: number) => {
-    return indicatorColors[index] || colors.grey[40];
+    return segmentColors?.[index] || fallbackColors[index] || colors.grey[40];
   };
 
   const getProgress = (status: { value: number; unit: string }) => {
@@ -667,7 +646,7 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
 
   const segmentColors = PROGRESS_STATUSES.map(status => {
     const apiSeg = segments.find((s: any) => s.status === status.key);
-    return apiSeg?.color || status.color;
+    return apiSeg?.color || FALLBACK_SEGMENT_COLOR;
   });
 
   // Tooltip state
@@ -792,13 +771,6 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
       <View style={styles.deliveryCompletionRow}>
         <Text style={[styles.deliveryCompletionText, { color: getCompletionColor(deliveredPercent) }]}>
           {completionPercent}% Completed
-        </Text>
-      </View>
-
-      <View style={styles.deliveryLoadsCountRow}>
-        <ConcreteTruck width={ms(14)} height={ms(10)} color={themeColors.text.secondary} />
-        <Text style={[styles.deliveryLoadsCountText, { color: themeColors.text.secondary }]}>
-          {completedLoads ?? 0}/{totalLoads ?? 0} Loads
         </Text>
       </View>
     </View>
@@ -2256,9 +2228,7 @@ export const OrderDetailsScreen: React.FC = () => {
                 style={styles.headerWeatherRow}
                 onPress={handleWeatherPress}
                 activeOpacity={0.7}>
-                <Text style={styles.weatherEmoji}>
-                  {getWeatherIcon(jobData.weatherIcon)}
-                </Text>
+                <WeatherIcon icon={jobData.weatherIcon} size={22} />
                 <Text
                   numberOfLines={1}
                   style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
@@ -2356,7 +2326,14 @@ export const OrderDetailsScreen: React.FC = () => {
             </View>
           </View>
 
-          <StatusPipeline statuses={jobData.statusPills} isDark={isDark} />
+          <StatusPipeline
+            statuses={jobData.statusPills}
+            isDark={isDark}
+            segmentColors={STATUS_PIPELINE_KEYS.map(key => {
+              const seg = (orderDetails?.delivery_progress?.segments || []).find((s: any) => s.status === key);
+              return seg?.color || null;
+            })}
+          />
 
           {orderDetails?.delivery_progress?.segments && orderDetails.delivery_progress.segments.length > 0 && (
             <DeliveryProgressBar
@@ -3341,17 +3318,17 @@ const styles = StyleSheet.create({
     paddingVertical: ms(1.5),
   },
   deliveryTooltipDot: {
-    width: ms(5),
-    height: ms(5),
-    borderRadius: ms(2.5),
-    marginRight: ms(5),
+    width: ms(7),
+    height: ms(7),
+    borderRadius: ms(3.5),
+    marginRight: ms(6),
   },
   deliveryTooltipLabel: {
-    fontSize: ms(10),
+    fontSize: ms(12),
     fontFamily: fontFamily.medium,
   },
   deliveryTooltipText: {
-    fontSize: ms(10),
+    fontSize: ms(12),
     fontFamily: fontFamily.medium,
   },
   pipelineSeparator: {

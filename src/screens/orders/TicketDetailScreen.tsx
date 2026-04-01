@@ -23,6 +23,7 @@ import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, vs } from '../../utils/responsive';
+import { WeatherIcon } from '../../utils/weatherIcon';
 import { RootStackParamList } from '../../navigation/types';
 import { useTicketDetails, useAlert } from '../../hooks';
 import { ApiTicketStatus, VerifiJson } from '../../types/ticket';
@@ -53,33 +54,6 @@ const getEvaporationText = (rate: number | null | undefined): string => {
   return 'Severe';
 };
 
-const getWeatherIcon = (iconCode: string | null | undefined): string => {
-  if (!iconCode) return '🌡️';
-
-  const iconMap: Record<string, string> = {
-    '01d': '☀️',
-    '01n': '🌙',
-    '02d': '🌤️',
-    '02n': '☁️',
-    '03d': '⛅',
-    '03n': '☁️',
-    '04d': '☁️',
-    '04n': '☁️',
-    '09d': '🌧️',
-    '09n': '🌧️',
-    '10d': '🌧️',
-    '10n': '🌧️',
-    '11d': '⛈️',
-    '11n': '⛈️',
-    '13d': '🌨️',
-    '13n': '🌨️',
-    '50d': '🌫️',
-    '50n': '🌫️',
-  };
-
-  return iconMap[iconCode] || '🌡️';
-};
-
 interface StatusConfig {
   label: string;
   icon: string;
@@ -98,17 +72,19 @@ const getHeaderBadgeColors = (status: ApiTicketStatus, isDark: boolean): HeaderB
   const opacity = isDark ? '20' : '15';
 
   const statusColorMap: Record<ApiTicketStatus, string> = {
-    pending: colors.trackingStatus.ticketed,
+    pending: colors.trackingStatus.pending,
     ticketed: colors.trackingStatus.ticketed,
     loading: colors.trackingStatus.loading,
     loaded: colors.trackingStatus.loaded,
     to_job: colors.trackingStatus.toJob,
     at_job: colors.trackingStatus.atJob,
     pouring: colors.trackingStatus.pouring,
+    poured: colors.trackingStatus.poured,
     washing: colors.trackingStatus.washing,
     to_plant: colors.trackingStatus.toPlant,
     at_plant: colors.trackingStatus.atPlant,
     cancelled: colors.trackingStatus.cancelled,
+    voided: colors.trackingStatus.voided,
   };
 
   const color = statusColorMap[status] || statusColorMap.pending;
@@ -124,8 +100,8 @@ const STATUS_CONFIG_LIGHT: Record<ApiTicketStatus, StatusConfig> = {
   pending: {
     label: 'PENDING',
     icon: 'clock-outline',
-    color: colors.trackingStatus.ticketed,
-    bgColor: `${colors.trackingStatus.ticketed}15`,
+    color: colors.trackingStatus.pending,
+    bgColor: `${colors.trackingStatus.pending}15`,
     progressStep: 0,
   },
   ticketed: {
@@ -170,32 +146,46 @@ const STATUS_CONFIG_LIGHT: Record<ApiTicketStatus, StatusConfig> = {
     bgColor: `${colors.trackingStatus.pouring}15`,
     progressStep: 6,
   },
+  poured: {
+    label: 'POURED',
+    icon: 'water-check',
+    color: colors.trackingStatus.poured,
+    bgColor: `${colors.trackingStatus.poured}15`,
+    progressStep: 7,
+  },
   washing: {
     label: 'WASHING',
     icon: 'water-pump',
     color: colors.trackingStatus.washing,
     bgColor: `${colors.trackingStatus.washing}15`,
-    progressStep: 7,
+    progressStep: 8,
   },
   to_plant: {
     label: 'TO PLANT',
     icon: 'truck-delivery',
     color: colors.trackingStatus.toPlant,
     bgColor: `${colors.trackingStatus.toPlant}15`,
-    progressStep: 8,
+    progressStep: 9,
   },
   at_plant: {
     label: 'AT PLANT',
     icon: 'domain',
     color: colors.trackingStatus.atPlant,
     bgColor: `${colors.trackingStatus.atPlant}15`,
-    progressStep: 9,
+    progressStep: 10,
   },
   cancelled: {
-    label: 'VOIDED',
+    label: 'CANCELLED',
     icon: 'close-circle',
     color: colors.trackingStatus.cancelled,
     bgColor: `${colors.trackingStatus.cancelled}15`,
+    progressStep: -1,
+  },
+  voided: {
+    label: 'VOIDED',
+    icon: 'close-circle',
+    color: colors.trackingStatus.voided,
+    bgColor: `${colors.trackingStatus.voided}15`,
     progressStep: -1,
   },
 };
@@ -204,8 +194,8 @@ const STATUS_CONFIG_DARK: Record<ApiTicketStatus, StatusConfig> = {
   pending: {
     label: 'PENDING',
     icon: 'clock-outline',
-    color: colors.trackingStatus.ticketed,
-    bgColor: `${colors.trackingStatus.ticketed}20`,
+    color: colors.trackingStatus.pending,
+    bgColor: `${colors.trackingStatus.pending}20`,
     progressStep: 0,
   },
   ticketed: {
@@ -250,32 +240,46 @@ const STATUS_CONFIG_DARK: Record<ApiTicketStatus, StatusConfig> = {
     bgColor: `${colors.trackingStatus.pouring}20`,
     progressStep: 6,
   },
+  poured: {
+    label: 'POURED',
+    icon: 'water-check',
+    color: colors.trackingStatus.poured,
+    bgColor: `${colors.trackingStatus.poured}20`,
+    progressStep: 7,
+  },
   washing: {
     label: 'WASHING',
     icon: 'water-pump',
     color: colors.trackingStatus.washing,
     bgColor: `${colors.trackingStatus.washing}20`,
-    progressStep: 7,
+    progressStep: 8,
   },
   to_plant: {
     label: 'TO PLANT',
     icon: 'truck-delivery',
     color: colors.trackingStatus.toPlant,
     bgColor: `${colors.trackingStatus.toPlant}20`,
-    progressStep: 8,
+    progressStep: 9,
   },
   at_plant: {
     label: 'AT PLANT',
     icon: 'domain',
     color: colors.trackingStatus.atPlant,
     bgColor: `${colors.trackingStatus.atPlant}20`,
-    progressStep: 9,
+    progressStep: 10,
   },
   cancelled: {
-    label: 'VOIDED',
+    label: 'CANCELLED',
     icon: 'close-circle',
     color: colors.trackingStatus.cancelled,
     bgColor: `${colors.trackingStatus.cancelled}20`,
+    progressStep: -1,
+  },
+  voided: {
+    label: 'VOIDED',
+    icon: 'close-circle',
+    color: colors.trackingStatus.voided,
+    bgColor: `${colors.trackingStatus.voided}20`,
     progressStep: -1,
   },
 };
@@ -1083,7 +1087,7 @@ export const TicketDetailScreen: React.FC = () => {
   const [showDirectionsMenu, setShowDirectionsMenu] = useState(false);
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
 
-  const { orderCode, orderDate, ticketCode, status: passedStatus, statusDisplay: passedStatusDisplay, statusColor: passedStatusColor } = route.params;
+  const { orderCode, orderDate, ticketCode, status: passedStatus, statusDisplay: passedStatusDisplay, statusColor: passedStatusColor, statusColors: apiStatusColors } = route.params;
 
   const {
     ticket,
@@ -1132,7 +1136,20 @@ export const TicketDetailScreen: React.FC = () => {
     ticket_code: ticketCode,
   });
 
-  const statusConfigMap = isDark ? STATUS_CONFIG_DARK : STATUS_CONFIG_LIGHT;
+  const statusConfigMap = useMemo(() => {
+    const baseConfig = isDark ? STATUS_CONFIG_DARK : STATUS_CONFIG_LIGHT;
+    if (!apiStatusColors) return baseConfig;
+    const opacity = isDark ? '20' : '15';
+    const merged = { ...baseConfig };
+    for (const key of Object.keys(baseConfig) as ApiTicketStatus[]) {
+      const isCancelled = key === 'cancelled' || key === 'voided';
+      if (!isCancelled && apiStatusColors[key]) {
+        const c = apiStatusColors[key];
+        merged[key] = { ...baseConfig[key], color: c, bgColor: `${c}${opacity}` };
+      }
+    }
+    return merged;
+  }, [isDark, apiStatusColors]);
 
 
   const formatEtaTime = (etaString: string | null | undefined): string => {
@@ -1159,14 +1176,13 @@ export const TicketDetailScreen: React.FC = () => {
   const isCancelled = currentStatus === 'cancelled' || currentStatus?.toLowerCase().includes('cancel');
 
 
-  const currentStatusColor = passedStatusColor || getHeaderBadgeColors(currentStatus, isDark).textColor;
-  const headerBadgeColors = passedStatusColor
-    ? {
-        bgColor: `${passedStatusColor}${isDark ? '20' : '15'}`,
-        textColor: passedStatusColor,
-        iconColor: passedStatusColor,
-      }
-    : getHeaderBadgeColors(currentStatus, isDark);
+  const resolvedStatusColor = passedStatusColor || statusConfigMap[currentStatus]?.color || getHeaderBadgeColors(currentStatus, isDark).textColor;
+  const currentStatusColor = resolvedStatusColor;
+  const headerBadgeColors = {
+    bgColor: `${resolvedStatusColor}${isDark ? '20' : '15'}`,
+    textColor: resolvedStatusColor,
+    iconColor: resolvedStatusColor,
+  };
 
   const percentage = useMemo(() => {
     if (!orderedQty || orderedQty === 0) return 0;
@@ -1509,9 +1525,7 @@ export const TicketDetailScreen: React.FC = () => {
               });
             }}
             style={styles.headerCardWeatherRow}>
-            <Text style={styles.weatherEmoji}>
-              {getWeatherIcon(weatherData.weather_icon)}
-            </Text>
+            <WeatherIcon icon={weatherData.weather_icon} size={22} />
             <Text
               style={[styles.headerCardWeatherDescText, { color: themeColors.text.secondary }]}
               numberOfLines={1}>

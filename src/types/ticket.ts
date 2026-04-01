@@ -105,6 +105,7 @@ export interface TicketsApiData {
   pagination: TicketsPagination;
   filters: TicketsFilters;
   status_counts: TicketsStatusCounts;
+  status_colors?: Record<string, string>;
   order_summary: ApiOrderSummary[];
 }
 
@@ -249,6 +250,7 @@ export interface TicketsByOrderData {
   filters: TicketsByOrderFilters;
   summary: TicketsByOrderSummary;
   delivery_progress?: DeliveryProgress;
+  status_colors?: Record<string, string>;
 }
 
 export interface TicketsByOrderApiResponse {

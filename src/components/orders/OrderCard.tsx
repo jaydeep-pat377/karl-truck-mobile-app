@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Platform,
   Modal,
+  Image,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card, StatusBadge, Icon } from '../common';
@@ -14,6 +15,7 @@ import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, breakpoint } from '../../utils/responsive';
+import { WeatherIcon } from '../../utils/weatherIcon';
 import { getStatusColor } from '../../utils/statusUtils';
 import { TicketTrackingStatus } from '../../types';
 import Svg, { Defs, Pattern, Line, Rect } from 'react-native-svg';
@@ -112,12 +114,14 @@ const SegmentStripes: React.FC<{ color: string; patternId: string }> = React.mem
   </Svg>
 ));
 
+const FALLBACK_SEGMENT_COLOR = '#6b7280';
+
 const PROGRESS_STATUSES = [
-  { key: 'loading', label: 'Loading', color: '#FF9800' },
-  { key: 'to_job', label: 'To Job', color: '#8BC34A' },
-  { key: 'at_job', label: 'At Job', color: '#4CAF50' },
-  { key: 'pouring', label: 'Pouring', color: '#009688' },
-  { key: 'at_plant', label: 'Poured', color: '#1565C0' },
+  { key: 'loading', colorKey: 'loading', label: 'Loading' },
+  { key: 'to_job', colorKey: 'to_job', label: 'To Job' },
+  { key: 'at_job', colorKey: 'at_job', label: 'At Job' },
+  { key: 'pouring', colorKey: 'pouring', label: 'Pouring' },
+  { key: 'at_plant', colorKey: 'poured', label: 'Poured' },
 ];
 
 // Exact same logic as web SegmentedProgressBar (order-card.tsx lines 227-277)
@@ -363,7 +367,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
 
   // Use progress_bar_colors from API (system-level config), fall back to static defaults
   const segmentColors = PROGRESS_STATUSES.map(status => {
-    return progressBarColors?.[status.key] || status.color;
+    return progressBarColors?.[status.colorKey] || FALLBACK_SEGMENT_COLOR;
   });
 
   // Tooltip state
@@ -453,32 +457,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   };
 
 
-  const getWeatherIcon = (iconCode: string | null | undefined): string => {
-    if (!iconCode) return '🌡️';
-
-    const iconMap: Record<string, string> = {
-      '01d': '☀️',
-      '01n': '🌙',
-      '02d': '🌤️',
-      '02n': '☁️',
-      '03d': '⛅',
-      '03n': '☁️',
-      '04d': '☁️',
-      '04n': '☁️',
-      '09d': '🌧️',
-      '09n': '🌧️',
-      '10d': '🌧️',
-      '10n': '🌧️',
-      '11d': '⛈️',
-      '11n': '⛈️',
-      '13d': '🌨️',
-      '13n': '🌨️',
-      '50d': '🌫️',
-      '50n': '🌫️',
-    };
-
-    return iconMap[iconCode] || '🌡️';
-  };
+  // Weather icon logic moved to shared WeatherIcon component
 
   return (
     <Card
@@ -530,9 +509,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={styles.weatherEmoji}>
-                  {getWeatherIcon(weatherData?.iconCode)}
-                </Text>
+                <WeatherIcon icon={weatherData?.iconCode} size={22} />
                 <Text
                   variant="captionSmall"
                   style={[styles.headerWeatherTemp, { color: isDark ? themeColors.text.hint : colors.grey[60], fontSize: ms(headerSizes.weatherTempFont) }]}>
@@ -831,6 +808,10 @@ const styles = StyleSheet.create({
   weatherEmoji: {
     fontSize: ms(14),
   },
+  weatherImage: {
+    width: ms(22),
+    height: ms(22),
+  },
   headerWeatherTemp: {
     fontFamily: fontFamily.medium,
   },
@@ -1016,21 +997,21 @@ const styles = StyleSheet.create({
     paddingVertical: ms(1.5),
   },
   tooltipDot: {
-    width: ms(5),
-    height: ms(5),
-    borderRadius: ms(2.5),
-    marginRight: ms(5),
+    width: ms(7),
+    height: ms(7),
+    borderRadius: ms(3.5),
+    marginRight: ms(6),
   },
   tooltipLabel: {
-    fontSize: ms(10),
+    fontSize: ms(12),
     fontFamily: fontFamily.medium,
   },
   tooltipText: {
-    fontSize: ms(10),
+    fontSize: ms(12),
     fontFamily: fontFamily.medium,
   },
   tooltipTextSub: {
-    fontSize: ms(10),
+    fontSize: ms(12),
     fontFamily: fontFamily.medium,
     marginTop: ms(1),
   },

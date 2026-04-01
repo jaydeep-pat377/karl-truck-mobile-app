@@ -42,6 +42,7 @@ export const useTicketsByOrder = (params: UseTicketsByOrderParams) => {
   const filters: TicketsByOrderFilters | null = data?.filters || null;
   const summary: TicketsByOrderSummary | null = data?.summary || null;
   const deliveryProgress: DeliveryProgress | null = data?.delivery_progress || null;
+  const statusColors: Record<string, string> | null = data?.status_colors || null;
 
   const errorMessage =
     query.error?.response?.data?.message ||
@@ -55,6 +56,7 @@ export const useTicketsByOrder = (params: UseTicketsByOrderParams) => {
     filters,
     summary,
     deliveryProgress,
+    statusColors,
 
     orderId: order?.order_id,
     orderCode: order?.order_code,

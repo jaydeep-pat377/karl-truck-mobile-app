@@ -23,32 +23,18 @@ import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { spacing, ms } from '../../utils/responsive';
+import { WeatherIcon } from '../../utils/weatherIcon';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { RootStackParamList } from '../../navigation/types';
 import { useTicketsByOrder, useRealtimeTickets } from '../../hooks';
 import { ApiTicketStatus, TicketByOrderItem } from '../../types/ticket';
 import { DeliveryProgress, DeliveryProgressSegment } from '../../types/order';
 
-const getSegmentColor = (status: string): string => {
-  const statusColorMap: Record<string, string> = {
-    pending: colors.trackingStatus.pending,
-    ticketed: colors.trackingStatus.ticketed,
-    loading: colors.trackingStatus.loading,
-    loaded: colors.trackingStatus.loaded,
-    to_job: colors.trackingStatus.toJob,
-    at_job: colors.trackingStatus.atJob,
-    on_job: colors.trackingStatus.atJob,
-    pouring: colors.trackingStatus.pouring,
-    poured: colors.trackingStatus.poured,
-    washing: colors.trackingStatus.washing,
-    to_plant: colors.trackingStatus.toPlant,
-    at_plant: colors.trackingStatus.atPlant,
-    cancelled: colors.trackingStatus.cancelled,
-    voided: colors.trackingStatus.voided,
-    remaining: colors.trackingStatus.remaining,
-  };
+const FALLBACK_COLOR = '#6b7280';
 
-  return statusColorMap[status.toLowerCase()] || colors.grey[40];
+const getSegmentColor = (status: string, apiColors?: Record<string, string> | null): string => {
+  if (apiColors?.[status.toLowerCase()]) return apiColors[status.toLowerCase()];
+  return FALLBACK_COLOR;
 };
 
 const getStatusDisplayLabel = (status: string | undefined): string => {
@@ -77,11 +63,11 @@ const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'pouring', 're
 
 // Same 5-segment progress bar as OrderCard / OrderDetailsScreen
 const PROGRESS_STATUSES = [
-  { key: 'loading', label: 'Loading', color: '#FF9800' },
-  { key: 'to_job', label: 'To Job', color: '#8BC34A' },
-  { key: 'at_job', label: 'At Job', color: '#4CAF50' },
-  { key: 'pouring', label: 'Pouring', color: '#009688' },
-  { key: 'at_plant', label: 'Poured', color: '#1565C0' },
+  { key: 'loading', colorKey: 'loading', label: 'Loading' },
+  { key: 'to_job', colorKey: 'to_job', label: 'To Job' },
+  { key: 'at_job', colorKey: 'at_job', label: 'At Job' },
+  { key: 'pouring', colorKey: 'pouring', label: 'Pouring' },
+  { key: 'at_plant', colorKey: 'poured', label: 'Poured' },
 ];
 
 const SegmentStripes: React.FC<{ color: string; patternId: string }> = React.memo(({ color, patternId }) => (
@@ -189,112 +175,44 @@ interface StatusConfig {
   progressStep: number;
 }
 
-const STATUS_CONFIG: Record<TicketStatus, StatusConfig> = {
-  pending: {
-    label: 'PENDING',
-    icon: 'clock-outline',
-    bgColor: `${colors.trackingStatus.pending}15`,
-    textColor: colors.trackingStatus.pending,
-    iconBg: `${colors.trackingStatus.pending}15`,
-    progressStep: 0,
-  },
-  ticketed: {
-    label: 'TICKETED',
-    icon: 'ticket-outline',
-    bgColor: `${colors.trackingStatus.ticketed}15`,
-    textColor: colors.trackingStatus.ticketed,
-    iconBg: `${colors.trackingStatus.ticketed}15`,
-    progressStep: 1,
-  },
-  loading: {
-    label: 'LOADING',
-    icon: 'dump-truck',
-    bgColor: `${colors.trackingStatus.loading}15`,
-    textColor: colors.trackingStatus.loading,
-    iconBg: `${colors.trackingStatus.loading}15`,
-    progressStep: 2,
-  },
-  loaded: {
-    label: 'LOADED',
-    icon: 'truck-check',
-    bgColor: `${colors.trackingStatus.loaded}15`,
-    textColor: colors.trackingStatus.loaded,
-    iconBg: `${colors.trackingStatus.loaded}15`,
-    progressStep: 3,
-  },
-  to_job: {
-    label: 'TO JOB',
-    icon: 'truck-fast',
-    bgColor: `${colors.trackingStatus.toJob}15`,
-    textColor: colors.trackingStatus.toJob,
-    iconBg: `${colors.trackingStatus.toJob}15`,
-    progressStep: 4,
-  },
-  at_job: {
-    label: 'AT JOB',
-    icon: 'map-marker-check',
-    bgColor: `${colors.trackingStatus.atJob}15`,
-    textColor: colors.trackingStatus.atJob,
-    iconBg: `${colors.trackingStatus.atJob}15`,
-    progressStep: 5,
-  },
-  pouring: {
-    label: 'POURING',
-    icon: 'water',
-    bgColor: `${colors.trackingStatus.pouring}15`,
-    textColor: colors.trackingStatus.pouring,
-    iconBg: `${colors.trackingStatus.pouring}15`,
-    progressStep: 6,
-  },
-  poured: {
-    label: 'POURED',
-    icon: 'water-check',
-    bgColor: `${colors.trackingStatus.poured}15`,
-    textColor: colors.trackingStatus.poured,
-    iconBg: `${colors.trackingStatus.poured}15`,
-    progressStep: 7,
-  },
-  washing: {
-    label: 'WASHING',
-    icon: 'water-pump',
-    bgColor: `${colors.trackingStatus.washing}15`,
-    textColor: colors.trackingStatus.washing,
-    iconBg: `${colors.trackingStatus.washing}15`,
-    progressStep: 8,
-  },
-  to_plant: {
-    label: 'TO PLANT',
-    icon: 'truck-delivery',
-    bgColor: `${colors.trackingStatus.toPlant}15`,
-    textColor: colors.trackingStatus.toPlant,
-    iconBg: `${colors.trackingStatus.toPlant}15`,
-    progressStep: 9,
-  },
-  at_plant: {
-    label: 'AT PLANT',
-    icon: 'domain',
-    bgColor: `${colors.trackingStatus.atPlant}15`,
-    textColor: colors.trackingStatus.atPlant,
-    iconBg: `${colors.trackingStatus.atPlant}15`,
-    progressStep: 10,
-  },
-  cancelled: {
-    label: 'CANCELLED',
-    icon: 'close-circle',
-    bgColor: `${colors.trackingStatus.cancelled}15`,
-    textColor: colors.trackingStatus.cancelled,
-    iconBg: `${colors.trackingStatus.cancelled}15`,
-    progressStep: -1,
-  },
-  voided: {
-    label: 'VOIDED',
-    icon: 'close-circle',
-    bgColor: `${colors.trackingStatus.voided}15`,
-    textColor: colors.trackingStatus.voided,
-    iconBg: `${colors.trackingStatus.voided}15`,
-    progressStep: -1,
-  },
+const STATUS_META: Record<TicketStatus, { label: string; icon: string; progressStep: number }> = {
+  pending:   { label: 'PENDING',   icon: 'clock-outline',   progressStep: 0 },
+  ticketed:  { label: 'TICKETED',  icon: 'ticket-outline',  progressStep: 1 },
+  loading:   { label: 'LOADING',   icon: 'dump-truck',      progressStep: 2 },
+  loaded:    { label: 'LOADED',    icon: 'truck-check',     progressStep: 3 },
+  to_job:    { label: 'TO JOB',    icon: 'truck-fast',      progressStep: 4 },
+  at_job:    { label: 'AT JOB',    icon: 'map-marker-check',progressStep: 5 },
+  pouring:   { label: 'POURING',   icon: 'water',           progressStep: 6 },
+  poured:    { label: 'POURED',    icon: 'water-check',     progressStep: 7 },
+  washing:   { label: 'WASHING',   icon: 'water-pump',      progressStep: 8 },
+  to_plant:  { label: 'TO PLANT',  icon: 'truck-delivery',  progressStep: 9 },
+  at_plant:  { label: 'AT PLANT',  icon: 'domain',          progressStep: 10 },
+  cancelled: { label: 'CANCELLED', icon: 'close-circle',    progressStep: -1 },
+  voided:    { label: 'VOIDED',    icon: 'close-circle',    progressStep: -1 },
 };
+
+const CANCELLED_COLOR = '#ef4444';
+
+/** Build dynamic status config from API colors */
+function buildStatusConfig(
+  apiColors: Record<string, string> | null,
+  bgOpacity: string = '15',
+): Record<TicketStatus, StatusConfig> {
+  const config = {} as Record<TicketStatus, StatusConfig>;
+  for (const [key, meta] of Object.entries(STATUS_META)) {
+    const isCancelled = key === 'cancelled' || key === 'voided';
+    const c = isCancelled ? CANCELLED_COLOR : (apiColors?.[key] || FALLBACK_COLOR);
+    config[key as TicketStatus] = {
+      label: meta.label,
+      icon: meta.icon,
+      bgColor: `${c}${bgOpacity}`,
+      textColor: c,
+      iconBg: `${c}${bgOpacity}`,
+      progressStep: meta.progressStep,
+    };
+  }
+  return config;
+}
 
 const getEvaporationBgColor = (rate: number | null | undefined): string => {
   if (rate === null || rate === undefined) return colors.grey[40];
@@ -314,139 +232,7 @@ const getEvaporationText = (rate: number | null | undefined): string => {
   return 'Severe';
 };
 
-const getWeatherIcon = (iconCode: string | null | undefined): string => {
-  if (!iconCode) return '🌡️';
-
-  const iconMap: Record<string, string> = {
-    '01d': '☀️',
-    '01n': '🌙',
-    '02d': '🌤️',
-    '02n': '☁️',
-    '03d': '⛅',
-    '03n': '☁️',
-    '04d': '☁️',
-    '04n': '☁️',
-    '09d': '🌧️',
-    '09n': '🌧️',
-    '10d': '🌧️',
-    '10n': '🌧️',
-    '11d': '⛈️',
-    '11n': '⛈️',
-    '13d': '🌨️',
-    '13n': '🌨️',
-    '50d': '🌫️',
-    '50n': '🌫️',
-  };
-
-  return iconMap[iconCode] || '🌡️';
-};
-
-const STATUS_CONFIG_DARK: Record<TicketStatus, StatusConfig> = {
-  pending: {
-    label: 'PENDING',
-    icon: 'clock-outline',
-    bgColor: `${colors.trackingStatus.pending}20`,
-    textColor: colors.trackingStatus.pending,
-    iconBg: `${colors.trackingStatus.pending}20`,
-    progressStep: 0,
-  },
-  ticketed: {
-    label: 'TICKETED',
-    icon: 'ticket-outline',
-    bgColor: `${colors.trackingStatus.ticketed}20`,
-    textColor: colors.trackingStatus.ticketed,
-    iconBg: `${colors.trackingStatus.ticketed}20`,
-    progressStep: 1,
-  },
-  loading: {
-    label: 'LOADING',
-    icon: 'dump-truck',
-    bgColor: `${colors.trackingStatus.loading}20`,
-    textColor: colors.trackingStatus.loading,
-    iconBg: `${colors.trackingStatus.loading}20`,
-    progressStep: 2,
-  },
-  loaded: {
-    label: 'LOADED',
-    icon: 'truck-check',
-    bgColor: `${colors.trackingStatus.loaded}20`,
-    textColor: colors.trackingStatus.loaded,
-    iconBg: `${colors.trackingStatus.loaded}20`,
-    progressStep: 3,
-  },
-  to_job: {
-    label: 'TO JOB',
-    icon: 'truck-fast',
-    bgColor: `${colors.trackingStatus.toJob}20`,
-    textColor: colors.trackingStatus.toJob,
-    iconBg: `${colors.trackingStatus.toJob}20`,
-    progressStep: 4,
-  },
-  at_job: {
-    label: 'AT JOB',
-    icon: 'map-marker-check',
-    bgColor: `${colors.trackingStatus.atJob}20`,
-    textColor: colors.trackingStatus.atJob,
-    iconBg: `${colors.trackingStatus.atJob}20`,
-    progressStep: 5,
-  },
-  pouring: {
-    label: 'POURING',
-    icon: 'water',
-    bgColor: `${colors.trackingStatus.pouring}20`,
-    textColor: colors.trackingStatus.pouring,
-    iconBg: `${colors.trackingStatus.pouring}20`,
-    progressStep: 6,
-  },
-  poured: {
-    label: 'POURED',
-    icon: 'water-check',
-    bgColor: `${colors.trackingStatus.poured}20`,
-    textColor: colors.trackingStatus.poured,
-    iconBg: `${colors.trackingStatus.poured}20`,
-    progressStep: 7,
-  },
-  washing: {
-    label: 'WASHING',
-    icon: 'water-pump',
-    bgColor: `${colors.trackingStatus.washing}20`,
-    textColor: colors.trackingStatus.washing,
-    iconBg: `${colors.trackingStatus.washing}20`,
-    progressStep: 8,
-  },
-  to_plant: {
-    label: 'TO PLANT',
-    icon: 'truck-delivery',
-    bgColor: `${colors.trackingStatus.toPlant}20`,
-    textColor: colors.trackingStatus.toPlant,
-    iconBg: `${colors.trackingStatus.toPlant}20`,
-    progressStep: 9,
-  },
-  at_plant: {
-    label: 'AT PLANT',
-    icon: 'domain',
-    bgColor: `${colors.trackingStatus.atPlant}20`,
-    textColor: colors.trackingStatus.atPlant,
-    iconBg: `${colors.trackingStatus.atPlant}20`,
-    progressStep: 10,
-  },
-  cancelled: {
-    label: 'CANCELLED',
-    icon: 'close-circle',
-    bgColor: `${colors.trackingStatus.cancelled}20`,
-    textColor: colors.trackingStatus.cancelled,
-    iconBg: `${colors.trackingStatus.cancelled}20`,
-    progressStep: -1,
-  },
-  voided: {
-    label: 'VOIDED',
-    icon: 'close-circle',
-    bgColor: `${colors.trackingStatus.voided}20`,
-    textColor: colors.trackingStatus.voided,
-    iconBg: `${colors.trackingStatus.voided}20`,
-    progressStep: -1,
-  },
-};
+// STATUS_CONFIG_DARK removed — now generated dynamically by buildStatusConfig with '20' opacity
 
 interface StatusBadgeProps {
   status: StatusConfig;
@@ -507,12 +293,12 @@ interface TicketItemProps {
   onMapPress: () => void;
   isDark: boolean;
   isMapDisabled?: boolean;
+  statusConfig: Record<TicketStatus, StatusConfig>;
 }
 
-const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, onMapPress, isDark, isMapDisabled = false }) => {
+const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, onMapPress, isDark, isMapDisabled = false, statusConfig }) => {
   const themeColors = isDark ? colors.dark : colors.light;
-  const statusConfigMap = isDark ? STATUS_CONFIG_DARK : STATUS_CONFIG;
-  const status = statusConfigMap[ticket.status] || statusConfigMap.pending;
+  const status = statusConfig[ticket.status] || statusConfig.pending;
 
   return (
     <View
@@ -787,9 +573,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
           activeOpacity={0.7}
           onPress={onWeatherPress}
           style={styles.headerWeatherRow}>
-          <Text style={styles.weatherEmoji}>
-            {getWeatherIcon(weatherData.weather_icon)}
-          </Text>
+          <WeatherIcon icon={weatherData.weather_icon} size={22} />
           <Text
             style={[styles.headerWeatherDescText, { color: themeColors.text.secondary }]}
             numberOfLines={1}>
@@ -904,7 +688,7 @@ const TicketDeliveryProgressBar: React.FC<TicketDeliveryProgressBarProps> = ({
 
   const segmentColors = PROGRESS_STATUSES.map(status => {
     const apiSeg = segments.find((s: any) => s.status === status.key);
-    return apiSeg?.color || status.color;
+    return apiSeg?.color || FALLBACK_COLOR;
   });
 
   // Tooltip state
@@ -1161,6 +945,7 @@ interface FilterModalProps {
   onApply: (filters: FilterOptions) => void;
   onReset: () => void;
   isDark: boolean;
+  statusConfig: Record<TicketStatus, StatusConfig>;
 }
 
 const FilterModal: React.FC<FilterModalProps> = ({
@@ -1170,6 +955,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   onApply,
   onReset,
   isDark,
+  statusConfig,
 }) => {
   const themeColors = isDark ? colors.dark : colors.light;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -1218,17 +1004,17 @@ const FilterModal: React.FC<FilterModalProps> = ({
   };
 
   const statusOptions: { id: TicketStatus; label: string; color: string }[] = [
-    { id: 'pending', label: 'Pending', color: colors.trackingStatus.pending },
-    { id: 'ticketed', label: 'Ticketed', color: colors.trackingStatus.ticketed },
-    { id: 'loading', label: 'Loading', color: colors.trackingStatus.loading },
-    { id: 'loaded', label: 'Loaded', color: colors.trackingStatus.loaded },
-    { id: 'to_job', label: 'To Job', color: colors.trackingStatus.toJob },
-    { id: 'at_job', label: 'At Job', color: colors.trackingStatus.atJob },
-    { id: 'pouring', label: 'Pouring', color: colors.trackingStatus.pouring },
-    { id: 'washing', label: 'Washing', color: colors.trackingStatus.washing },
-    { id: 'to_plant', label: 'To Plant', color: colors.trackingStatus.toPlant },
-    { id: 'at_plant', label: 'At Plant', color: colors.trackingStatus.atPlant },
-    { id: 'cancelled', label: 'Voided', color: colors.trackingStatus.cancelled },
+    { id: 'pending', label: 'Pending', color: statusConfig.pending.textColor },
+    { id: 'ticketed', label: 'Ticketed', color: statusConfig.ticketed.textColor },
+    { id: 'loading', label: 'Loading', color: statusConfig.loading.textColor },
+    { id: 'loaded', label: 'Loaded', color: statusConfig.loaded.textColor },
+    { id: 'to_job', label: 'To Job', color: statusConfig.to_job.textColor },
+    { id: 'at_job', label: 'At Job', color: statusConfig.at_job.textColor },
+    { id: 'pouring', label: 'Pouring', color: statusConfig.pouring.textColor },
+    { id: 'washing', label: 'Washing', color: statusConfig.washing.textColor },
+    { id: 'to_plant', label: 'To Plant', color: statusConfig.to_plant.textColor },
+    { id: 'at_plant', label: 'At Plant', color: statusConfig.at_plant.textColor },
+    { id: 'cancelled', label: 'Voided', color: statusConfig.cancelled.textColor },
   ];
 
   const sortOptions: { id: 'time'; label: string; icon: string }[] = [
@@ -1513,6 +1299,7 @@ export const TicketScreen: React.FC = () => {
     isRefetching,
     refetch,
     deliveryProgress,
+    statusColors: apiStatusColors,
   } = useTicketsByOrder({
     orderId,
     sort_order: advancedFilters.sortOrder,
@@ -1623,31 +1410,6 @@ export const TicketScreen: React.FC = () => {
     return tickets;
   }, [allTickets, advancedFilters.statuses, appliedSearchQuery]);
 
-  const getStatusColor = useCallback((status: TicketStatus): string => {
-    const statusColorMap: Record<string, string> = {
-      pending: colors.trackingStatus.pending,
-      ticketed: colors.trackingStatus.ticketed,
-      loading: colors.trackingStatus.loading,
-      loaded: colors.trackingStatus.loaded,
-      to_job: colors.trackingStatus.toJob,
-      at_job: colors.trackingStatus.atJob,
-      pouring: colors.trackingStatus.pouring,
-      poured: colors.trackingStatus.poured,
-      washing: colors.trackingStatus.washing,
-      to_plant: colors.trackingStatus.toPlant,
-      at_plant: colors.trackingStatus.atPlant,
-      cancelled: colors.trackingStatus.cancelled,
-      voided: colors.trackingStatus.voided,
-    };
-    return statusColorMap[status] || colors.trackingStatus.pending;
-  }, []);
-
-  const lastTicketStatusColor = useMemo(() => {
-    if (allTickets.length === 0) return undefined;
-    const firstTicket = allTickets[0];
-    return getStatusColor(firstTicket.status);
-  }, [allTickets, getStatusColor]);
-
   React.useEffect(() => {
     setDisplayedCount(ITEMS_PER_PAGE);
   }, [appliedSearchQuery, advancedFilters]);
@@ -1672,19 +1434,6 @@ export const TicketScreen: React.FC = () => {
       setDisplayedCount(prev => prev + ITEMS_PER_PAGE);
     }
   }, [hasNextPage]);
-
-  const handleTicketPress = useCallback((ticket: DeliveryTicket) => {
-    const statusColor = getStatusColor(ticket.status);
-    navigation.navigate('TicketDetail', {
-      orderCode: orderCode,
-      orderDate: orderDate,
-      ticketCode: ticket.ticketNumber,
-      status: ticket.status,
-      statusDisplay: ticket.statusDisplay,
-      weatherData: weatherData,
-      statusColor: statusColor,
-    });
-  }, [navigation, orderCode, orderDate, weatherData, getStatusColor]);
 
   const handleMapPress = useCallback((ticket: DeliveryTicket) => {
     navigation.navigate('Tracking', {
@@ -1714,6 +1463,36 @@ export const TicketScreen: React.FC = () => {
   const handleFilterReset = useCallback(() => {
     setAdvancedFilters(DEFAULT_FILTERS);
   }, []);
+
+  // Build dynamic status config from API colors (DB only)
+  const statusConfig = useMemo(
+    () => buildStatusConfig(apiStatusColors, isDark ? '20' : '15'),
+    [apiStatusColors, isDark]
+  );
+
+  const getStatusColor = useCallback((status: TicketStatus): string => {
+    return statusConfig[status]?.textColor || statusConfig.pending.textColor;
+  }, [statusConfig]);
+
+  const lastTicketStatusColor = useMemo(() => {
+    if (allTickets.length === 0) return undefined;
+    const firstTicket = allTickets[0];
+    return getStatusColor(firstTicket.status);
+  }, [allTickets, getStatusColor]);
+
+  const handleTicketPress = useCallback((ticket: DeliveryTicket) => {
+    const statusColor = getStatusColor(ticket.status);
+    navigation.navigate('TicketDetail', {
+      orderCode: orderCode,
+      orderDate: orderDate,
+      ticketCode: ticket.ticketNumber,
+      status: ticket.status,
+      statusDisplay: ticket.statusDisplay,
+      weatherData: weatherData,
+      statusColor: statusColor,
+      statusColors: apiStatusColors,
+    });
+  }, [navigation, orderCode, orderDate, weatherData, getStatusColor, apiStatusColors]);
 
   const handleWeatherPress = useCallback(() => {
     navigation.navigate('Weather', {
@@ -1779,6 +1558,7 @@ export const TicketScreen: React.FC = () => {
           onMapPress={() => handleMapPress(item)}
           isDark={isDark}
           isMapDisabled={isMapDisabled}
+          statusConfig={statusConfig}
         />
       );
     },
@@ -1890,6 +1670,7 @@ export const TicketScreen: React.FC = () => {
         onApply={handleFilterApply}
         onReset={handleFilterReset}
         isDark={isDark}
+        statusConfig={statusConfig}
       />
     </SafeAreaView>
   );
