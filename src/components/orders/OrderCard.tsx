@@ -902,17 +902,17 @@ const styles = StyleSheet.create({
   progressBarBg: {
     flex: 1,
     height: ms(4),
-    borderRadius: ms(2),
+    borderRadius: 0,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: ms(2),
+    borderRadius: 0,
   },
   segmentedProgressContainer: {
     flexDirection: 'row',
     height: '100%',
-    borderRadius: ms(2),
+    borderRadius: 0,
     overflow: 'hidden',
   },
   progressBarSegment: {
@@ -941,7 +941,7 @@ const styles = StyleSheet.create({
   segmentTrack: {
     flex: 1,
     height: '100%',
-    borderRadius: ms(2),
+    borderRadius: 0,
     overflow: 'hidden',
     backgroundColor: 'transparent',
   },
@@ -950,7 +950,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    borderRadius: ms(2),
+    borderRadius: 0,
   },
   segmentDivider: {
     width: ms(1),

@@ -132,6 +132,21 @@ export interface TrackingSummary {
   progress_display: string;
 }
 
+export interface TrackingStatusColors {
+  ticketed?: string;
+  loading?: string;
+  loaded?: string;
+  to_job?: string;
+  at_job?: string;
+  pouring?: string;
+  washing?: string;
+  to_plant?: string;
+  at_plant?: string;
+  cancelled?: string;
+  returning?: string;
+  remaining?: string;
+}
+
 export interface OrderTrackingData {
   order_id: string;
   order_code: string;
@@ -156,6 +171,7 @@ export interface OrderTrackingData {
   order_location: OrderLocation;
   plant: TrackingPlant;
   tickets: TrackingTicket[];
+  status_colors?: TrackingStatusColors;
   pagination: TrackingPagination;
   summary: TrackingSummary;
 }

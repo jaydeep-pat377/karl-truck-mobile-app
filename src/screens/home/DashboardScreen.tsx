@@ -134,7 +134,7 @@ const computeCumulativeFills = (
     }
 
     // Total = totalLoads from Product Schedule, fallback to totalTickets, then cumulative
-    const total = totalLoads ?? totalTickets ?? cumulativeByStatus['loading'] ?? 0;
+    const total = (totalLoads || 0) > 0 ? totalLoads : (totalTickets > 0 ? totalTickets : (cumulativeByStatus['loading'] || 0));
 
     fills = PROGRESS_STATUSES.map(({ key }) => {
       const cumulative = cumulativeByStatus[key];

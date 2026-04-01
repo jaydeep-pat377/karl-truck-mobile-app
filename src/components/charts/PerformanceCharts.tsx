@@ -68,7 +68,7 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
         />
       )}
 
-      {showTrucksOnJob && scheduledLoads.length > 0 && (
+      {showTrucksOnJob && (
         useHighchartsWebView ? (
           <TrucksOnJobWebView
             scheduledLoads={scheduledLoads}

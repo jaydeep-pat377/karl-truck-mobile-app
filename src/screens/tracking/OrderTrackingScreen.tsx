@@ -13,7 +13,7 @@ import {
   PanResponder,
   useWindowDimensions,
   ActivityIndicator,
-  Image,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Mapbox from '@rnmapbox/maps';
@@ -21,28 +21,27 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../navigation/types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, TruckLoader } from '../../components/common';
+import { CementMixerPin } from '../../components/map/CementMixerPin';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms } from '../../utils/responsive';
 import { useOrderTracking, useDirections } from '../../hooks';
 import { TrackingTicket } from '../../types/orderTracking';
-import { truckImagesByStatus } from '../../assets/images';
 import { MAPBOX_ACCESS_TOKEN } from '@env';
 
 interface TruckMarkerProps {
   ticket: TrackingTicket;
   isSelected: boolean;
   onPress: () => void;
+  statusColor?: string;
 }
 
-const TruckMarkerContent: React.FC<TruckMarkerProps> = React.memo(({ ticket, isSelected, onPress }) => {
-  const config = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.ticketed;
-  const truckImage = truckImagesByStatus[ticket.status] || truckImagesByStatus.ticketed;
+const TruckMarkerContent: React.FC<TruckMarkerProps> = React.memo(({ ticket, isSelected, onPress, statusColor }) => {
+  const markerColor = statusColor || FALLBACK_STATUS_COLOR;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (isSelected) {
-
       const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -83,17 +82,13 @@ const TruckMarkerContent: React.FC<TruckMarkerProps> = React.memo(({ ticket, isS
 
       {isSelected && <View style={truckMarkerStyles.pointerArrow} />}
 
-      <Image
-        source={truckImage}
-        style={[
-          truckMarkerStyles.truckImage,
-          isSelected && truckMarkerStyles.truckImageSelected
-        ]}
-        resizeMode="contain"
+      <CementMixerPin
+        color={markerColor}
+        size={isSelected ? ms(48) : ms(42)}
       />
       <View style={[
         truckMarkerStyles.loadBadge,
-        { backgroundColor: config.color },
+        { backgroundColor: markerColor },
         isSelected && truckMarkerStyles.loadBadgeSelected
       ]}>
         <Text style={[
@@ -108,7 +103,8 @@ const TruckMarkerContent: React.FC<TruckMarkerProps> = React.memo(({ ticket, isS
 }, (prevProps, nextProps) => {
   return prevProps.isSelected === nextProps.isSelected &&
     prevProps.ticket.ticket_id === nextProps.ticket.ticket_id &&
-    prevProps.ticket.status === nextProps.ticket.status;
+    prevProps.ticket.status === nextProps.ticket.status &&
+    prevProps.statusColor === nextProps.statusColor;
 });
 
 const truckMarkerStyles = StyleSheet.create({
@@ -151,14 +147,6 @@ const truckMarkerStyles = StyleSheet.create({
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     borderBottomColor: colors.primary.main,
-  },
-  truckImage: {
-    width: ms(42),
-    height: ms(42),
-  },
-  truckImageSelected: {
-    width: ms(50),
-    height: ms(50),
   },
   loadBadge: {
     marginTop: ms(4),
@@ -205,23 +193,43 @@ const MAP_STYLES = {
   satellite: Mapbox.StyleURL.SatelliteStreet,
 };
 
-const STATUS_CONFIG: Record<string, { color: string; icon: string; label: string }> = {
-  pending: { color: colors.trackingStatus.pending, icon: 'clock-outline', label: 'Pending' },
-  ticketed: { color: colors.trackingStatus.ticketed, icon: 'ticket-outline', label: 'Ticketed' },
-  loading: { color: colors.trackingStatus.loading, icon: 'package-variant', label: 'Loading' },
-  loaded: { color: colors.trackingStatus.loaded, icon: 'package-variant-closed', label: 'Loaded' },
-  to_job: { color: colors.trackingStatus.toJob, icon: 'truck-fast', label: 'To Job' },
-  at_job: { color: colors.trackingStatus.atJob, icon: 'map-marker-check', label: 'At Job' },
-  pouring: { color: colors.trackingStatus.pouring, icon: 'water', label: 'Pouring' },
-  begin_pour: { color: colors.trackingStatus.pouring, icon: 'water', label: 'Begin Pour' },
-  begin_pouring: { color: colors.trackingStatus.pouring, icon: 'water', label: 'Begin Pour' },
-  poured: { color: colors.trackingStatus.poured, icon: 'water-check', label: 'Poured' },
-  washing: { color: colors.trackingStatus.washing, icon: 'water-pump', label: 'Washing' },
-  to_plant: { color: colors.trackingStatus.toPlant, icon: 'arrow-u-left-top', label: 'To Plant' },
-  at_plant: { color: colors.trackingStatus.atPlant, icon: 'home-circle', label: 'At Plant' },
-  cancelled: { color: colors.trackingStatus.cancelled, icon: 'close-circle', label: 'Cancelled' },
-  voided: { color: colors.trackingStatus.voided, icon: 'close-circle', label: 'Voided' },
+const STATUS_ICONS: Record<string, { icon: string; label: string }> = {
+  pending: { icon: 'clock-outline', label: 'Pending' },
+  ticketed: { icon: 'ticket-outline', label: 'Ticketed' },
+  loading: { icon: 'package-variant', label: 'Loading' },
+  loaded: { icon: 'package-variant-closed', label: 'Loaded' },
+  to_job: { icon: 'truck-fast', label: 'To Job' },
+  at_job: { icon: 'map-marker-check', label: 'At Job' },
+  pouring: { icon: 'water', label: 'Pouring' },
+  begin_pour: { icon: 'water', label: 'Begin Pour' },
+  begin_pouring: { icon: 'water', label: 'Begin Pour' },
+  poured: { icon: 'water-check', label: 'Poured' },
+  washing: { icon: 'water-pump', label: 'Washing' },
+  to_plant: { icon: 'arrow-u-left-top', label: 'To Plant' },
+  at_plant: { icon: 'home-circle', label: 'At Plant' },
+  cancelled: { icon: 'close-circle', label: 'Cancelled' },
+  voided: { icon: 'close-circle', label: 'Voided' },
 };
+
+// Fallback color when API doesn't provide a color for a status
+const FALLBACK_STATUS_COLOR = '#6b7280';
+const CANCELLED_COLOR = '#ef4444';
+
+/** Build status config using only dynamic API colors from database */
+function buildStatusConfig(
+  apiColors?: Record<string, string | undefined> | null
+): Record<string, { color: string; icon: string; label: string }> {
+  const config: Record<string, { color: string; icon: string; label: string }> = {};
+  for (const [key, meta] of Object.entries(STATUS_ICONS)) {
+    const isCancelled = key === 'cancelled' || key === 'voided';
+    config[key] = {
+      color: isCancelled ? CANCELLED_COLOR : (apiColors?.[key] || FALLBACK_STATUS_COLOR),
+      icon: meta.icon,
+      label: meta.label,
+    };
+  }
+  return config;
+}
 
 type OrderTrackingRouteProp = RouteProp<RootStackParamList, 'Tracking'>;
 
@@ -292,6 +300,7 @@ export const OrderTrackingScreen: React.FC = () => {
         }
 
         setIsSheetExpanded(snapTo === SHEET_MAX_HEIGHT);
+        if (snapTo === SHEET_MAX_HEIGHT) setIsLegendExpanded(false);
 
         Animated.spring(sheetHeight, {
           toValue: snapTo,
@@ -306,6 +315,7 @@ export const OrderTrackingScreen: React.FC = () => {
   const toggleSheet = useCallback(() => {
     const toValue = isSheetExpanded ? SHEET_MIN_HEIGHT : SHEET_MAX_HEIGHT;
     setIsSheetExpanded(!isSheetExpanded);
+    if (!isSheetExpanded) setIsLegendExpanded(false);
 
     Animated.spring(sheetHeight, {
       toValue,
@@ -342,6 +352,12 @@ export const OrderTrackingScreen: React.FC = () => {
     limit: 10,
     refetchInterval: 30000,
   });
+
+  // Build dynamic status config from API colors (same source as web frontend)
+  const statusConfig = useMemo(
+    () => buildStatusConfig(trackingData?.status_colors as Record<string, string | undefined> ?? null),
+    [trackingData?.status_colors]
+  );
 
   const selectedTicket = useMemo(() => {
     if (!selectedTicketId) return null;
@@ -502,13 +518,13 @@ export const OrderTrackingScreen: React.FC = () => {
   const firstTicketStatusColor = useMemo(() => {
     if (tickets.length === 0) return colors.primary.main;
     const firstTicket = tickets[0];
-    const config = STATUS_CONFIG[firstTicket.status] || STATUS_CONFIG.ticketed;
+    const config = statusConfig[firstTicket.status] || statusConfig.ticketed;
     return config.color;
-  }, [tickets]);
+  }, [tickets, statusConfig]);
 
   const renderTicketCard = useCallback((ticket: TrackingTicket) => {
     const isSelected = selectedTicketId === ticket.ticket_id;
-    const config = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.ticketed;
+    const config = statusConfig[ticket.status] || statusConfig.ticketed;
 
     return (
       <TouchableOpacity
@@ -605,7 +621,7 @@ export const OrderTrackingScreen: React.FC = () => {
 
       </TouchableOpacity>
     );
-  }, [themeColors, isDark, selectedTicketId, handleTicketPress]);
+  }, [themeColors, isDark, selectedTicketId, handleTicketPress, statusConfig]);
 
   if (isLoading) {
     return (
@@ -703,13 +719,14 @@ export const OrderTrackingScreen: React.FC = () => {
               <Mapbox.MarkerView
                 key={`truck-${ticket.ticket_id}`}
                 coordinate={[ticket.truck.longitude, ticket.truck.latitude]}
-                anchor={{ x: 0.5, y: 0.5 }}
+                anchor={{ x: 0.5, y: 1 }}
                 allowOverlap={true}
               >
                 <TruckMarkerContent
                   ticket={ticket}
                   isSelected={isSelected}
                   onPress={() => handleTicketPress(ticket)}
+                  statusColor={statusConfig[ticket.status]?.color}
                 />
               </Mapbox.MarkerView>
             );
@@ -741,41 +758,6 @@ export const OrderTrackingScreen: React.FC = () => {
           </TouchableOpacity>
         </SafeAreaView>
 
-        {isMapReady && (
-          <TouchableOpacity
-            style={[styles.statusLegend, !isLegendExpanded && styles.statusLegendCollapsed]}
-            onPress={() => setIsLegendExpanded(!isLegendExpanded)}
-            activeOpacity={0.9}
-          >
-            <View style={styles.legendHeader}>
-              <Icon name="information-outline" size={ms(14)} color={colors.common.white} />
-              <Text style={styles.legendTitle}>Status</Text>
-              <Icon
-                name={isLegendExpanded ? 'chevron-up' : 'chevron-down'}
-                size={ms(14)}
-                color={colors.common.white}
-              />
-            </View>
-            {isLegendExpanded && (
-              <View style={styles.legendContent}>
-                {[
-                  { key: 'ticketed', color: colors.trackingStatus.ticketed, label: 'Ticketed' },
-                  { key: 'loading', color: colors.trackingStatus.loading, label: 'Loading' },
-                  { key: 'to_job', color: colors.trackingStatus.toJob, label: 'To Job' },
-                  { key: 'at_job', color: colors.trackingStatus.atJob, label: 'At Job' },
-                  { key: 'pouring', color: colors.trackingStatus.poured, label: 'Pour' },
-                  { key: 'washing', color: colors.trackingStatus.washing, label: 'Wash' },
-                ].map((status) => (
-                  <View key={status.key} style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: status.color }]} />
-                    <Text style={styles.legendLabel}>{status.label}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </TouchableOpacity>
-        )}
-
         <View style={[styles.mapControls, { top: insets.top + ms(70) }]}>
           <TouchableOpacity
             style={[styles.mapBtn, { backgroundColor: isSatelliteView ? colors.primary.main : themeColors.card }]}
@@ -797,6 +779,49 @@ export const OrderTrackingScreen: React.FC = () => {
             <Text style={styles.mapLoadingText}>Loading map...</Text>
           </View>
         )}
+
+        {isMapReady && (() => {
+          const legendItems = [
+            ['ticketed', 'Ticketed',  'loading',  'Loading'],
+            ['to_job',   'To Job',    'at_job',   'At Job'],
+            ['pouring',  'Pour',      'washing',  'Wash'],
+            ['to_plant', 'To Plant',  'at_plant', 'At Plant'],
+          ];
+          return (
+            <Pressable
+              onPress={() => setIsLegendExpanded(!isLegendExpanded)}
+              style={{
+                position: 'absolute',
+                bottom: 8,
+                left: 8,
+                zIndex: 20,
+                elevation: 20,
+                backgroundColor: isDark ? 'rgba(30,30,30,0.92)' : 'rgba(255,255,255,0.95)',
+                borderRadius: 8,
+                paddingHorizontal: ms(10),
+                paddingVertical: ms(6),
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 4,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(4) }}>
+                <Icon name="information-outline" size={ms(12)} color={themeColors.text.primary} />
+                <Text style={{ fontSize: ms(10), fontFamily: fontFamily.bold, color: themeColors.text.primary }}>Status</Text>
+                <Icon name={isLegendExpanded ? 'chevron-up' : 'chevron-down'} size={ms(12)} color={themeColors.text.primary} />
+              </View>
+              {isLegendExpanded && legendItems.map((row, i) => (
+                <Text key={`r${i}`} style={{ marginTop: i === 0 ? ms(4) : ms(2), lineHeight: ms(14) }}>
+                  <Text style={{ color: statusConfig[row[0]]?.color || FALLBACK_STATUS_COLOR, fontSize: ms(15) }}>{'\u25A0 '}</Text>
+                  <Text style={{ fontSize: ms(10), fontFamily: fontFamily.medium, color: themeColors.text.secondary }}>{row[1]}    </Text>
+                  <Text style={{ color: statusConfig[row[2]]?.color || FALLBACK_STATUS_COLOR, fontSize: ms(15) }}>{'\u25A0 '}</Text>
+                  <Text style={{ fontSize: ms(10), fontFamily: fontFamily.medium, color: themeColors.text.secondary }}>{row[3]}</Text>
+                </Text>
+              ))}
+            </Pressable>
+          );
+        })()}
 
       </Animated.View>
 
@@ -1001,18 +1026,18 @@ const styles = StyleSheet.create({
 
   statusLegend: {
     position: 'absolute',
-    bottom: ms(12),
+    bottom: '40%',
     left: ms(8),
-    maxWidth: '50%',
+    zIndex: 20,
     backgroundColor: colors.semiTransparent.darkGray90,
     borderRadius: ms(8),
-    paddingHorizontal: ms(6),
-    paddingVertical: ms(6),
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(5),
     shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 5,
+    elevation: 20,
   },
   statusLegendCollapsed: {
     right: 'auto' as any,
@@ -1031,31 +1056,29 @@ const styles = StyleSheet.create({
     color: colors.common.white,
   },
   legendContent: {
-    marginTop: ms(6),
+    marginTop: ms(4),
+    gap: ms(3),
+    width: ms(180),
+  },
+  legendRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    rowGap: ms(6),
-    columnGap: ms(2),
+    justifyContent: 'space-between',
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '48%',
-    paddingVertical: ms(2),
+    width: ms(85),
   },
   legendDot: {
-    width: ms(8),
-    height: ms(8),
+    width: ms(7),
+    height: ms(7),
     borderRadius: ms(2),
     marginRight: ms(4),
-    flexShrink: 0,
   },
   legendLabel: {
     fontSize: ms(9),
     fontFamily: fontFamily.medium,
     color: colors.common.white,
-    flexShrink: 1,
   },
 
   mapControls: { position: 'absolute', right: ms(12), gap: ms(8) },
