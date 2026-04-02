@@ -616,6 +616,43 @@ export const colors = {
     lightMuted: 'rgba(255,255,255,0.7)',
     lightSubtle: 'rgba(255,255,255,0.6)',
   },
+  orderRequest: {
+    status: {
+      pending: 'rgb(47, 126, 216)',
+      submitted: 'rgb(47, 126, 216)',
+      approved: 'rgb(69, 139, 0)',
+      rejected: 'rgb(196, 57, 38)',
+      canceled: 'rgb(196, 57, 38)',
+      fallback: 'rgb(75, 85, 99)',
+    },
+    orderType: {
+      withProject: 'rgb(22, 163, 74)',
+      withoutProjectWithProduct: 'rgb(147, 51, 234)',
+      withoutProject: 'rgb(37, 99, 235)',
+    },
+    filterTab: {
+      allColor: 'rgb(75, 85, 99)',
+      activeBadgeBg: 'rgba(255,255,255,0.25)',
+      light: {
+        inactiveBg: 'rgba(0,0,0,0.04)',
+        inactiveBadgeBg: 'rgba(0,0,0,0.06)',
+      },
+      dark: {
+        inactiveBg: 'rgba(255,255,255,0.08)',
+        inactiveBadgeBg: 'rgba(255,255,255,0.1)',
+      },
+    },
+    card: {
+      light: {
+        border: 'rgba(0,0,0,0.06)',
+        pillBg: 'rgba(0,0,0,0.04)',
+      },
+      dark: {
+        border: 'rgba(255,255,255,0.06)',
+        pillBg: 'rgba(255,255,255,0.06)',
+      },
+    },
+  },
   gradients: {
     light: {
       primary: ['#458b00', '#5aa510'],

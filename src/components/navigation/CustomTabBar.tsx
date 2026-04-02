@@ -29,6 +29,9 @@ const DETAIL_SCREEN_NAMES = [
   'EvaporationList',
   'OrderProductDetails',
 
+  'OrderRequestDetail',
+  'CreateOrderRequest',
+
   'Profile',
   'EditProfile',
   'ChangePassword',
@@ -87,6 +90,8 @@ const getInitialScreenForTab = (tabName: string): string | undefined => {
   switch (tabName) {
     case 'Orders':
       return 'OrderList';
+    case 'OrderRequests':
+      return 'OrderRequestList';
     case 'Settings':
       return 'SettingsMain';
     default:
@@ -180,11 +185,11 @@ const TabItem: React.FC<TabItemProps> = ({
   const routes = state?.routes || [];
   const focusedIndex = getActualFocusedIndex(state || {}, routes);
 
-  // Check if currently on a detail screen (used for navigation logic and tab highlight)
+  // Check if currently on a detail screen (used for navigation logic)
   const onDetailScreen = isOnDetailScreen(state);
 
-  // Tab is focused only when on the main screen (not detail screen)
-  const isFocused = !onDetailScreen && focusedIndex === index;
+  // Tab stays visually focused when on any screen within its stack
+  const isFocused = focusedIndex === index;
 
   const themeColors = tabBarTheme[theme];
 
@@ -308,6 +313,8 @@ const TabItem: React.FC<TabItemProps> = ({
         return isFocused ? 'home' : 'home-outline';
       case 'Notifications':
         return isFocused ? 'bell' : 'bell-outline';
+      case 'OrderRequests':
+        return isFocused ? 'file-document-edit' : 'file-document-edit-outline';
       case 'Settings':
         return isFocused ? 'cog' : 'cog-outline';
       default:

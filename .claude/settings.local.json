@@ -1,7 +1,30 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:rnfirebase.io)"
+      "WebFetch(domain:rnfirebase.io)",
+      "Bash(xcodebuild:*)",
+      "Bash(pod install:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(find src:*)",
+      "Bash(npx tsc:*)",
+      "Bash(adb shell:*)",
+      "Bash(npx react-native:*)",
+      "Bash(adb logcat:*)",
+      "Bash(adb devices:*)",
+      "Bash(npm run:*)",
+      "Read(//Users/admin/Desktop/Truckast-python-scrapper-api/**)",
+      "Read(//Users/admin/Desktop/**)",
+      "Bash(cat '/Users/admin/Desktop/truckast-dolese-readymix-frontend/src/app/\\(protected\\)/order-request/create/page.tsx')",
+      "Bash(cat:*)",
+      "Bash(cat \"/Users/admin/Desktop/truckast-dolese-readymix-frontend/src/app/\\(protected\\)/order-request/page.tsx\")",
+      "Bash(npm install:*)",
+      "Bash(git:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjUxMWE1YzYwLTY0ZjEtNDU5NC04OGUwLWZiOWNlZmI0N2ZiYyIsImVtYWlsIjoiZ29uZGFsaXlhcmFrZXNoOTBAZ21haWwuY29tIiwicGhvbmUiOiIiLCJyb2xlIjoiYXV0aGVudGljYXRlZCIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NzUxMzAzOTIsImV4cCI6MTc3NTEzNzU5MiwiYXVkIjoidHJ1Y2thc3QtY2xpZW50IiwiaXNzIjoidHJ1Y2thc3QtYXBpIn0.bvCoL-c9BfRkUKav7hx8s_dNpWTXyY_-YvsdljruTXQ\")",
+      "Bash(time curl:*)",
+      "Bash(curl -s \"http://192.168.1.20:5000/api/order-requests?page=1&limit=2\" -H \"Authorization: Bearer $TOKEN\")",
+      "Bash(python3 -c \":*)"
     ]
   }
 }

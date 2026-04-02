@@ -36,11 +36,18 @@ export interface OrdersFilterParams {
   _timestamp?: number;
 }
 
+export type OrderRequestsStackParamList = {
+  OrderRequestList: undefined;
+  OrderRequestDetail: { orderRequestId: string };
+  CreateOrderRequest: { orderType?: 'with_project' | 'without_project' | 'without_project_with_product'; editOrderId?: string };
+};
+
 export type MainTabParamList = {
   Home: undefined;
   Orders: (NavigatorScreenParams<OrdersStackParamList> & OrdersFilterParams) | OrdersFilterParams | undefined;
   Today: undefined;
   Notifications: undefined;
+  OrderRequests: NavigatorScreenParams<OrderRequestsStackParamList> | undefined;
   Settings: undefined;
 };
 

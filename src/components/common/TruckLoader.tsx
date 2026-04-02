@@ -9,12 +9,14 @@ interface TruckLoaderProps {
   size?: number;
   message?: string;
   color?: 'light' | 'dark';
+  fontSize?: number;
 }
 
 const TruckLoader: React.FC<TruckLoaderProps> = ({
   size = 150,
   message = 'Loading...',
   color = 'light',
+  fontSize,
 }) => {
 
   const wheelRotation = useRef(new Animated.Value(0)).current;
@@ -181,7 +183,7 @@ const TruckLoader: React.FC<TruckLoaderProps> = ({
       />
 
       {message && (
-        <Text style={[styles.message, { color: textColor }]}>{message}</Text>
+        <Text style={[styles.message, { color: textColor }, fontSize != null && { fontSize }]}>{message}</Text>
       )}
       <LoadingDots color={textColor} />
     </View>

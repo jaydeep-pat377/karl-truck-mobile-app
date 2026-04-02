@@ -729,12 +729,7 @@ const DashboardScreen: React.FC = () => {
               </Text>
             </View>
 
-            <View style={styles.deliveryLoadsRow}>
-              <ConcreteTruck width={ms(12)} height={ms(8)} color={themeColors.text.secondary} />
-              <Text style={[styles.deliveryLoadsText, { color: themeColors.text.secondary }]}>
-                {item.ticketCount || 0}/{item.totalLoads || 0} Loads
-              </Text>
-            </View>
+{/* Loads count removed */}
           </View>
         </View>
       </TouchableOpacity>

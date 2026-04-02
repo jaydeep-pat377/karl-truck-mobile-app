@@ -7,6 +7,7 @@ import { OrdersNavigator } from './OrdersNavigator';
 
 import { NotificationScreen } from '../screens/notifications/NotificationScreen';
 import { SettingsNavigator } from './SettingsNavigator';
+import { OrderRequestsNavigator } from './OrderRequestsNavigator';
 import { CustomTabBar } from '../components/navigation';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -42,6 +43,13 @@ export const MainNavigator: React.FC = () => {
         component={NotificationScreen}
         options={{
           tabBarLabel: t('navigation.notifications'),
+        }}
+      />
+      <Tab.Screen
+        name="OrderRequests"
+        component={OrderRequestsNavigator}
+        options={{
+          tabBarLabel: t('navigation.orderRequests'),
         }}
       />
       <Tab.Screen

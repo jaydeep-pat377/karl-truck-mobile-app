@@ -39,4 +39,16 @@ export const API_ENDPOINTS = {
   ANNOUNCEMENTS: {
     ME: '/announcements/me',
   },
+  ORDER_REQUESTS: {
+    LIST: '/order-requests',
+    DETAIL: '/order-requests',
+    CREATE: '/order-requests',
+    UPDATE: '/order-requests',
+    STATUS: '/order-requests',
+    VERIFICATION: '/order-requests',
+    MESSAGES: '/order-requests',
+    FORM_DATA: '/order-requests/form-data',
+    SEARCH_ORDERS: '/order-requests/search-orders',
+    SEARCH_PRODUCTS: '/order-requests/search-products',
+  },
 } as const;

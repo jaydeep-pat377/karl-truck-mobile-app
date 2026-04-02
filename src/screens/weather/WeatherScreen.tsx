@@ -23,6 +23,7 @@ import { fontFamily } from '../../theme/typography';
 import { ms, vs, responsive, wp, hp, isTablet } from '../../utils/responsive';
 import { RootStackParamList } from '../../navigation/types';
 import { useWeather, useAlert } from '../../hooks';
+import { WeatherIcon as SharedWeatherIcon } from '../../utils/weatherIcon';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type WeatherScreenRouteProp = RouteProp<RootStackParamList, 'Weather'>;
@@ -711,18 +712,16 @@ export const WeatherScreen: React.FC = () => {
           </View>
           <View style={styles.weatherDisplay}>
             <View style={styles.weatherIconContainer}>
-              <Text style={styles.weatherEmoji}>
-                {getWeatherIcon(weather.iconCode)}
-              </Text>
+              <SharedWeatherIcon icon={weather.iconCode} size={100} />
             </View>
 
             <View style={styles.temperatureSection}>
               <Text style={styles.temperatureText}>
-                {weather.temperature}° {weather.temperatureUnit}
+                {Math.round(weather.temperature ?? 0)}° {weather.temperatureUnit}
               </Text>
               <Text style={styles.conditionText}>{weather.condition}</Text>
               <Text style={styles.minMaxText}>
-                Max: {weather.maxTemp}°  Min: {weather.minTemp}°
+                Max: {Math.round(weather.maxTemp ?? 0)}°  Min: {Math.round(weather.minTemp ?? 0)}°
               </Text>
             </View>
           </View>

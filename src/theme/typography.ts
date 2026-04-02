@@ -128,9 +128,9 @@ export const typography = {
 
   buttonLarge: {
     fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.lg,
+    fontSize: fontSize['2xl'],
     fontWeight: fontWeight.semiBold,
-    lineHeight: fontSize.lg * lineHeight.tight,
+    lineHeight: fontSize['2xl'] * lineHeight.tight,
   } as TextStyle,
 
   button: {
