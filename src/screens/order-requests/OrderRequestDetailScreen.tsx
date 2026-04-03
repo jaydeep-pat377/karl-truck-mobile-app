@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   FlatList,
@@ -30,6 +29,7 @@ import {
 import { orderRequestService } from '../../api/services/orderRequestService';
 import { OrderEntity, OrderEntityMessage, ORDER_STATUS_LABELS } from '../../types/orderRequest';
 import { useAuthStore } from '../../store/authStore';
+import { supabaseAdmin } from '../../services/supabase/supabaseClient';
 import { RootStackParamList } from '../../navigation/types';
 
 // ---------------------------------------------------------------------------
@@ -81,15 +81,15 @@ const formatOrderCode = (id: string): string => {
 const TIMEZONE = 'America/Chicago';
 
 // Get timezone-aware date/time parts from a Date object
-const getPartsInTimezone = (d: Date): { month: string; day: string; year: string; hours: string; minutes: string; tzAbbr: string } => {
+const getPartsInTimezone = (d: Date): { month: string; day: string; year: string; hours: string; minutes: string; period: string; tzAbbr: string } => {
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: TIMEZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-    hour: '2-digit',
+    hour: 'numeric',
     minute: '2-digit',
-    hour12: false,
+    hour12: true,
     timeZoneName: 'short',
   });
   const parts = formatter.formatToParts(d);
@@ -98,23 +98,19 @@ const getPartsInTimezone = (d: Date): { month: string; day: string; year: string
     month: get('month'),
     day: get('day'),
     year: get('year'),
-    hours: get('hour').padStart(2, '0'),
+    hours: get('hour'),
     minutes: get('minute').padStart(2, '0'),
+    period: get('dayPeriod'),
     tzAbbr: get('timeZoneName'),
   };
 };
 
-// Format a date-only string like "2026-03-20" (no timezone conversion needed)
+// Format a date string — uses timezone conversion to match web behavior
 const formatDate = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '-';
   try {
-    // Date-only strings (YYYY-MM-DD): parse directly to avoid UTC shift
-    const dateOnly = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (dateOnly) {
-      return `${dateOnly[2]}/${dateOnly[3]}/${dateOnly[1]}`;
-    }
-    // Full timestamp: convert to America/Chicago
     const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
     const p = getPartsInTimezone(d);
     return `${p.month}/${p.day}/${p.year}`;
   } catch {
@@ -122,16 +118,27 @@ const formatDate = (dateStr: string | null | undefined): string => {
   }
 };
 
-// Format a time string like "14:30:00" with timezone abbreviation
+// Format a YYYY-MM-DD date-only string without timezone conversion
+// Used for verification date fields to match web's native <input type="date"> display
+const formatDateLocal = (dateStr: string | null | undefined): string => {
+  if (!dateStr) return '-';
+  const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return `${m[2]}/${m[3]}/${m[1]}`;
+  return formatDate(dateStr);
+};
+
+// Format a time string like "14:30:00" with timezone abbreviation in 12-hour format
 const formatTime = (timeStr: string | null | undefined): string => {
   if (!timeStr) return '-';
   try {
     if (/^\d{2}:\d{2}/.test(timeStr)) {
       const [h, m] = timeStr.split(':').map(Number);
+      const period = h >= 12 ? 'PM' : 'AM';
+      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
       // Use a reference date to get the timezone abbreviation
       const ref = new Date();
       const p = getPartsInTimezone(ref);
-      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${p.tzAbbr}`;
+      return `${h12}:${String(m).padStart(2, '0')} ${period} ${p.tzAbbr}`;
     }
     return timeStr;
   } catch {
@@ -145,22 +152,13 @@ const formatDateTime = (dateStr: string | null | undefined): string => {
   try {
     const d = new Date(dateStr);
     const p = getPartsInTimezone(d);
-    return `${p.month}/${p.day}/${p.year} ${p.hours}:${p.minutes} ${p.tzAbbr}`;
+    return `${p.month}/${p.day}/${p.year} ${p.hours}:${p.minutes} ${p.period} ${p.tzAbbr}`;
   } catch {
     return dateStr;
   }
 };
 
-// Format timestamp for chat messages
-const formatTimestamp = (dateStr: string): string => {
-  try {
-    const d = new Date(dateStr);
-    const p = getPartsInTimezone(d);
-    return `${p.hours}:${p.minutes} ${p.tzAbbr}`;
-  } catch {
-    return '';
-  }
-};
+
 
 const formatDateSeparator = (dateStr: string): string => {
   const d = new Date(dateStr);
@@ -220,7 +218,7 @@ const infoRowStyles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingVertical: ms(8),
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(128,128,128,0.2)',
+    borderBottomColor: colors.orderRequestDetail.sectionHeader.borderColor,
   },
   label: {
     flex: 0.4,
@@ -277,7 +275,7 @@ const quickStatStyles = StyleSheet.create({
     alignItems: 'center',
     minHeight: ms(100),
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.common.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 3,
@@ -332,7 +330,7 @@ const sectionCardStyles = StyleSheet.create({
   card: {
     borderRadius: ms(12),
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.common.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 3,
@@ -346,7 +344,7 @@ const sectionCardStyles = StyleSheet.create({
     paddingHorizontal: ms(14),
   },
   headerText: {
-    color: '#FFFFFF',
+    color: colors.common.white,
     fontWeight: '600',
     marginLeft: ms(8),
   },
@@ -372,50 +370,41 @@ interface ProductRowProps {
 const ProductRow: React.FC<ProductRowProps> = ({ label, code, name, quantity, slump, notes, isDark }) => {
   const textColor = isDark ? colors.dark.text.primary : colors.light.text.primary;
   const secondaryColor = isDark ? colors.dark.text.secondary : colors.light.text.secondary;
-  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const borderColor = isDark ? colors.orderRequestDetail.product.dark.borderColor : colors.orderRequestDetail.product.light.borderColor;
 
-  const hasData = code || name || quantity || slump || notes;
-  if (!hasData) return null;
+  const hasData = code || name;
 
   return (
     <View style={[productRowStyles.container, { borderBottomColor: borderColor }]}>
       <Text variant="bodySmall" style={[productRowStyles.label, { color: colors.primary.main }]}>
         {label}
       </Text>
-      {code ? (
-        <View style={productRowStyles.row}>
-          <Text variant="caption" style={{ color: secondaryColor }}>Code:</Text>
-          <Text variant="bodySmall" style={{ color: textColor, marginLeft: ms(4) }}>{code}</Text>
-        </View>
-      ) : null}
-      {name ? (
-        <View style={productRowStyles.row}>
-          <Text variant="caption" style={{ color: secondaryColor }}>Name:</Text>
-          <Text variant="bodySmall" style={{ color: textColor, marginLeft: ms(4), flex: 1 }} numberOfLines={2}>
-            {name}
+      {hasData ? (
+        <>
+          <Text variant="bodySmall" style={{ color: textColor, fontWeight: '600' }} numberOfLines={2}>
+            {code && name ? `${code} - ${name}` : name || code}
           </Text>
-        </View>
-      ) : null}
-      {quantity != null ? (
-        <View style={productRowStyles.row}>
-          <Text variant="caption" style={{ color: secondaryColor }}>Qty:</Text>
-          <Text variant="bodySmall" style={{ color: textColor, marginLeft: ms(4) }}>{String(quantity)}</Text>
-        </View>
-      ) : null}
-      {slump ? (
-        <View style={productRowStyles.row}>
-          <Text variant="caption" style={{ color: secondaryColor }}>Slump:</Text>
-          <Text variant="bodySmall" style={{ color: textColor, marginLeft: ms(4) }}>{slump}</Text>
-        </View>
-      ) : null}
-      {notes ? (
-        <View style={productRowStyles.row}>
-          <Text variant="caption" style={{ color: secondaryColor }}>Notes:</Text>
-          <Text variant="bodySmall" style={{ color: textColor, marginLeft: ms(4), flex: 1 }} numberOfLines={3}>
-            {notes}
-          </Text>
-        </View>
-      ) : null}
+          <View style={productRowStyles.detailsRow}>
+            {quantity != null && (
+              <Text variant="caption" style={{ color: secondaryColor }}>
+                {Number(quantity).toFixed(2)} CY
+              </Text>
+            )}
+            {slump ? (
+              <Text variant="caption" style={{ color: secondaryColor }}>
+                Slump: {slump} IN
+              </Text>
+            ) : null}
+          </View>
+          {notes ? (
+            <Text variant="caption" style={{ color: secondaryColor, marginTop: ms(4) }} numberOfLines={3}>
+              <Text variant="caption" style={{ fontWeight: '600', color: textColor }}>Note</Text> - {notes}
+            </Text>
+          ) : null}
+        </>
+      ) : (
+        <Text variant="bodySmall" style={{ color: secondaryColor }}>Not ordered</Text>
+      )}
     </View>
   );
 };
@@ -429,16 +418,44 @@ const productRowStyles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: ms(4),
   },
-  row: {
+  detailsRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginTop: ms(2),
+    flexWrap: 'wrap',
+    gap: ms(12),
+    marginTop: ms(6),
   },
 });
 
 // ---------------------------------------------------------------------------
 // Message Bubble
 // ---------------------------------------------------------------------------
+
+const ROLE_LABELS: Record<string, string> = {
+  concrete_producer: 'Producer',
+  contractor: 'Contractor',
+  admin: 'Admin',
+};
+
+// Format time from a full ISO timestamp — matches web's formatTimeOnly logic
+// Extracts time directly from the ISO string (e.g. "2026-04-03T06:44:00+00:00" → "06:44")
+const formatMessageTime = (dateStr: string): string => {
+  try {
+    let timePart = dateStr;
+    if (dateStr.includes('T')) {
+      timePart = dateStr.split('T')[1]?.split('+')[0]?.split('Z')[0]?.split('-')[0] || '';
+    }
+    if (!timePart || !timePart.includes(':')) return '';
+    const [hoursStr, minutesStr] = timePart.split(':');
+    const hours = parseInt(hoursStr, 10);
+    const minutes = parseInt(minutesStr, 10);
+    if (isNaN(hours) || isNaN(minutes)) return '';
+    const h = hours % 12 || 12;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    return `${String(h).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${ampm}`;
+  } catch {
+    return '';
+  }
+};
 
 interface ChatBubbleProps {
   message: OrderEntityMessage;
@@ -455,52 +472,60 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
   dateSeparatorText,
   isDark,
 }) => {
-  const ownBubbleBg = isDark ? colors.chat.dark.sentBubble : colors.chat.light.sentBubble;
-  const otherBubbleBg = isDark ? colors.chat.dark.receivedBubble : colors.chat.light.receivedBubble;
-  const ownTextColor = isDark ? colors.chat.dark.textPrimary : colors.chat.light.textPrimary;
-  const otherTextColor = isDark ? colors.chat.dark.textPrimary : colors.chat.light.textPrimary;
-  const timeColor = isDark ? colors.chat.dark.timeText : colors.chat.light.timeText;
-  const dateSepBg = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
-  const dateSepText = isDark ? colors.dark.text.secondary : colors.light.text.secondary;
+  const chatColors = colors.orderRequestDetail.chat;
+  const chatLight = chatColors.light;
+  const ownBubbleBg = chatColors.ownBubbleBg;
+  const otherBubbleBg = isDark ? colors.dark.surface : chatLight.otherBubbleBg;
+  const otherBorderColor = isDark ? colors.dark.border : chatLight.otherBorderColor;
+  const senderNameColor = isOwn
+    ? (isDark ? chatColors.dark.ownSenderName : chatLight.ownSenderName)
+    : (isDark ? colors.dark.text.secondary : chatLight.otherSenderName);
+  const roleColor = isDark ? colors.dark.text.hint : chatLight.roleLabel;
+  const separatorLineColor = isDark ? colors.dark.border : chatLight.separatorLine;
+  const separatorTextColor = isDark ? colors.dark.text.hint : chatLight.separatorText;
 
   return (
-    <View>
+    <View style={{ marginBottom: ms(10) }}>
       {showDateSeparator && (
         <View style={chatBubbleStyles.dateSeparator}>
-          <View style={[chatBubbleStyles.dateSeparatorPill, { backgroundColor: dateSepBg }]}>
-            <Text variant="captionSmall" style={{ color: dateSepText, fontWeight: '600' }}>
-              {dateSeparatorText}
-            </Text>
-          </View>
+          <View style={[chatBubbleStyles.dateSeparatorLine, { backgroundColor: separatorLineColor }]} />
+          <Text variant="captionSmall" style={{ color: separatorTextColor, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5, marginHorizontal: ms(10), fontSize: ms(9) }}>
+            {dateSeparatorText}
+          </Text>
+          <View style={[chatBubbleStyles.dateSeparatorLine, { backgroundColor: separatorLineColor }]} />
         </View>
       )}
-      <View
-        style={[
-          chatBubbleStyles.bubbleRow,
-          isOwn ? chatBubbleStyles.ownRow : chatBubbleStyles.otherRow,
-        ]}
-      >
-        <View
-          style={[
-            chatBubbleStyles.bubble,
-            {
-              backgroundColor: isOwn ? ownBubbleBg : otherBubbleBg,
-              borderTopLeftRadius: isOwn ? ms(16) : ms(4),
-              borderTopRightRadius: isOwn ? ms(4) : ms(16),
-            },
-          ]}
-        >
-          {!isOwn && (
-            <Text variant="captionSmall" style={[chatBubbleStyles.senderName, { color: colors.primary.main }]}>
-              {message.sender_name} ({message.sender_role})
+      <View style={[chatBubbleStyles.bubbleRow, isOwn ? chatBubbleStyles.ownRow : chatBubbleStyles.otherRow]}>
+        <View style={{ maxWidth: '75%' }}>
+          {/* Sender name + role above bubble */}
+          <View style={[chatBubbleStyles.senderRow, { justifyContent: isOwn ? 'flex-end' : 'flex-start' }]}>
+            <Text variant="captionSmall" style={{ color: senderNameColor, fontWeight: '600', fontSize: ms(10) }}>
+              {message.sender_name}
             </Text>
-          )}
-          <Text variant="bodySmall" style={{ color: isOwn ? ownTextColor : otherTextColor }}>
-            {message.message_text}
-          </Text>
-          <Text variant="captionSmall" style={[chatBubbleStyles.timestamp, { color: timeColor }]}>
-            {formatTimestamp(message.created_at)}
-          </Text>
+            <Text variant="captionSmall" style={{ color: roleColor, fontSize: ms(9), marginLeft: ms(4) }}>
+              {ROLE_LABELS[message.sender_role] || message.sender_role}
+            </Text>
+          </View>
+          {/* Bubble */}
+          <View
+            style={[
+              chatBubbleStyles.bubble,
+              {
+                backgroundColor: isOwn ? ownBubbleBg : otherBubbleBg,
+                borderTopRightRadius: isOwn ? ms(3) : ms(14),
+                borderTopLeftRadius: isOwn ? ms(14) : ms(3),
+                borderColor: isOwn ? colors.common.transparent : otherBorderColor,
+                borderWidth: isOwn ? 0 : 1,
+              },
+            ]}
+          >
+            <Text variant="bodySmall" style={{ color: isOwn ? colors.common.white : (isDark ? colors.dark.text.primary : chatLight.otherMessageText) }}>
+              {message.message_text}
+            </Text>
+            <Text variant="captionSmall" style={[chatBubbleStyles.timestamp, { color: isOwn ? chatColors.ownTimeText : (isDark ? colors.dark.text.hint : chatLight.otherTimeText) }]}>
+              {formatMessageTime(message.created_at)}
+            </Text>
+          </View>
         </View>
       </View>
     </View>
@@ -509,17 +534,17 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
 
 const chatBubbleStyles = StyleSheet.create({
   dateSeparator: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: ms(12),
+    marginVertical: ms(8),
+    paddingHorizontal: ms(12),
   },
-  dateSeparatorPill: {
-    paddingHorizontal: ms(14),
-    paddingVertical: ms(4),
-    borderRadius: ms(12),
+  dateSeparatorLine: {
+    flex: 1,
+    height: 1,
   },
   bubbleRow: {
     paddingHorizontal: ms(12),
-    marginBottom: ms(6),
   },
   ownRow: {
     alignItems: 'flex-end',
@@ -527,19 +552,166 @@ const chatBubbleStyles = StyleSheet.create({
   otherRow: {
     alignItems: 'flex-start',
   },
-  bubble: {
-    maxWidth: '80%',
-    padding: ms(10),
-    borderBottomLeftRadius: ms(16),
-    borderBottomRightRadius: ms(16),
-  },
-  senderName: {
-    fontWeight: '700',
+  senderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: ms(4),
     marginBottom: ms(2),
+  },
+  bubble: {
+    paddingHorizontal: ms(12),
+    paddingVertical: ms(8),
+    borderBottomLeftRadius: ms(14),
+    borderBottomRightRadius: ms(14),
   },
   timestamp: {
     alignSelf: 'flex-end',
     marginTop: ms(4),
+    fontSize: ms(9),
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Confirmation Modal
+// ---------------------------------------------------------------------------
+
+interface ConfirmModalState {
+  visible: boolean;
+  type: 'accept' | 'reject' | 'success' | 'error' | 'none';
+  title: string;
+  message: string;
+  isLoading?: boolean;
+}
+
+const CONFIRM_INITIAL: ConfirmModalState = { visible: false, type: 'none', title: '', message: '' };
+
+interface ConfirmationModalProps {
+  state: ConfirmModalState;
+  onConfirm: () => void;
+  onClose: () => void;
+  isDark: boolean;
+}
+
+const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ state, onConfirm, onClose, isDark }) => {
+  const cardBg = isDark ? colors.dark.card : colors.orderRequestDetail.confirmModal.light.cardBg;
+  const textColor = isDark ? colors.dark.text.primary : colors.light.text.primary;
+  const secondaryColor = isDark ? colors.dark.text.secondary : colors.light.text.secondary;
+  const isInfo = state.type === 'success' || state.type === 'error';
+
+  const iconName = state.type === 'accept' ? 'check-circle-outline'
+    : state.type === 'reject' ? 'close-circle-outline'
+    : state.type === 'success' ? 'check-circle'
+    : state.type === 'error' ? 'alert-circle'
+    : 'information';
+
+  const accentColor = state.type === 'accept' ? colors.success.main
+    : state.type === 'reject' ? colors.error.main
+    : state.type === 'success' ? colors.success.main
+    : colors.error.main;
+
+  return (
+    <Modal visible={state.visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={confirmStyles.overlay}>
+        <View style={[confirmStyles.card, { backgroundColor: cardBg }]}>
+          <View style={[confirmStyles.iconCircle, { backgroundColor: accentColor + '15' }]}>
+            <Icon name={iconName} size={ms(32)} color={accentColor} />
+          </View>
+          <Text variant="h3" style={[confirmStyles.title, { color: textColor }]}>{state.title}</Text>
+          <Text variant="bodySmall" style={[confirmStyles.message, { color: secondaryColor }]}>{state.message}</Text>
+
+          {isInfo ? (
+            <TouchableOpacity
+              style={[confirmStyles.btn, { backgroundColor: accentColor }]}
+              onPress={onClose}
+              activeOpacity={0.7}
+            >
+              <Text variant="buttonSmall" style={{ color: colors.common.white, fontWeight: '700' }}>OK</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={confirmStyles.btnRow}>
+              <TouchableOpacity
+                style={[confirmStyles.btn, confirmStyles.cancelBtn, { borderColor: isDark ? colors.dark.border : colors.orderRequestDetail.confirmModal.light.cancelBorder }]}
+                onPress={onClose}
+                activeOpacity={0.7}
+                disabled={state.isLoading}
+              >
+                <Text variant="buttonSmall" style={{ color: secondaryColor, fontWeight: '600' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[confirmStyles.btn, { backgroundColor: accentColor, flex: 1 }]}
+                onPress={onConfirm}
+                activeOpacity={0.7}
+                disabled={state.isLoading}
+              >
+                {state.isLoading ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text variant="buttonSmall" style={{ color: colors.common.white, fontWeight: '700' }}>
+                    {state.type === 'accept' ? 'Accept' : 'Reject'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const confirmStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: colors.overlay.medium,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: ms(24),
+  },
+  card: {
+    width: '100%',
+    maxWidth: ms(340),
+    borderRadius: ms(16),
+    padding: ms(24),
+    alignItems: 'center',
+    shadowColor: colors.common.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  iconCircle: {
+    width: ms(56),
+    height: ms(56),
+    borderRadius: ms(28),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: ms(16),
+  },
+  title: {
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: ms(8),
+  },
+  message: {
+    textAlign: 'center',
+    lineHeight: ms(20),
+    marginBottom: ms(20),
+  },
+  btnRow: {
+    flexDirection: 'row',
+    gap: ms(10),
+    width: '100%',
+  },
+  btn: {
+    flex: 1,
+    height: ms(44),
+    borderRadius: ms(10),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelBtn: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
   },
 });
 
@@ -555,8 +727,8 @@ interface OrderStatusDropdownProps {
 
 const OrderStatusDropdown: React.FC<OrderStatusDropdownProps> = ({ value, onChange, isDark }) => {
   const [visible, setVisible] = useState(false);
-  const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
-  const inputBorder = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+  const inputBg = isDark ? colors.orderRequestDetail.input.dark.bg : colors.orderRequestDetail.input.light.bg;
+  const inputBorder = isDark ? colors.orderRequestDetail.input.dark.border : colors.orderRequestDetail.input.light.border;
   const textColor = isDark ? colors.dark.text.primary : colors.light.text.primary;
   const modalBg = isDark ? colors.dark.surface : colors.light.surface;
   const modalBorder = isDark ? colors.dark.border : colors.light.border;
@@ -630,7 +802,7 @@ const dropdownStyles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContainer: {
@@ -669,7 +841,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
   const { orderRequestId } = route.params;
 
   // Data hooks
-  const { order, isLoading, isError, refetch } = useOrderRequestDetail(orderRequestId);
+  const { order, isLoading, isFetching, isError, refetch } = useOrderRequestDetail(orderRequestId);
   const { messages, isLoading: messagesLoading, refetch: refetchMessages } = useOrderRequestMessages(orderRequestId);
   const updateStatusMutation = useUpdateOrderRequestStatus();
   const sendMessageMutation = useSendOrderRequestMessage();
@@ -684,6 +856,22 @@ export const OrderRequestDetailScreen: React.FC = () => {
   const [messageText, setMessageText] = useState('');
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<ConfirmModalState>(CONFIRM_INITIAL);
+  const [creatorName, setCreatorName] = useState('');
+
+  // Fetch creator name
+  React.useEffect(() => {
+    if (order?.user_id) {
+      supabaseAdmin
+        .from('users')
+        .select('full_name')
+        .eq('id', order.user_id)
+        .single()
+        .then(({ data }) => {
+          if (data?.full_name) setCreatorName(data.full_name);
+        });
+    }
+  }, [order?.user_id]);
 
   // Theme
   const bgColor = isDark ? colors.dark.background : colors.light.background;
@@ -692,8 +880,8 @@ export const OrderRequestDetailScreen: React.FC = () => {
   const textColor = isDark ? colors.dark.text.primary : colors.light.text.primary;
   const secondaryTextColor = isDark ? colors.dark.text.secondary : colors.light.text.secondary;
   const borderColor = isDark ? colors.dark.border : colors.light.border;
-  const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
-  const inputBorder = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+  const inputBg = isDark ? colors.orderRequestDetail.input.dark.bg : colors.orderRequestDetail.input.light.bg;
+  const inputBorder = isDark ? colors.orderRequestDetail.input.dark.border : colors.orderRequestDetail.input.light.border;
 
   // Populate verification fields from order on load
   React.useEffect(() => {
@@ -708,72 +896,82 @@ export const OrderRequestDetailScreen: React.FC = () => {
 
   // ----- Actions -----
 
-  const handleAccept = useCallback(async () => {
+  // Accept: show confirmation modal first
+  const handleAcceptPress = useCallback(() => {
     if (!order) return;
-
     if (!orderNumber.trim()) {
-      Alert.alert('Validation Error', 'Order Number is required to accept this order request.');
+      setConfirmModal({ visible: true, type: 'error', title: 'Validation Error', message: 'Order Number is required to accept this order request.' });
       return;
     }
+    setConfirmModal({
+      visible: true,
+      type: 'accept',
+      title: 'Accept Order Request',
+      message: 'Are you sure you want to accept this order request?',
+    });
+  }, [order, orderNumber]);
 
-    setIsAccepting(true);
+  const handleAcceptConfirm = useCallback(async () => {
+    if (!order) return;
+    setConfirmModal((prev) => ({ ...prev, isLoading: true }));
     try {
-      // Update verification data first
       await orderRequestService.updateVerification(order.id, {
         order_number: orderNumber.trim(),
         order_status: selectedOrderStatus,
         on_job_date: verificationDate || undefined,
         on_job_time: verificationTime || undefined,
       });
-
-      // Then update status
       await updateStatusMutation.mutateAsync({ id: order.id, status: 'approved' });
-      Alert.alert('Success', 'Order request has been accepted.');
+      setConfirmModal({ visible: true, type: 'success', title: 'Accepted', message: 'Order request has been accepted successfully.' });
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'Failed to accept order request.');
-    } finally {
-      setIsAccepting(false);
+      setConfirmModal({ visible: true, type: 'error', title: 'Error', message: err?.message || 'Failed to accept order request.' });
     }
   }, [order, orderNumber, selectedOrderStatus, verificationDate, verificationTime, updateStatusMutation]);
 
-  const handleReject = useCallback(() => {
+  // Reject: show confirmation modal first
+  const handleRejectPress = useCallback(() => {
     if (!order) return;
-    Alert.alert(
-      'Reject Order Request',
-      'Are you sure you want to reject this order request? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reject',
-          style: 'destructive',
-          onPress: async () => {
-            setIsRejecting(true);
-            try {
-              await updateStatusMutation.mutateAsync({ id: order.id, status: 'rejected' });
-              Alert.alert('Rejected', 'Order request has been rejected.');
-            } catch (err: any) {
-              Alert.alert('Error', err?.message || 'Failed to reject order request.');
-            } finally {
-              setIsRejecting(false);
-            }
-          },
-        },
-      ],
-    );
+    setConfirmModal({
+      visible: true,
+      type: 'reject',
+      title: 'Reject Order Request',
+      message: 'Are you sure you want to reject this order request? This action cannot be undone.',
+    });
+  }, [order]);
+
+  const handleRejectConfirm = useCallback(async () => {
+    if (!order) return;
+    setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+    try {
+      await updateStatusMutation.mutateAsync({ id: order.id, status: 'rejected' });
+      setConfirmModal({ visible: true, type: 'success', title: 'Rejected', message: 'Order request has been rejected.' });
+    } catch (err: any) {
+      setConfirmModal({ visible: true, type: 'error', title: 'Error', message: err?.message || 'Failed to reject order request.' });
+    }
   }, [order, updateStatusMutation]);
+
+  const handleConfirmModalAction = useCallback(() => {
+    if (confirmModal.type === 'accept') handleAcceptConfirm();
+    else if (confirmModal.type === 'reject') handleRejectConfirm();
+  }, [confirmModal.type, handleAcceptConfirm, handleRejectConfirm]);
 
   const handleSendMessage = useCallback(async () => {
     if (!messageText.trim() || !order) return;
-    const role = user?.role || 'customer';
+    // Map userType to valid sender_role matching web and DB constraint
+    // DB CHECK: sender_role IN ('concrete_producer', 'contractor', 'admin')
+    const ut = user?.userType || 'none';
+    const senderRole = ut === 'admin' ? 'admin'
+      : ut === 'contractor' ? 'contractor'
+      : 'concrete_producer';
     try {
       await sendMessageMutation.mutateAsync({
         id: order.id,
         messageText: messageText.trim(),
-        senderRole: role,
+        senderRole,
       });
       setMessageText('');
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'Failed to send message.');
+      setConfirmModal({ visible: true, type: 'error', title: 'Error', message: err?.message || 'Failed to send message.' });
     }
   }, [messageText, order, user, sendMessageMutation]);
 
@@ -813,6 +1011,9 @@ export const OrderRequestDetailScreen: React.FC = () => {
   const status = order.status;
   const statusColor = STATUS_COLORS[status] || colors.grey[50];
   const isPendingOrSubmitted = status === 'pending' || status === 'submitted';
+  // Only admin and producer users can accept/reject/update orders (matches web)
+  const userType = user?.userType || 'none';
+  const canManageOrders = userType === 'admin' || userType === 'producer';
   const orderCode = formatOrderCode(order.id);
   const truckRate = computeTruckRate(order.truck_spacing);
 
@@ -830,8 +1031,8 @@ export const OrderRequestDetailScreen: React.FC = () => {
   // ----- Render -----
 
   return (
-    <ScreenContainer>
-      <ScreenHeader title={orderCode} showBackButton />
+    <ScreenContainer style={{top: -50}}>
+      <ScreenHeader title={'Order Request'} showBackButton showRefreshButton isRefreshing={isFetching && !isLoading} onRefresh={() => { refetch(); refetchMessages(); }} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -842,7 +1043,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
           style={{ flex: 1 }}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: insets.bottom + ms(24) },
+            { paddingBottom: TAB_BAR_HEIGHT + insets.bottom + ms(24) },
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -875,7 +1076,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
           </View>
 
           {/* ========== ACCEPT / REJECT / UPDATE SECTION ========== */}
-          {isPendingOrSubmitted && (
+          {canManageOrders && isPendingOrSubmitted && (
             <View style={[styles.actionSection, { backgroundColor: cardBg }]}>
               {/* Action Buttons */}
               <View style={styles.actionButtonsRow}>
@@ -884,7 +1085,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                     styles.actionBtn,
                     { backgroundColor: colors.success.main },
                   ]}
-                  onPress={handleAccept}
+                  onPress={handleAcceptPress}
                   disabled={isAccepting}
                   activeOpacity={0.7}
                 >
@@ -907,7 +1108,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                       borderColor: colors.error.main,
                     },
                   ]}
-                  onPress={handleReject}
+                  onPress={handleRejectPress}
                   disabled={isRejecting}
                   activeOpacity={0.7}
                 >
@@ -973,7 +1174,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                   </View>
                   <View style={[styles.verificationField, { flex: 1 }]}>
                     <Text variant="captionSmall" style={{ color: secondaryTextColor, marginBottom: ms(4) }}>
-                      Order Status
+                      Verify Order Status
                     </Text>
                     <OrderStatusDropdown
                       value={selectedOrderStatus}
@@ -987,7 +1188,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                 <View style={[styles.verificationRow, { marginTop: ms(10) }]}>
                   <View style={[styles.verificationField, { flex: 1, marginRight: ms(8) }]}>
                     <Text variant="captionSmall" style={{ color: secondaryTextColor, marginBottom: ms(4) }}>
-                      Date
+                      Verify Order Date
                     </Text>
                     <TouchableOpacity
                       style={[
@@ -1007,7 +1208,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                         variant="bodySmall"
                         style={{ color: verificationDate ? textColor : (isDark ? colors.dark.text.hint : colors.light.text.hint) }}
                       >
-                        {verificationDate ? formatDate(verificationDate) : 'Select date'}
+                        {verificationDate ? formatDateLocal(verificationDate) : 'Select date'}
                       </Text>
                       <Icon name="calendar" size={ms(16)} color={secondaryTextColor} />
                     </TouchableOpacity>
@@ -1022,7 +1223,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                   </View>
                   <View style={[styles.verificationField, { flex: 1 }]}>
                     <Text variant="captionSmall" style={{ color: secondaryTextColor, marginBottom: ms(4) }}>
-                      Time
+                      Verify Arrival Time
                     </Text>
                     <TouchableOpacity
                       style={[
@@ -1042,7 +1243,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                         variant="bodySmall"
                         style={{ color: verificationTime ? textColor : (isDark ? colors.dark.text.hint : colors.light.text.hint) }}
                       >
-                        {verificationTime ? verificationTime.substring(0, 5) : 'Select time'}
+                        {verificationTime ? (() => { const [h, m] = verificationTime.split(':').map(Number); const period = h >= 12 ? 'PM' : 'AM'; const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h; return `${h12}:${String(m).padStart(2, '0')} ${period}`; })() : 'Select time'}
                       </Text>
                       <Icon name="clock-outline" size={ms(16)} color={secondaryTextColor} />
                     </TouchableOpacity>
@@ -1100,6 +1301,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                 icon="truck-outline"
                 label="Truck Rate"
                 value={truckRate}
+                sub={order.truck_spacing ? `${order.truck_spacing} min spacing` : undefined}
                 bgColor="#14B8A6"
                 isDark={isDark}
               />
@@ -1107,7 +1309,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
               <QuickStatCard
                 icon="package-variant"
                 label="Quantity"
-                value={order.quantity != null ? `${order.quantity} CY` : '-'}
+                value={order.quantity ? `${Number(order.quantity).toFixed(2)} CY` : '0.00 CY'}
                 bgColor="#F59E0B"
                 isDark={isDark}
               />
@@ -1168,7 +1370,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
             <ProductRow
               label="Concrete"
               code={order.concrete_product_code}
-              name={order.concrete_product_name || order.concrete_product_text}
+              name={order.concrete_product_name}
               quantity={order.quantity}
               slump={order.slump}
               notes={order.concrete_notes}
@@ -1209,6 +1411,13 @@ export const OrderRequestDetailScreen: React.FC = () => {
             headerColor="#6366F1"
             isDark={isDark}
           >
+            <View style={[styles.summaryAlert, isDark && styles.summaryAlertDark]}>
+              <Text variant="bodySmall" style={{ color: isDark ? colors.orderRequestDetail.summaryAlert.dark.text : colors.orderRequestDetail.summaryAlert.light.text }}>
+                <Text variant="bodySmall" style={{ fontWeight: '700', color: isDark ? colors.orderRequestDetail.summaryAlert.dark.textBold : colors.orderRequestDetail.summaryAlert.light.textBold }}>{creatorName || 'User'}</Text>
+                {' '}placed an Order Request for{' '}
+                <Text variant="bodySmall" style={{ fontWeight: '700', color: isDark ? colors.orderRequestDetail.summaryAlert.dark.textBold : colors.orderRequestDetail.summaryAlert.light.textBold }}>{order.company_name || '—'}</Text>
+              </Text>
+            </View>
             <InfoRow label="Request #" value={orderCode} isDark={isDark} />
             <InfoRow
               label="Order Status"
@@ -1240,7 +1449,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
               label="Spacing"
               value={
                 order.truck_spacing
-                  ? `${order.truck_spacing} min (${truckRate})`
+                  ? `${order.truck_spacing} min / ${truckRate}`
                   : '-'
               }
               isDark={isDark}
@@ -1289,11 +1498,13 @@ export const OrderRequestDetailScreen: React.FC = () => {
             </View>
 
             {/* Messages list */}
-            <View
+            <ScrollView
               style={[
                 styles.chatMessagesContainer,
                 { backgroundColor: isDark ? colors.chat.dark.messageArea : colors.chat.light.messageArea },
               ]}
+              contentContainerStyle={{ paddingVertical: ms(8) }}
+              nestedScrollEnabled
             >
               {messagesLoading ? (
                 <View style={styles.chatLoading}>
@@ -1318,7 +1529,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                   />
                 ))
               )}
-            </View>
+            </ScrollView>
 
             {/* Message input */}
             <View style={[styles.chatInputRow, { borderTopColor: borderColor }]}>
@@ -1344,8 +1555,8 @@ export const OrderRequestDetailScreen: React.FC = () => {
                     backgroundColor: messageText.trim()
                       ? colors.primary.main
                       : isDark
-                      ? 'rgba(255,255,255,0.1)'
-                      : 'rgba(0,0,0,0.06)',
+                      ? colors.orderRequestDetail.sendButton.dark.disabledBg
+                      : colors.orderRequestDetail.sendButton.light.disabledBg,
                   },
                 ]}
                 onPress={handleSendMessage}
@@ -1358,7 +1569,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                   <Icon
                     name="send"
                     size={ms(20)}
-                    color={messageText.trim() ? '#FFF' : secondaryTextColor}
+                    color={messageText.trim() ? colors.common.white : secondaryTextColor}
                   />
                 )}
               </TouchableOpacity>
@@ -1366,6 +1577,13 @@ export const OrderRequestDetailScreen: React.FC = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ConfirmationModal
+        state={confirmModal}
+        onConfirm={handleConfirmModalAction}
+        onClose={() => setConfirmModal(CONFIRM_INITIAL)}
+        isDark={isDark}
+      />
     </ScreenContainer>
   );
 };
@@ -1391,7 +1609,7 @@ const styles = StyleSheet.create({
     borderRadius: ms(12),
     padding: ms(16),
     marginBottom: ms(16),
-    shadowColor: '#000',
+    shadowColor: colors.common.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 3,
@@ -1414,7 +1632,7 @@ const styles = StyleSheet.create({
     borderRadius: ms(12),
     padding: ms(16),
     marginBottom: ms(16),
-    shadowColor: '#000',
+    shadowColor: colors.common.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 3,
@@ -1434,7 +1652,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionBtnText: {
-    color: '#FFF',
+    color: colors.common.white,
     fontWeight: '700',
     marginLeft: ms(6),
   },
@@ -1442,7 +1660,7 @@ const styles = StyleSheet.create({
   // Verification
   verificationSection: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(128,128,128,0.2)',
+    borderTopColor: colors.orderRequestDetail.sectionHeader.borderColor,
     paddingTop: ms(14),
   },
   verificationRow: {
@@ -1475,12 +1693,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: ms(16),
   },
+  summaryAlert: {
+    backgroundColor: colors.orderRequestDetail.summaryAlert.light.bg,
+    borderColor: colors.orderRequestDetail.summaryAlert.light.border,
+    borderWidth: 1,
+    borderRadius: ms(10),
+    paddingHorizontal: ms(14),
+    paddingVertical: ms(10),
+    marginBottom: ms(10),
+  },
+  summaryAlertDark: {
+    backgroundColor: colors.orderRequestDetail.summaryAlert.dark.bg,
+    borderColor: colors.orderRequestDetail.summaryAlert.dark.border,
+  },
 
   // Chat Section
   chatSection: {
     borderRadius: ms(12),
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.common.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 3,
@@ -1493,12 +1724,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: ms(14),
     paddingVertical: ms(12),
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(128,128,128,0.2)',
+    borderBottomColor: colors.orderRequestDetail.sectionHeader.borderColor,
   },
   chatMessagesContainer: {
     minHeight: ms(120),
-    maxHeight: ms(350),
-    paddingVertical: ms(8),
+    maxHeight: ms(380),
   },
   chatLoading: {
     flex: 1,

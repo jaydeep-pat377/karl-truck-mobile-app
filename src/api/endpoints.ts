@@ -50,5 +50,6 @@ export const API_ENDPOINTS = {
     FORM_DATA: '/order-requests/form-data',
     SEARCH_ORDERS: '/order-requests/search-orders',
     SEARCH_PRODUCTS: '/order-requests/search-products',
+    RECENT_ENTITIES: '/order-requests/recent-entities',
   },
 } as const;

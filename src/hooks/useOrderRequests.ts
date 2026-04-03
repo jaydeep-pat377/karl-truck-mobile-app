@@ -98,6 +98,7 @@ export const useOrderRequestDetail = (id: string) => {
   return {
     order,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
     refetch: query.refetch,
@@ -232,6 +233,22 @@ export const useSearchOrders = (searchQuery: string) => {
 
   return {
     orders,
+    isLoading: query.isLoading,
+  };
+};
+
+export const useRecentOrderEntities = () => {
+  const query = useQuery({
+    queryKey: ['recentOrderEntities'],
+    queryFn: () => orderRequestService.getRecentEntities(),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+  const entities = query.data?.success ? query.data.data.orders : [];
+
+  return {
+    entities,
     isLoading: query.isLoading,
   };
 };

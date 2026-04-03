@@ -15,6 +15,12 @@ import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
 import { useTheme } from '../../contexts/ThemeContext';
 
+// Screens where tab bar should STAY VISIBLE even when nested (not at index 0)
+const TAB_VISIBLE_SCREEN_NAMES = [
+  'OrderRequestDetail',
+  'CreateOrderRequest',
+];
+
 const DETAIL_SCREEN_NAMES = [
 
   'OrderDetail',
@@ -29,8 +35,6 @@ const DETAIL_SCREEN_NAMES = [
   'EvaporationList',
   'OrderProductDetails',
 
-  'OrderRequestDetail',
-  'CreateOrderRequest',
 
   'Profile',
   'EditProfile',
@@ -68,6 +72,10 @@ const isOnDetailScreen = (state: any): boolean => {
         return true;
       }
 
+      // Keep tab bar visible for specific screens even when nested
+      if (TAB_VISIBLE_SCREEN_NAMES.includes(screenName)) {
+        return false;
+      }
 
       if (nestedIndex > 0) {
         return true;

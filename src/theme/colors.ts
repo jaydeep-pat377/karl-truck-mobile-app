@@ -653,6 +653,75 @@ export const colors = {
       },
     },
   },
+  orderRequestDetail: {
+    chat: {
+      ownBubbleBg: '#2563EB',
+      ownTimeText: '#BFDBFE',
+      light: {
+        otherBubbleBg: '#F1F5F9',
+        otherBorderColor: '#E2E8F0',
+        ownSenderName: '#2563EB',
+        otherSenderName: '#475569',
+        roleLabel: '#94A3B8',
+        separatorLine: '#E2E8F0',
+        separatorText: '#94A3B8',
+        otherMessageText: '#1E293B',
+        otherTimeText: '#94A3B8',
+      },
+      dark: {
+        ownSenderName: '#60A5FA',
+      },
+    },
+    summaryAlert: {
+      light: {
+        bg: 'rgba(14, 165, 233, 0.08)',
+        border: 'rgba(14, 165, 233, 0.25)',
+        text: '#0369A1',
+        textBold: '#0C4A6E',
+      },
+      dark: {
+        bg: 'rgba(14, 165, 233, 0.12)',
+        border: 'rgba(14, 165, 233, 0.3)',
+        text: '#7DD3FC',
+        textBold: '#7DD3FC',
+      },
+    },
+    confirmModal: {
+      light: {
+        cardBg: '#FFFFFF',
+        cancelBorder: '#E2E8F0',
+      },
+    },
+    sectionHeader: {
+      borderColor: 'rgba(128,128,128,0.2)',
+    },
+    input: {
+      light: {
+        bg: 'rgba(0,0,0,0.04)',
+        border: 'rgba(0,0,0,0.1)',
+      },
+      dark: {
+        bg: 'rgba(255,255,255,0.08)',
+        border: 'rgba(255,255,255,0.15)',
+      },
+    },
+    sendButton: {
+      light: {
+        disabledBg: 'rgba(0,0,0,0.06)',
+      },
+      dark: {
+        disabledBg: 'rgba(255,255,255,0.1)',
+      },
+    },
+    product: {
+      light: {
+        borderColor: 'rgba(0,0,0,0.06)',
+      },
+      dark: {
+        borderColor: 'rgba(255,255,255,0.08)',
+      },
+    },
+  },
   gradients: {
     light: {
       primary: ['#458b00', '#5aa510'],

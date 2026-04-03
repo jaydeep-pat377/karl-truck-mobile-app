@@ -695,7 +695,7 @@ export const OrderRequestListScreen: React.FC = () => {
         }
         contentContainerStyle={[
           styles.listContent,
-          { paddingBottom: TAB_BAR_HEIGHT + insets.bottom + ms(16) },
+          { paddingBottom: TAB_BAR_HEIGHT + insets.bottom + ms(30) },
           filteredOrders.length === 0 && styles.listContentEmpty,
         ]}
         refreshControl={
@@ -778,7 +778,8 @@ const styles = StyleSheet.create({
   },
   filterTabsContainer: {
     paddingHorizontal: spacing.md,
-    paddingBottom: ms(12),
+    paddingTop: ms(4),
+    paddingBottom: ms(20),
     gap: ms(6),
   },
   filterTab: {
@@ -812,7 +813,7 @@ const styles = StyleSheet.create({
   // Search
   searchContainer: {
     paddingHorizontal: spacing.md,
-    paddingTop: ms(14),
+    paddingTop: ms(4),
     paddingBottom: ms(10),
   },
   searchBar: {

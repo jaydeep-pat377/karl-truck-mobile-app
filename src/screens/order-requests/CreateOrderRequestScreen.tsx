@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Modal,
   FlatList,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,8 +29,10 @@ import {
   useOrderRequestDetail,
   useSearchProducts,
   useSearchOrders,
+  useRecentOrderEntities,
 } from '../../hooks/useOrderRequests';
 import { OrderEntityCreateInput, ORDER_STATUS_LABELS, OrderType } from '../../types/orderRequest';
+import { orderRequestService } from '../../api/services/orderRequestService';
 import { useAuthStore } from '../../store/authStore';
 
 // ---------------------------------------------------------------------------
@@ -40,6 +42,7 @@ import { useAuthStore } from '../../store/authStore';
 type CreateOrderRequestParams = {
   orderType?: OrderType;
   editOrderId?: string;
+  prefillOrder?: Record<string, any>;
 };
 
 type CreateOrderRequestRouteProp = RouteProp<
@@ -58,10 +61,10 @@ interface DropdownOption {
 
 const ORDER_TYPE_OPTIONS: { key: OrderType; label: string; icon: string }[] = [
   { key: 'with_project', label: 'With Project', icon: 'clipboard-check' },
-  { key: 'without_project', label: 'Without Project', icon: 'package-variant' },
+  { key: 'without_project', label: 'W/O Project', icon: 'package-variant' },
   {
     key: 'without_project_with_product',
-    label: 'Without Project\n(With Product)',
+    label: 'W/O Project + Product',
     icon: 'clipboard-list',
   },
 ];
@@ -71,6 +74,7 @@ const ORDER_STATUS_OPTIONS: DropdownOption[] = [
   { value: '1', label: 'Will Call' },
   { value: '2', label: 'Weather Permitting' },
   { value: '3', label: 'Hold' },
+  { value: '4', label: 'Completed' },
   { value: '5', label: 'Wait List' },
 ];
 
@@ -156,6 +160,9 @@ interface SearchableDropdownModalProps {
   isDark: boolean;
   onSearchChange?: (query: string) => void;
   searchPlaceholder?: string;
+  multiSelect?: boolean;
+  selectedValues?: string[];
+  onMultiSelect?: (values: string[], labels: string[]) => void;
 }
 
 const SearchableDropdownModal: React.FC<SearchableDropdownModalProps> = ({
@@ -168,7 +175,11 @@ const SearchableDropdownModal: React.FC<SearchableDropdownModalProps> = ({
   isDark,
   onSearchChange,
   searchPlaceholder,
+  multiSelect = false,
+  selectedValues = [],
+  onMultiSelect,
 }) => {
+  const [localSelected, setLocalSelected] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const themeColors = isDark ? colors.dark : colors.light;
   const isServerSearch = !!onSearchChange;
@@ -192,12 +203,15 @@ const SearchableDropdownModal: React.FC<SearchableDropdownModalProps> = ({
   useEffect(() => {
     if (!visible) {
       setSearch('');
-      if (onSearchChange) onSearchChange('');
+      // Don't clear parent search state on close — handler needs the data
+      // Parent will clear via setActiveDropdown(null) naturally
+    } else if (multiSelect) {
+      setLocalSelected(selectedValues);
     }
-  }, [visible, onSearchChange]);
+  }, [visible, multiSelect, selectedValues]);
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent>
       <View style={[styles.modalOverlay]}>
         <View
           style={[
@@ -249,7 +263,9 @@ const SearchableDropdownModal: React.FC<SearchableDropdownModalProps> = ({
             keyExtractor={(item) => item.value}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => {
-              const isSelected = item.value === selectedValue;
+              const isSelected = multiSelect
+                ? localSelected.includes(item.value)
+                : item.value === selectedValue;
               return (
                 <TouchableOpacity
                   style={[
@@ -261,18 +277,37 @@ const SearchableDropdownModal: React.FC<SearchableDropdownModalProps> = ({
                     },
                   ]}
                   onPress={() => {
-                    onSelect(item);
-                    onClose();
+                    if (multiSelect) {
+                      setLocalSelected((prev) =>
+                        prev.includes(item.value)
+                          ? prev.filter((v) => v !== item.value)
+                          : [...prev, item.value],
+                      );
+                    } else {
+                      onSelect(item);
+                      onClose();
+                    }
                   }}
                 >
+                  {multiSelect && (
+                    <Icon
+                      name={isSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                      size={ms(20)}
+                      color={isSelected ? colors.primary.main : (isDark ? colors.dark.text.hint : colors.light.text.hint)}
+                      style={{ marginRight: ms(10) }}
+                    />
+                  )}
                   <Text
                     variant="body"
-                    style={isSelected ? { color: colors.primary.main, fontWeight: '600' } : undefined}
+                    style={[
+                      { flex: 1 },
+                      isSelected ? { color: colors.primary.main, fontWeight: '600' } : undefined,
+                    ]}
                     numberOfLines={2}
                   >
                     {item.label}
                   </Text>
-                  {isSelected && (
+                  {!multiSelect && isSelected && (
                     <Icon name="check" size={ms(20)} color={colors.primary.main} />
                   )}
                 </TouchableOpacity>
@@ -289,11 +324,141 @@ const SearchableDropdownModal: React.FC<SearchableDropdownModalProps> = ({
             }
             style={{ maxHeight: Dimensions.get('window').height * 0.5 }}
           />
+
+          {/* Done button for multi-select */}
+          {multiSelect && (
+            <View style={{ padding: ms(12), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: themeColors.border }}>
+              <TouchableOpacity
+                style={{ backgroundColor: colors.primary.main, borderRadius: ms(10), paddingVertical: ms(12), alignItems: 'center' }}
+                onPress={() => {
+                  if (onMultiSelect) {
+                    const labels = localSelected
+                      .map((v) => options.find((o) => o.value === v)?.label || v)
+                      .filter(Boolean);
+                    onMultiSelect(localSelected, labels);
+                  }
+                  onClose();
+                }}
+                activeOpacity={0.7}
+              >
+                <Text variant="buttonSmall" style={{ color: colors.common.white, fontWeight: '700' }}>
+                  Done{localSelected.length > 0 ? ` (${localSelected.length})` : ''}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
     </Modal>
   );
 };
+
+// ---------------------------------------------------------------------------
+// Themed Alert Modal
+// ---------------------------------------------------------------------------
+
+interface ThemedAlertState {
+  visible: boolean;
+  type: 'success' | 'error' | 'warning';
+  title: string;
+  message: string;
+  onDismiss?: () => void;
+}
+
+const ALERT_INITIAL: ThemedAlertState = { visible: false, type: 'success', title: '', message: '' };
+
+interface ThemedAlertModalProps {
+  state: ThemedAlertState;
+  onClose: () => void;
+  isDark: boolean;
+}
+
+const ThemedAlertModal: React.FC<ThemedAlertModalProps> = ({ state, onClose, isDark }) => {
+  const cardBg = isDark ? colors.dark.card : colors.common.white;
+  const textColor = isDark ? colors.dark.text.primary : colors.light.text.primary;
+  const secondaryColor = isDark ? colors.dark.text.secondary : colors.light.text.secondary;
+
+  const accentColor = state.type === 'success' ? colors.success.main
+    : state.type === 'error' ? colors.error.main
+    : colors.warning.main;
+
+  const iconName = state.type === 'success' ? 'check-circle'
+    : state.type === 'error' ? 'alert-circle'
+    : 'alert';
+
+  const handleClose = () => {
+    onClose();
+    if (state.onDismiss) state.onDismiss();
+  };
+
+  return (
+    <Modal visible={state.visible} transparent animationType="fade" onRequestClose={handleClose}>
+      <View style={themedAlertStyles.overlay}>
+        <View style={[themedAlertStyles.card, { backgroundColor: cardBg }]}>
+          <View style={[themedAlertStyles.iconCircle, { backgroundColor: accentColor + '15' }]}>
+            <Icon name={iconName} size={ms(32)} color={accentColor} />
+          </View>
+          <Text variant="h3" style={[themedAlertStyles.title, { color: textColor }]}>{state.title}</Text>
+          <Text variant="bodySmall" style={[themedAlertStyles.message, { color: secondaryColor }]}>{state.message}</Text>
+          <TouchableOpacity
+            style={[themedAlertStyles.btn, { backgroundColor: accentColor }]}
+            onPress={handleClose}
+            activeOpacity={0.7}
+          >
+            <Text variant="buttonSmall" style={{ color: colors.common.white, fontWeight: '700' }}>OK</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const themedAlertStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: colors.overlay.medium,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: ms(24),
+  },
+  card: {
+    width: '100%',
+    maxWidth: ms(340),
+    borderRadius: ms(16),
+    padding: ms(24),
+    alignItems: 'center',
+    shadowColor: colors.common.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  iconCircle: {
+    width: ms(56),
+    height: ms(56),
+    borderRadius: ms(28),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: ms(16),
+  },
+  title: {
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: ms(8),
+  },
+  message: {
+    textAlign: 'center',
+    lineHeight: ms(20),
+    marginBottom: ms(20),
+  },
+  btn: {
+    width: '100%',
+    height: ms(44),
+    borderRadius: ms(10),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
 
 // ---------------------------------------------------------------------------
 // Main component
@@ -306,7 +471,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
 
-  const { orderType: routeOrderType, editOrderId } = route.params ?? {};
+  const { orderType: routeOrderType, editOrderId, prefillOrder } = route.params ?? {};
   const isEditMode = !!editOrderId;
 
   // Data hooks
@@ -328,13 +493,14 @@ export const CreateOrderRequestScreen: React.FC = () => {
   const [companyId, setCompanyId] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [referencedOrder, setReferencedOrder] = useState('');
+  const [referencedOrderLabel, setReferencedOrderLabel] = useState('');
   const [referencedOrderSearch, setReferencedOrderSearch] = useState('');
   const [regionCode, setRegionCode] = useState('');
   const [regionName, setRegionName] = useState('');
   const [customerJobNumber, setCustomerJobNumber] = useState('');
   const [usageCode, setUsageCode] = useState('');
   const [poNumber, setPoNumber] = useState('');
-  const [orderStatus, setOrderStatus] = useState<number>(0);
+  const [orderStatus, setOrderStatus] = useState<number | null>(null);
   const [onJobDate, setOnJobDate] = useState('');
   const [onJobTime, setOnJobTime] = useState('');
   const [jobName, setJobName] = useState('');
@@ -389,12 +555,21 @@ export const CreateOrderRequestScreen: React.FC = () => {
 
   // Modal state
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [themedAlert, setThemedAlert] = useState<ThemedAlertState>(ALERT_INITIAL);
 
   // Product search
   const { products: searchedProducts } = useSearchProducts(productSearchQuery);
 
-  // Referenced order search
+  // Referenced order search + recent entities (matches web's dual-source)
   const { orders: searchedOrders } = useSearchOrders(referencedOrderSearch);
+  const { entities: recentEntities } = useRecentOrderEntities();
+  // Store full order data in a stable map so handler can always find it after modal closes
+  const searchedOrdersMapRef = useRef<Map<string, typeof searchedOrders[0]>>(new Map());
+  useEffect(() => {
+    searchedOrders.forEach((o) => {
+      searchedOrdersMapRef.current.set(o.order_code, o);
+    });
+  }, [searchedOrders]);
 
   // ---------------------------------------------------------------------------
   // Derived data
@@ -434,18 +609,30 @@ export const CreateOrderRequestScreen: React.FC = () => {
   }, [formData, companyId]);
 
   const productOptions: DropdownOption[] = useMemo(() => {
-    return searchedProducts.map((p) => ({
+    const seen = new Set<string>();
+    return searchedProducts.filter((p) => {
+      if (seen.has(p.value)) return false;
+      seen.add(p.value);
+      return true;
+    }).map((p) => ({
       value: p.value,
       label: p.label,
     }));
   }, [searchedProducts]);
 
   const referencedOrderOptions: DropdownOption[] = useMemo(() => {
-    return searchedOrders.map((o) => ({
-      value: o.order_code,
-      label: `${o.order_code} - ${o.customer_name}`,
+    // Recent order entities first (matching web's combinedReferencedOrders)
+    const entityOptions = recentEntities.map((e) => ({
+      value: `entity|${e.id}`,
+      label: e.display,
     }));
-  }, [searchedOrders]);
+    // Then server-searched orders
+    const orderOptions = searchedOrders.map((o) => ({
+      value: `order|${o.order_code}`,
+      label: `${o.order_code} — ${o.customer_name}${o.project_name ? ` — ${o.project_name}` : ''}`,
+    }));
+    return [...entityOptions, ...orderOptions];
+  }, [recentEntities, searchedOrders]);
 
   const admixtureOptions: DropdownOption[] = useMemo(() => {
     if (!formData?.admixtureProducts) return [];
@@ -464,7 +651,8 @@ export const CreateOrderRequestScreen: React.FC = () => {
   }, [formData]);
 
   const orderStatusLabel = useMemo(() => {
-    return ORDER_STATUS_LABELS[orderStatus] ?? 'Normal';
+    if (orderStatus === null || orderStatus === undefined) return '';
+    return ORDER_STATUS_LABELS[orderStatus] ?? '';
   }, [orderStatus]);
 
   const spacingTypeLabel = useMemo(() => {
@@ -524,6 +712,53 @@ export const CreateOrderRequestScreen: React.FC = () => {
     }
   }, [editOrder, isEditMode]);
 
+  // Pre-fill form from order (Request button on order card, matches web)
+  useEffect(() => {
+    if (prefillOrder && !isEditMode) {
+      // Referenced order
+      if (prefillOrder.order_code) setReferencedOrder(prefillOrder.order_code);
+      // Company
+      if (prefillOrder.customer_name) setCompanyName(prefillOrder.customer_name);
+      // Match company ID from loaded form data
+      if (prefillOrder.customer_name && formData?.customers) {
+        const match = formData.customers.find(
+          (c) => c.name.toLowerCase() === prefillOrder.customer_name.toLowerCase(),
+        );
+        if (match) setCompanyId(match.code);
+      }
+      // Job location
+      if (prefillOrder.job_address) setJobAddress(prefillOrder.job_address);
+      if (prefillOrder.job_city) setJobCity(prefillOrder.job_city);
+      if (prefillOrder.job_state) setJobState(prefillOrder.job_state);
+      // Contact
+      if (prefillOrder.job_contact_name) setContactName(prefillOrder.job_contact_name);
+      if (prefillOrder.job_contact_phone) setContactPhone(prefillOrder.job_contact_phone);
+      // Product
+      if (prefillOrder.item_code) {
+        setConcreteProductCode(prefillOrder.item_code);
+        setConcreteProductName(prefillOrder.item_code);
+      }
+      // Quantity
+      if (prefillOrder.quantity) setQuantity(String(prefillOrder.quantity));
+      // Driver instructions
+      if (prefillOrder.special_instructions) setDriverInstructions(prefillOrder.special_instructions);
+      // Region - match from loaded form data by zone name
+      if (prefillOrder.zone_name && formData?.regions) {
+        const match = formData.regions.find(
+          (r) => r.description.toLowerCase() === prefillOrder.zone_name.toLowerCase(),
+        );
+        if (match) {
+          setRegionCode(match.code);
+          setRegionName(match.description);
+        }
+      }
+      // Auto-detect order type based on project
+      if (prefillOrder.project_name) {
+        setOrderType('with_project');
+      }
+    }
+  }, [prefillOrder, isEditMode, formData]);
+
   // Auto-fill from project selection
   const handleProjectSelect = useCallback(
     (option: DropdownOption) => {
@@ -554,28 +789,90 @@ export const CreateOrderRequestScreen: React.FC = () => {
     [],
   );
 
+  // Auto-compose Concrete Product text from PSI, Rock Size, Air/Non-air, Fly Ash (matches web)
+  React.useEffect(() => {
+    if (!knowMixCode && orderType === 'without_project') {
+      const parts = [psi, rockSize, airNonAir, flyAsh === 'Yes' ? 'Fly Ash' : ''].filter(Boolean);
+      if (parts.length > 0) {
+        setConcreteProductText(parts.join(','));
+      }
+    }
+  }, [knowMixCode, orderType, psi, rockSize, airNonAir, flyAsh]);
+
   // Auto-fill from referenced order selection
   const handleReferencedOrderSelect = useCallback(
-    (option: DropdownOption) => {
+    async (option: DropdownOption) => {
       setReferencedOrder(option.value);
-      const order = searchedOrders.find((o) => o.order_code === option.value);
-      if (order) {
+      setReferencedOrderLabel(option.label);
+
+      const pipeIdx = option.value.indexOf('|');
+      const type = pipeIdx > -1 ? option.value.slice(0, pipeIdx) : 'order';
+      const id = pipeIdx > -1 ? option.value.slice(pipeIdx + 1) : option.value;
+
+      if (type === 'order') {
+        // Auto-fill from server-searched order (matches web)
+        const order = searchedOrdersMapRef.current.get(id);
+        if (!order) return;
         if (order.customer_code) {
           setCompanyId(order.customer_code);
           setCompanyName(order.customer_name || '');
         }
+        if (order.zone_name && formData?.regions) {
+          const regionMatch = formData.regions.find((r) => r.description === order.zone_name);
+          if (regionMatch) { setRegionCode(regionMatch.code); setRegionName(regionMatch.description); }
+        }
+        if (order.order_date) setOnJobDate(order.order_date);
+        if (order.project_name) setJobName(order.project_name);
         if (order.delivery_addr1) setJobAddress(order.delivery_addr1);
         if (order.delivery_addr2) setJobCity(order.delivery_addr2);
         if (order.delivery_addr3) setJobState(order.delivery_addr3);
         if (order.ordered_by_name) setContactName(order.ordered_by_name);
         if (order.ordered_by_phone) setContactPhone(order.ordered_by_phone);
-        if (order.zone_name) {
-          setRegionCode(order.zone_name);
-          setRegionName(order.zone_name);
+      } else {
+        // Auto-fill from order entity - fetch full details (matches web)
+        try {
+          const result = await orderRequestService.getOrderRequestById(id);
+          if (!result?.success || !result.data) return;
+          const o = result.data;
+          if (o.company_id) { setCompanyId(o.company_id); setCompanyName(o.company_name || ''); }
+          if (o.region_code) { setRegionCode(o.region_code); setRegionName(o.region_name || ''); }
+          if (o.customer_job_number) setCustomerJobNumber(o.customer_job_number);
+          if (o.usage_code) setUsageCode(o.usage_code);
+          if (o.po_number) setPoNumber(o.po_number);
+          if (o.order_status !== null && o.order_status !== undefined) setOrderStatus(o.order_status);
+          if (o.on_job_date) setOnJobDate(o.on_job_date);
+          if (o.on_job_time) setOnJobTime(o.on_job_time);
+          if (o.job_name) setJobName(o.job_name);
+          if (o.job_address) setJobAddress(o.job_address);
+          if (o.job_city) setJobCity(o.job_city);
+          if (o.job_state) setJobState(o.job_state);
+          if (o.job_zip_code) setJobZipCode(o.job_zip_code);
+          if (o.job_contact_name) setContactName(o.job_contact_name);
+          if (o.job_contact_phone) setContactPhone(o.job_contact_phone);
+          if (o.driver_instructions) setDriverInstructions(o.driver_instructions);
+          setKnowMixCode(o.know_mix_code ?? false);
+          if (o.concrete_product_code) { setConcreteProductCode(o.concrete_product_code); setConcreteProductName(o.concrete_product_name || ''); }
+          if (o.concrete_product_text) setConcreteProductText(o.concrete_product_text);
+          if (o.psi) setPsi(o.psi);
+          if (o.rock_size) setRockSize(o.rock_size);
+          if (o.air_non_air) setAirNonAir(o.air_non_air);
+          if (o.fly_ash) setFlyAsh(o.fly_ash);
+          if (o.quantity) setQuantity(String(o.quantity));
+          if (o.truck_spacing) setTruckSpacing(String(o.truck_spacing));
+          if (o.spacing_type) setSpacingType(o.spacing_type);
+          if (o.slump) setSlump(o.slump);
+          if (o.concrete_notes) setConcreteNotes(o.concrete_notes);
+          if (o.call_back_load) setCallBackLoad(o.call_back_load);
+          if (o.admixture_product_code) { setAdmixtureProductCode(o.admixture_product_code); setAdmixtureProductName(o.admixture_product_name || ''); }
+          if (o.admixture_notes) setAdmixtureNotes(o.admixture_notes);
+          if (o.other_product_code) { setOtherProductCode(o.other_product_code); setOtherProductName(o.other_product_name || ''); }
+          if (o.other_notes) setOtherNotes(o.other_notes);
+        } catch {
+          // Entity fetch failed
         }
       }
     },
-    [searchedOrders],
+    [formData],
   );
 
   // ---------------------------------------------------------------------------
@@ -588,6 +885,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
     if (!companyId) missing.push('Company');
     if (!regionCode) missing.push('Region');
     if (!usageCode) missing.push('Usage');
+    if (orderStatus === null || orderStatus === undefined) missing.push('Order Status');
     if (!onJobDate) missing.push(orderType === 'with_project' ? 'On Job Date' : 'Requested On Job Date');
     if (!onJobTime) missing.push(orderType === 'with_project' ? 'On Job Time' : 'Requested On Job Time');
     if (!jobAddress) missing.push('Job Address');
@@ -612,10 +910,12 @@ export const CreateOrderRequestScreen: React.FC = () => {
     }
 
     if (missing.length > 0) {
-      Alert.alert(
-        'Missing Required Fields',
-        `Please fill in the following fields:\n\n${missing.join('\n')}`,
-      );
+      setThemedAlert({
+        visible: true,
+        type: 'warning',
+        title: 'Missing Required Fields',
+        message: `Please fill in the following fields:\n\n${missing.join('\n')}`,
+      });
       return false;
     }
     return true;
@@ -635,13 +935,17 @@ export const CreateOrderRequestScreen: React.FC = () => {
       job_contact_phone: contactPhone,
     };
 
-    if (referencedOrder) input.referenced_order = referencedOrder;
+    if (referencedOrder) {
+      // Strip entity|/order| prefix before sending to API
+      const pipeIdx = referencedOrder.indexOf('|');
+      input.referenced_order = pipeIdx > -1 ? referencedOrder.slice(pipeIdx + 1) : referencedOrder;
+    }
     if (regionCode) input.region_code = regionCode;
     if (regionName) input.region_name = regionName;
     if (customerJobNumber) input.customer_job_number = customerJobNumber;
     if (usageCode) input.usage_code = usageCode;
     if (poNumber) input.po_number = poNumber;
-    input.order_status = orderStatus;
+    if (orderStatus !== null) input.order_status = orderStatus;
     if (jobName) input.job_name = jobName;
     if (jobState) input.job_state = jobState;
     if (jobZipCode) input.job_zip_code = jobZipCode;
@@ -705,25 +1009,81 @@ export const CreateOrderRequestScreen: React.FC = () => {
     try {
       if (isEditMode && editOrderId) {
         await updateMutation.mutateAsync({ id: editOrderId, input });
-        Alert.alert('Success', 'Order request updated successfully.');
+        setThemedAlert({
+          visible: true,
+          type: 'success',
+          title: 'Success',
+          message: 'Order request updated successfully.',
+          onDismiss: () => navigation.goBack(),
+        });
       } else {
         await createMutation.mutateAsync(input);
-        Alert.alert('Success', 'Order request created successfully.');
+        setThemedAlert({
+          visible: true,
+          type: 'success',
+          title: 'Success',
+          message: 'Order request created successfully.',
+          onDismiss: () => navigation.goBack(),
+        });
       }
-      navigation.goBack();
     } catch (err: any) {
-      Alert.alert(
-        'Error',
-        err?.message ?? 'Something went wrong. Please try again.',
-      );
+      setThemedAlert({
+        visible: true,
+        type: 'error',
+        title: 'Error',
+        message: err?.message ?? 'Something went wrong. Please try again.',
+      });
     }
   }, [validate, buildInput, isEditMode, editOrderId, updateMutation, createMutation, navigation]);
 
   const isMutating = createMutation.isPending || updateMutation.isPending;
 
+  const handleResetForm = useCallback(() => {
+    setOrderType(routeOrderType ?? 'without_project');
+    setCompanyId(''); setCompanyName('');
+    setReferencedOrder(''); setReferencedOrderLabel('');
+    setRegionCode(''); setRegionName('');
+    setCustomerJobNumber(''); setUsageCode('');
+    setPoNumber(''); setOrderStatus(null);
+    setOnJobDate(''); setOnJobTime('');
+    setJobName(''); setProjectCode(''); setProjectName('');
+    setJobAddress(''); setJobCity(''); setJobState(''); setJobZipCode('');
+    setContactName(''); setContactPhone('');
+    setDriverInstructions('');
+    setKnowMixCode(false);
+    setConcreteProductCode(''); setConcreteProductName(''); setConcreteProductText('');
+    setPsi(''); setRockSize(''); setAirNonAir(''); setFlyAsh('');
+    setQuantity(''); setTruckSpacing(''); setSpacingType('yards_per_hour');
+    setSlump(''); setConcreteNotes(''); setCallBackLoad('');
+    setAdmixtureProductCode(''); setAdmixtureProductName(''); setAdmixtureNotes('');
+    setOtherProductCode(''); setOtherProductName(''); setOtherNotes('');
+  }, [routeOrderType]);
+
+  const handleCancel = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
+
   // ---------------------------------------------------------------------------
   // Dropdown helpers
   // ---------------------------------------------------------------------------
+
+  // Check if all required fields are filled (for Send button disabled state)
+  const isFormValid = useMemo(() => {
+    // Base required
+    if (!companyId || !regionCode || !usageCode || orderStatus === null || orderStatus === undefined) return false;
+    if (!onJobDate || !onJobTime) return false;
+    if (!jobAddress || !jobCity) return false;
+    if (!contactName || !contactPhone) return false;
+    if (!slump || !quantity) return false;
+    // Type-specific
+    if (orderType === 'with_project' && !projectCode) return false;
+    if (orderType === 'without_project_with_product' && !concreteProductCode) return false;
+    if (orderType === 'without_project' && !knowMixCode) {
+      if (!psi || !rockSize || !airNonAir || !flyAsh) return false;
+    }
+    return true;
+  }, [companyId, regionCode, usageCode, orderStatus, onJobDate, onJobTime, jobAddress, jobCity,
+    contactName, contactPhone, slump, quantity, orderType, projectCode, concreteProductCode, knowMixCode, psi, rockSize, airNonAir, flyAsh]);
 
   const getDropdownOptions = useCallback((): DropdownOption[] => {
     switch (activeDropdown) {
@@ -794,7 +1154,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
       case 'product': return concreteProductCode;
       case 'referencedOrder': return referencedOrder;
       case 'usage': return usageCode;
-      case 'orderStatus': return String(orderStatus);
+      case 'orderStatus': return orderStatus !== null ? String(orderStatus) : '';
       case 'spacingType': return spacingType;
       case 'airNonAir': return airNonAir;
       case 'psi': return psi;
@@ -878,6 +1238,19 @@ export const CreateOrderRequestScreen: React.FC = () => {
       }
     },
     [activeDropdown, formData, handleProjectSelect, handleReferencedOrderSelect, searchedProducts],
+  );
+
+  const handleMultiSelect = useCallback(
+    (values: string[], labels: string[]) => {
+      if (activeDropdown === 'admixtureProduct') {
+        setAdmixtureProductCode(values.join(','));
+        setAdmixtureProductName(labels.join(', '));
+      } else if (activeDropdown === 'otherProduct') {
+        setOtherProductCode(values.join(','));
+        setOtherProductName(labels.join(', '));
+      }
+    },
+    [activeDropdown],
   );
 
   // ---------------------------------------------------------------------------
@@ -986,7 +1359,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
     return (
       <ScreenContainer edges={[]}>
         <ScreenHeader
-          title={isEditMode ? 'Edit Order Request' : 'New Order Request'}
+          title={isEditMode ? 'Edit Order Request' : 'Create Order Request'}
         />
         <View style={styles.loadingContainer}>
           <TruckLoader size={120} message="Loading form data..." color="dark" />
@@ -1002,7 +1375,18 @@ export const CreateOrderRequestScreen: React.FC = () => {
   return (
     <ScreenContainer edges={[]}>
       <ScreenHeader
-        title={isEditMode ? 'Edit Order Request' : 'New Order Request'}
+        title={isEditMode ? 'Edit Order Request' : 'Create Order Request'}
+        rightElement={
+          !isReadOnly ? (
+            <TouchableOpacity
+              style={{ width: ms(32), height: ms(32), borderRadius: ms(16), justifyContent: 'center', alignItems: 'center', backgroundColor: colors.error.main + '15' }}
+              onPress={handleResetForm}
+              activeOpacity={0.7}
+            >
+              <Icon name="close" size={ms(16)} color={colors.error.main} />
+            </TouchableOpacity>
+          ) : undefined
+        }
       />
 
       <KeyboardAvoidingView
@@ -1014,7 +1398,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
           style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: TAB_BAR_HEIGHT + spacing.xxxl + ms(60) },
+            { paddingBottom: ms(8) },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -1082,13 +1466,18 @@ export const CreateOrderRequestScreen: React.FC = () => {
           <View style={[styles.section, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
             <View style={styles.sectionHeaderRow}>
               <Icon name="briefcase-outline" size={ms(20)} color={colors.primary.main} />
-              <Text variant="bodyLarge" style={[styles.sectionTitle, { fontWeight: '700', marginLeft: spacing.sm }]}>
+              <Text variant="bodyLarge" style={styles.sectionHeaderTitle}>
                 Job Information
               </Text>
             </View>
 
             {renderDropdownField('Company', companyName ? `${companyName} (${companyId})` : '', 'company', true)}
-            {renderDropdownField('Referenced Order', referencedOrder || '', 'referencedOrder')}
+            {orderType === 'with_project' && (
+              <>
+                {renderDropdownField('Project', projectName ? `${projectName} (${projectCode})` : '', 'project', true)}
+              </>
+            )}
+            {renderDropdownField('Referenced Order', referencedOrderLabel || referencedOrder || '', 'referencedOrder')}
             {renderDropdownField('Region', regionName ? `${regionName} (${regionCode})` : '', 'region', true)}
             {renderField('Customer Job Number', customerJobNumber, setCustomerJobNumber, 'e.g., CJ-001')}
             {renderDropdownField('Usage', usageCode || '', 'usage', true)}
@@ -1157,7 +1546,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
                   color={onJobTime ? 'primary' : 'hint'}
                   style={{ flex: 1 }}
                 >
-                  {onJobTime || 'Select time'}
+                  {onJobTime ? (() => { const [h, m] = onJobTime.split(':').map(Number); const period = h >= 12 ? 'PM' : 'AM'; const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h; return `${h12}:${String(m).padStart(2, '0')} ${period}`; })() : 'Select time'}
                 </Text>
                 <Icon name="clock-outline" size={ms(20)} color={themeColors.text.hint} />
               </TouchableOpacity>
@@ -1178,29 +1567,6 @@ export const CreateOrderRequestScreen: React.FC = () => {
             {renderField('Job Name', jobName, setJobName, 'e.g., Main Street Project')}
           </View>
 
-          {/* ============================================================== */}
-          {/* PROJECT (only with_project) */}
-          {/* ============================================================== */}
-          {orderType === 'with_project' && (
-            <View style={[styles.section, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
-              <View style={styles.sectionHeaderRow}>
-                <Icon name="folder-outline" size={ms(20)} color={colors.primary.main} />
-                <Text variant="bodyLarge" style={[styles.sectionTitle, { fontWeight: '700', marginLeft: spacing.sm }]}>
-                  Project
-                </Text>
-              </View>
-              {renderDropdownField(
-                'Project',
-                projectName ? `${projectName} (${projectCode})` : '',
-                'project',
-              )}
-              {!companyId && (
-                <Text variant="caption" color="hint" style={{ marginTop: spacing.xs }}>
-                  Select a company first to see available projects.
-                </Text>
-              )}
-            </View>
-          )}
 
           {/* ============================================================== */}
           {/* JOB LOCATION */}
@@ -1208,7 +1574,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
           <View style={[styles.section, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
             <View style={styles.sectionHeaderRow}>
               <Icon name="map-marker-outline" size={ms(20)} color={colors.primary.main} />
-              <Text variant="bodyLarge" style={[styles.sectionTitle, { fontWeight: '700', marginLeft: spacing.sm }]}>
+              <Text variant="bodyLarge" style={styles.sectionHeaderTitle}>
                 Job Location
               </Text>
             </View>
@@ -1226,7 +1592,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
           <View style={[styles.section, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
             <View style={styles.sectionHeaderRow}>
               <Icon name="account-outline" size={ms(20)} color={colors.primary.main} />
-              <Text variant="bodyLarge" style={[styles.sectionTitle, { fontWeight: '700', marginLeft: spacing.sm }]}>
+              <Text variant="bodyLarge" style={styles.sectionHeaderTitle}>
                 Jobsite Contact
               </Text>
             </View>
@@ -1242,7 +1608,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
           <View style={[styles.section, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
             <View style={styles.sectionHeaderRow}>
               <Icon name="truck-outline" size={ms(20)} color={colors.primary.main} />
-              <Text variant="bodyLarge" style={[styles.sectionTitle, { fontWeight: '700', marginLeft: spacing.sm }]}>
+              <Text variant="bodyLarge" style={styles.sectionHeaderTitle}>
                 Driver Instructions
               </Text>
             </View>
@@ -1250,7 +1616,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
               {renderTextInput(
                 driverInstructions,
                 setDriverInstructions,
-                'Enter any special instructions for the driver...',
+                'Add driver instructions...',
                 { multiline: true },
               )}
             </View>
@@ -1262,7 +1628,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
           <View style={[styles.section, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
             <View style={styles.sectionHeaderRow}>
               <Icon name="flask-outline" size={ms(20)} color={colors.primary.main} />
-              <Text variant="bodyLarge" style={[styles.sectionTitle, { fontWeight: '700', marginLeft: spacing.sm }]}>
+              <Text variant="bodyLarge" style={styles.sectionHeaderTitle}>
                 Concrete Product
               </Text>
             </View>
@@ -1275,7 +1641,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
                   'Non Project Product',
                   concreteProductText,
                   setConcreteProductText,
-                  'If a specific mix code is requested, please enter it here',
+                  'Specific mix code if requested...',
                 )}
               </>
             )}
@@ -1353,7 +1719,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
                   'Concrete Product',
                   concreteProductText,
                   setConcreteProductText,
-                  'If a specific mix code is requested, please enter it here',
+                  'Specific mix code if requested...',
                 )}
 
                 {/* Show PSI, Rock Size, Air/Non-air, Fly Ash when mix code is NOT known */}
@@ -1377,12 +1743,17 @@ export const CreateOrderRequestScreen: React.FC = () => {
 
             <View style={styles.rowFields}>
               <View style={{ flex: 1, marginRight: spacing.sm }}>
-                {renderField('Truck Spacing', truckSpacing, setTruckSpacing, '0', false, {
-                  keyboardType: 'decimal-pad',
-                })}
+                {renderDropdownField('Spacing Type', spacingTypeLabel, 'spacingType', true)}
               </View>
               <View style={{ flex: 1, marginLeft: spacing.sm }}>
-                {renderDropdownField('Spacing Type', spacingTypeLabel, 'spacingType')}
+                {renderField(
+                  spacingType === 'yards_per_hour' ? 'Spacing (Yards/Hour)' : 'Spacing Minutes',
+                  truckSpacing,
+                  setTruckSpacing,
+                  spacingType === 'yards_per_hour' ? 'Specify yards per hour' : 'Specify Minutes',
+                  true,
+                  { keyboardType: 'decimal-pad' },
+                )}
               </View>
             </View>
 
@@ -1398,7 +1769,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
           <View style={[styles.section, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
             <View style={styles.sectionHeaderRow}>
               <Icon name="beaker-outline" size={ms(20)} color={colors.primary.main} />
-              <Text variant="bodyLarge" style={[styles.sectionTitle, { fontWeight: '700', marginLeft: spacing.sm }]}>
+              <Text variant="bodyLarge" style={styles.sectionHeaderTitle}>
                 Admixture Product
               </Text>
             </View>
@@ -1414,7 +1785,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
           <View style={[styles.section, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
             <View style={styles.sectionHeaderRow}>
               <Icon name="package-variant-closed" size={ms(20)} color={colors.primary.main} />
-              <Text variant="bodyLarge" style={[styles.sectionTitle, { fontWeight: '700', marginLeft: spacing.sm }]}>
+              <Text variant="bodyLarge" style={styles.sectionHeaderTitle}>
                 Other Product
               </Text>
             </View>
@@ -1426,7 +1797,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
         </ScrollView>
 
         {/* ============================================================== */}
-        {/* SUBMIT BUTTON */}
+        {/* CANCEL + SEND BUTTONS */}
         {/* ============================================================== */}
         {!isReadOnly && (
           <View
@@ -1435,26 +1806,34 @@ export const CreateOrderRequestScreen: React.FC = () => {
               {
                 backgroundColor: themeColors.background,
                 paddingBottom: TAB_BAR_HEIGHT + spacing.md,
-                borderTopColor: themeColors.border,
               },
             ]}
           >
-            <Button
-              title={
-                isMutating
-                  ? 'Submitting...'
-                  : isEditMode
-                  ? 'Update Order Request'
-                  : 'Send'
-              }
-              variant="primary"
-              size="large"
-              fullWidth
-              loading={isMutating}
-              disabled={isMutating}
-              leftIcon={isEditMode ? 'pencil' : 'plus'}
-              onPress={handleSubmit}
-            />
+            <View style={styles.submitButtonRow}>
+              <TouchableOpacity
+                style={[styles.submitBtn, { borderColor: themeColors.border, borderWidth: 1, backgroundColor: colors.common.transparent }]}
+                onPress={handleCancel}
+                activeOpacity={0.7}
+              >
+                <Text variant="body" style={{ color: themeColors.text.secondary, fontWeight: '600', fontSize: ms(16) }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitBtn, { backgroundColor: isFormValid && !isMutating ? colors.primary.main : isDark ? colors.dark.border : colors.grey[15] }]}
+                onPress={handleSubmit}
+                activeOpacity={0.7}
+                disabled={!isFormValid || isMutating}
+              >
+                {isMutating ? (
+                  <ActivityIndicator size="small" color={colors.common.white} />
+                ) : (
+                  <Text variant="body" style={{ color: isFormValid ? colors.common.white : (isDark ? colors.dark.text.hint : colors.grey[50]), fontWeight: '700', fontSize: ms(16) }}>
+                    {isEditMode ? 'Update' : 'Send'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </KeyboardAvoidingView>
@@ -1482,8 +1861,27 @@ export const CreateOrderRequestScreen: React.FC = () => {
             ? 'Search by order code or customer name...'
             : activeDropdown === 'product'
             ? 'Search by product code...'
+            : activeDropdown === 'admixtureProduct'
+            ? 'Search admixture...'
+            : activeDropdown === 'otherProduct'
+            ? 'Search products...'
             : undefined
         }
+        multiSelect={activeDropdown === 'admixtureProduct' || activeDropdown === 'otherProduct'}
+        selectedValues={
+          activeDropdown === 'admixtureProduct'
+            ? admixtureProductCode.split(',').filter(Boolean)
+            : activeDropdown === 'otherProduct'
+            ? otherProductCode.split(',').filter(Boolean)
+            : []
+        }
+        onMultiSelect={handleMultiSelect}
+      />
+
+      <ThemedAlertModal
+        state={themedAlert}
+        onClose={() => setThemedAlert(ALERT_INITIAL)}
+        isDark={isDark}
       />
     </ScreenContainer>
   );
@@ -1528,10 +1926,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginBottom: spacing.md,
   },
+  sectionHeaderTitle: {
+    fontWeight: '700',
+    marginLeft: spacing.sm,
+  },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
 
   // Order type toggle
@@ -1612,7 +2014,17 @@ const styles = StyleSheet.create({
   submitContainer: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    borderTopWidth: 1,
+  },
+  submitButtonRow: {
+    flexDirection: 'row',
+    gap: ms(10),
+  },
+  submitBtn: {
+    flex: 1,
+    height: ms(48),
+    borderRadius: ms(10),
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // Modal
@@ -1624,8 +2036,8 @@ const styles = StyleSheet.create({
   modalContainer: {
     borderTopLeftRadius: ms(20),
     borderTopRightRadius: ms(20),
-    maxHeight: '80%',
-    paddingBottom: spacing.xxl,
+    maxHeight: '85%',
+    paddingBottom: ms(5),
   },
   modalHeader: {
     flexDirection: 'row',

@@ -2,6 +2,8 @@
 
 export type UserRole = 'dispatcher' | 'customer' | 'driver' | 'admin' | 'authenticated';
 
+export type UserType = 'admin' | 'producer' | 'contractor' | 'none';
+
 export interface TenantInfo {
   tenant_client_id: string;
   tenant_id: number;
@@ -25,6 +27,7 @@ export interface User {
   email: string;
   phone?: string;
   role: UserRole;
+  userType?: UserType;
   metadata?: UserMetadata;
   firstName?: string;
   lastName?: string;

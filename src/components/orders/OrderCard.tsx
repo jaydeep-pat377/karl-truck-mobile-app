@@ -248,6 +248,7 @@ interface OrderCardProps {
   onWeatherPress?: () => void;
   onMap?: () => void;
   onChat?: () => void;
+  onOrderRequest?: () => void;
   onFavoritePress?: () => void;
   orderDetailsDisabled?: boolean;
   ticketDisabled?: boolean;
@@ -262,6 +263,7 @@ interface OrderCardProps {
   showTicketButton?: boolean;
   showMapButton?: boolean;
   showChatButton?: boolean;
+  showOrderRequestButton?: boolean;
 }
 
 interface ActionButtonProps {
@@ -324,6 +326,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   onWeatherPress,
   onMap,
   onChat,
+  onOrderRequest,
   onFavoritePress,
   orderDetailsDisabled = false,
   ticketDisabled = false,
@@ -338,6 +341,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   showTicketButton = true,
   showMapButton = true,
   showChatButton = true,
+  showOrderRequestButton = false,
 }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -694,9 +698,10 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
         </View>
       </View>
 
-      {(showOrderDetailsButton || (showTicketButton && order.canTicketed) || showMapButton || (showChatButton && order.canChat)) && (() => {
+      {(showOrderDetailsButton || (showTicketButton && order.canTicketed) || showMapButton || (showChatButton && order.canChat) || (showOrderRequestButton && onOrderRequest)) && (() => {
         const showDetails = showOrderDetailsButton;
         const showTicket = showTicketButton && order.canTicketed;
+        const showRequest = showOrderRequestButton && !!onOrderRequest;
         const showMap = showMapButton;
         const showChat = showChatButton && order.canChat;
         const dividerStyle = [styles.actionDivider, { backgroundColor: isDark ? colors.dark.border : colors.grey[25] }];
@@ -712,7 +717,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
                 isLoading={isLoading}
               />
             )}
-            {showDetails && (showTicket || showMap || showChat) && (
+            {showDetails && (showTicket || showRequest || showMap || showChat) && (
               <View style={dividerStyle} />
             )}
             {showTicket && (
@@ -723,7 +728,17 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
                 disabled={ticketDisabled}
               />
             )}
-            {showTicket && (showMap || showChat) && (
+            {showTicket && (showRequest || showMap || showChat) && (
+              <View style={dividerStyle} />
+            )}
+            {showRequest && (
+              <ActionButton
+                icon="file-plus-outline"
+                label="Request"
+                onPress={onOrderRequest}
+              />
+            )}
+            {showRequest && (showMap || showChat) && (
               <View style={dividerStyle} />
             )}
             {showMap && (

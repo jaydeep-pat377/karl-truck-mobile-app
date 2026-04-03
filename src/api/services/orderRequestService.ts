@@ -117,6 +117,10 @@ export const orderRequestService = {
     );
   },
 
+  getRecentEntities: async (): Promise<{ success: boolean; data: { orders: { id: string; display: string; company_id: string | null }[] } }> => {
+    return apiClient.get(API_ENDPOINTS.ORDER_REQUESTS.RECENT_ENTITIES);
+  },
+
 };
 
 export default orderRequestService;

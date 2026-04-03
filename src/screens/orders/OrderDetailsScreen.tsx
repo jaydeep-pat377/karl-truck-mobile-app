@@ -30,6 +30,7 @@ import { WeatherIcon } from '../../utils/weatherIcon';
 import { RootStackParamList, OrdersStackParamList } from '../../navigation/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useOrderDetails, useAlert } from '../../hooks';
+import { useAuthStore } from '../../store/authStore';
 import { orderService } from '../../api/services/orderService';
 import { PerformanceCharts } from '../../components/charts';
 import { ScheduledLoadsBottomSheet, DelayDetailsTable } from '../../components/orders';
@@ -1939,6 +1940,8 @@ export const OrderDetailsScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const { user } = useAuthStore();
+  const canOrderRequest = user?.userType === 'admin' || user?.userType === 'producer';
   const [showAllUpdates, setShowAllUpdates] = useState(false);
 
   useEffect(() => {
@@ -2041,6 +2044,26 @@ export const OrderDetailsScreen: React.FC = () => {
       showError('Error', 'Failed to share order details');
     }
   }, [order, showError]);
+
+  const handleOrderRequest = useCallback(() => {
+    if (!orderDetails) return;
+    (navigation as any).navigate('OrderRequests', {
+      screen: 'CreateOrderRequest',
+      params: {
+        prefillOrder: {
+          order_code: orderDetails.order_code,
+          customer_name: orderDetails.customer_name,
+          project_name: orderDetails.project_name,
+          job_address: orderDetails.delivery_address,
+          plant_code: orderDetails.plant_details?.code,
+          plant_name: orderDetails.plant_details?.description,
+          item_code: orderDetails.products?.[0]?.item_code,
+          quantity: orderDetails.ordered_qty,
+          zone_name: orderDetails.zone_name,
+        },
+      },
+    });
+  }, [navigation, orderDetails]);
 
   const handleViewOrderHistory = useCallback(() => {
     setMenuVisible(false);
@@ -2166,6 +2189,11 @@ export const OrderDetailsScreen: React.FC = () => {
                 color={isFavorite ? colors.warning.main : themeColors.text.primary}
               />
             </TouchableOpacity>
+            {canOrderRequest && (
+              <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={handleOrderRequest}>
+                <Icon name="file-plus-outline" size={18} color={themeColors.text.primary} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.7} onPress={() => refetch()}>
               <Icon name="refresh" size={18} color={themeColors.text.primary} />
             </TouchableOpacity>

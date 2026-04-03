@@ -31,6 +31,7 @@ import { fontFamily } from '../../theme/typography';
 import { spacing, ms, iconSizes, wp, hp } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useOrders, useChatRooms, useGlobalAlert, useRealtimeOrders } from '../../hooks';
+import { useAuthStore } from '../../store/authStore';
 import { orderService } from '../../api/services/orderService';
 import { getProgressBarColor } from '../../utils/statusUtils';
 
@@ -828,6 +829,8 @@ export const OrderListScreen: React.FC = () => {
   const { isDark } = useTheme();
   const { getOrCreateRoom } = useChatRooms();
   const { showAlert } = useGlobalAlert();
+  const { user } = useAuthStore();
+  const canOrderRequest = user?.userType === 'admin' || user?.userType === 'producer';
 
 
 
@@ -1441,6 +1444,27 @@ export const OrderListScreen: React.FC = () => {
     });
   }, [navigation]);
 
+  const handleOrderRequest = useCallback((order: Order) => {
+    (navigation as any).navigate('OrderRequests', {
+      screen: 'CreateOrderRequest',
+      params: {
+        prefillOrder: {
+          order_code: order.orderCode,
+          customer_name: order.customerName,
+          project_name: order.projectName,
+          job_address: order.deliveryAddress,
+          job_city: order.deliveryCity,
+          job_state: order.deliveryState,
+          plant_code: order.plantDetails?.code,
+          plant_name: order.plantDetails?.name,
+          item_code: order.productType,
+          quantity: order.quantity,
+          special_instructions: order.specialInstructions,
+        },
+      },
+    });
+  }, [navigation]);
+
   const handleToggleFavorite = useCallback((orderId: string) => {
 
     const hasOverride = favoriteOverrides[orderId] !== undefined;
@@ -1509,12 +1533,14 @@ export const OrderListScreen: React.FC = () => {
         onWeatherPress={() => handleWeatherPress(item)}
         onMap={() => handleMap(item)}
         onChat={() => handleChat(item)}
+        onOrderRequest={canOrderRequest ? () => handleOrderRequest(item) : undefined}
         onFavoritePress={() => handleToggleFavorite(item.id)}
         isChatLoading={chatLoadingOrderId === item.id}
         isFavorite={item.isFavorite}
+        showOrderRequestButton={canOrderRequest}
       />
     ),
-    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleMap, handleChat, handleToggleFavorite, chatLoadingOrderId, progressBarColors]
+    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleMap, handleChat, handleOrderRequest, handleToggleFavorite, chatLoadingOrderId, progressBarColors, canOrderRequest]
   );
 
   const ItemSeparator = useCallback(() => <View style={styles.separator} />, []);
