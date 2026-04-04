@@ -829,8 +829,8 @@ export const OrderListScreen: React.FC = () => {
   const { isDark } = useTheme();
   const { getOrCreateRoom } = useChatRooms();
   const { showAlert } = useGlobalAlert();
-  const { user } = useAuthStore();
-  const canOrderRequest = user?.userType === 'admin' || user?.userType === 'producer';
+  const { user, appPermissions } = useAuthStore();
+  const canOrderRequest = !appPermissions.includes('order_request');
 
 
 
@@ -1444,17 +1444,28 @@ export const OrderListScreen: React.FC = () => {
     });
   }, [navigation]);
 
+  // Matches web: passes order data for form prefill
+  // Web maps delivery_addr1 → jobAddress, delivery_addr2 → jobCity, delivery_addr3 → jobState
   const handleOrderRequest = useCallback((order: Order) => {
+    // Parse combined delivery address into parts (addr1, city, state)
+    const addrParts = (order.deliveryAddress || '').split(',').map(s => s.trim());
+    const addr1 = addrParts[0] || '';
+    const city = addrParts.length > 1 ? addrParts[addrParts.length - 2] || '' : '';
+    const state = addrParts.length > 2 ? addrParts[addrParts.length - 1] || '' : '';
+
     (navigation as any).navigate('OrderRequests', {
       screen: 'CreateOrderRequest',
       params: {
         prefillOrder: {
+          order_id: order.id,
           order_code: order.orderCode,
           customer_name: order.customerName,
           project_name: order.projectName,
-          job_address: order.deliveryAddress,
-          job_city: order.deliveryCity,
-          job_state: order.deliveryState,
+          order_date: order.scheduledDate,
+          start_time: order.scheduledTime,
+          job_address: addr1,
+          job_city: city,
+          job_state: state,
           plant_code: order.plantDetails?.code,
           plant_name: order.plantDetails?.name,
           item_code: order.productType,

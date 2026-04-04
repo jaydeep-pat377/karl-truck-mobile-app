@@ -9,11 +9,17 @@ import { NotificationScreen } from '../screens/notifications/NotificationScreen'
 import { SettingsNavigator } from './SettingsNavigator';
 import { OrderRequestsNavigator } from './OrderRequestsNavigator';
 import { CustomTabBar } from '../components/navigation';
+import { useAuthStore } from '../store/authStore';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export const MainNavigator: React.FC = () => {
   const { t } = useTranslation();
+  const appPermissions = useAuthStore((s) => s.appPermissions);
+
+  // Hide tab if user has the permission, show if they don't
+  const hasOrders = !appPermissions.includes('orders');
+  const hasOrderRequests = !appPermissions.includes('order_request');
 
   return (
     <Tab.Navigator
@@ -30,13 +36,15 @@ export const MainNavigator: React.FC = () => {
           tabBarLabel: t('navigation.home'),
         }}
       />
-      <Tab.Screen
-        name="Orders"
-        component={OrdersNavigator}
-        options={{
-          tabBarLabel: t('navigation.orders'),
-        }}
-      />
+      {hasOrders && (
+        <Tab.Screen
+          name="Orders"
+          component={OrdersNavigator}
+          options={{
+            tabBarLabel: t('navigation.orders'),
+          }}
+        />
+      )}
 
       <Tab.Screen
         name="Notifications"
@@ -45,13 +53,15 @@ export const MainNavigator: React.FC = () => {
           tabBarLabel: t('navigation.notifications'),
         }}
       />
-      <Tab.Screen
-        name="OrderRequests"
-        component={OrderRequestsNavigator}
-        options={{
-          tabBarLabel: t('navigation.orderRequests'),
-        }}
-      />
+      {hasOrderRequests && (
+        <Tab.Screen
+          name="OrderRequests"
+          component={OrderRequestsNavigator}
+          options={{
+            tabBarLabel: t('navigation.orderRequests'),
+          }}
+        />
+      )}
       <Tab.Screen
         name="Settings"
         component={SettingsNavigator}

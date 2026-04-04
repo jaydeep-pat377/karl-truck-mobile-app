@@ -11,6 +11,7 @@ import {
   FlatList,
   Dimensions,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -505,6 +506,17 @@ export const CreateOrderRequestScreen: React.FC = () => {
   const [onJobTime, setOnJobTime] = useState('');
   const [jobName, setJobName] = useState('');
 
+  // Keyboard
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
   // Date/Time picker
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -712,21 +724,36 @@ export const CreateOrderRequestScreen: React.FC = () => {
     }
   }, [editOrder, isEditMode]);
 
-  // Pre-fill form from order (Request button on order card, matches web)
+  // Pre-fill form from order (Request button on order card)
+  // Matches web: order-request-form.tsx lines 826-906
   useEffect(() => {
     if (prefillOrder && !isEditMode) {
-      // Referenced order
-      if (prefillOrder.order_code) setReferencedOrder(prefillOrder.order_code);
-      // Company
-      if (prefillOrder.customer_name) setCompanyName(prefillOrder.customer_name);
-      // Match company ID from loaded form data
-      if (prefillOrder.customer_name && formData?.customers) {
-        const match = formData.customers.find(
-          (c) => c.name.toLowerCase() === prefillOrder.customer_name.toLowerCase(),
-        );
-        if (match) setCompanyId(match.code);
+      // Referenced order — web format: "order|{order_id}" or just order_code
+      if (prefillOrder.order_id) {
+        setReferencedOrder(`order|${prefillOrder.order_id}`);
+        setReferencedOrderLabel(prefillOrder.order_code || '');
+      } else if (prefillOrder.order_code) {
+        setReferencedOrder(prefillOrder.order_code);
+        setReferencedOrderLabel(prefillOrder.order_code);
       }
-      // Job location
+      // Company — match by name from loaded form data (same as web)
+      if (prefillOrder.customer_name) {
+        setCompanyName(prefillOrder.customer_name);
+        if (formData?.customers) {
+          const match = formData.customers.find(
+            (c) => c.name.toLowerCase() === prefillOrder.customer_name.toLowerCase(),
+          );
+          if (match) setCompanyId(match.code);
+        }
+      }
+      // On Job Date & Time — web maps order_date → onJobDate, start_time → onJobTime
+      if (prefillOrder.order_date) setOnJobDate(prefillOrder.order_date);
+      if (prefillOrder.start_time) {
+        // Web takes first 5 chars (HH:MM)
+        const time = String(prefillOrder.start_time).substring(0, 5);
+        if (time.includes(':')) setOnJobTime(time);
+      }
+      // Job location — web maps delivery_addr1/2/3
       if (prefillOrder.job_address) setJobAddress(prefillOrder.job_address);
       if (prefillOrder.job_city) setJobCity(prefillOrder.job_city);
       if (prefillOrder.job_state) setJobState(prefillOrder.job_state);
@@ -742,7 +769,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
       if (prefillOrder.quantity) setQuantity(String(prefillOrder.quantity));
       // Driver instructions
       if (prefillOrder.special_instructions) setDriverInstructions(prefillOrder.special_instructions);
-      // Region - match from loaded form data by zone name
+      // Region — match zone_name from order to regions dropdown (same as web)
       if (prefillOrder.zone_name && formData?.regions) {
         const match = formData.regions.find(
           (r) => r.description.toLowerCase() === prefillOrder.zone_name.toLowerCase(),
@@ -752,9 +779,11 @@ export const CreateOrderRequestScreen: React.FC = () => {
           setRegionName(match.description);
         }
       }
-      // Auto-detect order type based on project
-      if (prefillOrder.project_name) {
+      // Auto-detect order type — web checks project_code/project_name then item_code
+      if (prefillOrder.project_name || prefillOrder.project_code) {
         setOrderType('with_project');
+      } else if (prefillOrder.item_code) {
+        setOrderType('without_project_with_product');
       }
     }
   }, [prefillOrder, isEditMode, formData]);
@@ -1014,7 +1043,15 @@ export const CreateOrderRequestScreen: React.FC = () => {
           type: 'success',
           title: 'Success',
           message: 'Order request updated successfully.',
-          onDismiss: () => navigation.goBack(),
+          onDismiss: () => {
+            // Go back to order request list (skip detail screen)
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+              setTimeout(() => {
+                if (navigation.canGoBack()) navigation.goBack();
+              }, 100);
+            }
+          },
         });
       } else {
         await createMutation.mutateAsync(input);
@@ -1794,48 +1831,47 @@ export const CreateOrderRequestScreen: React.FC = () => {
               multiline: true,
             })}
           </View>
-        </ScrollView>
 
-        {/* ============================================================== */}
-        {/* CANCEL + SEND BUTTONS */}
-        {/* ============================================================== */}
-        {!isReadOnly && (
-          <View
-            style={[
-              styles.submitContainer,
-              {
-                backgroundColor: themeColors.background,
-                paddingBottom: TAB_BAR_HEIGHT + spacing.md,
-              },
-            ]}
-          >
-            <View style={styles.submitButtonRow}>
-              <TouchableOpacity
-                style={[styles.submitBtn, { borderColor: themeColors.border, borderWidth: 1, backgroundColor: colors.common.transparent }]}
-                onPress={handleCancel}
-                activeOpacity={0.7}
-              >
-                <Text variant="body" style={{ color: themeColors.text.secondary, fontWeight: '600', fontSize: ms(16) }}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.submitBtn, { backgroundColor: isFormValid && !isMutating ? colors.primary.main : isDark ? colors.dark.border : colors.grey[15] }]}
-                onPress={handleSubmit}
-                activeOpacity={0.7}
-                disabled={!isFormValid || isMutating}
-              >
-                {isMutating ? (
-                  <ActivityIndicator size="small" color={colors.common.white} />
-                ) : (
-                  <Text variant="body" style={{ color: isFormValid ? colors.common.white : (isDark ? colors.dark.text.hint : colors.grey[50]), fontWeight: '700', fontSize: ms(16) }}>
-                    {isEditMode ? 'Update' : 'Send'}
+          {/* ============================================================== */}
+          {/* CANCEL + SEND BUTTONS */}
+          {/* ============================================================== */}
+          {!isReadOnly && (
+            <View
+              style={[
+                styles.submitContainer,
+                {
+                  paddingBottom: TAB_BAR_HEIGHT + spacing.md,
+                },
+              ]}
+            >
+              <View style={styles.submitButtonRow}>
+                <TouchableOpacity
+                  style={[styles.submitBtn, { borderColor: themeColors.border, borderWidth: 1, backgroundColor: colors.common.transparent }]}
+                  onPress={handleCancel}
+                  activeOpacity={0.7}
+                >
+                  <Text variant="body" style={{ color: themeColors.text.secondary, fontWeight: '600', fontSize: ms(16) }}>
+                    Cancel
                   </Text>
-                )}
-              </TouchableOpacity>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.submitBtn, { backgroundColor: isFormValid && !isMutating ? colors.primary.main : isDark ? colors.dark.border : colors.grey[15] }]}
+                  onPress={handleSubmit}
+                  activeOpacity={0.7}
+                  disabled={!isFormValid || isMutating}
+                >
+                  {isMutating ? (
+                    <ActivityIndicator size="small" color={colors.common.white} />
+                  ) : (
+                    <Text variant="body" style={{ color: isFormValid ? colors.common.white : (isDark ? colors.dark.text.hint : colors.grey[50]), fontWeight: '700', fontSize: ms(16) }}>
+                      {isEditMode ? 'Update' : 'Send'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        )}
+          )}
+        </ScrollView>
       </KeyboardAvoidingView>
 
       {/* ============================================================== */}

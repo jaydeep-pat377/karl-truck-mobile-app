@@ -16,12 +16,11 @@ import { ms, spacing } from '../../utils/responsive';
 import { useTheme } from '../../contexts/ThemeContext';
 
 // Screens where tab bar should STAY VISIBLE even when nested (not at index 0)
-const TAB_VISIBLE_SCREEN_NAMES = [
-  'OrderRequestDetail',
-  'CreateOrderRequest',
-];
+const TAB_VISIBLE_SCREEN_NAMES: string[] = [];
 
 const DETAIL_SCREEN_NAMES = [
+  'OrderRequestDetail',
+  'CreateOrderRequest',
 
   'OrderDetail',
   'OrderDetailInTab',

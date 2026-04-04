@@ -4,6 +4,18 @@ export type UserRole = 'dispatcher' | 'customer' | 'driver' | 'admin' | 'authent
 
 export type UserType = 'admin' | 'producer' | 'contractor' | 'none';
 
+/**
+ * Role values returned by the Login API in the `userRole` field.
+ */
+export type ApiUserRole =
+  | 'tk-admin'
+  | 'concrete-producer-users'
+  | 'contractor-users'
+  | 'eastern-region-access'
+  | 'yukon-batch-plant-access'
+  | 'mixed-access'
+  | null;
+
 export interface TenantInfo {
   tenant_client_id: string;
   tenant_id: number;
@@ -28,6 +40,7 @@ export interface User {
   phone?: string;
   role: UserRole;
   userType?: UserType;
+  userRole?: ApiUserRole;
   metadata?: UserMetadata;
   firstName?: string;
   lastName?: string;

@@ -146,6 +146,7 @@ export const OrderRequestListScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
+  // Web has no role checks on the list page — list and create button are always visible
 
   const [activeFilter, setActiveFilter] = useState<OrderRequestStatusFilter>('all');
   const [searchText, setSearchText] = useState('');
@@ -598,38 +599,38 @@ export const OrderRequestListScreen: React.FC = () => {
           {/* Create button & subtitle */}
           <View style={styles.headerInfoSection}>
             <TouchableOpacity
-              style={[
-                styles.createButton,
-                {
-                  backgroundColor: colors.primary.main,
-                  ...Platform.select({
-                    ios: {
-                      shadowColor: colors.primary.dark,
-                      shadowOffset: { width: 0, height: 3 },
-                      shadowOpacity: 0.3,
-                      shadowRadius: 6,
-                    },
-                    android: {
-                      elevation: 4,
-                    },
-                  }),
-                },
-              ]}
-              onPress={handleCreatePress}
-              activeOpacity={0.8}
-            >
-              <View style={styles.createButtonIconCircle}>
-                <Icon name="plus" size={ms(20)} color={colors.primary.main} />
-              </View>
-              <View style={styles.createButtonContent}>
-                <Text variant="body" style={styles.createButtonTitle}>
-                  Create New Order Request
-                </Text>
-                <Text variant="captionSmall" style={styles.createButtonSubtitle}>
-                  Tap to submit a new order
-                </Text>
-              </View>
-            </TouchableOpacity>
+                style={[
+                  styles.createButton,
+                  {
+                    backgroundColor: colors.primary.main,
+                    ...Platform.select({
+                      ios: {
+                        shadowColor: colors.primary.dark,
+                        shadowOffset: { width: 0, height: 3 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 6,
+                      },
+                      android: {
+                        elevation: 4,
+                      },
+                    }),
+                  },
+                ]}
+                onPress={handleCreatePress}
+                activeOpacity={0.8}
+              >
+                <View style={styles.createButtonIconCircle}>
+                  <Icon name="plus" size={ms(20)} color={colors.primary.main} />
+                </View>
+                <View style={styles.createButtonContent}>
+                  <Text variant="body" style={styles.createButtonTitle}>
+                    Create New Order Request
+                  </Text>
+                  <Text variant="captionSmall" style={styles.createButtonSubtitle}>
+                    Tap to submit a new order
+                  </Text>
+                </View>
+              </TouchableOpacity>
 
             {/* Subtitle row */}
             <View style={styles.subtitleRow}>
@@ -813,7 +814,7 @@ const styles = StyleSheet.create({
   // Search
   searchContainer: {
     paddingHorizontal: spacing.md,
-    paddingTop: ms(4),
+    paddingTop: ms(10),
     paddingBottom: ms(10),
   },
   searchBar: {

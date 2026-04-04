@@ -1940,8 +1940,8 @@ export const OrderDetailsScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
-  const { user } = useAuthStore();
-  const canOrderRequest = user?.userType === 'admin' || user?.userType === 'producer';
+  const { user, appPermissions } = useAuthStore();
+  const canOrderRequest = !appPermissions.includes('order_request');
   const [showAllUpdates, setShowAllUpdates] = useState(false);
 
   useEffect(() => {
@@ -2045,21 +2045,28 @@ export const OrderDetailsScreen: React.FC = () => {
     }
   }, [order, showError]);
 
+  // Matches web: passes full order data for form prefill
   const handleOrderRequest = useCallback(() => {
     if (!orderDetails) return;
     (navigation as any).navigate('OrderRequests', {
       screen: 'CreateOrderRequest',
       params: {
         prefillOrder: {
+          order_id: orderDetails.order_id,
           order_code: orderDetails.order_code,
           customer_name: orderDetails.customer_name,
           project_name: orderDetails.project_name,
-          job_address: orderDetails.delivery_address,
+          order_date: orderDetails.order_date,
+          start_time: orderDetails.start_time,
+          job_address: orderDetails.delivery_addr1 || orderDetails.delivery_address,
+          job_city: orderDetails.delivery_addr2 || '',
+          job_state: orderDetails.delivery_addr3 || '',
           plant_code: orderDetails.plant_details?.code,
           plant_name: orderDetails.plant_details?.description,
           item_code: orderDetails.products?.[0]?.item_code,
           quantity: orderDetails.ordered_qty,
-          zone_name: orderDetails.zone_name,
+          special_instructions: orderDetails.has_notes ? orderDetails.notes?.[0]?.note_text : undefined,
+          zone_name: (orderDetails as any).zone_name,
         },
       },
     });

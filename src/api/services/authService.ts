@@ -102,6 +102,10 @@ export const authService = {
   changePassword: async (data: ChangePasswordRequest): Promise<ChangePasswordResponse> => {
     return apiClient.post<ChangePasswordResponse>(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, data);
   },
+
+  getAppPermissions: async (): Promise<{ success: boolean; data: { permissions: string[] } }> => {
+    return apiClient.get(API_ENDPOINTS.AUTH.APP_PERMISSIONS);
+  },
 };
 
 export default authService;

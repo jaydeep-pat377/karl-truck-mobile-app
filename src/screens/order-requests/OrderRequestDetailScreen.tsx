@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,6 +10,7 @@ import {
   FlatList,
   ActivityIndicator,
   Modal,
+  Keyboard,
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,6 +32,7 @@ import { OrderEntity, OrderEntityMessage, ORDER_STATUS_LABELS } from '../../type
 import { useAuthStore } from '../../store/authStore';
 import { supabaseAdmin } from '../../services/supabase/supabaseClient';
 import { RootStackParamList } from '../../navigation/types';
+import { getUserPermissions, getSenderRole } from '../../utils/permissions';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -613,6 +615,15 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ state, onConfirm,
     <Modal visible={state.visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={confirmStyles.overlay}>
         <View style={[confirmStyles.card, { backgroundColor: cardBg }]}>
+          {/* Close icon — top right */}
+          <TouchableOpacity
+            style={confirmStyles.closeIcon}
+            onPress={onClose}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Icon name="close" size={ms(20)} color={secondaryColor} />
+          </TouchableOpacity>
           <View style={[confirmStyles.iconCircle, { backgroundColor: accentColor + '15' }]}>
             <Icon name={iconName} size={ms(32)} color={accentColor} />
           </View>
@@ -666,6 +677,12 @@ const confirmStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: ms(24),
+  },
+  closeIcon: {
+    position: 'absolute',
+    top: ms(12),
+    right: ms(12),
+    zIndex: 1,
   },
   card: {
     width: '100%',
@@ -858,6 +875,15 @@ export const OrderRequestDetailScreen: React.FC = () => {
   const [isRejecting, setIsRejecting] = useState(false);
   const [confirmModal, setConfirmModal] = useState<ConfirmModalState>(CONFIRM_INITIAL);
   const [creatorName, setCreatorName] = useState('');
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
 
   // Fetch creator name
   React.useEffect(() => {
@@ -923,6 +949,10 @@ export const OrderRequestDetailScreen: React.FC = () => {
       });
       await updateStatusMutation.mutateAsync({ id: order.id, status: 'approved' });
       setConfirmModal({ visible: true, type: 'success', title: 'Accepted', message: 'Order request has been accepted successfully.' });
+      setTimeout(() => {
+        setConfirmModal(CONFIRM_INITIAL);
+        navigation.goBack();
+      }, 3000);
     } catch (err: any) {
       setConfirmModal({ visible: true, type: 'error', title: 'Error', message: err?.message || 'Failed to accept order request.' });
     }
@@ -945,6 +975,10 @@ export const OrderRequestDetailScreen: React.FC = () => {
     try {
       await updateStatusMutation.mutateAsync({ id: order.id, status: 'rejected' });
       setConfirmModal({ visible: true, type: 'success', title: 'Rejected', message: 'Order request has been rejected.' });
+      setTimeout(() => {
+        setConfirmModal(CONFIRM_INITIAL);
+        navigation.goBack();
+      }, 2000);
     } catch (err: any) {
       setConfirmModal({ visible: true, type: 'error', title: 'Error', message: err?.message || 'Failed to reject order request.' });
     }
@@ -957,12 +991,9 @@ export const OrderRequestDetailScreen: React.FC = () => {
 
   const handleSendMessage = useCallback(async () => {
     if (!messageText.trim() || !order) return;
-    // Map userType to valid sender_role matching web and DB constraint
+    // Map user role to valid sender_role matching web and DB constraint
     // DB CHECK: sender_role IN ('concrete_producer', 'contractor', 'admin')
-    const ut = user?.userType || 'none';
-    const senderRole = ut === 'admin' ? 'admin'
-      : ut === 'contractor' ? 'contractor'
-      : 'concrete_producer';
+    const senderRole = getSenderRole(user);
     try {
       await sendMessageMutation.mutateAsync({
         id: order.id,
@@ -979,7 +1010,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
 
   if (isLoading) {
     return (
-      <ScreenContainer>
+      <ScreenContainer edges={[]} usePlainView={false}>
         <ScreenHeader title="Order Request" showBackButton />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary.main} />
@@ -993,7 +1024,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
 
   if (isError || !order) {
     return (
-      <ScreenContainer>
+      <ScreenContainer edges={[]} usePlainView={false}>
         <ScreenHeader title="Order Request" showBackButton />
         <View style={styles.centered}>
           <Icon name="alert-circle-outline" size={ms(48)} color={colors.error.main} />
@@ -1011,9 +1042,8 @@ export const OrderRequestDetailScreen: React.FC = () => {
   const status = order.status;
   const statusColor = STATUS_COLORS[status] || colors.grey[50];
   const isPendingOrSubmitted = status === 'pending' || status === 'submitted';
-  // Only admin and producer users can accept/reject/update orders (matches web)
-  const userType = user?.userType || 'none';
-  const canManageOrders = userType === 'admin' || userType === 'producer';
+  // Same as web: canManageOrders (order-request/[id]/page.tsx line 134)
+  const { canManageOrders } = getUserPermissions(user);
   const orderCode = formatOrderCode(order.id);
   const truckRate = computeTruckRate(order.truck_spacing);
 
@@ -1031,7 +1061,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
   // ----- Render -----
 
   return (
-    <ScreenContainer style={{top: -50}}>
+    <ScreenContainer edges={[]} usePlainView={false}>
       <ScreenHeader title={'Order Request'} showBackButton showRefreshButton isRefreshing={isFetching && !isLoading} onRefresh={() => { refetch(); refetchMessages(); }} />
 
       <KeyboardAvoidingView
@@ -1076,9 +1106,10 @@ export const OrderRequestDetailScreen: React.FC = () => {
           </View>
 
           {/* ========== ACCEPT / REJECT / UPDATE SECTION ========== */}
+          {/* Same as web: canManageOrders && (status === "pending" || status === "submitted") */}
           {canManageOrders && isPendingOrSubmitted && (
             <View style={[styles.actionSection, { backgroundColor: cardBg }]}>
-              {/* Action Buttons */}
+              {/* Action Buttons — web shows all 3 together */}
               <View style={styles.actionButtonsRow}>
                 <TouchableOpacity
                   style={[
@@ -1145,7 +1176,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
 
-              {/* Verification Fields */}
+              {/* Verification Fields — web shows these with the action section */}
               <View style={styles.verificationSection}>
                 <Text variant="bodySmall" style={{ color: secondaryTextColor, fontWeight: '600', marginBottom: ms(10) }}>
                   Verification Details
@@ -1581,7 +1612,13 @@ export const OrderRequestDetailScreen: React.FC = () => {
       <ConfirmationModal
         state={confirmModal}
         onConfirm={handleConfirmModalAction}
-        onClose={() => setConfirmModal(CONFIRM_INITIAL)}
+        onClose={() => {
+          const wasSuccess = confirmModal.type === 'success';
+          setConfirmModal(CONFIRM_INITIAL);
+          if (wasSuccess) {
+            navigation.goBack();
+          }
+        }}
         isDark={isDark}
       />
     </ScreenContainer>

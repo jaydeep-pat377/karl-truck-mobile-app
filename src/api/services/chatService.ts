@@ -3,6 +3,7 @@ import { ChatRoom, Message, SendMessagePayload } from '../../types/chat';
 import { useAuthStore } from '../../store/authStore';
 import { Platform } from 'react-native';
 import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from '@env';
+import { getSenderRole } from '../../utils/permissions';
 
 export interface ImageAttachment {
   uri: string;
@@ -299,13 +300,7 @@ export const chatService = {
       userName = user.email.split('@')[0];
     }
 
-    let userRole = 'contractor';
-    const role = (user.role || '').toLowerCase();
-    if (role === 'admin' || role === 'administrator') {
-      userRole = 'admin';
-    } else if (role === 'producer' || role === 'concrete_producer' || role === 'plant') {
-      userRole = 'concrete_producer';
-    }
+    const userRole = getSenderRole(user);
 
     let chatId = payload.chat_id;
     if (!chatId || chatId === payload.order_id) {

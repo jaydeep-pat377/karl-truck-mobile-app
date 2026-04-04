@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   REMEMBER_ME: 'rememberMe',
   BIOMETRIC_ENABLED: 'biometricEnabled',
   APP_LAST_BACKGROUND_TIME: 'appLastBackgroundTime',
+  APP_PERMISSIONS: 'appPermissions',
 } as const;
 
 export const storageUtils = {
