@@ -32,7 +32,6 @@ export interface OrderRequestPermissions {
  */
 export const getUserPermissions = (user: User | null | undefined): OrderRequestPermissions => {
   if (!user) {
-    console.log('[Permissions] No user → canManageOrders: false');
     return { canManageOrders: false };
   }
 
@@ -41,18 +40,8 @@ export const getUserPermissions = (user: User | null | undefined): OrderRequestP
   const userRole: string = (raw.userRole ?? raw.user_role ?? '').toString();
   const roleLower = userRole.toLowerCase().trim();
 
-  // Same as web: isAdmin || name.includes("producer") || role_type checks
-  const canManageOrders =
-    userType === 'admin' ||
-    userType === 'producer' ||
-    roleLower.includes('tk admin') || roleLower.includes('tk-admin') ||
-    roleLower.includes('producer') ||
-    roleLower.includes('plant') ||
-    roleLower.includes('region') ||
-    roleLower.includes('mixed');
-
-  console.log('[Permissions] userType:', JSON.stringify(userType), '| userRole:', JSON.stringify(userRole), '| canManageOrders:', canManageOrders);
-
+  // All users can manage orders except contractors
+  const canManageOrders = userType !== 'contractor';
   return { canManageOrders };
 };
 

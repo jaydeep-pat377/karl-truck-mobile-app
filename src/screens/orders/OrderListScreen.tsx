@@ -829,8 +829,8 @@ export const OrderListScreen: React.FC = () => {
   const { isDark } = useTheme();
   const { getOrCreateRoom } = useChatRooms();
   const { showAlert } = useGlobalAlert();
-  const { user, appPermissions } = useAuthStore();
-  const canOrderRequest = !appPermissions.includes('order_request');
+  const { user, appPermissions, fetchAppPermissions } = useAuthStore();
+  const canOrderRequest = appPermissions.includes('order_request');
 
 
 
@@ -1272,9 +1272,10 @@ export const OrderListScreen: React.FC = () => {
 
   }, [orderStatusFilter]);
 
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = useCallback(async () => {
+    await fetchAppPermissions();
     refetch();
-  }, [refetch]);
+  }, [refetch, fetchAppPermissions]);
 
   const handleLoadMore = useCallback(() => {
 

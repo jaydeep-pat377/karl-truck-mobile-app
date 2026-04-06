@@ -1,6 +1,3 @@
-
-console.log('[NotificationProvider] 📦 MODULE LOADING...');
-
 import React, { createContext, useContext, useEffect, useCallback, useMemo } from 'react';
 import { AppState } from 'react-native';
 import { useRealtimeSubscription } from '../hooks/useRealtimeSubscription';
@@ -60,42 +57,20 @@ export function NotificationProvider({
 
 
   useEffect(() => {
-    console.log('[NotificationProvider] ========================================');
-    console.log('[NotificationProvider] 📱 NOTIFICATION PROVIDER MOUNTED');
-    console.log('[NotificationProvider] userId:', userId);
-    console.log('[NotificationProvider] tenantId:', tenantId);
-    console.log('[NotificationProvider] enabled:', enabled);
-    console.log('[NotificationProvider] ========================================');
-    console.log('[NotificationProvider] ⚠️ USE THIS USER ID IN YOUR TEST QUERY:');
-    console.log('[NotificationProvider] ', userId);
-    console.log('[NotificationProvider] ========================================');
-
     if (userId && enabled) {
-
       testNotificationConnection(userId).then((success) => {
         console.log('[NotificationProvider] Connection test:', success ? '✅ PASSED' : '❌ FAILED');
       });
     } else {
       console.log('[NotificationProvider] ⚠️ Not enabling - userId:', userId, 'enabled:', enabled);
     }
-
-
-
-
-
-
   }, [userId, tenantId, enabled]);
 
 
   const handleNewNotification = useCallback(
     async (notification: AppNotification) => {
       const appState = AppState.currentState;
-      console.log('[NotificationProvider] New notification received:', notification.title, 'App state:', appState);
-
-
       playMessageSound();
-
-
 
       await showLocalNotification({
         id: notification.id,
@@ -103,8 +78,8 @@ export function NotificationProvider({
         title: notification.title,
         description: notification.body,
         type: notification.type === 'order_update' ? 'order' :
-              notification.type === 'delivery_update' ? 'truck' :
-              notification.type === 'weather_alert' ? 'alert' : 'info',
+          notification.type === 'delivery_update' ? 'truck' :
+            notification.type === 'weather_alert' ? 'alert' : 'info',
         time: notification.createdAt,
         read: notification.isRead,
         eventCode: (notification.data as any)?.event_code || '',

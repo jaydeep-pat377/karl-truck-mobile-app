@@ -1044,6 +1044,8 @@ export const OrderRequestDetailScreen: React.FC = () => {
   const isPendingOrSubmitted = status === 'pending' || status === 'submitted';
   // Same as web: canManageOrders (order-request/[id]/page.tsx line 134)
   const { canManageOrders } = getUserPermissions(user);
+  console.log('[OrderRequestDetail] user:', JSON.stringify({ userType: (user as any)?.userType, userRole: (user as any)?.userRole, user_type: (user as any)?.user_type }));
+  console.log('[OrderRequestDetail] canManageOrders:', canManageOrders, 'status:', status, 'isPendingOrSubmitted:', isPendingOrSubmitted);
   const orderCode = formatOrderCode(order.id);
   const truckRate = computeTruckRate(order.truck_spacing);
 

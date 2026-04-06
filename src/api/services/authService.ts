@@ -49,34 +49,10 @@ export interface ChangePasswordResponse {
 
 export const authService = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    // Debug logging for login issues
-    console.log('\n========== LOGIN DEBUG ==========');
-    console.log('Email:', `"${credentials.email}"`);
-    console.log('Email length:', credentials.email.length);
-    console.log('Email has leading space:', credentials.email.startsWith(' '));
-    console.log('Email has trailing space:', credentials.email.endsWith(' '));
-    console.log('Password length:', credentials.password.length);
-    console.log('Password has leading space:', credentials.password.startsWith(' '));
-    console.log('Password has trailing space:', credentials.password.endsWith(' '));
-    console.log('Device info:', JSON.stringify(credentials.device_info, null, 2));
-    console.log('==================================\n');
-
     try {
       const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
-      console.log('\n========== LOGIN RESPONSE ==========');
-      console.log('Success:', response.success);
-      console.log('Message:', response.message);
-      console.log('Has user data:', !!response.data?.user);
-      console.log('Has access token:', !!response.data?.accessToken);
-      console.log('=====================================\n');
       return response;
     } catch (error: any) {
-      console.log('\n========== LOGIN ERROR ==========');
-      console.log('Error message:', error?.message);
-      console.log('Response status:', error?.response?.status);
-      console.log('Response data:', JSON.stringify(error?.response?.data, null, 2));
-      console.log('Error code:', error?.code);
-      console.log('=================================\n');
       throw error;
     }
   },

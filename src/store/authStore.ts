@@ -46,9 +46,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     try {
       // Normalise role fields (handles user_role → userRole, display names → slugs)
       const user = normaliseUserRole(rawUser) as User;
-
-      console.log('[Auth] setAuth → userType:', user.userType, '| userRole:', user.userRole, '| raw userType:', (rawUser as any).userType ?? 'NOT_PRESENT', '| raw userRole:', (rawUser as any).userRole ?? 'NOT_PRESENT');
-
       await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
       await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
@@ -140,8 +137,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         const accessToken = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
         const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
-        console.log('[Auth] verifyAuth → userType:', user.userType, '| userRole:', user.userRole, '| raw userType:', (response.data.user as any).userType ?? 'NOT_PRESENT', '| raw userRole:', (response.data.user as any).userRole ?? 'NOT_PRESENT');
-
         set({
           user,
           accessToken: accessToken,
@@ -185,9 +180,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   fetchAppPermissions: async () => {
     try {
       const response = await authService.getAppPermissions();
+      console.log('[Auth] App permissions API response:', JSON.stringify(response, null, 2));
       if (response.success && response.data?.permissions) {
         const permissions = response.data.permissions;
-        console.log('[Auth] App permissions:', permissions);
         set({ appPermissions: permissions });
         await AsyncStorage.setItem(STORAGE_KEYS.APP_PERMISSIONS, JSON.stringify(permissions));
       }

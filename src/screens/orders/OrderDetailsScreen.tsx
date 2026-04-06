@@ -1940,8 +1940,8 @@ export const OrderDetailsScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
-  const { user, appPermissions } = useAuthStore();
-  const canOrderRequest = !appPermissions.includes('order_request');
+  const { user, appPermissions, fetchAppPermissions } = useAuthStore();
+  const canOrderRequest = appPermissions.includes('order_request');
   const [showAllUpdates, setShowAllUpdates] = useState(false);
 
   useEffect(() => {
@@ -1950,10 +1950,11 @@ export const OrderDetailsScreen: React.FC = () => {
     }
   }, [orderDetails?.is_favourite]);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    await fetchAppPermissions();
     refetch().finally(() => setRefreshing(false));
-  }, [refetch]);
+  }, [refetch, fetchAppPermissions]);
 
   const handleCall = useCallback((phone: string) => {
     Linking.openURL(`tel:${phone}`);

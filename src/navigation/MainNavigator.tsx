@@ -17,9 +17,7 @@ export const MainNavigator: React.FC = () => {
   const { t } = useTranslation();
   const appPermissions = useAuthStore((s) => s.appPermissions);
 
-  // Hide tab if user has the permission, show if they don't
-  const hasOrders = !appPermissions.includes('orders');
-  const hasOrderRequests = !appPermissions.includes('order_request');
+  const hasOrderRequests = appPermissions.includes('order_request');
 
   return (
     <Tab.Navigator
@@ -36,15 +34,13 @@ export const MainNavigator: React.FC = () => {
           tabBarLabel: t('navigation.home'),
         }}
       />
-      {hasOrders && (
-        <Tab.Screen
-          name="Orders"
-          component={OrdersNavigator}
-          options={{
-            tabBarLabel: t('navigation.orders'),
-          }}
-        />
-      )}
+      <Tab.Screen
+        name="Orders"
+        component={OrdersNavigator}
+        options={{
+          tabBarLabel: t('navigation.orders'),
+        }}
+      />
 
       <Tab.Screen
         name="Notifications"

@@ -586,13 +586,6 @@ export const TrucksOnJobWebView: React.FC<TrucksOnJobWebViewProps> = ({
 
   const hasData = waitingData.length > 0 || pouringData.length > 0;
 
-
-  console.log('[TrucksOnJobWebView] scheduledLoads:', scheduledLoads.length);
-  console.log('[TrucksOnJobWebView] truckStates:', truckStates.length);
-  console.log('[TrucksOnJobWebView] waitingData:', waitingData.length);
-  console.log('[TrucksOnJobWebView] pouringData:', pouringData.length);
-
-
   const handleZoomIn = useCallback(() => {
     if (isAtEnd || zoomLevel >= MAX_ZOOM) return;
     setZoomLevel(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));

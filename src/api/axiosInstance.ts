@@ -68,10 +68,6 @@ axiosInstance.interceptors.request.use(
     }
 
     if (ENABLE_API_LOGGING) {
-      console.log('\n========== API REQUEST ==========');
-      console.log('Method:', config.method?.toUpperCase());
-      console.log('Base URL:', config.baseURL);
-      console.log('Endpoint:', config.url);
       console.log('Full URL:', `${config.baseURL}${config.url}`);
       if (config.params && Object.keys(config.params).length > 0) {
         console.log('Query Params:', JSON.stringify(config.params, null, 2));
@@ -80,7 +76,6 @@ axiosInstance.interceptors.request.use(
         console.log('Body:', JSON.stringify(config.data, null, 2));
       }
       console.log('Headers:', JSON.stringify(config.headers, null, 2));
-      console.log('==================================\n');
     }
 
     return config;

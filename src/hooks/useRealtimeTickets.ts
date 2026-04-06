@@ -62,7 +62,6 @@ export function useRealtimeTickets({
           table: 'ticket_products',
         },
         (payload) => {
-          console.log('[RealtimeTickets] Product change detected, refetching...');
           onUpdateRef.current?.();
         },
       )
