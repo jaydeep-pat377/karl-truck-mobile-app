@@ -53,4 +53,12 @@ export const API_ENDPOINTS = {
     SEARCH_PRODUCTS: '/order-requests/search-products',
     RECENT_ENTITIES: '/order-requests/recent-entities',
   },
+  EMAIL_TEMPLATES: {
+    LIST: '/email-templates',
+    DEFAULTS: '/email-templates/defaults',
+    DETAIL: '/email-templates',
+    CREATE: '/email-templates',
+    UPDATE: '/email-templates',
+    DELETE: '/email-templates',
+  },
 } as const;

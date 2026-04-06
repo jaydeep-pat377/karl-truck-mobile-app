@@ -12,6 +12,7 @@ import { spacing, ms } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useLogout } from '../../hooks/useLogout';
 import { useProfile } from '../../hooks/useProfile';
+import { useAuthStore } from '../../store/authStore';
 import { MainTabParamList } from '../../navigation/types';
 import { BiometricToggleItem } from '../../components/settings/BiometricToggleItem';
 
@@ -118,6 +119,8 @@ export const SettingsScreen: React.FC = () => {
   const { t } = useTranslation();
   const { logout, isLoading: isLoggingOut } = useLogout();
   const { profile, isLoading: isProfileLoading, refetch: refetchProfile } = useProfile();
+  const { user } = useAuthStore();
+  const isContractor = (user as any)?.userType === 'contractor';
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -165,6 +168,10 @@ export const SettingsScreen: React.FC = () => {
 
   const handleLogout = () => {
     setShowLogoutModal(true);
+  };
+
+  const handleNavigateToEmailTemplates = () => {
+    navigation.navigate('EmailTemplateList');
   };
 
   const handleNavigateToPrivacyPolicy = () => {
@@ -335,6 +342,22 @@ export const SettingsScreen: React.FC = () => {
             />
           </Card>
         </View>
+        {!isContractor && (
+          <View style={styles.section}>
+            <Text variant="label" color="secondary" style={styles.sectionTitle}>
+              Configuration
+            </Text>
+            <Card padding="none">
+              <SettingsItem
+                icon="email-edit-outline"
+                title="Email Templates"
+                subtitle="Customize email templates sent by the system"
+                onPress={handleNavigateToEmailTemplates}
+              />
+            </Card>
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text variant="label" color="secondary" style={styles.sectionTitle}>
             {t('settings.about')}
