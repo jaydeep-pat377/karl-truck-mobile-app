@@ -829,7 +829,7 @@ export const OrderListScreen: React.FC = () => {
   const { isDark } = useTheme();
   const { getOrCreateRoom } = useChatRooms();
   const { showAlert } = useGlobalAlert();
-  const { user, appPermissions, fetchAppPermissions } = useAuthStore();
+  const { user, appPermissions, fetchAppPermissions, showRegion } = useAuthStore();
   const canOrderRequest = appPermissions.includes('order_request');
 
 
@@ -1632,9 +1632,9 @@ export const OrderListScreen: React.FC = () => {
         <>
           <DailyStatsPanel
             reportDate={debouncedFilter === 'calendar' ? debouncedDate.toISOString().split('T')[0] : undefined}
-            scope={dashboardFilter.plant_code ? 'plant' : dashboardFilter.region_name ? 'region' : 'company'}
+            scope={dashboardFilter.plant_code ? 'plant' : (showRegion && dashboardFilter.region_name) ? 'region' : 'company'}
             plantCode={dashboardFilter.plant_code || null}
-            regionName={dashboardFilter.region_name || null}
+            regionName={showRegion ? (dashboardFilter.region_name || null) : null}
             onKpiFilter={handleKpiFilter}
             onKpiFilterClear={handleKpiFilterClear}
           />
@@ -1667,18 +1667,18 @@ export const OrderListScreen: React.FC = () => {
           </View>
 
 
-          {(dashboardFilter.company_name || dashboardFilter.region_name || dashboardFilter.plant_code) && (
+          {(dashboardFilter.company_name || (showRegion && dashboardFilter.region_name) || dashboardFilter.plant_code) && (
             <View style={styles.dashboardFilterContainer}>
               <View style={[styles.dashboardFilterChip, { backgroundColor: colors.primary.main + '15' }]}>
                 <Icon
-                  name={dashboardFilter.company_name ? 'domain' : dashboardFilter.region_name ? 'map-marker-radius' : 'factory'}
+                  name={dashboardFilter.company_name ? 'domain' : (showRegion && dashboardFilter.region_name) ? 'map-marker-radius' : 'factory'}
                   size={ms(14)}
                   color={colors.primary.main}
                 />
                 <Text style={[styles.dashboardFilterText, { color: colors.primary.main }]} numberOfLines={1}>
                   {dashboardFilter.company_name
                     ? `${dashboardFilter.company_name} (Company)`
-                    : dashboardFilter.region_name
+                    : (showRegion && dashboardFilter.region_name)
                     ? `${dashboardFilter.region_name} (Region)`
                     : `${dashboardFilter.plant_name || dashboardFilter.plant_code} (Plant)`}
                 </Text>

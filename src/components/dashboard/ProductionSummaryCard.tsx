@@ -68,6 +68,7 @@ interface ProductionSummaryProps {
   onPlantPress?: (plant: PlantData) => void;
   onPress?: () => void;
   onTabChange?: (tab: SummaryTabType, itemCount: number) => void;
+  showRegion?: boolean;
 }
 
 export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
@@ -84,6 +85,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
   onRegionPress,
   onPlantPress,
   onTabChange,
+  showRegion = true,
 }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -91,7 +93,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
 
   const getDefaultTab = (): SummaryTabType => {
     if (companies.length > 0) return 'company';
-    if (regions.length > 0) return 'region';
+    if (showRegion && regions.length > 0) return 'region';
     if (plants.length > 0) return 'plant';
     return 'company';
   };
@@ -100,7 +102,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
 
   const tabs: { key: SummaryTabType; label: string; count: number }[] = [
     { key: 'company', label: 'Company', count: companies.length },
-    { key: 'region', label: 'Region', count: regions.length },
+    ...(showRegion ? [{ key: 'region' as SummaryTabType, label: 'Region', count: regions.length }] : []),
     { key: 'plant', label: 'Plant', count: plants.length },
   ];
 

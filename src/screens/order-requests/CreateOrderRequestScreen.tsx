@@ -471,6 +471,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
+  const { showRegion } = useAuthStore();
 
   const { orderType: routeOrderType, editOrderId, prefillOrder } = route.params ?? {};
   const isEditMode = !!editOrderId;
@@ -912,7 +913,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
     const missing: string[] = [];
     // Base required
     if (!companyId) missing.push('Company');
-    if (!regionCode) missing.push('Region');
+    if (showRegion && !regionCode) missing.push('Region');
     if (!usageCode) missing.push('Usage');
     if (orderStatus === null || orderStatus === undefined) missing.push('Order Status');
     if (!onJobDate) missing.push(orderType === 'with_project' ? 'On Job Date' : 'Requested On Job Date');
@@ -1107,7 +1108,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
   // Check if all required fields are filled (for Send button disabled state)
   const isFormValid = useMemo(() => {
     // Base required
-    if (!companyId || !regionCode || !usageCode || orderStatus === null || orderStatus === undefined) return false;
+    if (!companyId || (showRegion && !regionCode) || !usageCode || orderStatus === null || orderStatus === undefined) return false;
     if (!onJobDate || !onJobTime) return false;
     if (!jobAddress || !jobCity) return false;
     if (!contactName || !contactPhone) return false;
@@ -1515,7 +1516,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
               </>
             )}
             {renderDropdownField('Referenced Order', referencedOrderLabel || referencedOrder || '', 'referencedOrder')}
-            {renderDropdownField('Region', regionName ? `${regionName} (${regionCode})` : '', 'region', true)}
+            {showRegion && renderDropdownField('Region', regionName ? `${regionName} (${regionCode})` : '', 'region', true)}
             {renderField('Customer Job Number', customerJobNumber, setCustomerJobNumber, 'e.g., CJ-001')}
             {renderDropdownField('Usage', usageCode || '', 'usage', true)}
             {renderField('P.O. Number', poNumber, setPoNumber, 'e.g., PO-12345')}

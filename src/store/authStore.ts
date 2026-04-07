@@ -15,6 +15,7 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   appPermissions: string[];
+  showRegion: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
   isInitialized: boolean;
@@ -38,6 +39,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   accessToken: null,
   refreshToken: null,
   appPermissions: [],
+  showRegion: true,
   isAuthenticated: false,
   isLoading: false,
   isInitialized: false,
@@ -94,6 +96,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         accessToken: null,
         refreshToken: null,
         appPermissions: [],
+        showRegion: true,
         isAuthenticated: false,
         isLoading: false,
       });
@@ -183,7 +186,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       console.log('[Auth] App permissions API response:', JSON.stringify(response, null, 2));
       if (response.success && response.data?.permissions) {
         const permissions = response.data.permissions;
-        set({ appPermissions: permissions });
+        const showRegion = response.data?.showRegion !== false;
+        console.log('[Auth] showRegion from API:', response.data?.showRegion, '→ resolved:', showRegion);
+        set({ appPermissions: permissions, showRegion });
         await AsyncStorage.setItem(STORAGE_KEYS.APP_PERMISSIONS, JSON.stringify(permissions));
       }
     } catch (error) {

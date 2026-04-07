@@ -268,6 +268,7 @@ const DashboardScreen: React.FC = () => {
   const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
+  const showRegion = useAuthStore((state) => state.showRegion);
 
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
   const [isFilterChanging, setIsFilterChanging] = useState(false);
@@ -332,6 +333,7 @@ const DashboardScreen: React.FC = () => {
 
 
   const regions: RegionData[] = useMemo(() => {
+    if (!showRegion) return [];
     if (!marketSummary?.regions) return [];
     return marketSummary.regions.map((region) => ({
       id: region.id,
@@ -342,7 +344,7 @@ const DashboardScreen: React.FC = () => {
       activeOrders: region.activeOrders,
       cancelledOrders: region.cancelledOrders,
     }));
-  }, [marketSummary?.regions]);
+  }, [showRegion, marketSummary?.regions]);
 
 
   const plants: PlantData[] = useMemo(() => {
@@ -912,6 +914,7 @@ const DashboardScreen: React.FC = () => {
             companies={companies}
             regions={regions}
             plants={plants}
+            showRegion={showRegion}
             onCompanyPress={(company) => {
 
               const orderListDateFilter = dateFilter === 'next_week' ? 'nextWeek'

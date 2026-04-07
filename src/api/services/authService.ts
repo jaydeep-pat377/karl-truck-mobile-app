@@ -79,7 +79,7 @@ export const authService = {
     return apiClient.post<ChangePasswordResponse>(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, data);
   },
 
-  getAppPermissions: async (): Promise<{ success: boolean; data: { permissions: string[] } }> => {
+  getAppPermissions: async (): Promise<{ success: boolean; data: { permissions: string[]; showRegion?: boolean } }> => {
     return apiClient.get(API_ENDPOINTS.AUTH.APP_PERMISSIONS);
   },
 };
