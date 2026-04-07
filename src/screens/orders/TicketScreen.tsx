@@ -1488,11 +1488,10 @@ export const TicketScreen: React.FC = () => {
       ticketCode: ticket.ticketNumber,
       status: ticket.status,
       statusDisplay: ticket.statusDisplay,
-      weatherData: weatherData,
       statusColor: statusColor,
       statusColors: apiStatusColors,
     });
-  }, [navigation, orderCode, orderDate, weatherData, getStatusColor, apiStatusColors]);
+  }, [navigation, orderCode, orderDate, getStatusColor, apiStatusColors]);
 
   const handleWeatherPress = useCallback(() => {
     navigation.navigate('Weather', {

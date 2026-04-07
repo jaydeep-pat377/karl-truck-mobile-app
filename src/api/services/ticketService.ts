@@ -42,6 +42,15 @@ export const ticketService = {
       force_refresh: forceRefresh,
     });
   },
+
+  calculateTicketETA: async (
+    ticketId: string,
+    forceRecalculate = false
+  ): Promise<{ success: boolean; data: any }> => {
+    return apiClient.post(`${API_ENDPOINTS.TICKETS.WEATHER}/${ticketId}/eta`, {
+      forceRecalculate,
+    });
+  },
 };
 
 export default ticketService;

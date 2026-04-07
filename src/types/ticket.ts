@@ -680,6 +680,32 @@ export interface TicketDetailsTicket {
   weather_data?: OrderDetailsWeatherData | null;
   fresh_weather?: FreshWeatherData | null;
   verifi_json?: VerifiJson | null;
+  eta_data?: ETAData | null;
+}
+
+export interface ETAData {
+  calculatedAt: string;
+  originLat: number;
+  originLng: number;
+  destinationLat: number;
+  destinationLng: number;
+  durationSeconds: number;
+  distanceMeters: number;
+  arrivalTime?: string | null;
+  departureTime?: string | null;
+  durationFormatted: string;
+  distanceKm: string;
+  distanceMiles: string;
+  truckSpecs?: {
+    grossWeight: number;
+    height: number;
+    length: number;
+    width: number;
+    axleCount: number;
+    tireCount: number;
+    weightPerAxle: number;
+    maxSpeed: number;
+  };
 }
 
 export interface TicketDetailsData {

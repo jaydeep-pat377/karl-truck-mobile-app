@@ -29,6 +29,8 @@ const SILENT_ERROR_ENDPOINTS = [
   '/auth/me',
   '/auth/refresh',
   '/announcements/me',
+  '/weather',
+  '/eta',
 ];
 
 const isPublicEndpoint = (url: string | undefined): boolean => {

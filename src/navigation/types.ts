@@ -203,13 +203,6 @@ export type TicketDetailScreenParams = {
   statusDisplay?: string;
   statusColor?: string;
   statusColors?: Record<string, string> | null;
-  weatherData?: {
-    temperature_fahrenheit?: number | null;
-    wind_speed_mph?: number | null;
-    humidity?: number | null;
-    evaporation_rate?: number | null;
-    weather_description?: string | null;
-  } | null;
 };
 
 export type ProductCodeScreenParams = {
