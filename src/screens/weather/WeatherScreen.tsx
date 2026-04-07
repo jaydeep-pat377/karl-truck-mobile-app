@@ -226,7 +226,9 @@ const WeatherMetricCard: React.FC<WeatherMetricCardProps> = ({
   return (
     <View style={[styles.metricCard, { backgroundColor: WEATHER_COLORS.cardBackground, borderColor: WEATHER_COLORS.cardBorder }]}>
       <View style={styles.metricCardHeader}>
-        <Icon name={titleIcon} size={ms(14)} color={WEATHER_COLORS.text.hint} />
+        <View style={styles.metricCardIconWrap}>
+          <Icon name={titleIcon} size={ms(14)} color={WEATHER_COLORS.text.hint} />
+        </View>
         <Text style={[styles.metricCardTitle, { color: WEATHER_COLORS.text.hint }]}>
           {title}
         </Text>
@@ -260,31 +262,6 @@ const WeatherMetricCard: React.FC<WeatherMetricCardProps> = ({
   );
 };
 
-interface ConcreteTempCardProps {
-  value: number;
-  description: string;
-}
-
-const ConcreteTempCard: React.FC<ConcreteTempCardProps> = ({ value, description }) => {
-  return (
-    <WeatherMetricCard
-      title="CONCRETE"
-      titleIcon="cube-outline"
-      description={description}
-    >
-      <View style={styles.concreteContent}>
-        <View style={styles.concreteValueContainer}>
-          <Text style={[styles.concreteValue, { color: WEATHER_COLORS.text.primary }]}>
-            --
-          </Text>
-          <Text style={[styles.concreteUnit, { color: WEATHER_COLORS.text.primary }]}>
-            °
-          </Text>
-        </View>
-      </View>
-    </WeatherMetricCard>
-  );
-};
 
 interface WindCardProps {
   direction: string;
@@ -448,6 +425,127 @@ const RecommendationChip: React.FC<RecommendationChipProps> = ({ label, color })
   );
 };
 
+interface ConcreteEvaporationCardProps {
+  rate?: number | null;
+  level?: string | null;
+  tempSource?: string | null;
+  isEstimated?: boolean | null;
+}
+
+const CONCRETE_EVAP_COLORS: Record<string, string> = {
+  Low: '#22C55E',
+  Moderate: '#F59E0B',
+  High: '#EF4444',
+  Critical: '#DC2626',
+};
+
+const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({ rate, level, tempSource, isEstimated }) => {
+  const hasData = rate != null && level;
+  const levelColor = hasData ? (CONCRETE_EVAP_COLORS[level] || CONCRETE_EVAP_COLORS.Low) : WEATHER_COLORS.text.hint;
+  const progress = hasData ? (level === 'Low' ? 25 : level === 'Moderate' ? 50 : level === 'High' ? 75 : 100) : 0;
+
+  return (
+    <View style={[styles.metricCard, { backgroundColor: WEATHER_COLORS.cardBackground, borderColor: WEATHER_COLORS.cardBorder }]}>
+      <View style={styles.metricCardHeader}>
+        <View style={styles.metricCardIconWrap}>
+          <Icon name="water-outline" size={ms(14)} color={WEATHER_COLORS.text.hint} />
+        </View>
+        <Text style={[styles.metricCardTitle, { color: WEATHER_COLORS.text.hint }]}>
+          CONCRETE EVAP
+        </Text>
+      </View>
+
+      <Text style={[styles.concreteEvapValue, { color: WEATHER_COLORS.text.primary }]}>
+        {hasData ? rate.toFixed(4) : '--'}
+      </Text>
+
+      {hasData ? (
+        <View style={styles.concreteEvapLevelBadge}>
+          <View style={[styles.concreteEvapDot, { backgroundColor: levelColor }]} />
+          <Text style={[styles.concreteEvapLevelText, { color: WEATHER_COLORS.text.primary }]}>
+            {level}
+          </Text>
+          <Text style={[styles.concreteEvapUnitText, { color: WEATHER_COLORS.text.secondary }]}>
+            kg/m²/hr
+          </Text>
+        </View>
+      ) : null}
+
+      <View style={styles.concreteEvapBarTrack}>
+        <View style={[styles.concreteEvapBarFill, { width: `${progress}%`, backgroundColor: levelColor }]} />
+      </View>
+
+      <Text style={[styles.concreteEvapDesc, { color: WEATHER_COLORS.text.secondary }]} numberOfLines={1}>
+        {hasData ? `Concrete evaporation rate` : 'No data available'}
+      </Text>
+    </View>
+  );
+};
+
+const CloudsCard: React.FC<{ value: number }> = ({ value }) => {
+  return (
+    <WeatherMetricCard
+      title="CLOUD COVER"
+      titleIcon="cloud-outline"
+      description="Cloud coverage"
+    >
+      <View style={styles.simpleContent}>
+        <View style={styles.simpleValueContainer}>
+          <Text style={[styles.simpleValue, { color: WEATHER_COLORS.text.primary }]}>
+            {value}
+          </Text>
+          <Text style={[styles.simpleUnit, { color: WEATHER_COLORS.text.primary }]}>
+            %
+          </Text>
+        </View>
+      </View>
+    </WeatherMetricCard>
+  );
+};
+
+const VisibilityCard: React.FC<{ value: number | null }> = ({ value }) => {
+  const displayValue = value != null ? (value / 1000).toFixed(1) : '--';
+  return (
+    <WeatherMetricCard
+      title="VISIBILITY"
+      titleIcon="eye-outline"
+      description={value != null ? 'Visibility distance' : 'No data available'}
+    >
+      <View style={styles.simpleContent}>
+        <View style={styles.simpleValueContainer}>
+          <Text style={[styles.simpleValue, { color: WEATHER_COLORS.text.primary }]}>
+            {displayValue}
+          </Text>
+          <Text style={[styles.simpleUnit, { color: WEATHER_COLORS.text.primary }]}>
+            km
+          </Text>
+        </View>
+      </View>
+    </WeatherMetricCard>
+  );
+};
+
+const WindGustCard: React.FC<{ value: number | null }> = ({ value }) => {
+  return (
+    <WeatherMetricCard
+      title="WIND GUST"
+      titleIcon="weather-windy"
+      description={value != null ? 'Max gust speed' : 'No gusts detected'}
+    >
+      <View style={styles.simpleContent}>
+        <View style={styles.simpleValueContainer}>
+          <Text style={[styles.simpleValue, { color: WEATHER_COLORS.text.primary }]}>
+            {value != null ? value.toFixed(1) : '--'}
+          </Text>
+          <Text style={[styles.simpleUnit, { color: WEATHER_COLORS.text.primary }]}>
+            mph
+          </Text>
+        </View>
+      </View>
+    </WeatherMetricCard>
+  );
+};
+
 export const WeatherScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<WeatherScreenRouteProp>();
@@ -456,85 +554,91 @@ export const WeatherScreen: React.FC = () => {
   const themeColors = isDark ? colors.dark : colors.light;
   const { alertState, hideAlert, showInfo } = useAlert();
 
-  const { orderCode = '', orderDate = '', orderStatus = 'Pending', startTime = '--:--' } = route.params ?? {};
+  const { orderCode = '', orderDate = '', orderStatus = 'Pending', startTime = '--:--', ticketCode, freshWeather = null } = route.params ?? {};
+
+  const hasFreshWeather = !!(freshWeather && freshWeather.temperature_fahrenheit != null);
 
   const [menuVisible, setMenuVisible] = useState(false);
 
+  // Only fetch from order-level API when fresh weather is NOT available
   const {
-    weatherData,
+    weatherData: apiWeatherData,
     orderInfo,
-    isLoading,
+    isLoading: apiIsLoading,
     isRefetching,
     refetch,
   } = useWeather({
-    order_code: orderCode,
-    order_date: orderDate,
+    order_code: hasFreshWeather ? '' : orderCode,
+    order_date: hasFreshWeather ? '' : orderDate,
   });
+
+  // Use fresh weather from ticket when available, otherwise fall back to order-level API
+  const weatherData = hasFreshWeather ? freshWeather : apiWeatherData;
+  const isLoading = hasFreshWeather ? false : apiIsLoading;
 
   const weather = useMemo(() => {
     if (!weatherData) {
       return null;
     }
 
+    const evapRate = weatherData.evaporation_rate ?? 0;
     let evaporationStatus: 'Low' | 'Moderate' | 'High' = 'Low';
     let evaporationProgress = 15;
-    if (weatherData.evaporation_rate >= 0.3) {
+    if (evapRate >= 0.3) {
       evaporationStatus = 'High';
       evaporationProgress = 85;
-    } else if (weatherData.evaporation_rate >= 0.15) {
+    } else if (evapRate >= 0.15) {
       evaporationStatus = 'Moderate';
       evaporationProgress = 50;
     }
+
+    const tempF = weatherData.temperature_fahrenheit ?? 0;
+    const dewPointF = weatherData.dew_point_fahrenheit ?? 0;
 
     return {
       location: 'Weather Location',
       orderNo: orderCode,
       orderDate: orderDate,
-      temperature: weatherData.temperature_fahrenheit,
+      temperature: tempF,
       temperatureUnit: 'F',
-      condition: weatherData.weather_condition,
+      condition: weatherData.weather_condition ?? 'Unknown',
       iconCode: weatherData.weather_icon,
       maxTemp: weatherData.temperature_max_fahrenheit,
       minTemp: weatherData.temperature_min_fahrenheit,
       evaporation: {
-        value: weatherData.evaporation_rate,
+        value: evapRate,
         status: evaporationStatus,
-        description: `${weatherData.evaporation_level} evaporation rate`,
+        description: `${weatherData.evaporation_level || evaporationStatus} evaporation rate`,
         progress: evaporationProgress,
       },
-      concreteTemp: {
-        value: weatherData.concrete_temperature_fahrenheit ?? weatherData.temperature_fahrenheit,
-        description: weatherData.concrete_temperature_fahrenheit
-          ? 'Measured concrete temperature'
-          : 'Similar to\nthe actual\ntemperature',
-      },
       wind: {
-        direction: weatherData.wind_direction,
-        speed: weatherData.wind_speed_mph,
+        direction: weatherData.wind_direction ?? 'N',
+        speed: weatherData.wind_speed_mph ?? 0,
         unit: 'mph',
       },
       pressure: {
-        value: weatherData.pressure_inhg,
+        value: weatherData.pressure_inhg ?? 0,
         unit: 'in',
       },
       dewPoint: {
-        value: weatherData.dew_point_fahrenheit,
+        value: dewPointF,
         description: 'Dew point temperature',
       },
       humidity: {
-        value: weatherData.humidity,
-        description: `The dew point is ${Math.round(weatherData.dew_point_fahrenheit)}° right now.`,
+        value: weatherData.humidity ?? 0,
+        description: dewPointF ? `The dew point is ${Math.round(dewPointF)}° right now.` : '',
       },
-      productRecommendations: [
-        { id: '1', label: 'Hot Weather Mix', color: colors.productChip.thermalCracking },
-        { id: '2', label: 'Retarder Recommended', color: colors.productChip.plasticCracking },
-      ],
+      cloudsPercentage: weatherData.clouds_percentage ?? 0,
+      visibilityMeters: weatherData.visibility_meters ?? null,
+      windGust: weatherData.wind_gust ?? null,
     };
   }, [weatherData, orderCode, orderDate]);
 
   const onRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
+    if (!hasFreshWeather) {
+      refetch();
+    }
+  }, [refetch, hasFreshWeather]);
 
   const handleBack = useCallback(() => {
     navigation.goBack();
@@ -559,7 +663,7 @@ export const WeatherScreen: React.FC = () => {
         pressure: weather.pressure.value,
         pressureUnit: weather.pressure.unit,
         dewPoint: weather.dewPoint.value,
-        concreteTemp: weather.concreteTemp.value,
+        concreteTemp: freshWeather?.concrete_temperature_fahrenheit ?? weather.temperature,
         condition: weather.condition,
         cloudsPercentage: weatherData?.clouds_percentage ?? 0,
         visibility: weatherData?.visibility_meters ?? 0,
@@ -667,16 +771,25 @@ export const WeatherScreen: React.FC = () => {
           <Text style={styles.headerTitle}>Weather Update</Text>
 
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerActionBtn} onPress={onRefresh} activeOpacity={0.7}>
-              {isRefetching ? (
-                <ActivityIndicator size="small" color={colors.common.white} />
-              ) : (
-                <Icon name="refresh" size={20} color={colors.common.white} />
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerActionBtn} onPress={handleShare} activeOpacity={0.7}>
-              <Icon name="share-variant" size={20} color={colors.common.white} />
-            </TouchableOpacity>
+            {ticketCode ? (
+              <View style={styles.ticketBadge}>
+                <Icon name="ticket-outline" size={14} color={colors.common.white} />
+                <Text style={styles.ticketBadgeText}>{ticketCode}</Text>
+              </View>
+            ) : (
+              <>
+                <TouchableOpacity style={styles.headerActionBtn} onPress={onRefresh} activeOpacity={0.7}>
+                  {isRefetching ? (
+                    <ActivityIndicator size="small" color={colors.common.white} />
+                  ) : (
+                    <Icon name="refresh" size={20} color={colors.common.white} />
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.headerActionBtn} onPress={handleShare} activeOpacity={0.7}>
+                  <Icon name="share-variant" size={20} color={colors.common.white} />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       </View>
@@ -728,23 +841,6 @@ export const WeatherScreen: React.FC = () => {
         </View>
 
         <View style={styles.cardsContainer}>
-          <View style={[styles.recommendationsSection, { backgroundColor: WEATHER_COLORS.cardBackground, borderColor: WEATHER_COLORS.cardBorder }]}>
-            <Text style={[styles.recommendationsTitle, { color: WEATHER_COLORS.text.primary }]}>
-              Product Recommendations
-            </Text>
-
-            <View style={styles.recommendationsRow}>
-              {weather.productRecommendations.map((item) => (
-                <View key={item.id} style={styles.recommendationChipWrapper}>
-                  <RecommendationChip
-                    label={item.label}
-                    color={item.color}
-                  />
-                </View>
-              ))}
-            </View>
-          </View>
-
           <View style={styles.cardsGrid}>
             <View style={styles.cardsRow}>
               <View style={styles.cardWrapper}>
@@ -757,9 +853,11 @@ export const WeatherScreen: React.FC = () => {
               </View>
               <View style={styles.cardWrapper}>
                 <View style={styles.cardTouchable}>
-                  <ConcreteTempCard
-                    value={weather.concreteTemp.value}
-                    description={weather.concreteTemp.description}
+                  <ConcreteEvaporationCard
+                    rate={freshWeather?.concrete_evaporation_rate}
+                    level={freshWeather?.concrete_evaporation_level}
+                    tempSource={freshWeather?.concrete_temperature_source}
+                    isEstimated={freshWeather?.concrete_temperature_is_estimated}
                   />
                 </View>
               </View>
@@ -800,6 +898,26 @@ export const WeatherScreen: React.FC = () => {
                   />
                 </View>
               </View>
+            </View>
+            <View style={styles.cardsRow}>
+              <View style={styles.cardWrapper}>
+                <View style={styles.cardTouchable}>
+                  <CloudsCard value={weather.cloudsPercentage} />
+                </View>
+              </View>
+              <View style={styles.cardWrapper}>
+                <View style={styles.cardTouchable}>
+                  <VisibilityCard value={weather.visibilityMeters} />
+                </View>
+              </View>
+            </View>
+            <View style={styles.cardsRow}>
+              <View style={styles.cardWrapper}>
+                <View style={styles.cardTouchable}>
+                  <WindGustCard value={weather.windGust} />
+                </View>
+              </View>
+              <View style={styles.cardWrapper} />
             </View>
           </View>
         </View>
@@ -897,7 +1015,22 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: GRID.sm,
+  },
+  ticketBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(4),
+    backgroundColor: colors.common.white + '20',
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(5),
+    borderRadius: ms(12),
+  },
+  ticketBadgeText: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+    color: colors.common.white,
   },
   headerActionBtn: {
     width: 36,
@@ -947,8 +1080,8 @@ const styles = StyleSheet.create({
   weatherIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: ms(100),
-    height: ms(100),
+    width: ms(125),
+    height: ms(125),
   },
   weatherEmoji: {
     fontSize: ms(72),
@@ -1025,7 +1158,6 @@ const styles = StyleSheet.create({
     paddingVertical: ms(10),
     borderRadius: RADIUS.lg,
     justifyContent: 'center',
-    alignItems: 'center',
     alignItems: 'center',
   },
   recommendationChipText: {
@@ -1124,7 +1256,14 @@ const styles = StyleSheet.create({
   metricCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: ms(6),
+    gap: ms(4),
+    minHeight: ms(20),
+  },
+  metricCardIconWrap: {
+    width: ms(18),
+    height: ms(18),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   metricCardTitle: {
     fontFamily: fontFamily.medium,
@@ -1163,25 +1302,48 @@ const styles = StyleSheet.create({
     lineHeight: responsive(ms(15), ms(18)),
     marginTop: ms(8),
   },
-  concreteContent: {
-    flex: 1,
+  concreteEvapValue: {
+    fontSize: responsive(ms(28), ms(36)),
+    fontFamily: fontFamily.semiBold,
+    lineHeight: responsive(ms(32), ms(42)),
+    textAlign: 'center',
+    marginTop: responsive(ms(2), ms(6)),
+  },
+  concreteEvapLevelBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: ms(5),
+    marginBottom: responsive(ms(4), ms(8)),
   },
-  concreteValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
+  concreteEvapDot: {
+    width: ms(8),
+    height: ms(8),
+    borderRadius: ms(4),
   },
-  concreteValue: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: responsive(ms(40), ms(50)),
-    lineHeight: responsive(ms(46), ms(56)),
+  concreteEvapLevelText: {
+    fontFamily: fontFamily.medium,
+    fontSize: responsive(ms(11), ms(14)),
   },
-  concreteUnit: {
+  concreteEvapUnitText: {
     fontFamily: fontFamily.regular,
-    fontSize: responsive(ms(20), ms(26)),
-    marginTop: ms(4),
+    fontSize: responsive(ms(9), ms(11)),
+  },
+  concreteEvapBarTrack: {
+    height: responsive(ms(6), ms(8)),
+    borderRadius: responsive(ms(3), ms(4)),
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+    marginBottom: responsive(ms(4), ms(6)),
+  },
+  concreteEvapBarFill: {
+    height: '100%',
+    borderRadius: responsive(ms(3), ms(4)),
+  },
+  concreteEvapDesc: {
+    fontFamily: fontFamily.regular,
+    fontSize: responsive(ms(10), ms(13)),
+    lineHeight: responsive(ms(13), ms(17)),
   },
   windContent: {
     flex: 1,

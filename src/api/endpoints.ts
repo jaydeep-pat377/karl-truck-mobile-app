@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
     LIST: '/tickets',
     BY_ORDER: '/tickets/by-order',
     DETAILS: '/tickets/details',
+    WEATHER: '/tickets',
   },
   WEATHER: {
     ALL: '/weather/all',

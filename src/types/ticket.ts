@@ -335,6 +335,13 @@ export interface OrderDetailsWeatherData {
   concrete_temperature_fahrenheit?: number | null;
 }
 
+export interface FreshWeatherData extends OrderDetailsWeatherData {
+  concrete_evaporation_rate?: number | null;
+  concrete_evaporation_level?: string | null;
+  concrete_temperature_source?: string | null;
+  concrete_temperature_is_estimated?: boolean | null;
+}
+
 export interface TruckStatusCount {
   ticketed: number;
   loading: number;
@@ -671,6 +678,7 @@ export interface TicketDetailsTicket {
   products: TicketDetailsProduct[];
   delivery_metrics?: DeliveryMetrics | null;
   weather_data?: OrderDetailsWeatherData | null;
+  fresh_weather?: FreshWeatherData | null;
   verifi_json?: VerifiJson | null;
 }
 

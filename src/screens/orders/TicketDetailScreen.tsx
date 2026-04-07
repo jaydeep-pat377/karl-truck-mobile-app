@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -26,7 +26,8 @@ import { ms, vs } from '../../utils/responsive';
 import { WeatherIcon } from '../../utils/weatherIcon';
 import { RootStackParamList } from '../../navigation/types';
 import { useTicketDetails, useAlert } from '../../hooks';
-import { ApiTicketStatus, VerifiJson } from '../../types/ticket';
+import { ApiTicketStatus, VerifiJson, FreshWeatherData } from '../../types/ticket';
+import { ticketService } from '../../api/services/ticketService';
 
 type TicketDetailRouteProp = RouteProp<RootStackParamList, 'TicketDetail'>;
 
@@ -1086,6 +1087,7 @@ export const TicketDetailScreen: React.FC = () => {
 
   const [showDirectionsMenu, setShowDirectionsMenu] = useState(false);
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
+  const [weatherLoading, setWeatherLoading] = useState(false);
 
   const { orderCode, orderDate, ticketCode, status: passedStatus, statusDisplay: passedStatusDisplay, statusColor: passedStatusColor, statusColors: apiStatusColors } = route.params;
 
@@ -1125,6 +1127,7 @@ export const TicketDetailScreen: React.FC = () => {
     products,
     deliveryMetrics,
     weatherData,
+    freshWeather,
     verifiJson,
     isLoading,
     isRefetching,
@@ -1513,16 +1516,58 @@ export const TicketDetailScreen: React.FC = () => {
         ) : null}
 
 
-        {weatherData && (
+        {weatherData && timestamps.toJob && !timestamps.atPlant && (
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => {
-              navigation.navigate('Weather', {
-                orderCode: apiOrderCode || orderCode,
-                orderDate: orderDate,
-                orderStatus: currentStatus,
-                startTime: timestamps?.ticketed || undefined,
-              });
+            disabled={weatherLoading}
+            onPress={async () => {
+              const FIVE_MINUTES_MS = 5 * 60 * 1000;
+              const tId = ticket?.ticket_id;
+
+              // Check if cached fresh_weather is still valid (< 5 min)
+              if (freshWeather?.fetched_at) {
+                const age = Date.now() - new Date(freshWeather.fetched_at).getTime();
+                if (age < FIVE_MINUTES_MS) {
+                  navigation.navigate('Weather', {
+                    orderCode: apiOrderCode || orderCode,
+                    orderDate: orderDate,
+                    orderStatus: currentStatus,
+                    startTime: timestamps?.ticketed || undefined,
+                    ticketCode: apiTicketCode || ticketCode,
+                    freshWeather: freshWeather,
+                  });
+                  return;
+                }
+              }
+
+              // Cache stale or missing — fetch fresh from API
+              if (tId) {
+                setWeatherLoading(true);
+                try {
+                  const res = await ticketService.fetchTicketWeather(String(tId));
+                  const fresh = res.success ? res.data?.weather_data : null;
+                  navigation.navigate('Weather', {
+                    orderCode: apiOrderCode || orderCode,
+                    orderDate: orderDate,
+                    orderStatus: currentStatus,
+                    startTime: timestamps?.ticketed || undefined,
+                    ticketCode: apiTicketCode || ticketCode,
+                    freshWeather: fresh || null,
+                  });
+                } catch (err) {
+                  // Fallback to whatever we have
+                  navigation.navigate('Weather', {
+                    orderCode: apiOrderCode || orderCode,
+                    orderDate: orderDate,
+                    orderStatus: currentStatus,
+                    startTime: timestamps?.ticketed || undefined,
+                    ticketCode: apiTicketCode || ticketCode,
+                    freshWeather: freshWeather || null,
+                  });
+                } finally {
+                  setWeatherLoading(false);
+                }
+              }
             }}
             style={styles.headerCardWeatherRow}>
             <WeatherIcon icon={weatherData.weather_icon} size={22} />

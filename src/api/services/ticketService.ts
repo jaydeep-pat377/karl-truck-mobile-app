@@ -33,6 +33,15 @@ export const ticketService = {
       params,
     });
   },
+
+  fetchTicketWeather: async (
+    ticketId: string,
+    forceRefresh = false
+  ): Promise<{ success: boolean; data: { ticket_id: number; weather_data: any; cached: boolean; cache_age_minutes?: number } }> => {
+    return apiClient.post(`${API_ENDPOINTS.TICKETS.WEATHER}/${ticketId}/weather`, {
+      force_refresh: forceRefresh,
+    });
+  },
 };
 
 export default ticketService;

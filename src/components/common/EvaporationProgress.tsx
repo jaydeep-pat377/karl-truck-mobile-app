@@ -42,7 +42,7 @@ const EvaporationProgress: React.FC<EvaporationProps> = ({ evaporation }) => {
       </View>
 
       <Text style={styles.value}>
-        {evaporation?.value ?? 0}
+        {(evaporation?.value ?? 0).toFixed(2)}
       </Text>
 
       <Text style={styles.status}>
@@ -83,12 +83,12 @@ const styles = StyleSheet.create({
     height: responsive(ms(140), ms(180)),
     borderWidth: 1,
     borderColor: WEATHER_COLORS.cardBorder,
-    overflow: 'hidden',
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: ms(6),
+    minHeight: ms(20),
   },
   title: {
     fontFamily: fontFamily.medium,

@@ -85,11 +85,45 @@ export type AppointmentsStackParamList = {
   MakeAppointment: undefined;
 };
 
+export type FreshWeatherParam = {
+  temperature_fahrenheit?: number;
+  temperature_celsius?: number;
+  temperature_max_fahrenheit?: number;
+  temperature_min_fahrenheit?: number;
+  weather_condition?: string;
+  weather_icon?: string;
+  weather_description?: string;
+  humidity?: number;
+  wind_speed?: number;
+  wind_speed_mph?: number;
+  wind_gust?: number | null;
+  wind_direction?: string;
+  wind_direction_degrees?: number;
+  pressure_hpa?: number;
+  pressure_inhg?: number;
+  dew_point_fahrenheit?: number;
+  clouds_percentage?: number;
+  visibility_meters?: number | null;
+  evaporation_rate?: number;
+  evaporation_level?: string;
+  concrete_evaporation_rate?: number | null;
+  concrete_evaporation_level?: string | null;
+  concrete_temperature_fahrenheit?: number | null;
+  concrete_temperature_source?: string | null;
+  concrete_temperature_is_estimated?: boolean | null;
+  fetched_at?: string;
+  source?: string;
+  latitude?: number;
+  longitude?: number;
+};
+
 export type WeatherScreenParams = {
   orderCode?: string;
   orderDate?: string;
   orderStatus?: string;
   startTime?: string;
+  ticketCode?: string;
+  freshWeather?: FreshWeatherParam | null;
 } | undefined;
 
 export type WeatherData = {

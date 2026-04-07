@@ -114,7 +114,9 @@ export const useTicketDetails = (params: TicketDetailsQueryParams) => {
     performanceMinutes: ticket?.delivery_metrics?.performance_minutes || null,
     idleMinutes: ticket?.delivery_metrics?.idle_minutes || null,
 
-    weatherData: ticket?.weather_data || null,
+    weatherData: ticket?.fresh_weather || ticket?.weather_data || null,
+
+    freshWeather: ticket?.fresh_weather || null,
 
     verifiJson: ticket?.verifi_json || null,
 
