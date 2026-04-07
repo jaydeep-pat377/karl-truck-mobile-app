@@ -1566,7 +1566,7 @@ export const TicketDetailScreen: React.FC = () => {
         ) : null}
 
 
-        {weatherData && timestamps.toJob && !timestamps.atPlant && (
+        {timestamps.toJob && !timestamps.atPlant && (
           <TouchableOpacity
             activeOpacity={0.7}
             disabled={weatherLoading}
@@ -1620,46 +1620,58 @@ export const TicketDetailScreen: React.FC = () => {
               }
             }}
             style={styles.headerCardWeatherRow}>
-            <WeatherIcon icon={weatherData.weather_icon} size={22} />
-            <Text
-              style={[styles.headerCardWeatherDescText, { color: themeColors.text.secondary }]}
-              numberOfLines={1}>
-              {weatherData.weather_description || 'Partly cloudy'}
-            </Text>
-            {weatherData.temperature_fahrenheit !== null && weatherData.temperature_fahrenheit !== undefined && (
+            {weatherData ? (
               <>
-                <View style={[styles.headerCardWeatherDot, { backgroundColor: themeColors.text.hint }]} />
-                <Text style={[styles.headerCardWeatherInfoText, { color: themeColors.text.secondary }]}>
-                  {Math.round(weatherData.temperature_fahrenheit)}°F
+                <WeatherIcon icon={weatherData.weather_icon} size={22} />
+                <Text
+                  style={[styles.headerCardWeatherDescText, { color: themeColors.text.secondary }]}
+                  numberOfLines={1}>
+                  {weatherData.weather_description || 'Partly cloudy'}
                 </Text>
+                {weatherData.temperature_fahrenheit != null && (
+                  <>
+                    <View style={[styles.headerCardWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+                    <Text style={[styles.headerCardWeatherInfoText, { color: themeColors.text.secondary }]}>
+                      {Math.round(weatherData.temperature_fahrenheit)}°F
+                    </Text>
+                  </>
+                )}
+                {(weatherData.wind_speed_mph ?? weatherData.wind_speed) != null && (
+                  <>
+                    <View style={[styles.headerCardWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+                    <Text style={[styles.headerCardWeatherInfoText, { color: themeColors.text.secondary }]}>
+                      {weatherData.wind_speed_mph ?? weatherData.wind_speed} mph
+                    </Text>
+                  </>
+                )}
+                {weatherData.humidity != null && (
+                  <>
+                    <View style={[styles.headerCardWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+                    <Text style={[styles.headerCardWeatherInfoText, { color: themeColors.text.secondary }]}>
+                      {weatherData.humidity}% RH
+                    </Text>
+                  </>
+                )}
+                {weatherData.evaporation_rate != null && (
+                  <View
+                    style={[
+                      styles.headerCardEvapRateBadge,
+                      { backgroundColor: getEvaporationBgColor(weatherData.evaporation_rate) }
+                    ]}>
+                    <Text style={styles.headerCardEvapRateText}>
+                      {getEvaporationText(weatherData.evaporation_rate)}
+                    </Text>
+                  </View>
+                )}
               </>
-            )}
-            {(weatherData.wind_speed_mph ?? weatherData.wind_speed) != null && (
+            ) : (
               <>
-                <View style={[styles.headerCardWeatherDot, { backgroundColor: themeColors.text.hint }]} />
-                <Text style={[styles.headerCardWeatherInfoText, { color: themeColors.text.secondary }]}>
-                  {weatherData.wind_speed_mph ?? weatherData.wind_speed} mph wind
+                <Icon name="weather-cloudy" size={ms(16)} color={themeColors.text.hint} />
+                <Text style={[styles.headerCardWeatherDescText, { color: isDark ? '#60A5FA' : '#2563EB' }]}>
+                  {weatherLoading ? 'Fetching...' : 'Evaporate'}
                 </Text>
+                {weatherLoading && <ActivityIndicator size="small" color={isDark ? '#60A5FA' : '#2563EB'} />}
               </>
-            )}
-            {weatherData.humidity !== null && weatherData.humidity !== undefined && (
-              <>
-                <View style={[styles.headerCardWeatherDot, { backgroundColor: themeColors.text.hint }]} />
-                <Text style={[styles.headerCardWeatherInfoText, { color: themeColors.text.secondary }]}>
-                  {weatherData.humidity}% RH
-                </Text>
-              </>
-            )}
-            {weatherData.evaporation_rate !== null && weatherData.evaporation_rate !== undefined && (
-              <View
-                style={[
-                  styles.headerCardEvapRateBadge,
-                  { backgroundColor: getEvaporationBgColor(weatherData.evaporation_rate) }
-                ]}>
-                <Text style={styles.headerCardEvapRateText}>
-                  {getEvaporationText(weatherData.evaporation_rate)}
-                </Text>
-              </View>
             )}
           </TouchableOpacity>
         )}
