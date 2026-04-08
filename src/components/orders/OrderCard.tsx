@@ -264,6 +264,7 @@ interface OrderCardProps {
   showMapButton?: boolean;
   showChatButton?: boolean;
   showOrderRequestButton?: boolean;
+  chatUnreadCount?: number;
 }
 
 interface ActionButtonProps {
@@ -272,6 +273,7 @@ interface ActionButtonProps {
   onPress?: () => void;
   disabled?: boolean;
   isLoading?: boolean;
+  badgeCount?: number;
 }
 
 const ActionButton: React.FC<ActionButtonProps> = ({
@@ -280,6 +282,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   onPress,
   disabled = false,
   isLoading = false,
+  badgeCount,
 }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -297,11 +300,20 @@ const ActionButton: React.FC<ActionButtonProps> = ({
         <ActivityIndicator size="small" color={colors.primary.main} />
       ) : (
         <>
-          <Icon
-            name={icon}
-            size={ms(14)}
-            color={disabled ? themeColors.text.disabled : colors.primary.main}
-          />
+          <View>
+            <Icon
+              name={icon}
+              size={ms(14)}
+              color={disabled ? themeColors.text.disabled : colors.primary.main}
+            />
+            {badgeCount != null && badgeCount > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>
+                  {badgeCount > 99 ? '99+' : badgeCount}
+                </Text>
+              </View>
+            )}
+          </View>
           <Text
             variant="captionSmall"
             style={[
@@ -342,6 +354,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   showMapButton = true,
   showChatButton = true,
   showOrderRequestButton = false,
+  chatUnreadCount = 0,
 }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -760,6 +773,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
                 onPress={onChat}
                 disabled={chatDisabled}
                 isLoading={isChatLoading}
+                badgeCount={chatUnreadCount}
               />
             )}
           </View>
@@ -1197,6 +1211,28 @@ const styles = StyleSheet.create({
   actionDivider: {
     width: 1,
     height: ms(16),
+  },
+  unreadBadge: {
+    position: 'absolute',
+    top: -ms(4),
+    right: -ms(6),
+    minWidth: ms(14),
+    height: ms(14),
+    borderRadius: ms(7),
+    backgroundColor: '#EF4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: ms(2),
+  },
+  unreadBadgeText: {
+    color: '#FFFFFF',
+    fontSize: ms(8),
+    lineHeight: ms(14),
+    fontWeight: '700',
+    fontFamily: fontFamily.bold,
+    textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });
 

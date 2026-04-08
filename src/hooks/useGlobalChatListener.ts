@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { supabase, isSupabaseConfigured } from '../services/supabase/supabaseClient';
-import { useChatStore } from '../store/chatStore';
+import { supabaseAdmin, isSupabaseConfigured } from '../services/supabase/supabaseClient';
+import { useChatStore, ChatToastData } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
 import { playMessageSound, initMessageSound } from '../utils/notificationSound';
 
@@ -22,12 +22,10 @@ export const useGlobalChatListener = () => {
   const { currentRoomId } = useChatStore();
   const isConfigured = isSupabaseConfigured();
 
-
   const currentRoomIdRef = useRef(currentRoomId);
   const userIdRef = useRef(user?.id);
   const appStateRef = useRef(AppState.currentState);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-
+  const channelRef = useRef<ReturnType<typeof supabaseAdmin.channel> | null>(null);
 
   useEffect(() => {
     currentRoomIdRef.current = currentRoomId;
@@ -37,23 +35,21 @@ export const useGlobalChatListener = () => {
     userIdRef.current = user?.id;
   }, [user?.id]);
 
-
   useEffect(() => {
     initMessageSound().then((success) => {
       console.log('[GlobalChatListener] Sound init result:', success);
     });
   }, []);
 
-
   useEffect(() => {
-    if (!isConfigured || !supabase || !user?.id) {
+    if (!isConfigured || !supabaseAdmin || !user?.id) {
       return;
     }
 
     const setupSubscription = () => {
       const channelName = `global-chat-${user.id}-${Date.now()}`;
 
-      channelRef.current = supabase
+      channelRef.current = supabaseAdmin
         .channel(channelName)
         .on(
           'postgres_changes',
@@ -63,7 +59,6 @@ export const useGlobalChatListener = () => {
             table: 'chat_messages',
           },
           (payload) => {
-
             try {
               const msg = payload.new as RawChatMessage;
 
@@ -75,7 +70,6 @@ export const useGlobalChatListener = () => {
                 return;
               }
 
-
               if (appStateRef.current !== 'active') {
                 return;
               }
@@ -84,6 +78,21 @@ export const useGlobalChatListener = () => {
               if (currentRoomIdRef.current === messageRoomId) {
                 return;
               }
+
+              // Increment unread count for this order
+              const store = useChatStore.getState();
+              store.incrementUnreadCount(messageRoomId);
+
+              // Set toast data in store
+              const toastData: ChatToastData = {
+                orderId: msg.order_id,
+                orderCode: '', // Will be resolved by the consuming screen
+                senderName: msg.sender_name,
+                messagePreview: msg.message_text || 'Sent an attachment',
+                timestamp: Date.now(),
+              };
+              store.setLatestToast(toastData);
+
               playMessageSound();
 
             } catch (error) {
@@ -101,7 +110,6 @@ export const useGlobalChatListener = () => {
         });
     };
 
-
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       appStateRef.current = nextAppState;
     };
@@ -110,10 +118,9 @@ export const useGlobalChatListener = () => {
 
     setupSubscription();
 
-
     return () => {
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+        supabaseAdmin.removeChannel(channelRef.current);
         channelRef.current = null;
       }
       appStateSub.remove();

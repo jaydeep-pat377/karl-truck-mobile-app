@@ -298,11 +298,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'column',
-    marginBottom: ms(2),
+    marginBottom: ms(16),
     width: '100%',
   },
   groupedContainer: {
-    marginBottom: ms(1),
+    marginBottom: ms(4),
   },
   ownContainer: {
     alignItems: 'flex-end',
@@ -378,9 +378,9 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   bubble: {
-    paddingHorizontal: ms(12),
-    paddingTop: ms(8),
-    paddingBottom: ms(6),
+    paddingHorizontal: ms(6),
+    paddingTop: ms(6),
+    paddingBottom: ms(2),
     minWidth: ms(70),
     ...Platform.select({
       ios: {

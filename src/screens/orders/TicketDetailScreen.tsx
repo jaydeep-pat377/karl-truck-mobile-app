@@ -1566,7 +1566,7 @@ export const TicketDetailScreen: React.FC = () => {
         ) : null}
 
 
-        {timestamps.toJob && !timestamps.atPlant && (
+        {timestamps.toJob && !timestamps.atPlant && verifiJson && (
           <TouchableOpacity
             activeOpacity={0.7}
             disabled={weatherLoading}
@@ -1676,7 +1676,7 @@ export const TicketDetailScreen: React.FC = () => {
           </TouchableOpacity>
         )}
 
-        {timestamps.toJob && !timestamps.atPlant && (() => {
+        {currentStatus === 'to_job' && (() => {
           const eta = etaResult || etaData;
           const hasEta = !!eta;
           const etaAge = eta?.calculatedAt ? Math.floor((Date.now() - new Date(eta.calculatedAt).getTime()) / 60000) : 0;

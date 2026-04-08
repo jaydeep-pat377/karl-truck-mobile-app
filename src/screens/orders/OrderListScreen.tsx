@@ -31,8 +31,11 @@ import { fontFamily } from '../../theme/typography';
 import { spacing, ms, iconSizes, wp, hp } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useOrders, useChatRooms, useGlobalAlert, useRealtimeOrders } from '../../hooks';
+import { ChatMessageToast } from '../../components/chat/ChatMessageToast';
+import { useChatStore, ChatToastData } from '../../store/chatStore';
 import { useAuthStore } from '../../store/authStore';
 import { orderService } from '../../api/services/orderService';
+import { chatService } from '../../api/services/chatService';
 import { getProgressBarColor } from '../../utils/statusUtils';
 
 const dateFilters = [
@@ -890,6 +893,9 @@ export const OrderListScreen: React.FC = () => {
   const [debouncedFilter, setDebouncedFilter] = useState<DateFilterId>('today');
     const [showDatePicker, setShowDatePicker] = useState(false);
   const [chatLoadingOrderId, setChatLoadingOrderId] = useState<string | null>(null);
+  const [chatToastVisible, setChatToastVisible] = useState(false);
+  const [chatToastData, setChatToastData] = useState<ChatToastData | null>(null);
+  const { unreadCounts, markRoomAsRead, latestToast, setLatestToast } = useChatStore();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [debouncedDate, setDebouncedDate] = useState<Date>(new Date());
@@ -1124,6 +1130,88 @@ export const OrderListScreen: React.FC = () => {
     onUpdate: refetch,
   });
 
+  // Build order_id -> order_code map for chat toast
+  const orderIdToCodeMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    apiOrders.forEach(o => {
+      map[String(o.order_id)] = o.order_code;
+    });
+    return map;
+  }, [apiOrders]);
+
+  // Fetch persisted unread counts from API when orders load
+  const [apiUnreadCounts, setApiUnreadCounts] = useState<Record<string, number>>({});
+  const fetchUnreadCounts = useCallback(async () => {
+    if (apiOrders.length === 0) return;
+    const orderIds = apiOrders.map(o => o.order_id);
+    const result = await chatService.getUnreadCounts(orderIds);
+    if (result.counts) {
+      const mapped: Record<string, number> = {};
+      Object.entries(result.counts).forEach(([orderId, count]) => {
+        mapped[String(orderId)] = count;
+      });
+      setApiUnreadCounts(mapped);
+    }
+  }, [apiOrders]);
+
+  useEffect(() => {
+    fetchUnreadCounts();
+  }, [fetchUnreadCounts]);
+
+  // Merge API unread counts with real-time counts from store
+  const mergedUnreadCounts = useMemo(() => {
+    const merged: Record<string, number> = { ...apiUnreadCounts };
+    Object.entries(unreadCounts).forEach(([orderId, count]) => {
+      // If store has been explicitly marked as read (0), use 0
+      // Otherwise add real-time count on top of API count
+      if (count === 0 && unreadCounts.hasOwnProperty(orderId)) {
+        merged[orderId] = 0;
+      } else {
+        merged[orderId] = (merged[orderId] || 0) + count;
+      }
+    });
+    return merged;
+  }, [apiUnreadCounts, unreadCounts]);
+
+  // Watch for new chat toast from store
+  const lastToastTimestampRef = useRef(0);
+  useEffect(() => {
+    if (latestToast && latestToast.timestamp > lastToastTimestampRef.current) {
+      lastToastTimestampRef.current = latestToast.timestamp;
+      // Resolve order code from our map
+      const orderCode = orderIdToCodeMap[String(latestToast.orderId)] || `#${latestToast.orderId}`;
+      setChatToastData({ ...latestToast, orderCode });
+      setChatToastVisible(true);
+    }
+  }, [latestToast, orderIdToCodeMap]);
+
+  const handleChatToastDismiss = useCallback(() => {
+    setChatToastVisible(false);
+  }, []);
+
+  const handleChatToastPress = useCallback(async (toast: ChatToastData) => {
+    markRoomAsRead(String(toast.orderId));
+    setApiUnreadCounts(prev => ({ ...prev, [String(toast.orderId)]: 0 }));
+    chatService.markAsRead(toast.orderId);
+    const orderId = toast.orderId;
+    try {
+      const room = await getOrCreateRoom(orderId);
+      const order = apiOrders.find(o => o.order_id === String(orderId));
+      navigation.navigate('ChatRoom', {
+        roomId: room.id,
+        roomName: `Order #${toast.orderCode}`,
+        chatId: room.id ? Number(room.id) : orderId,
+        orderId: orderId,
+        orderDate: order?.order_date,
+        customerName: order?.customer_name,
+        projectName: order?.project_name,
+        deliveryAddress: order?.delivery_address,
+      });
+    } catch (error) {
+      console.error('Failed to open chat from toast:', error);
+    }
+  }, [apiOrders, getOrCreateRoom, markRoomAsRead, navigation]);
+
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (!appliedFilters.statuses.includes('all')) count += appliedFilters.statuses.length;
@@ -1275,7 +1363,8 @@ export const OrderListScreen: React.FC = () => {
   const handleRefresh = useCallback(async () => {
     await fetchAppPermissions();
     refetch();
-  }, [refetch, fetchAppPermissions]);
+    fetchUnreadCounts();
+  }, [refetch, fetchAppPermissions, fetchUnreadCounts]);
 
   const handleLoadMore = useCallback(() => {
 
@@ -1501,8 +1590,12 @@ export const OrderListScreen: React.FC = () => {
 
   const handleChat = useCallback(async (order: Order) => {
     setChatLoadingOrderId(order.id);
+    markRoomAsRead(order.id);
+    setApiUnreadCounts(prev => ({ ...prev, [order.id]: 0 }));
+    const parsedId = parseInt(order.id, 10);
+    if (!isNaN(parsedId)) chatService.markAsRead(parsedId);
     try {
-      const orderId = parseInt(order.id, 10);
+      const orderId = parsedId;
       if (isNaN(orderId)) {
         throw new Error('Invalid order ID');
       }
@@ -1531,7 +1624,7 @@ export const OrderListScreen: React.FC = () => {
     } finally {
       setChatLoadingOrderId(null);
     }
-  }, [getOrCreateRoom, navigation, showAlert]);
+  }, [getOrCreateRoom, markRoomAsRead, navigation, showAlert]);
 
   const renderOrderCard = useCallback(
     ({ item }: { item: Order }) => (
@@ -1550,9 +1643,10 @@ export const OrderListScreen: React.FC = () => {
         isChatLoading={chatLoadingOrderId === item.id}
         isFavorite={item.isFavorite}
         showOrderRequestButton={canOrderRequest}
+        chatUnreadCount={mergedUnreadCounts[item.id] || 0}
       />
     ),
-    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleMap, handleChat, handleOrderRequest, handleToggleFavorite, chatLoadingOrderId, progressBarColors, canOrderRequest]
+    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleMap, handleChat, handleOrderRequest, handleToggleFavorite, chatLoadingOrderId, progressBarColors, canOrderRequest, mergedUnreadCounts]
   );
 
   const ItemSeparator = useCallback(() => <View style={styles.separator} />, []);

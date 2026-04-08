@@ -62,4 +62,9 @@ export const API_ENDPOINTS = {
     UPDATE: '/email-templates',
     DELETE: '/email-templates',
   },
+  CHAT: {
+    READ_STATUS: '/chat/read-status',
+    UNREAD_COUNTS: '/chat/unread-counts',
+    MARK_READ: '/chat/mark-read',
+  },
 } as const;

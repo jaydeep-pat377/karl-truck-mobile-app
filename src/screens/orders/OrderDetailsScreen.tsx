@@ -32,6 +32,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useOrderDetails, useAlert } from '../../hooks';
 import { useAuthStore } from '../../store/authStore';
 import { orderService } from '../../api/services/orderService';
+import { chatService } from '../../api/services/chatService';
+import { useChatStore } from '../../store/chatStore';
 import { PerformanceCharts } from '../../components/charts';
 import { ScheduledLoadsBottomSheet, DelayDetailsTable } from '../../components/orders';
 
@@ -1715,6 +1717,19 @@ export const OrderDetailsScreen: React.FC = () => {
   });
 
   const { orderId, orderCode, orderDate, status: passedStatus, progressColor } = route.params;
+  const { unreadCounts, markRoomAsRead } = useChatStore();
+  const [apiUnreadCount, setApiUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (orderId) {
+      chatService.getUnreadCounts([orderId]).then(result => {
+        const count = result.counts?.[orderId] || 0;
+        setApiUnreadCount(count);
+      });
+    }
+  }, [orderId]);
+
+  const chatUnreadCount = (apiUnreadCount + (unreadCounts[orderId] || 0));
 
   const {
     orderDetails,
@@ -2017,6 +2032,10 @@ export const OrderDetailsScreen: React.FC = () => {
   }, [navigation, order, statusColor]);
 
   const handleChatPress = useCallback(() => {
+    markRoomAsRead(order.id);
+    setApiUnreadCount(0);
+    const parsedId = parseInt(order.id, 10);
+    if (!isNaN(parsedId)) chatService.markAsRead(parsedId);
     navigation.navigate('ChatRoom', {
       roomId: order.id,
       roomName: `Order #${order.orderCode}`,
@@ -2410,6 +2429,13 @@ export const OrderDetailsScreen: React.FC = () => {
                 >
                   <View style={[styles.quickActionIcon, { backgroundColor: colors.secondary.main + '15' }]}>
                     <Icon name="chat-outline" size={20} color={colors.secondary.main} />
+                    {chatUnreadCount > 0 && (
+                      <View style={styles.chatUnreadBadge}>
+                        <Text style={styles.chatUnreadBadgeText}>
+                          {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>Chat</Text>
                 </TouchableOpacity>
@@ -4681,6 +4707,28 @@ const styles = StyleSheet.create({
   seeMoreText: {
     fontFamily: fontFamily.semiBold,
     fontSize: ms(13),
+  },
+  chatUnreadBadge: {
+    position: 'absolute',
+    top: -ms(2),
+    right: -ms(4),
+    minWidth: ms(14),
+    height: ms(14),
+    borderRadius: ms(7),
+    backgroundColor: '#EF4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: ms(2),
+  },
+  chatUnreadBadgeText: {
+    color: '#FFFFFF',
+    fontSize: ms(8),
+    lineHeight: ms(14),
+    fontWeight: '700',
+    fontFamily: fontFamily.bold,
+    textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });
 

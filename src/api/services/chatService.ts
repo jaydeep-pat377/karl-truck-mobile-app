@@ -1,4 +1,6 @@
 import { supabase, supabaseAdmin, isSupabaseConfigured, ensureAuthenticated } from '../../services/supabase/supabaseClient';
+import apiClient from '../apiClient';
+import { API_ENDPOINTS } from '../endpoints';
 import { ChatRoom, Message, SendMessagePayload } from '../../types/chat';
 import { useAuthStore } from '../../store/authStore';
 import { Platform } from 'react-native';
@@ -396,31 +398,16 @@ export const chatService = {
     }
   },
 
-  markAsRead: async (orderId: number): Promise<void> => {
-    const sb = await checkSupabase();
-    const user = useAuthStore.getState().user;
-
-    if (!user?.id) {
-      return;
-    }
-
-    const userId = user.id;
-
-    const readAt = new Date(Date.now() + 2000).toISOString();
-
-    const { error } = await sb
-      .from('chat_read_status')
-      .upsert({
-        user_id: userId,
-        order_id: orderId,
-        last_read_at: readAt,
-      }, {
-        onConflict: 'user_id,order_id',
-      });
-
-    if (error) {
-      console.error('Mark as read error:', error);
-
+  markAsRead: async (orderId: number): Promise<boolean> => {
+    try {
+      const res = await apiClient.post<{ success: boolean }>(
+        API_ENDPOINTS.CHAT.MARK_READ,
+        { order_id: orderId }
+      );
+      return res.success;
+    } catch (error) {
+      console.error('[chatService] markAsRead error:', error);
+      return false;
     }
   },
 
@@ -555,6 +542,27 @@ export const chatService = {
       await supabase.removeChannel(channel);
     }
   },
+
+  /**
+   * Get unread message counts per order from backend API.
+   */
+  getUnreadCounts: async (orderIds?: string[]): Promise<{ counts: Record<string, number>; total_unread: number }> => {
+    try {
+      const params: Record<string, string> = {};
+      if (orderIds && orderIds.length > 0) {
+        params.order_ids = orderIds.join(',');
+      }
+      const res = await apiClient.get<{ success: boolean; data: { counts: Record<string, number>; total_unread: number } }>(
+        API_ENDPOINTS.CHAT.UNREAD_COUNTS,
+        { params }
+      );
+      return res.success ? res.data : { counts: {}, total_unread: 0 };
+    } catch (error) {
+      console.error('[chatService] getUnreadCounts error:', error);
+      return { counts: {}, total_unread: 0 };
+    }
+  },
+
 };
 
 export default chatService;

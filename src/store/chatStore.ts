@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { ChatRoom, Message, TypingUser } from '../types/chat';
 
+export interface ChatToastData {
+  orderId: number;
+  orderCode: string;
+  senderName: string;
+  messagePreview: string;
+  timestamp: number;
+}
+
 interface ChatState {
   rooms: ChatRoom[];
   currentRoomId: string | null;
@@ -8,6 +16,7 @@ interface ChatState {
   typingUsers: Record<string, TypingUser[]>;
   isConnected: boolean;
   unreadCounts: Record<string, number>;
+  latestToast: ChatToastData | null;
 }
 
 interface ChatActions {
@@ -26,6 +35,7 @@ interface ChatActions {
   updateUnreadCount: (roomId: string, count: number) => void;
   incrementUnreadCount: (roomId: string) => void;
   markRoomAsRead: (roomId: string) => void;
+  setLatestToast: (toast: ChatToastData | null) => void;
   clearChat: () => void;
   getTotalUnreadCount: () => number;
 }
@@ -39,6 +49,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   typingUsers: {},
   isConnected: false,
   unreadCounts: {},
+  latestToast: null,
 
   setRooms: (rooms) => set({ rooms }),
 
@@ -144,6 +155,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       unreadCounts: { ...state.unreadCounts, [roomId]: 0 },
     })),
 
+  setLatestToast: (toast) => set({ latestToast: toast }),
+
   clearChat: () =>
     set({
       rooms: [],
@@ -151,6 +164,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       messages: {},
       typingUsers: {},
       unreadCounts: {},
+      latestToast: null,
     }),
 
   getTotalUnreadCount: () => {
