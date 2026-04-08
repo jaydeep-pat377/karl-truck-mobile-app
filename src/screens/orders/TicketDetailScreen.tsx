@@ -1681,7 +1681,7 @@ export const TicketDetailScreen: React.FC = () => {
           const hasEta = !!eta;
           const etaAge = eta?.calculatedAt ? Math.floor((Date.now() - new Date(eta.calculatedAt).getTime()) / 60000) : 0;
           const isStale = etaAge > 30;
-          const etaArrival = eta?.arrivalTime ? new Date(eta.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '--';
+          const etaArrival = eta?.arrivalTime ? new Date(eta.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '--';
           const etaCalcTime = eta?.calculatedAt ? new Date(eta.calculatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
           const orangeColor = '#F97316';
 

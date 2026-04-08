@@ -5,13 +5,11 @@ import { createClient, RealtimeChannel } from '@supabase/supabase-js';
 import notifee, { AndroidImportance, AndroidVisibility } from '@notifee/react-native';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import 'react-native-url-polyfill/auto';
+import { NOTIFICATION_SUPABASE_URL, NOTIFICATION_SUPABASE_ANON_KEY } from '@env';
 
 const CHANNEL_ID = 'truckast_heads_up';
 
-const SUPABASE_URL = 'https://tabpplqpetdgruqmliix.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhYnBwbHFwZXRkZ3J1cW1saWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0NzMxNTgsImV4cCI6MjA4MjA0OTE1OH0.JqG84aRxD88qT1rlY_Rbe2r8QSX9U_ksP3IV9RqYSZg';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+const supabase = createClient(NOTIFICATION_SUPABASE_URL, NOTIFICATION_SUPABASE_ANON_KEY, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,

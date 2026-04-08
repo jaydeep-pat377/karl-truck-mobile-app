@@ -20,6 +20,7 @@ import { ms, spacing } from '../../utils/responsive';
 import { RootStackParamList } from '../../navigation/types';
 import { useOrderDetails, useScheduledLoads, useAlert } from '../../hooks';
 import { getStatusLabel } from '../../utils/statusUtils';
+import { WeatherIcon } from '../../utils/weatherIcon';
 
 type OrderProductDetailsRouteProp = RouteProp<RootStackParamList, 'OrderProductDetails'>;
 
@@ -586,15 +587,15 @@ export const OrderProductDetailsScreen: React.FC = () => {
                   styles.weatherInfoRow,
                   (jobData.customerName || jobData.projectName) && { borderTopWidth: 1, borderTopColor: isDark ? themeColors.border : colors.grey[10], paddingTop: GRID.sm }
                 ]}>
-                <Icon name="weather-partly-cloudy" size={ms(14)} color={colors.info.main} />
+                <WeatherIcon icon={jobData.weatherData.weather_icon} size={ms(14)} />
                 <Text style={[styles.weatherDescText, { color: themeColors.text.secondary }]} numberOfLines={1}>
-                  Partly cloudy
+                  {jobData.weatherData.weather_description || 'Partly cloudy'}
                 </Text>
-                {jobData.weatherData.temperature_fahrenheit !== null && jobData.weatherData.temperature_fahrenheit !== undefined && (
+                {jobData.weatherData.temperature_fahrenheit != null && (
                   <>
                     <View style={[styles.weatherDot, { backgroundColor: themeColors.text.hint }]} />
                     <Text style={[styles.weatherValueText, { color: themeColors.text.secondary }]}>
-                      {jobData.weatherData.temperature_fahrenheit}°F
+                      {Math.round(jobData.weatherData.temperature_fahrenheit)}°F
                     </Text>
                   </>
                 )}
