@@ -1,6 +1,6 @@
 import apiClient from '../apiClient';
 import { API_ENDPOINTS } from '../endpoints';
-import { LoginRequest, LoginResponse, User } from '../../types/user';
+import { LoginRequest, LoginResponse, MobileLoginResponse, ExchangeCodeRequest, User } from '../../types/user';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -48,13 +48,54 @@ export interface ChangePasswordResponse {
 }
 
 export const authService = {
+  /**
+   * Step 1: Mobile login — sends email + password, returns auth code + client_secret.
+   */
+  mobileLogin: async (email: string, password: string): Promise<MobileLoginResponse> => {
+    return apiClient.post<MobileLoginResponse>(API_ENDPOINTS.AUTH.MOBILE_LOGIN, { email, password });
+  },
+
+  /**
+   * Step 2: Exchange code — sends code + client_secret + device_info, returns user + tokens.
+   */
+  exchangeCode: async (request: ExchangeCodeRequest): Promise<LoginResponse> => {
+    return apiClient.post<LoginResponse>(API_ENDPOINTS.AUTH.EXCHANGE_CODE, request);
+  },
+
+  /**
+   * Full two-step login flow: mobileLogin -> exchangeCode.
+   */
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
+    // Step 1: Get auth code
+    let mobileLoginResponse: MobileLoginResponse;
     try {
-      const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
-      return response;
+      mobileLoginResponse = await authService.mobileLogin(credentials.email, credentials.password);
+      console.log('[Auth] Step 1 - mobile/login response:', JSON.stringify(mobileLoginResponse, null, 2));
     } catch (error: any) {
+      console.error('[Auth] Step 1 - mobile/login error:', error?.response?.data || error?.message || error);
       throw error;
     }
+
+    if (!mobileLoginResponse.success || !mobileLoginResponse.data?.code) {
+      console.error('[Auth] Step 1 - mobile/login failed:', mobileLoginResponse.message);
+      throw new Error(mobileLoginResponse.message || 'Login failed');
+    }
+
+    // Step 2: Exchange code for tokens
+    let exchangeResponse: LoginResponse;
+    try {
+      exchangeResponse = await authService.exchangeCode({
+        code: mobileLoginResponse.data.code,
+        client_secret: mobileLoginResponse.data.client_secret,
+        device_info: credentials.device_info,
+      });
+      console.log('[Auth] Step 2 - exchange-code response:', JSON.stringify(exchangeResponse, null, 2));
+    } catch (error: any) {
+      console.error('[Auth] Step 2 - exchange-code error:', error?.response?.data || error?.message || error);
+      throw error;
+    }
+
+    return exchangeResponse;
   },
 
   logout: async (deviceToken?: string): Promise<{ success: boolean; message: string }> => {

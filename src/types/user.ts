@@ -101,6 +101,30 @@ export interface LoginRequest {
   device_info: DeviceInfo;
 }
 
+export interface MobileLoginResponseData {
+  code: string;
+  client_secret: string;
+  redirect_url: string;
+  expires_in: number;
+  tenant: {
+    id: number;
+    name: string;
+    subdomain: string;
+  };
+}
+
+export interface MobileLoginResponse {
+  success: boolean;
+  message: string;
+  data: MobileLoginResponseData;
+}
+
+export interface ExchangeCodeRequest {
+  code: string;
+  client_secret: string;
+  device_info: DeviceInfo;
+}
+
 export interface LoginResponseData {
   user: User;
   accessToken: string;

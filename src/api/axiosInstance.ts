@@ -14,6 +14,8 @@ console.log('API_BASE_URL:', BASE_URL);
 
 const PUBLIC_ENDPOINTS = [
   '/auth/login',
+  '/auth/mobile/login',
+  '/auth/mobile/exchange-code',
   '/auth/register',
   '/auth/forgot-password',
   '/auth/reset-password',
@@ -24,6 +26,8 @@ const PUBLIC_ENDPOINTS = [
 
 const SILENT_ERROR_ENDPOINTS = [
   '/auth/login',
+  '/auth/mobile/login',
+  '/auth/mobile/exchange-code',
   '/auth/register',
   '/auth/verify-otp',
   '/auth/me',
