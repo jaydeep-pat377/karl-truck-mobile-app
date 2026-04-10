@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   FlatList,
-  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   RefreshControl,
@@ -11,6 +10,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon } from '../../components/common';
@@ -89,7 +89,6 @@ export const ChatRoomScreen: React.FC = () => {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set());
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   const previousMessageCountRef = useRef(0);
   const lastMessageIdRef = useRef<string | null>(null);
@@ -125,24 +124,22 @@ export const ChatRoomScreen: React.FC = () => {
     prevMessagesLengthRef.current = messages.length;
   }, [messages, user?.id]);
 
+  // Scroll the message list to the end when the keyboard appears, so the
+  // most recent messages stay visible above the keyboard. Keyboard layout
+  // itself is handled entirely by Android's windowSoftInputMode="adjustResize"
+  // (and the OS on iOS) — no manual padding toggling here. Mixing manual
+  // padding with adjustResize + KeyboardAvoidingView caused double/triple
+  // compensation and device-specific layout glitches.
   useEffect(() => {
-    const keyboardWillShowEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const keyboardWillHideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showSubscription = Keyboard.addListener(keyboardWillShowEvent, () => {
-      setKeyboardVisible(true);
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const showSubscription = Keyboard.addListener(showEvent, () => {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     });
 
-    const hideSubscription = Keyboard.addListener(keyboardWillHideEvent, () => {
-      setKeyboardVisible(false);
-    });
-
     return () => {
       showSubscription.remove();
-      hideSubscription.remove();
     };
   }, []);
 
@@ -347,7 +344,10 @@ export const ChatRoomScreen: React.FC = () => {
           styles.inputWrapper,
           {
             backgroundColor: themeColors.background,
-            paddingBottom: keyboardVisible ? 0 : insets.bottom,
+            // Only padding we need is the home-indicator safe area. The
+            // keyboard itself is handled by adjustResize; don't toggle
+            // this with a state, that was the root cause of the glitch.
+            paddingBottom: insets.bottom,
           },
         ]}
       >
@@ -367,9 +367,16 @@ export const ChatRoomScreen: React.FC = () => {
         barStyle="light-content"
       />
       <View style={[styles.statusBarBackground, { height: insets.top, backgroundColor: colors.primary.main }]} />
+      {/*
+        Using react-native-keyboard-controller's KeyboardAvoidingView.
+        Unlike React Native's built-in KAV (which uses JS-thread state
+        and races with Android's adjustResize), this one runs on the
+        native thread via Reanimated, so it stays perfectly in sync
+        with the keyboard animation on every device and both platforms.
+      */}
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'height' : undefined}
+        behavior="padding"
         keyboardVerticalOffset={0}
       >
         <ChatHeader

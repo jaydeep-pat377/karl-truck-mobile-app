@@ -2,10 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   View,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   TextInput,
-  KeyboardAvoidingView,
   Platform,
   Modal,
   FlatList,
@@ -15,6 +13,7 @@ import {
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, ScreenContainer, ScreenHeader, Button } from '../../components/common';
@@ -1427,20 +1426,24 @@ export const CreateOrderRequestScreen: React.FC = () => {
         }
       />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      {/*
+        Using react-native-keyboard-controller's KeyboardAwareScrollView.
+        It auto-scrolls the focused TextInput into view above the keyboard
+        AND adds the correct bottom padding — native-thread-synced via
+        Reanimated so it works reliably on every Android device and iOS.
+        bottomOffset = extra space between the focused input and the top
+        of the keyboard.
+      */}
+      <KeyboardAwareScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: ms(24) },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bottomOffset={20}
       >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: ms(8) },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
           {/* Read-only banner */}
           {isReadOnly && (
             <View style={[styles.banner, { backgroundColor: colors.warning.background }]}>
@@ -1872,8 +1875,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
               </View>
             </View>
           )}
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
 
       {/* ============================================================== */}
       {/* SEARCHABLE DROPDOWN MODAL */}

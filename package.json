@@ -65,6 +65,7 @@
     "react-native-gesture-handler": "^2.30.0",
     "react-native-image-crop-picker": "^0.51.1",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
+    "react-native-keyboard-controller": "^1.21.4",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-localize": "^3.6.1",
     "react-native-mmkv": "^2.12.2",

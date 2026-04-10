@@ -27,6 +27,7 @@ import { NotificationProvider } from './src/providers/NotificationProvider';
 import { AppLockProvider } from './src/contexts/AppLockContext';
 import { LockScreen } from './src/components/LockScreen';
 import { handleDeepLink, isShortUrl } from './src/services/deepLinkService';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { API_BASE_URL } from '@env';
 
 // Initialize Sentry
@@ -286,15 +287,17 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary fallback={ErrorFallback}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <QueryClientProvider client={queryClient}>
-            <ThemeProvider initialMode="light">
-              <GlobalAlertProvider>
-                <AppContent />
-              </GlobalAlertProvider>
-            </ThemeProvider>
-          </QueryClientProvider>
-        </SafeAreaProvider>
+        <KeyboardProvider>
+          <SafeAreaProvider>
+            <QueryClientProvider client={queryClient}>
+              <ThemeProvider initialMode="light">
+                <GlobalAlertProvider>
+                  <AppContent />
+                </GlobalAlertProvider>
+              </ThemeProvider>
+            </QueryClientProvider>
+          </SafeAreaProvider>
+        </KeyboardProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>
   );
