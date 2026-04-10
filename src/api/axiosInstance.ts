@@ -35,6 +35,7 @@ const SILENT_ERROR_ENDPOINTS = [
   '/announcements/me',
   '/weather',
   '/eta',
+  '/short-urls/resolve',
 ];
 
 const isPublicEndpoint = (url: string | undefined): boolean => {

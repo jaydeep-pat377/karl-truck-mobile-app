@@ -75,6 +75,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     print("FCM Token: \(fcmToken ?? "nil")")
   }
 
+  // Handle Universal Links for deep linking
+  func application(
+    _ application: UIApplication,
+    continue userActivity: NSUserActivity,
+    restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
+  ) -> Bool {
+    return RCTLinkingManager.application(application, continue: userActivity, restorationHandler: restorationHandler)
+  }
+
   // CRITICAL: Required for background/killed state notifications on iOS
   // This method is called when a notification arrives while app is in background or killed
   func application(

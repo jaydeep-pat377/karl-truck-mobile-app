@@ -69,4 +69,7 @@ export const API_ENDPOINTS = {
     UNREAD_COUNTS: '/chat/unread-counts',
     MARK_READ: '/chat/mark-read',
   },
+  SHORT_URLS: {
+    RESOLVE: '/short-urls/resolve',
+  },
 } as const;

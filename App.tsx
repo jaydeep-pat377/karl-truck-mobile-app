@@ -1,5 +1,14 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { StatusBar, LogBox, View, Text } from 'react-native';
+import {
+  StatusBar,
+  LogBox,
+  View,
+  Text,
+  Linking,
+  NativeModules,
+  Platform,
+  AppState,
+} from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -17,6 +26,7 @@ import { navigationRef, navigateFromNotification } from './src/services/navigati
 import { NotificationProvider } from './src/providers/NotificationProvider';
 import { AppLockProvider } from './src/contexts/AppLockContext';
 import { LockScreen } from './src/components/LockScreen';
+import { handleDeepLink, isShortUrl } from './src/services/deepLinkService';
 import { API_BASE_URL } from '@env';
 
 // Initialize Sentry
@@ -45,6 +55,10 @@ const AppContent: React.FC = () => {
   const [navigationReady, setNavigationReady] = useState(false);
   const { isInitialized, user, isAuthenticated } = useAuthStore();
   useNotifications();
+
+  const [isHandlingDeepLink, setIsHandlingDeepLink] = useState(false);
+  const pendingDeepLinkRef = useRef<string | null>(null);
+  const lastHandledUrlRef = useRef<string | null>(null);
 
   const userId = user?.id || null;
   const tenantId = user?.metadata?.tenant?.tenant_id ?? null;
@@ -81,6 +95,109 @@ const AppContent: React.FC = () => {
   const handleNavigationReady = useCallback(() => {
     setNavigationReady(true);
   }, []);
+
+  const runDeepLink = useCallback(async (url: string) => {
+    setIsHandlingDeepLink(true);
+    try {
+      await handleDeepLink(url);
+    } finally {
+      setIsHandlingDeepLink(false);
+    }
+  }, []);
+
+  const processDeepLink = useCallback(
+    (url: string) => {
+      if (!isShortUrl(url)) {
+        return;
+      }
+
+      if (isAuthenticated) {
+        runDeepLink(url);
+      } else {
+        console.log('[DeepLink] url......', url);
+        pendingDeepLinkRef.current = url;
+      }
+    },
+    [isAuthenticated, runDeepLink],
+  );
+
+  const getDeepLinkFromIntent = useCallback(async (): Promise<string | null> => {
+    try {
+      if (Platform.OS === 'android' && NativeModules.DeepLinkModule) {
+        const url = await NativeModules.DeepLinkModule.getDeepLinkUrl();
+        return url || null;
+      }
+      return await Linking.getInitialURL();
+    } catch {
+      return await Linking.getInitialURL();
+    }
+  }, []);
+
+  // Clear the deep link URL from the Android intent after reading it, so
+  // the next AppState 'active' check doesn't re-process the same stale URL.
+  const clearDeepLinkIntent = useCallback(async () => {
+    try {
+      if (Platform.OS === 'android' && NativeModules.DeepLinkModule) {
+        await NativeModules.DeepLinkModule.clearDeepLinkUrl();
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Check for a deep link URL from the native intent and dispatch it
+  // through processDeepLink. De-duped via lastHandledUrlRef.
+  const checkForDeepLink = useCallback(async () => {
+    try {
+      const url = await getDeepLinkFromIntent();
+      console.log('[DeepLink] Intent URL:', url, 'isAuth:', isAuthenticated);
+      if (url && isShortUrl(url) && url !== lastHandledUrlRef.current) {
+        lastHandledUrlRef.current = url;
+        await clearDeepLinkIntent();
+        processDeepLink(url);
+      }
+    } catch (error) {
+      console.error('[DeepLink] Error checking deep link:', error);
+    }
+  }, [getDeepLinkFromIntent, clearDeepLinkIntent, processDeepLink, isAuthenticated]);
+
+  // Listen for Linking events (iOS universal links + Android fallback).
+  useEffect(() => {
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      console.log('[DeepLink] Received URL via Linking event:', url);
+      if (url !== lastHandledUrlRef.current) {
+        lastHandledUrlRef.current = url;
+        processDeepLink(url);
+      }
+    });
+    return () => subscription.remove();
+  }, [processDeepLink]);
+
+  // Cold-start check: read the initial intent URL once on mount.
+  useEffect(() => {
+    checkForDeepLink();
+  }, [checkForDeepLink]);
+
+  // Warm-start check: re-read the intent when the app becomes active.
+  // This covers the onNewIntent path for singleTask launchMode.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        checkForDeepLink();
+      }
+    });
+    return () => subscription.remove();
+  }, [checkForDeepLink]);
+
+  // Once the user finishes logging in, run any pending deep link.
+  useEffect(() => {
+    if (isAuthenticated && pendingDeepLinkRef.current) {
+      const pendingUrl = pendingDeepLinkRef.current;
+      pendingDeepLinkRef.current = null;
+      console.log('[DeepLink] Processing pending deep link after login:', pendingUrl);
+      runDeepLink(pendingUrl);
+    }
+  }, [isAuthenticated, runDeepLink]);
 
   return (
     <AppLockProvider>
@@ -137,6 +254,12 @@ const AppContent: React.FC = () => {
         {/* Animated Splash Screen - renders on top of everything */}
         {showAnimatedSplash && (
           <AnimatedSplashScreen onAnimationComplete={handleSplashComplete} />
+        )}
+
+        {/* Deep Link loader - shows while resolving a short URL and navigating.
+            Suppressed during the initial boot splash to avoid stacking two. */}
+        {isHandlingDeepLink && !showAnimatedSplash && (
+          <AnimatedSplashScreen onAnimationComplete={() => {}} />
         )}
       </>
     </AppLockProvider>

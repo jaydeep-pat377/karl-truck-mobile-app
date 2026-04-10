@@ -61,6 +61,18 @@ target 'TruckApp' do
           build_config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
         end
       end
+
+      # Fix fmt consteval errors with Xcode 26+ / newer Apple Clang
+      # Patch fmt/base.h to disable consteval for all Apple clang versions
+      fmt_base_path = File.join(installer.sandbox.root, 'fmt', 'include', 'fmt', 'base.h')
+      if target.name == 'fmt' && File.exist?(fmt_base_path)
+        content = File.read(fmt_base_path)
+        patched = content.gsub(
+          /defined\(__apple_build_version__\) && __apple_build_version__ < \d+L/,
+          'defined(__apple_build_version__)'
+        )
+        File.write(fmt_base_path, patched) if patched != content
+      end
     end
 
     # Remove duplicate privacy bundle target (the one without hash)
