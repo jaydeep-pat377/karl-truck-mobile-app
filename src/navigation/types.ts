@@ -66,6 +66,7 @@ export type OrdersStackParamList = {
     status?: string;
     progressColor?: string;
     sourceTab?: 'Orders' | 'Today' | 'Home';
+    initialSection?: 'details' | 'performance';
   };
 };
 
@@ -243,7 +244,7 @@ export type WebViewScreenParams = {
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
-  OrderDetail: { orderId: string; orderCode: string; orderDate: string; status?: string; progressColor?: string; sourceTab?: 'Orders' | 'Today' | 'Home' };
+  OrderDetail: { orderId: string; orderCode: string; orderDate: string; status?: string; progressColor?: string; sourceTab?: 'Orders' | 'Today' | 'Home'; initialSection?: 'details' | 'performance' };
   TodayOrders: undefined;
   Tracking: { orderId: string; ticketCode?: string };
   Weather: WeatherScreenParams;

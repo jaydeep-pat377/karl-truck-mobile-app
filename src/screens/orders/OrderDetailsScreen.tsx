@@ -1709,6 +1709,38 @@ export const OrderDetailsScreen: React.FC = () => {
   const [showLoadsSheet, setShowLoadsSheet] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
 
+  // Scroll-to-performance (deep link support)
+  // When the screen is opened via a deep link with tab=performance, we scroll
+  // the ScrollView to the PerformanceCharts section. We need two Y offsets:
+  //   - contentContainerY: the Y of <View style={styles.contentContainer}> within the ScrollView
+  //   - performanceY: the Y of <PerformanceCharts> wrapper within contentContainer
+  // Total scroll target = contentContainerY + performanceY - 20 (small buffer).
+  const scrollViewRef = useRef<any>(null);
+  const contentContainerOffsetY = useRef(0);
+  const performanceOffsetYInContent = useRef(0);
+  const hasScrolledToPerformance = useRef(false);
+
+  const maybeScrollToPerformance = useCallback(() => {
+    if (
+      route.params?.initialSection === 'performance' &&
+      !hasScrolledToPerformance.current &&
+      scrollViewRef.current &&
+      contentContainerOffsetY.current > 0 &&
+      performanceOffsetYInContent.current > 0
+    ) {
+      hasScrolledToPerformance.current = true;
+      const targetY = Math.max(
+        0,
+        contentContainerOffsetY.current + performanceOffsetYInContent.current - 20,
+      );
+      // Defer slightly so that the layout is fully settled (charts often
+      // mount after an async data load).
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo?.({ y: targetY, animated: true });
+      }, 150);
+    }
+  }, [route.params]);
+
 
   const headerBackgroundOpacity = scrollY.interpolate({
     inputRange: [0, 100],
@@ -2232,6 +2264,7 @@ export const OrderDetailsScreen: React.FC = () => {
       </View>
 
       <Animated.ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + ms(56) }]}
         showsVerticalScrollIndicator={false}
@@ -2328,7 +2361,12 @@ export const OrderDetailsScreen: React.FC = () => {
           </View>
         </View>
 
-        <View style={styles.contentContainer}>
+        <View
+          style={styles.contentContainer}
+          onLayout={(e) => {
+            contentContainerOffsetY.current = e.nativeEvent.layout.y;
+            maybeScrollToPerformance();
+          }}>
           <View style={[styles.metricsCard, { backgroundColor: themeColors.card }, SHADOWS.md]}>
 
             <View style={styles.headerStatusContainer}>
@@ -2516,14 +2554,20 @@ export const OrderDetailsScreen: React.FC = () => {
             <Icon name="chevron-right" size={ms(24)} color={themeColors.text.hint} />
           </TouchableOpacity>
 
-          <PerformanceCharts
-            graphData={orderDetails?.graphs}
-            scheduledLoads={jobData.scheduledLoads || []}
-            scheduledQty={jobData.orderedVolume}
-            truckSpace={jobData.avgSpacing ? parseInt(jobData.avgSpacing) : 0}
-            isDark={isDark}
-            useHighchartsWebView={true}
-          />
+          <View
+            onLayout={(e) => {
+              performanceOffsetYInContent.current = e.nativeEvent.layout.y;
+              maybeScrollToPerformance();
+            }}>
+            <PerformanceCharts
+              graphData={orderDetails?.graphs}
+              scheduledLoads={jobData.scheduledLoads || []}
+              scheduledQty={jobData.orderedVolume}
+              truckSpace={jobData.avgSpacing ? parseInt(jobData.avgSpacing) : 0}
+              isDark={isDark}
+              useHighchartsWebView={true}
+            />
+          </View>
 
           <DelayDetailsTable
             isDark={isDark}

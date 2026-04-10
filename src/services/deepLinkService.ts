@@ -1,6 +1,7 @@
 import { Linking } from 'react-native';
 import { shortUrlService } from '../api/services/shortUrlService';
 import { orderService } from '../api/services/orderService';
+import { chatService } from '../api/services/chatService';
 import { navigate } from './navigationService';
 import { alertService } from './alertService';
 
@@ -159,11 +160,21 @@ async function navigateToScreen(data: ParsedDeepLink): Promise<void> {
 
     switch (tab) {
       case 'details':
-      case 'performance':
         navigate('OrderDetail', {
           orderId,
           orderCode,
           orderDate,
+        });
+        break;
+
+      case 'performance':
+        // Navigate to OrderDetail and instruct the screen to scroll to the
+        // performance graph section on mount.
+        navigate('OrderDetail', {
+          orderId,
+          orderCode,
+          orderDate,
+          initialSection: 'performance',
         });
         break;
 
@@ -181,14 +192,27 @@ async function navigateToScreen(data: ParsedDeepLink): Promise<void> {
         });
         break;
 
-      case 'chat':
-        // Chat deep link: navigate to Order Details for now (chat tab TBD)
-        navigate('OrderDetail', {
-          orderId,
-          orderCode,
+      case 'chat': {
+        // Each order has a single chat room keyed by orderId. This mirrors
+        // the existing handleChatPress logic in OrderDetailsScreen so the
+        // deep link opens the same chat the user would get from tapping
+        // the in-app chat button.
+        const parsedChatId = parseInt(orderId, 10);
+        if (!isNaN(parsedChatId)) {
+          // Clear unread badge, same as the in-app handler does.
+          chatService.markAsRead(parsedChatId).catch(() => {
+            // non-fatal — best effort
+          });
+        }
+        navigate('ChatRoom', {
+          roomId: orderId,
+          roomName: `Order #${orderCode}`,
+          chatId: isNaN(parsedChatId) ? 0 : parsedChatId,
+          orderId: isNaN(parsedChatId) ? 0 : parsedChatId,
           orderDate,
         });
         break;
+      }
 
       default:
         console.warn('[DeepLink] Unsupported tab:', tab);
