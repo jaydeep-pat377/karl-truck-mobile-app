@@ -404,9 +404,107 @@ export interface TrucksOnJobGraph {
   averages: TrucksOnJobAverages;
 }
 
+/**
+ * Ordered / Delivered / Poured graph — per-bucket row.
+ * Matches the backend buildODPData output (Truckast-python-scrapper-api
+ * src/services/orderService.js → buildODPData) and the mobile renderer in
+ * src/components/charts/ODPChart.tsx. Shape mirrors the web HourlyODPChart
+ * 1:1 so the mobile chart reproduces the web chart exactly.
+ */
+export interface ODPTruckBreakdown {
+  truck_code: string;
+  delivered: number;
+  poured: number;
+}
+
+export interface ODPBucket {
+  hour_index: number;
+  hour_label: string;
+  // ----- CY mode -----
+  ordered: number;
+  ordered_solid: number;
+  ordered_striped: number;
+  delivered: number;
+  delivered_carry_in: number;
+  delivered_solid: number;
+  delivered_carry_out: number;
+  poured: number;
+  // ----- Loads mode -----
+  ordered_loads: number;
+  ordered_loads_solid: number;
+  ordered_loads_striped: number;
+  delivered_loads: number;
+  poured_loads: number;
+  // ----- Shared -----
+  trucks?: ODPTruckBreakdown[];
+}
+
+/**
+ * Raw tickets + primary-schedule payload for the WebView reducer.
+ * Shape matches the web `HourlyODPChart` inputs byte-for-byte so the
+ * WebView can run the exact same reducer as the web without mapping.
+ */
+export interface ODPRawTicket {
+  ticket_code: string | null;
+  truck_code: string | null;
+  remove_reason_code: string | null;
+  on_job_time: string | null;
+  wash_time: string | null;
+  to_plant_time: string | null;
+  scheduled_on_job_time: string | null;
+  ticket_products: Array<{ is_mix: boolean; load_qty: number }>;
+}
+
+export interface ODPRawSchedule {
+  delivery_rate_per_hour: number;
+  truck_space: number;
+  schedule_qty: number;
+  number_of_loads: number;
+  load_qty: number;
+  start_time: string;
+  loads: unknown[];
+}
+
+export interface ODPRawProductScheduleItem {
+  is_mix: boolean;
+  schedules: ODPRawSchedule[];
+}
+
+export interface ODPRawForReducer {
+  tickets: ODPRawTicket[];
+  productScheduleItems: ODPRawProductScheduleItem[];
+}
+
+export interface ODPGraphData {
+  version?: string;
+  schedule_rate: number;
+  schedule_qty: number;
+  truck_space?: number;
+  number_of_loads?: number;
+  load_qty?: number;
+  start_time?: string;
+  start_min_from_midnight?: number;
+  scheduled_start_min_from_midnight?: number;
+  y_max: number;
+  y_max_loads?: number;
+  has_carryover?: boolean;
+  buckets: ODPBucket[];
+  total: {
+    ordered_qty: number;
+    delivered_qty: number;
+    poured_qty: number;
+  };
+  /**
+   * Raw backend inputs passed into the WebView reducer. Always present
+   * when the backend is running v4+ of `buildODPData`.
+   */
+  raw_for_reducer?: ODPRawForReducer;
+}
+
 export interface OrderGraphs {
   pour_speed?: PourSpeedGraph;
   trucks_on_job?: TrucksOnJobGraph;
+  ordered_delivered_poured?: ODPGraphData | null;
 }
 
 export interface DelayDetailItem {

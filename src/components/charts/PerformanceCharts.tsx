@@ -6,6 +6,8 @@ import { moderateScale as ms } from 'react-native-size-matters';
 import { PourSpeedChart } from './PourSpeedChart';
 import { TrucksOnJobChart, ScheduledLoadItem } from './TrucksOnJobChart';
 import { TrucksOnJobWebView } from './TrucksOnJobWebView';
+import { ODPChartWebView } from './ODPChartWebView';
+import type { ODPGraphData } from '../../types/ticket';
 
 export interface PourSpeedGraphApi {
   schedule_rate: number;
@@ -20,6 +22,7 @@ export interface PourSpeedGraphApi {
 
 export interface OrderGraphsApi {
   pour_speed?: PourSpeedGraphApi;
+  ordered_delivered_poured?: ODPGraphData | null;
 }
 
 export interface PerformanceChartsProps {
@@ -30,11 +33,22 @@ export interface PerformanceChartsProps {
   isDark: boolean;
   chartHeight?: number;
   showPourSpeed?: boolean;
+  showODP?: boolean;
   showTrucksOnJob?: boolean;
   scrollable?: boolean;
   pointSpacing?: number;
 
   useHighchartsWebView?: boolean;
+
+  /**
+   * Order identifiers used to fetch ODP chart data DIRECTLY from Supabase
+   * (bypassing the scraper API). When all three are provided, the ODP
+   * chart reads the same rows the web reads, guaranteeing value parity.
+   * See `ODPChartWebView` and `src/services/odpSupabaseFetcher.ts`.
+   */
+  orderCode?: string;
+  orderDate?: string;
+  orderId?: number | string;
 }
 
 export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
@@ -45,10 +59,14 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
   isDark,
   chartHeight = ms(180),
   showPourSpeed = true,
+  showODP = true,
   showTrucksOnJob = true,
   scrollable = true,
   pointSpacing = 80,
   useHighchartsWebView = false,
+  orderCode,
+  orderDate,
+  orderId,
 }) => {
   return (
     <View style={styles.container}>
@@ -65,6 +83,23 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
           height={chartHeight}
           scrollable={scrollable}
           minPointSpacing={pointSpacing}
+        />
+      )}
+
+      {/* ODP (Ordered / Delivered / Poured) — WebView fallback.
+          The chart card is rendered entirely inside a WebView that loads
+          React + Recharts from a CDN and runs the web's HourlyODPChart
+          reducer verbatim on the backend-supplied raw_for_reducer payload.
+          Because the exact same charting library draws the exact same
+          data, the mobile output is guaranteed to match the web 1:1 in
+          values, visibility, UI, and behavior. See ODPChartWebView.tsx. */}
+      {showODP && (
+        <ODPChartWebView
+          data={graphData?.ordered_delivered_poured ?? null}
+          isDark={isDark}
+          orderCode={orderCode}
+          orderDate={orderDate}
+          orderId={orderId}
         />
       )}
 

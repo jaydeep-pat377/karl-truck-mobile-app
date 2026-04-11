@@ -2566,6 +2566,12 @@ export const OrderDetailsScreen: React.FC = () => {
               truckSpace={jobData.avgSpacing ? parseInt(jobData.avgSpacing) : 0}
               isDark={isDark}
               useHighchartsWebView={true}
+              // Forward order identifiers so ODPChartWebView can fetch raw
+              // ticket + schedule rows DIRECTLY from Supabase, guaranteeing
+              // byte-identical input to the web's HourlyODPChart reducer.
+              orderCode={orderCode}
+              orderDate={orderDate}
+              orderId={orderDetails?.order_id}
             />
           </View>
 

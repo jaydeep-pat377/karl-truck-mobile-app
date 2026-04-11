@@ -1,3 +1,12 @@
+// Pick the env file based on NODE_ENV at build time.
+//   development build (default for `react-native run-android`)  -> .env.development (local backend)
+//   production build   (`run-android --variant=release`, bundle) -> .env.production (api.truckast.ai)
+// This avoids having to manually edit .env when switching between
+// local testing and a release build. Each file must contain ALL keys
+// that the app reads from `@env` — they're currently in sync.
+const ENV_FILE =
+  process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
+
 module.exports = {
   presets: ['module:@react-native/babel-preset'],
   plugins: [
@@ -5,7 +14,7 @@ module.exports = {
       'module:react-native-dotenv',
       {
         moduleName: '@env',
-        path: '.env.production',
+        path: ENV_FILE,
         safe: false,
         allowUndefined: true,
         verbose: false,
