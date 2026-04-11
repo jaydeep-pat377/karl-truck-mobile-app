@@ -1,39 +1,72 @@
 /**
  * Ordered / Delivered / Poured chart — WebView edition (fully offline).
  *
- * This is the MANDATORY FALLBACK implementation: instead of reproducing the
- * web chart with React Native SVG (which always drifts from the web's
- * Recharts output), we render the entire chart card INSIDE a WebView
- * using the exact same libraries the web uses:
+ * Architecture:
+ *   • All card chrome (title, CY/Loads toggle, info pills, fixed Y-axis,
+ *     +/- zoom controls, legend) is rendered NATIVELY in React Native.
+ *   • Only the Recharts bar plot lives inside a WebView — sized, zoomed,
+ *     and horizontally scrolled by an RN `<ScrollView>`.
+ *   • The Y-axis stays pinned to the left of the horizontal scroll area,
+ *     so its labels never move when the user pans or zooms.
  *
- *   • React 18.3.1        (bundled at src/assets/odpVendor/reactUmd.ts)
- *   • ReactDOM 18.3.1     (bundled at src/assets/odpVendor/reactDomUmd.ts)
- *   • PropTypes 15.8.1    (bundled at src/assets/odpVendor/propTypesUmd.ts)
- *   • Recharts 2.15.4     (bundled at src/assets/odpVendor/rechartsUmd.ts)
+ * The layout mirrors `TrucksOnJobWebView.tsx` / `PourSpeedChart.tsx` so
+ * the user sees a consistent zoom-control UX across all three
+ * performance charts.
  *
- * ZERO network dependency. The UMD bundles are JSON-escaped strings
- * embedded in the JS bundle, inlined into the WebView HTML via <script>
- * tags before the chart code runs. No unpkg, no jsdelivr, no CDN — the
- * chart renders fine on airplane mode.
+ * Data pipeline:
+ *   1. If `orderCode` + `orderDate` + `orderId` props are provided, we
+ *      fetch the raw tickets + schedules DIRECTLY from Supabase
+ *      (`odpSupabaseFetcher`) — same queries the web runs, guaranteed
+ *      byte-identical input.
+ *   2. Otherwise we fall back to `data.raw_for_reducer` from the backend
+ *      scraper API.
+ *   3. `runWebReducer` (src/utils/odpWebReducer.ts) runs on the raw
+ *      data. It's the TypeScript port of the web's HourlyODPChart
+ *      odpData useMemo (performance-charts.tsx:1504-1932) — line-for-line
+ *      equivalent, so the computed buckets match the web exactly.
+ *   4. `computeWebYMax` (same file) produces the Y-axis ceiling matching
+ *      the web yAxisDomain useMemo (performance-charts.tsx:1949-1997).
+ *   5. Buckets + yMax are injected into the WebView HTML as JSON. The
+ *      HTML renders just the Recharts `BarChart` with the exact same
+ *      defs, custom shapes, custom labels, Customized X-axis, and
+ *      Tooltip the web uses.
+ *   6. Recharts 2.15.4, React 18.3.1, PropTypes 15.8.1 are bundled
+ *      locally in `src/assets/odpVendor/*.ts` (as JSON-escaped UMD
+ *      strings) so the WebView has ZERO network dependency.
  *
- * The web's `HourlyODPChart` reducer and visual config are ported verbatim
- * into the HTML payload. Because the same JS reducer runs on the same
- * raw tickets + schedule that the backend already serves at
- * `graphs.ordered_delivered_poured.raw_for_reducer`, AND the bars are
- * drawn by the exact same charting library, the mobile output is
- * guaranteed to match the web byte-for-byte.
- *
- * Visibility matches the web exactly:
- *   • No `raw_for_reducer` or no buckets → component returns `null`
- *     (the web does `if (odpData.length === 0) return null`).
+ * Logic / data / calculations are UNCHANGED from the previous working
+ * version — only the layout moved out of the WebView into RN.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+} from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
+import type { ScrollView as ScrollViewType } from 'react-native';
 import { WebView } from 'react-native-webview';
+import Svg, { Text as SvgText, Line as SvgLine } from 'react-native-svg';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { moderateScale as ms } from 'react-native-size-matters';
 import type { ODPGraphData, ODPRawForReducer } from '../../types/ticket';
 import { fetchOdpRawFromSupabase } from '../../services/odpSupabaseFetcher';
+import {
+  runWebReducer,
+  computeWebYMax,
+  type WebReducerBucket,
+} from '../../utils/odpWebReducer';
+import { colors } from '../../theme/colors';
+import { fontFamily } from '../../theme/typography';
 
 // Bundled React + Recharts UMD builds (see src/assets/odpVendor/*.ts).
 // Inlining them removes every runtime network dependency for the chart —
@@ -45,6 +78,37 @@ import PROP_TYPES_UMD from '../../assets/odpVendor/propTypesUmd';
 import RECHARTS_UMD from '../../assets/odpVendor/rechartsUmd';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+
+// ---------------------------------------------------------------------------
+// Layout constants — mirror the web chart's Recharts margins so the RN-side
+// FixedYAxis tick labels line up pixel-perfect with the WebView gridlines.
+// ---------------------------------------------------------------------------
+// These match `margin={{top:20, right:30, bottom:20, left:5}}` from the
+// web's BarChart (performance-charts.tsx:2085). The X-axis labels are
+// drawn inside that bottom 20px band + the Customized boundary labels add
+// ~14px extra below the plot.
+const CHART_PAD_TOP = 20;
+const CHART_PAD_BOTTOM = 40; // 20 chart margin + 20 X-axis label area
+const CHART_HEIGHT = 280;
+const Y_AXIS_WIDTH = ms(44);
+
+// Zoom bounds — match TrucksOnJobWebView / PourSpeedChart so every
+// performance chart has identical zoom UX.
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 5;
+const ZOOM_STEP = 0.5;
+
+// ---------------------------------------------------------------------------
+// Colors — must match the web's HourlyODPChart
+// (performance-charts.tsx:2163-2180 + Bar fills).
+// ---------------------------------------------------------------------------
+const COLOR_ORDERED = '#3b82f6';
+const COLOR_DELIVERED = '#1f2937';
+const COLOR_POURED = '#84cc16';
+const COLOR_CARRYOVER_BG = '#d1d5db';
+const COLOR_CARRYOVER_STROKE = '#6b7280';
+
+type ViewMode = 'cy' | 'loads';
 
 export interface ODPChartWebViewProps {
   data?: ODPGraphData | null;
@@ -66,10 +130,57 @@ export interface ODPChartWebViewProps {
 }
 
 // ---------------------------------------------------------------------------
-// React Native wrapper — as thin as possible. The whole chart card (header,
-// pills, toggle, chart, legend) is rendered inside the WebView using React +
-// Recharts. RN only wires up the container size.
+// Shape of each bucket the WebView renders. This is the camelCase payload
+// the web source's custom Bar shapes and labels expect
+// (performance-charts.tsx:2183-2327).
 // ---------------------------------------------------------------------------
+interface ChartBucket {
+  h: number;
+  label: string;
+  ordered: number;
+  orderedSolid: number;
+  orderedStriped: number;
+  orderedCount: number;
+  orderedCountSolid: number;
+  orderedCountStriped: number;
+  delivered: number;
+  deliveredSolid: number;
+  deliveredCarryIn: number;
+  deliveredCarryOut: number;
+  deliveredCount: number;
+  deliveredCountSolid: number;
+  deliveredCountCarryIn: number;
+  deliveredCountCarryOut: number;
+  poured: number;
+  pouredCount: number;
+}
+
+function toChartBucket(b: WebReducerBucket): ChartBucket {
+  return {
+    h: b.hour_index,
+    label: b.hour_label,
+    ordered: b.ordered,
+    orderedSolid: b.ordered_solid,
+    orderedStriped: b.ordered_striped,
+    orderedCount: b.ordered_loads,
+    orderedCountSolid: b.ordered_loads_solid,
+    orderedCountStriped: b.ordered_loads_striped,
+    delivered: b.delivered,
+    deliveredSolid: b.delivered_solid,
+    deliveredCarryIn: b.delivered_carry_in,
+    deliveredCarryOut: b.delivered_carry_out,
+    deliveredCount: b.delivered_loads,
+    deliveredCountSolid: b.delivered_loads,
+    deliveredCountCarryIn: 0,
+    deliveredCountCarryOut: 0,
+    poured: b.poured,
+    pouredCount: b.poured_loads,
+  };
+}
+
+// ===========================================================================
+// Main component
+// ===========================================================================
 export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
   data,
   isDark,
@@ -77,13 +188,12 @@ export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
   orderDate,
   orderId,
 }) => {
-  // --- Direct Supabase fetch (preferred when order identifiers are passed)
-  // This ELIMINATES backend SQL drift as a source of value mismatches.
-  // When the fetcher succeeds, its output replaces `data.raw_for_reducer`
-  // entirely, so the reducer sees the exact same rows the web sees.
+  const themeColors = isDark ? colors.dark : colors.light;
+
+  // ----- Direct Supabase fetch (preferred when order identifiers are
+  //       passed). Guarantees byte-identical input to the web reducer.
   const [supabaseRaw, setSupabaseRaw] = useState<ODPRawForReducer | null>(null);
   const [supabaseFetched, setSupabaseFetched] = useState<boolean>(false);
-
   const canUseDirectFetch = !!(orderCode && orderDate && orderId);
 
   useEffect(() => {
@@ -115,232 +225,642 @@ export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
     };
   }, [canUseDirectFetch, orderCode, orderDate, orderId]);
 
-  // The reducer's input: prefer directly fetched Supabase data. Fall back
-  // to backend raw_for_reducer only if direct fetch was not configured
-  // (order identifiers missing) or failed outright. In either case the
-  // WebView never shows stale/wrong data from two sources at once.
+  // ----- Effective raw data: prefer Supabase, fall back to backend. -----
   const effectiveRaw: ODPRawForReducer | null = useMemo(() => {
     if (canUseDirectFetch && supabaseFetched) {
       return supabaseRaw ?? data?.raw_for_reducer ?? null;
     }
-    // Direct fetch not yet complete — use backend raw as a first-paint
-    // approximation; it will be replaced once Supabase responds.
     return data?.raw_for_reducer ?? null;
   }, [canUseDirectFetch, supabaseFetched, supabaseRaw, data?.raw_for_reducer]);
 
-  const hasRaw = !!effectiveRaw;
+  // ----- Run the reducer on RN side (byte-for-byte web port). -----
+  // This produces `WebReducerBucket[]` with snake_case field names.
+  // We keep it in useMemo so it only recomputes when raw data changes.
+  const reducerBuckets = useMemo<WebReducerBucket[]>(() => {
+    if (!effectiveRaw) return [];
+    return runWebReducer(effectiveRaw);
+  }, [effectiveRaw]);
 
+  // ----- View mode (CY / Loads) -----
+  const [viewMode, setViewMode] = useState<ViewMode>('cy');
+
+  // ----- Zoom state (mirrors TrucksOnJobWebView). -----
+  const [zoomLevel, setZoomLevel] = useState<number>(MIN_ZOOM);
+  const [isAtEnd, setIsAtEnd] = useState<boolean>(false);
+  const scrollViewRef = useRef<ScrollViewType>(null);
+  const currentScrollX = useRef<number>(0);
+
+  // ----- Y-axis domain (matches web yAxisDomain useMemo). -----
+  const yMax = useMemo<number>(() => {
+    if (!effectiveRaw || reducerBuckets.length === 0) {
+      return viewMode === 'cy' ? 50 : 10;
+    }
+    return computeWebYMax(reducerBuckets, effectiveRaw, viewMode);
+  }, [reducerBuckets, effectiveRaw, viewMode]);
+
+  // ----- Bucket payload for the WebView (camelCase, matches web). -----
+  const chartBuckets = useMemo<ChartBucket[]>(
+    () => reducerBuckets.map(toChartBucket),
+    [reducerBuckets],
+  );
+
+  const hasCarryover = useMemo<boolean>(
+    () =>
+      viewMode === 'cy' &&
+      chartBuckets.some((b) => (b.deliveredCarryIn || 0) > 0),
+    [chartBuckets, viewMode],
+  );
+
+  // ----- Chart layout math. The container now sits INSIDE the parent
+  //       screen's 16 px horizontal padding (outer breathing room), so
+  //       the usable card width is SCREEN_WIDTH minus that gutter on
+  //       each side. The fixed Y-axis column (Y_AXIS_WIDTH) lives
+  //       OUTSIDE the ScrollView, and the remaining horizontal room
+  //       goes to the WebView plot area. `zoomedChartWidth` scales
+  //       linearly with `zoomLevel`.
+  const PARENT_CONTENT_PADDING = 16; // OrderDetailsScreen.contentContainer
+  const baseChartWidth =
+    SCREEN_WIDTH - PARENT_CONTENT_PADDING * 2 - Y_AXIS_WIDTH;
+  const zoomedChartWidth = baseChartWidth * zoomLevel;
+
+  // ----- HTML content: ONLY the Recharts plot body. -----
   const htmlContent = useMemo(() => {
-    if (!effectiveRaw) return '';
     return buildOdpHtml({
-      raw: effectiveRaw,
+      buckets: chartBuckets,
+      yMax,
+      viewMode,
       isDark,
-      spacingMin: data?.truck_space ?? 0,
-      rate: data?.schedule_rate ?? 0,
-      scheduledQty: data?.schedule_qty ?? 0,
-      numberOfLoads: data?.number_of_loads ?? 0,
-      loadQty: data?.load_qty ?? 0,
+      width: zoomedChartWidth,
+      height: CHART_HEIGHT,
     });
-  }, [
-    effectiveRaw,
-    data?.truck_space,
-    data?.schedule_rate,
-    data?.schedule_qty,
-    data?.number_of_loads,
-    data?.load_qty,
-    isDark,
-  ]);
+  }, [chartBuckets, yMax, viewMode, isDark, zoomedChartWidth]);
 
-  // Match web visibility exactly: `HourlyODPChart` returns null when it has
-  // no data (performance-charts.tsx:1999). Mobile should hide the entire
-  // card in the same situation — NO placeholder, NO debug strip.
-  if (!hasRaw) return null;
+  // ----- Zoom handlers (mirror TrucksOnJobWebView exactly). -----
+  const handleZoomIn = useCallback(() => {
+    if (isAtEnd || zoomLevel >= MAX_ZOOM) return;
+    setZoomLevel((prev) => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
+  }, [isAtEnd, zoomLevel]);
 
-  // The card needs enough vertical room for:
-  //   header (title + toggle) ................ ms(44)
-  //   pills row (two-line wrapping) ........... ms(56)
-  //   chart plot ............................. 280
-  //   legend .................................. ms(30)
-  //   outer padding ........................... ms(24)
-  // Total ≈ ms(454). Use 480 for comfortable overflow-free rendering.
-  const width = SCREEN_WIDTH;
-  const height = ms(480);
+  const handleZoomOut = useCallback(() => {
+    if (zoomLevel <= MIN_ZOOM) return;
+    const newZoom = Math.max(zoomLevel - ZOOM_STEP, MIN_ZOOM);
+    setZoomLevel(newZoom);
+    setIsAtEnd(false);
+    setTimeout(() => {
+      const newMaxScroll = baseChartWidth * newZoom - baseChartWidth;
+      if (currentScrollX.current > newMaxScroll) {
+        scrollViewRef.current?.scrollTo({
+          x: Math.max(0, newMaxScroll),
+          animated: true,
+        });
+      }
+    }, 50);
+  }, [zoomLevel, baseChartWidth]);
+
+  const handleResetZoom = useCallback(() => {
+    setZoomLevel(MIN_ZOOM);
+    setIsAtEnd(false);
+    currentScrollX.current = 0;
+    scrollViewRef.current?.scrollTo({ x: 0, animated: true });
+  }, []);
+
+  const handleScroll = useCallback((event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    currentScrollX.current = contentOffset.x;
+    const atEnd =
+      contentOffset.x + layoutMeasurement.width >= contentSize.width - 5;
+    setIsAtEnd(atEnd);
+  }, []);
+
+  // ----- Match web visibility: hide entirely when no data. -----
+  if (!effectiveRaw || chartBuckets.length === 0) {
+    return null;
+  }
+
+  // ----- Info-pill values (metadata from the first mix schedule).
+  // These mirror what the web shows in the chart-card header. Values come
+  // from the backend payload so we don't need to introspect the raw
+  // Supabase schedule.
+  const spacingMin = data?.truck_space ?? 0;
+  const rate = data?.schedule_rate ?? 0;
+  const scheduledQty = data?.schedule_qty ?? 0;
+  const numberOfLoads = data?.number_of_loads ?? 0;
+  const loadQty = data?.load_qty ?? 0;
 
   return (
-    <View style={{ width, height }}>
-      <WebView
-        source={{ html: htmlContent }}
-        style={styles.webview}
-        scrollEnabled={false}
-        bounces={false}
-        originWhitelist={['*']}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        startInLoadingState={false}
-        scalesPageToFit={false}
-        mixedContentMode="always"
-        automaticallyAdjustContentInsets={false}
-      />
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: themeColors.card,
+        },
+      ]}
+    >
+      {/* -------- HEADER: title only -------- */}
+      <View style={styles.header}>
+        <Text
+          style={[styles.headerTitle, { color: themeColors.text.primary }]}
+        >
+          Ordered / Delivered / Poured
+        </Text>
+      </View>
+
+      {/* -------- PILLS: Spacing / Rate / Scheduled / Loads / Load Size.
+           Sits directly below the title and above the CY/Loads + zoom
+           controls row, giving the chart header a summary → controls →
+           chart structure. -------------------------------------------- */}
+      <View style={styles.pillsRow}>
+        {spacingMin > 0 && (
+          <Pill
+            isDark={isDark}
+            icon="timer-outline"
+            iconColor="#3b82f6"
+            bgColor="#3b82f615"
+            label="Spacing"
+            value={`${spacingMin} min`}
+          />
+        )}
+        {rate > 0 && (
+          <Pill
+            isDark={isDark}
+            icon="gauge"
+            iconColor="#10b981"
+            bgColor="#10b98115"
+            label="Rate"
+            value={`${rate.toFixed(2)} CY/HR`}
+          />
+        )}
+        {scheduledQty > 0 && (
+          <Pill
+            isDark={isDark}
+            icon="package-variant"
+            iconColor="#a855f7"
+            bgColor="#a855f715"
+            label="Scheduled"
+            value={`${scheduledQty.toFixed(2)} CY`}
+          />
+        )}
+        {numberOfLoads > 0 && (
+          <Pill
+            isDark={isDark}
+            icon="layers-outline"
+            iconColor="#f59e0b"
+            bgColor="#f59e0b15"
+            label="Loads"
+            value={`${numberOfLoads}`}
+          />
+        )}
+        {loadQty > 0 && (
+          <Pill
+            isDark={isDark}
+            icon="cube-outline"
+            iconColor="#ef4444"
+            bgColor="#ef444415"
+            label="Load Size"
+            value={`${loadQty.toFixed(2)} CY`}
+          />
+        )}
+      </View>
+
+      {/* -------- TOP CONTROLS: CY/Loads toggle on the left, zoom
+           controls on the right, grouped on a single row directly
+           below the title. ------------------------------------------- */}
+      <View style={styles.topControls}>
+        {/* CY / Loads toggle */}
+        <View
+          style={[
+            styles.toggle,
+            {
+              backgroundColor: isDark ? colors.grey[85] : colors.grey[10],
+            },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => setViewMode('cy')}
+            style={[
+              styles.toggleButton,
+              viewMode === 'cy' && {
+                backgroundColor: isDark
+                  ? themeColors.card
+                  : colors.common.white,
+              },
+            ]}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.toggleLabel,
+                {
+                  color:
+                    viewMode === 'cy'
+                      ? themeColors.text.primary
+                      : themeColors.text.hint,
+                  fontFamily:
+                    viewMode === 'cy'
+                      ? fontFamily.semiBold
+                      : fontFamily.medium,
+                },
+              ]}
+            >
+              CY
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setViewMode('loads')}
+            style={[
+              styles.toggleButton,
+              viewMode === 'loads' && {
+                backgroundColor: isDark
+                  ? themeColors.card
+                  : colors.common.white,
+              },
+            ]}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.toggleLabel,
+                {
+                  color:
+                    viewMode === 'loads'
+                      ? themeColors.text.primary
+                      : themeColors.text.hint,
+                  fontFamily:
+                    viewMode === 'loads'
+                      ? fontFamily.semiBold
+                      : fontFamily.medium,
+                },
+              ]}
+            >
+              Loads
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Zoom controls — same − ⊕ + pattern as Trucks on Job / Pour Speed */}
+        <View style={styles.zoomControls}>
+          <TouchableOpacity
+            style={[
+              styles.zoomButton,
+              {
+                backgroundColor: isDark
+                  ? themeColors.surface
+                  : colors.grey[10],
+              },
+            ]}
+            onPress={handleZoomOut}
+            disabled={zoomLevel <= MIN_ZOOM}
+            activeOpacity={0.7}
+          >
+            <Icon
+              name="minus"
+              size={ms(18)}
+              color={
+                zoomLevel <= MIN_ZOOM
+                  ? themeColors.text.disabled
+                  : themeColors.text.primary
+              }
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.zoomButton,
+              {
+                backgroundColor: isDark
+                  ? themeColors.surface
+                  : colors.grey[10],
+              },
+            ]}
+            onPress={handleResetZoom}
+            activeOpacity={0.7}
+          >
+            <Icon
+              name="magnify-expand"
+              size={ms(18)}
+              color={themeColors.text.primary}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.zoomButton,
+              {
+                backgroundColor: isDark
+                  ? themeColors.surface
+                  : colors.grey[10],
+              },
+            ]}
+            onPress={handleZoomIn}
+            disabled={isAtEnd || zoomLevel >= MAX_ZOOM}
+            activeOpacity={0.7}
+          >
+            <Icon
+              name="plus"
+              size={ms(18)}
+              color={
+                isAtEnd || zoomLevel >= MAX_ZOOM
+                  ? themeColors.text.disabled
+                  : themeColors.text.primary
+              }
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* -------- CHART ROW: fixed Y-axis + scrollable WebView plot -------- */}
+      <View style={styles.chartRow}>
+        <FixedYAxis
+          width={Y_AXIS_WIDTH}
+          height={CHART_HEIGHT}
+          yMax={yMax}
+          viewMode={viewMode}
+          isDark={isDark}
+        />
+
+        <ScrollView
+          ref={scrollViewRef}
+          horizontal
+          showsHorizontalScrollIndicator={zoomLevel > MIN_ZOOM}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          bounces={false}
+          style={styles.scrollView}
+          contentContainerStyle={{ width: zoomedChartWidth }}
+        >
+          <WebView
+            source={{ html: htmlContent }}
+            style={[
+              styles.webview,
+              { width: zoomedChartWidth, height: CHART_HEIGHT },
+            ]}
+            scrollEnabled={false}
+            bounces={false}
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+            originWhitelist={['*']}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            startInLoadingState={false}
+            scalesPageToFit={false}
+            mixedContentMode="always"
+            automaticallyAdjustContentInsets={false}
+          />
+        </ScrollView>
+      </View>
+
+      {/* Swipe hint when zoomed in (matches other charts). */}
+      {zoomLevel > MIN_ZOOM && (
+        <View style={styles.swipeIndicator}>
+          <Icon
+            name="gesture-swipe-horizontal"
+            size={ms(16)}
+            color={themeColors.text.hint}
+          />
+          <Text style={[styles.swipeText, { color: themeColors.text.hint }]}>
+            Swipe right to view more
+          </Text>
+        </View>
+      )}
+
+      {/* -------- LEGEND: Ordered / Delivered / Poured on one horizontal
+           line with equal spacing between items. --------------------- */}
+      <View style={styles.legend}>
+        <LegendItem color={COLOR_ORDERED} label="Ordered" isDark={isDark} />
+        <LegendItem color={COLOR_DELIVERED} label="Delivered" isDark={isDark} />
+        <LegendItem color={COLOR_POURED} label="Poured" isDark={isDark} />
+        {hasCarryover && (
+          <LegendItem
+            color={COLOR_CARRYOVER_BG}
+            label="Carryover"
+            isDark={isDark}
+            striped
+          />
+        )}
+      </View>
+
     </View>
   );
 };
 
-// ---------------------------------------------------------------------------
-// HTML template generator.
-//
-// Produces a fully self-contained document that:
-//   1. Loads React, ReactDOM, and Recharts from unpkg CDN
-//   2. Inlines the raw tickets + schedule as JSON
-//   3. Inlines a VERBATIM port of the web's odpData reducer
-//   4. Renders the chart card with `React.createElement` using the exact
-//      same Recharts primitives (BarChart, Bar, XAxis, YAxis, CartesianGrid,
-//      Tooltip, ResponsiveContainer) that the web uses
-//
-// Every bar color, stripe pattern, margin, bar gap, and radius is copied
-// from `truckast-dolese-readymix-frontend/src/app/(protected)/orders/_components/
-// performance-charts.tsx` (HourlyODPChart lines 2081-2362).
-// ---------------------------------------------------------------------------
-interface BuildOdpHtmlArgs {
-  raw: ODPRawForReducer;
+// ===========================================================================
+// FixedYAxis — native SVG column drawn OUTSIDE the horizontal ScrollView,
+// so its labels stay perfectly stationary when the user pans or zooms.
+// ===========================================================================
+interface FixedYAxisProps {
+  width: number;
+  height: number;
+  yMax: number;
+  viewMode: ViewMode;
   isDark: boolean;
-  spacingMin: number;
-  rate: number;
-  scheduledQty: number;
-  numberOfLoads: number;
-  loadQty: number;
+}
+
+const FixedYAxis: React.FC<FixedYAxisProps> = ({
+  width,
+  height,
+  yMax,
+  viewMode,
+  isDark,
+}) => {
+  const axisText = isDark ? '#9ca3af' : '#6b7280';
+  const gridColor = isDark ? '#374151' : '#e5e7eb';
+
+  // Plot area math matches the WebView's Recharts margins:
+  //   margin={{top:20, right:30, bottom:20, left:5}} with X-axis labels
+  //   adding ~20px below the plot.
+  const plotTop = CHART_PAD_TOP;
+  const plotBottom = height - CHART_PAD_BOTTOM;
+  const plotHeight = plotBottom - plotTop;
+
+  const yMaxSafe = Math.max(1, yMax);
+  const yFor = (v: number) => plotBottom - (v / yMaxSafe) * plotHeight;
+
+  // Pick 5 evenly spaced ticks for the CY view; 3 for loads.
+  const tickCount = viewMode === 'cy' ? 5 : 3;
+  const ticks: number[] = [];
+  for (let i = 0; i < tickCount; i++) {
+    ticks.push((yMaxSafe / (tickCount - 1)) * i);
+  }
+
+  const fmt = (n: number): string => {
+    if (n % 1 === 0) return String(Math.round(n));
+    return (Math.round(n * 10) / 10).toString();
+  };
+
+  return (
+    <View style={{ width, height }}>
+      <Svg width={width} height={height}>
+        {/* Unit label — vertical text on the left, matching the web's
+            `YAxis label={{value: "CY", angle: -90, position: "insideLeft"}}`. */}
+        <SvgText
+          x={12}
+          y={plotTop + plotHeight / 2}
+          fontSize={12}
+          fontWeight="600"
+          fill={axisText}
+          textAnchor="middle"
+          transform={`rotate(-90, 12, ${plotTop + plotHeight / 2})`}
+        >
+          {viewMode === 'cy' ? 'CY' : 'Loads'}
+        </SvgText>
+
+        {/* Tick labels — numeric, right-aligned to the column edge. */}
+        {ticks.map((v, i) => (
+          <React.Fragment key={`ytick-${i}`}>
+            <SvgText
+              x={width - 4}
+              y={yFor(v) + 4}
+              fontSize={11}
+              fill={axisText}
+              textAnchor="end"
+              fontWeight="500"
+            >
+              {fmt(v)}
+            </SvgText>
+            {/* A tiny right-edge gridline spur to align with the
+                CartesianGrid inside the WebView. */}
+            <SvgLine
+              x1={width - 2}
+              y1={yFor(v)}
+              x2={width}
+              y2={yFor(v)}
+              stroke={gridColor}
+              strokeWidth={1}
+            />
+          </React.Fragment>
+        ))}
+      </Svg>
+    </View>
+  );
+};
+
+// ===========================================================================
+// Pill — native info pill with icon + label + value.
+// ===========================================================================
+interface PillProps {
+  isDark: boolean;
+  icon: string;
+  iconColor: string;
+  bgColor: string;
+  label: string;
+  value: string;
+}
+
+const Pill: React.FC<PillProps> = ({
+  isDark,
+  icon,
+  iconColor,
+  bgColor,
+  label,
+  value,
+}) => {
+  const themeColors = isDark ? colors.dark : colors.light;
+  return (
+    <View style={[styles.pill, { backgroundColor: bgColor }]}>
+      <Icon name={icon} size={ms(13)} color={iconColor} />
+      <Text style={[styles.pillLabel, { color: iconColor }]}>{label}</Text>
+      <Text style={[styles.pillValue, { color: themeColors.text.primary }]}>
+        {value}
+      </Text>
+    </View>
+  );
+};
+
+// ===========================================================================
+// LegendItem — native legend swatch + label.
+// ===========================================================================
+interface LegendItemProps {
+  color: string;
+  label: string;
+  isDark: boolean;
+  striped?: boolean;
+}
+
+const LegendItem: React.FC<LegendItemProps> = ({
+  color,
+  label,
+  isDark,
+  striped,
+}) => {
+  const themeColors = isDark ? colors.dark : colors.light;
+  return (
+    <View style={styles.legendItem}>
+      <View
+        style={[
+          styles.legendSwatch,
+          {
+            backgroundColor: color,
+            borderColor: striped ? COLOR_CARRYOVER_STROKE : color,
+            opacity: striped ? 0.7 : 1,
+          },
+        ]}
+      />
+      <Text style={[styles.legendLabel, { color: themeColors.text.secondary }]}>
+        {label}
+      </Text>
+    </View>
+  );
+};
+
+// ===========================================================================
+// buildOdpHtml — simplified HTML template. Only renders the Recharts bar
+// plot. No card chrome, no header, no pills, no toggle, no legend — those
+// all live in RN now.
+//
+// Inputs:
+//   - buckets:    camelCase bucket rows (already computed by RN reducer)
+//   - yMax:       Y-axis ceiling (already computed by RN)
+//   - viewMode:   'cy' | 'loads'
+//   - isDark:     theme flag
+//   - width:      WebView body width (= zoomedChartWidth)
+//   - height:     WebView body height (= CHART_HEIGHT)
+// ===========================================================================
+interface BuildOdpHtmlArgs {
+  buckets: ChartBucket[];
+  yMax: number;
+  viewMode: ViewMode;
+  isDark: boolean;
+  width: number;
+  height: number;
 }
 
 function buildOdpHtml(args: BuildOdpHtmlArgs): string {
-  const {
-    raw,
-    isDark,
-    spacingMin,
-    rate,
-    scheduledQty,
-    numberOfLoads,
-    loadQty,
-  } = args;
+  const { buckets, yMax, viewMode, isDark, width, height } = args;
 
   const bg = isDark ? '#1f2937' : '#ffffff';
-  const cardBg = isDark ? '#1f2937' : '#ffffff';
-  const borderColor = isDark ? '#374151' : 'rgba(229,231,235,0.5)';
   const textPrimary = isDark ? '#f3f4f6' : '#111827';
   const textSecondary = isDark ? '#9ca3af' : '#6b7280';
   const gridColor = isDark ? '#374151' : '#e5e7eb';
   const axisText = isDark ? '#9ca3af' : '#6b7280';
-  const toggleBg = isDark ? '#374151' : '#f3f4f6';
-  const toggleActiveBg = isDark ? '#4b5563' : '#ffffff';
-  const toggleText = isDark ? '#9ca3af' : '#6b7280';
-  const toggleActiveText = isDark ? '#f9fafb' : '#111827';
+  const deliveredLabelFill = isDark ? '#e5e7eb' : '#1f2937';
+  const pouredLabelFill = isDark ? '#a3e635' : '#65a30d';
 
-  // Pre-serialize data as JSON, escaping any closing script tags so they
-  // can't break out of the <script> block.
-  const rawJson = JSON.stringify(raw).replace(/</g, '\\u003c');
-  const pillJson = JSON.stringify({
-    spacingMin,
-    rate,
-    scheduledQty,
-    numberOfLoads,
-    loadQty,
-  }).replace(/</g, '\\u003c');
+  const bucketsJson = JSON.stringify(buckets).replace(/</g, '\\u003c');
 
-  // Build the <script> block that inlines React + ReactDOM + PropTypes +
-  // Recharts from the bundled UMD source. Use string concatenation (not
-  // template literal interpolation) because the UMD source may contain
-  // backticks, `${}` sequences, or anything else that would be mis-parsed
-  // by a template literal. Each source is wrapped in a <script> tag and
-  // an IIFE-safe outer closure so earlier failures don't short-circuit
-  // later libraries.
   const vendorScripts =
     '<script>' + REACT_UMD + '</script>' +
     '<script>' + PROP_TYPES_UMD + '</script>' +
     '<script>' + REACT_DOM_UMD + '</script>' +
     '<script>' + RECHARTS_UMD + '</script>';
 
-  // NOTE: the reducer below is a line-for-line copy of the web's
-  // HourlyODPChart odpData useMemo (performance-charts.tsx:1504-1932),
-  // with only trivial syntax adjustments (`var` instead of `const/let`,
-  // plain object literals instead of `Map`). Do not "clean up" or
-  // "optimize" it — any divergence from the web reducer will cause the
-  // dreaded value mismatches the user has been chasing.
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=${width}, initial-scale=1, maximum-scale=1, user-scalable=no">
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{
+    width:${width}px;
+    height:${height}px;
     background:${bg};
     color:${textPrimary};
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     font-size:14px;
+    overflow:hidden;
     -webkit-user-select:none;
     user-select:none;
     -webkit-font-smoothing:antialiased;
   }
-  #root{padding:12px 16px}
-  .card{
-    background:${cardBg};
-    border:1px solid ${borderColor};
-    border-radius:12px;
-    padding:16px;
-    box-shadow:0 1px 2px rgba(0,0,0,0.05);
-  }
-  .header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
-  .header-left{flex:1;min-width:0}
-  .title{font-size:16px;font-weight:600;color:${textPrimary};margin-bottom:8px}
-  .pills{display:flex;flex-wrap:wrap;gap:6px}
-  .pill{
-    display:inline-flex;
-    align-items:center;
-    gap:4px;
-    padding:4px 10px;
-    border-radius:8px;
-    font-size:11px;
-    line-height:1;
-  }
-  .pill-spacing{background:${isDark ? '#172554' : '#eff6ff'};color:${isDark ? '#93c5fd' : '#2563eb'}}
-  .pill-rate{background:${isDark ? '#064e3b' : '#ecfdf5'};color:${isDark ? '#6ee7b7' : '#059669'}}
-  .pill-scheduled{background:${isDark ? '#3b0764' : '#faf5ff'};color:${isDark ? '#d8b4fe' : '#9333ea'}}
-  .pill-loads{background:${isDark ? '#7c2d12' : '#fff7ed'};color:${isDark ? '#fdba74' : '#ea580c'}}
-  .pill-loadsize{background:${isDark ? '#881337' : '#fff1f2'};color:${isDark ? '#fda4af' : '#e11d48'}}
-  .pill-label{font-weight:500}
-  .pill-value{font-weight:700}
-  .toggle{
-    display:inline-flex;
-    background:${toggleBg};
-    border-radius:6px;
-    padding:2px;
-    flex-shrink:0;
-  }
-  .toggle button{
-    padding:4px 10px;
-    font-size:10px;
-    font-weight:600;
-    border:none;
-    background:transparent;
-    color:${toggleText};
-    border-radius:4px;
-    cursor:pointer;
-  }
-  .toggle button.active{
-    background:${toggleActiveBg};
-    color:${toggleActiveText};
-    box-shadow:0 1px 2px rgba(0,0,0,0.1);
-  }
-  .chart-wrap{width:100%;height:280px;position:relative}
-  .legend{
-    display:flex;
-    flex-wrap:wrap;
-    justify-content:center;
-    gap:14px;
-    margin-top:10px;
-    font-size:11px;
-    color:${textSecondary};
-  }
-  .legend-item{display:inline-flex;align-items:center;gap:5px}
-  .legend-swatch{width:12px;height:12px;border-radius:2px;display:inline-block}
+  #root{width:${width}px;height:${height}px}
   .no-data{
     padding:40px 20px;
     text-align:center;
@@ -348,449 +868,106 @@ function buildOdpHtml(args: BuildOdpHtmlArgs): string {
     font-size:12px;
   }
 </style>
-<!-- Vendor libraries (React 18.3.1, Recharts 2.15.4) inlined below.
-     ZERO network dependency. Matches the web's exact library versions. -->
 ${vendorScripts}
 </head>
 <body>
-<div id="root"><div class="no-data">Loading chart…</div></div>
+<div id="root"></div>
 <script>
 (function(){
 'use strict';
 
-// Sanity check — the vendor libraries are INLINED in this HTML document,
-// so this should always succeed. If not, the bundled assets are corrupt
-// (e.g. Metro failed to read them) — surface the exact missing global.
 if (!window.React || !window.ReactDOM || !window.Recharts) {
   var missing = [];
   if (!window.React) missing.push('React');
   if (!window.ReactDOM) missing.push('ReactDOM');
   if (!window.Recharts) missing.push('Recharts');
   document.getElementById('root').innerHTML =
-    '<div class="card"><div class="no-data">Chart bundle incomplete (missing: ' + missing.join(', ') + '). Rebuild the app so Metro re-reads src/assets/odpVendor/*.ts.</div></div>';
+    '<div class="no-data">Chart bundle incomplete (missing: ' + missing.join(', ') + ').</div>';
   return;
 }
 
 var e = React.createElement;
 var R = window.Recharts;
 
-// ---- Injected data -------------------------------------------------------
-var RAW = ${rawJson};
-var PILL = ${pillJson};
+// ---- Injected chart inputs ----------------------------------------------
+var BUCKETS = ${bucketsJson};
+var Y_MAX = ${yMax};
+var VIEW_MODE = ${JSON.stringify(viewMode)};
+var WIDTH = ${width};
+var HEIGHT = ${height};
 
-// =========================================================================
-// REDUCER — verbatim port of web HourlyODPChart odpData
-// (performance-charts.tsx:1504-1932). Do not modify.
-// =========================================================================
-function getLoadQty(ticket) {
-  var p = (ticket.ticket_products || []).find(function(x){return x.is_mix === true;});
-  return (p && p.load_qty) || 0;
+// ---- fmtQty mirrors the web's fmtQty helper. -----------------------------
+function fmtQty(v){
+  if(!isFinite(v)) return '';
+  var r = Math.round(v*100)/100;
+  if(r % 1 === 0) return r.toLocaleString('en-US');
+  var one = Math.round(r*10)/10;
+  if(Math.abs(one - r) < 1e-9){
+    return r.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1});
+  }
+  return r.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
 
-function runReducer(productScheduleItems, tickets) {
-  var scheduleLoadQty = 0;
-  var orderedRatePerHour = 0;
-  var truckSpace = 0;
-  if (productScheduleItems && productScheduleItems.length) {
-    for (var i0 = 0; i0 < productScheduleItems.length; i0++) {
-      var psi = productScheduleItems[i0];
-      if (psi.is_mix && psi.schedules && psi.schedules.length) {
-        var sched = psi.schedules[0];
-        if (sched.delivery_rate_per_hour && sched.delivery_rate_per_hour > 0) {
-          orderedRatePerHour = sched.delivery_rate_per_hour;
-        }
-        if (sched.truck_space && sched.truck_space > 0) {
-          truckSpace = sched.truck_space;
-        }
-        if (sched.load_qty && sched.load_qty > 0) {
-          scheduleLoadQty = sched.load_qty;
-        }
-        if (sched.loads && sched.loads.length) {
-          for (var li = 0; li < sched.loads.length; li++) {
-            var L = sched.loads[li];
-            if (L.load_qty && L.load_qty > 0 && scheduleLoadQty <= 0) {
-              scheduleLoadQty = L.load_qty;
-              break;
-            }
-          }
-        }
-        break;
-      }
-    }
-  }
+// ---- Active series keys (CY vs Loads view). ------------------------------
+var orderedSolidKey   = VIEW_MODE === 'cy' ? 'orderedSolid'      : 'orderedCountSolid';
+var orderedStripedKey = VIEW_MODE === 'cy' ? 'orderedStriped'    : 'orderedCountStriped';
+var deliveredCarryInKey = VIEW_MODE === 'cy' ? 'deliveredCarryIn'   : 'deliveredCountCarryIn';
+var deliveredSolidKey   = VIEW_MODE === 'cy' ? 'deliveredSolid'     : 'deliveredCountSolid';
+var pouredKey           = VIEW_MODE === 'cy' ? 'poured'             : 'pouredCount';
 
-  var scheduledStartHour = null;
-  var scheduledStartMinute = 0;
-  if (productScheduleItems && productScheduleItems.length) {
-    for (var i1 = 0; i1 < productScheduleItems.length; i1++) {
-      var psi1 = productScheduleItems[i1];
-      if (psi1.is_mix && psi1.schedules && psi1.schedules.length) {
-        var startTimeStr = psi1.schedules[0].start_time;
-        if (startTimeStr) {
-          var cleaned = String(startTimeStr).trim().replace(/Z$|[+-]\\d{2}:\\d{2}$/, '');
-          var m = cleaned.match(/(\\d{2}):(\\d{2})/);
-          if (m) {
-            scheduledStartHour = parseInt(m[1], 10);
-            scheduledStartMinute = parseInt(m[2], 10);
-          }
-        }
-        break;
-      }
-    }
-  }
-
-  var startMinFromMidnight = scheduledStartHour !== null
-    ? scheduledStartHour * 60 + scheduledStartMinute
-    : 0;
-  var scheduledStartMinFromMidnight = startMinFromMidnight;
-
-  function formatTimeLabel(totalMin) {
-    var h = Math.floor(totalMin / 60);
-    var mn = totalMin % 60;
-    return h + ':' + (mn < 10 ? '0' + mn : mn);
-  }
-
-  function getBucketForData(minutes) {
-    return Math.max(0, Math.floor((minutes - startMinFromMidnight) / 60));
-  }
-
-  var expectedEndBucket = null;
-  if (productScheduleItems && productScheduleItems.length) {
-    for (var i2 = 0; i2 < productScheduleItems.length; i2++) {
-      var psi2 = productScheduleItems[i2];
-      if (psi2.is_mix && psi2.schedules && psi2.schedules.length) {
-        var s2 = psi2.schedules[0];
-        var nL = s2.number_of_loads || 0;
-        var tS = s2.truck_space || 0;
-        if (nL > 0 && tS > 0) {
-          expectedEndBucket = Math.ceil((nL * tS) / 60);
-        }
-        break;
-      }
-    }
-  }
-
-  function getMinutes(timeStr) {
-    if (!timeStr) return null;
-    var d = new Date(timeStr);
-    if (isNaN(d.getTime())) return null;
-    return d.getUTCHours() * 60 + d.getUTCMinutes();
-  }
-
-  var orderedCountMap = {};
-  var deliveredMap = {};
-  var deliveredCountMap = {};
-  var pouredMap = {};
-  var pouredCountMap = {};
-
-  for (var ti = 0; ti < tickets.length; ti++) {
-    var t = tickets[ti];
-    if (t.remove_reason_code && String(t.remove_reason_code).trim() !== '') continue;
-    var qty = getLoadQty(t);
-    if (qty <= 0 && scheduleLoadQty > 0) qty = scheduleLoadQty;
-    if (qty <= 0) continue;
-
-    var orderedMin = getMinutes(t.scheduled_on_job_time);
-    if (orderedMin !== null) {
-      var bo = getBucketForData(orderedMin);
-      orderedCountMap[bo] = (orderedCountMap[bo] || 0) + 1;
-    }
-    var deliveredMin = getMinutes(t.on_job_time);
-    if (deliveredMin !== null) {
-      var clampedD = Math.max(deliveredMin, scheduledStartMinFromMidnight);
-      var bd = getBucketForData(clampedD);
-      deliveredMap[bd] = (deliveredMap[bd] || 0) + qty;
-      deliveredCountMap[bd] = (deliveredCountMap[bd] || 0) + 1;
-    }
-    var pouredMin = getMinutes(t.wash_time || t.to_plant_time);
-    if (pouredMin !== null) {
-      var clampedP = Math.max(pouredMin, scheduledStartMinFromMidnight);
-      var bp = getBucketForData(clampedP);
-      pouredMap[bp] = (pouredMap[bp] || 0) + qty;
-      pouredCountMap[bp] = (pouredCountMap[bp] || 0) + 1;
-    }
-  }
-
-  var allBuckets = {};
-  for (var kd in deliveredMap) allBuckets[kd] = true;
-  for (var kp in pouredMap) allBuckets[kp] = true;
-  for (var ko in orderedCountMap) allBuckets[ko] = true;
-
-  var bucketKeys = Object.keys(allBuckets).map(Number);
-
-  if (bucketKeys.length === 0 && orderedRatePerHour > 0 && scheduledStartHour !== null) {
-    if (productScheduleItems && productScheduleItems.length) {
-      for (var i3 = 0; i3 < productScheduleItems.length; i3++) {
-        var psi3 = productScheduleItems[i3];
-        if (psi3.is_mix && psi3.schedules && psi3.schedules.length) {
-          var s3 = psi3.schedules[0];
-          var nL3 = s3.number_of_loads || 0;
-          var tS3 = s3.truck_space || 0;
-          if (nL3 > 0 && tS3 > 0) {
-            var durH = Math.ceil((nL3 * tS3) / 60);
-            for (var h = 0; h <= durH; h++) {
-              allBuckets[h] = true;
-              bucketKeys.push(h);
-            }
-          }
-          break;
-        }
-      }
-    }
-  }
-
-  if (bucketKeys.length === 0) return [];
-
-  bucketKeys.sort(function(a,b){return a-b;});
-  var minBucket = Math.min(0, bucketKeys[0]);
-  var maxBucket = bucketKeys[bucketKeys.length - 1];
-
-  var orderedRate = Math.round(orderedRatePerHour * 100) / 100;
-  var loadsPerHour = truckSpace > 0 ? Math.floor(60 / truckSpace) : 0;
-
-  var totalOrderedQty = 0;
-  var totalLoads = 0;
-  if (productScheduleItems && productScheduleItems.length) {
-    for (var i4 = 0; i4 < productScheduleItems.length; i4++) {
-      var psi4 = productScheduleItems[i4];
-      if (psi4.is_mix && psi4.schedules && psi4.schedules.length) {
-        var s4 = psi4.schedules[0];
-        if (s4.schedule_qty && s4.schedule_qty > 0) totalOrderedQty = s4.schedule_qty;
-        if (s4.number_of_loads && s4.number_of_loads > 0) totalLoads = s4.number_of_loads;
-        break;
-      }
-    }
-  }
-  if (totalOrderedQty === 0 && tickets.length > 0) {
-    for (var ti2 = 0; ti2 < tickets.length; ti2++) {
-      var t2 = tickets[ti2];
-      if (t2.remove_reason_code && String(t2.remove_reason_code).trim() !== '') continue;
-      var q2 = getLoadQty(t2);
-      if (q2 <= 0 && scheduleLoadQty > 0) q2 = scheduleLoadQty;
-      if (q2 > 0) totalOrderedQty += q2;
-      totalLoads++;
-    }
-  }
-
-  var remainingOrdered = totalOrderedQty;
-  var remainingLoads = totalLoads;
-  var scheduledStartBucket = scheduledStartHour !== null
-    ? Math.floor((scheduledStartMinFromMidnight - startMinFromMidnight) / 60)
-    : 0;
-
-  var rawBuckets = [];
-  for (var b = minBucket; b <= maxBucket; b++) {
-    var isScheduledHour = b >= scheduledStartBucket;
-    var orderedForHour = (orderedRate > 0 && isScheduledHour)
-      ? Math.min(orderedRate, Math.max(0, remainingOrdered))
-      : 0;
-    if (isScheduledHour) remainingOrdered -= orderedForHour;
-    var orderedLoadsForHour = (loadsPerHour > 0 && isScheduledHour)
-      ? Math.min(loadsPerHour, Math.max(0, remainingLoads))
-      : 0;
-    if (isScheduledHour) remainingLoads -= orderedLoadsForHour;
-
-    rawBuckets.push({
-      h: b,
-      label: formatTimeLabel(startMinFromMidnight + b * 60),
-      ordered: Math.round(orderedForHour * 100) / 100,
-      delivered: Math.round((deliveredMap[b] || 0) * 100) / 100,
-      poured: Math.round((pouredMap[b] || 0) * 100) / 100,
-      orderedCount: orderedLoadsForHour,
-      deliveredCount: deliveredCountMap[b] || 0,
-      pouredCount: pouredCountMap[b] || 0,
-      isOvertime: expectedEndBucket !== null && b >= expectedEndBucket
-    });
-  }
-
-  var lastOrderedIndex = -1;
-  for (var li2 = rawBuckets.length - 1; li2 >= 0; li2--) {
-    if (rawBuckets[li2].ordered > 0) {
-      lastOrderedIndex = li2;
-      break;
-    }
-  }
-
-  var carryOver = 0;
-  var result = [];
-  for (var ri = 0; ri < rawBuckets.length; ri++) {
-    var rb = rawBuckets[ri];
-    var carryIn = carryOver;
-    var deliveredSolid = rb.delivered;
-    var deliveredCarryIn = 0;
-    var deliveredCarryOut = 0;
-
-    if (rb.poured > rb.delivered) {
-      var pouredFromBacklog = rb.poured - rb.delivered;
-      deliveredCarryIn = Math.min(carryIn, pouredFromBacklog);
-      carryOver = Math.max(0, carryIn - pouredFromBacklog);
-    } else {
-      carryOver = carryOver + (rb.delivered - rb.poured);
-    }
-
-    var orderedSolid = rb.ordered;
-    var orderedStriped = 0;
-    var orderedCountSolid = rb.orderedCount;
-    var orderedCountStriped = 0;
-    if (ri === lastOrderedIndex && rb.ordered > 0 && rb.ordered < orderedRate) {
-      orderedSolid = rb.ordered;
-      orderedStriped = orderedRate - rb.ordered;
-      orderedCountSolid = rb.orderedCount;
-      orderedCountStriped = loadsPerHour - rb.orderedCount;
-    }
-
-    result.push({
-      h: rb.h,
-      label: rb.label,
-      ordered: rb.ordered,
-      delivered: rb.delivered,
-      poured: rb.poured,
-      orderedCount: rb.orderedCount,
-      deliveredCount: rb.deliveredCount,
-      pouredCount: rb.pouredCount,
-      isOvertime: rb.isOvertime,
-      orderedSolid: Math.round(orderedSolid * 100) / 100,
-      orderedStriped: Math.round(orderedStriped * 100) / 100,
-      deliveredCarryIn: Math.round(deliveredCarryIn * 100) / 100,
-      deliveredSolid: Math.round(deliveredSolid * 100) / 100,
-      deliveredCarryOut: Math.round(deliveredCarryOut * 100) / 100,
-      orderedCountSolid: orderedCountSolid,
-      orderedCountStriped: orderedCountStriped,
-      deliveredCountCarryIn: 0,
-      deliveredCountSolid: rb.deliveredCount,
-      deliveredCountCarryOut: 0
-    });
-  }
-
-  var filtered = [];
-  for (var fi = 0; fi < result.length; fi++) {
-    var rb2 = result[fi];
-    if (rb2.ordered > 0 || rb2.delivered > 0 || rb2.poured > 0) {
-      filtered.push(rb2);
-    }
-  }
-  return filtered;
-}
-
-// =========================================================================
-// Y-axis domain — verbatim port of web yAxisDomain useMemo
-// (performance-charts.tsx:1949-1997).
-// =========================================================================
-function computeYMax(odpData, productScheduleItems, viewMode) {
-  if (viewMode === 'loads') {
-    var maxLoad = 0;
-    for (var i = 0; i < odpData.length; i++) {
-      var d = odpData[i];
-      var v = Math.max(
-        d.orderedCountSolid + d.orderedCountStriped,
-        d.deliveredCountSolid,
-        d.pouredCount
-      );
-      if (v > maxLoad) maxLoad = v;
-    }
-    return Math.max(2, Math.ceil(maxLoad * 1.2));
-  }
-  var orderedRate = 32;
-  if (productScheduleItems && productScheduleItems.length) {
-    for (var j = 0; j < productScheduleItems.length; j++) {
-      var psi = productScheduleItems[j];
-      if (psi.is_mix && psi.schedules && psi.schedules.length) {
-        var r = psi.schedules[0].delivery_rate_per_hour;
-        if (r && r > 0) orderedRate = r;
-        break;
-      }
-    }
-  }
-  var baseMax = Math.ceil(orderedRate * 1.4);
-  var maxDataValue = 0;
-  for (var k = 0; k < odpData.length; k++) {
-    var dd = odpData[k];
-    var v1 = dd.deliveredCarryIn + dd.delivered;
-    var v2 = dd.poured;
-    var v3 = dd.ordered;
-    if (v1 > maxDataValue) maxDataValue = v1;
-    if (v2 > maxDataValue) maxDataValue = v2;
-    if (v3 > maxDataValue) maxDataValue = v3;
-  }
-  var targetMax = Math.max(baseMax, Math.ceil(maxDataValue * 1.1));
-  if (targetMax <= 25) return 25;
-  if (targetMax <= 50) return 50;
-  if (targetMax <= 75) return 75;
-  if (targetMax <= 100) return 100;
-  if (targetMax <= 125) return 125;
-  if (targetMax <= 150) return 150;
-  if (targetMax <= 175) return 175;
-  if (targetMax <= 200) return 200;
-  return Math.ceil(targetMax / 50) * 50;
-}
-
-// =========================================================================
-// Formatting helpers — mirror web fmtQty
-// =========================================================================
-function fmtQty(v) {
-  if (!isFinite(v)) return '';
-  var r = Math.round(v * 100) / 100;
-  if (r % 1 === 0) return r.toLocaleString('en-US');
-  var one = Math.round(r * 10) / 10;
-  if (Math.abs(one - r) < 1e-9) {
-    return r.toLocaleString('en-US', {minimumFractionDigits:1, maximumFractionDigits:1});
-  }
-  return r.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-}
-
-// =========================================================================
-// Custom tooltip — mirrors web ODPTooltip
-// =========================================================================
-function ODPTooltip(props) {
-  if (!props.active || !props.payload || !props.payload.length) return null;
+// ---- ODPTooltip — mirrors the web's ODPTooltip
+//      (performance-charts.tsx:1362-1475).
+function ODPTooltip(props){
+  if(!props.active || !props.payload || !props.payload.length) return null;
   var bucket = props.payload[0].payload;
-  var viewMode = props.viewMode || 'cy';
+  if(!bucket) return null;
   var rows = [];
-  var deliveredTotal = bucket.deliveredCarryIn + bucket.delivered;
 
-  function valueText(cy, count) {
+  function valueText(cy, count){
     var loadWord = count === 1 ? 'load' : 'loads';
-    if (viewMode === 'loads') {
+    if(VIEW_MODE === 'loads'){
       return count + ' ' + loadWord + ' · ' + fmtQty(cy) + ' CY';
     }
     return fmtQty(cy) + ' CY' + (count > 0 ? ' (' + count + ' ' + loadWord + ')' : '');
   }
 
-  if (bucket.ordered > 0) {
+  var deliveredTotal = bucket.deliveredCarryIn + bucket.delivered;
+
+  if(bucket.ordered > 0){
     rows.push({label:'Ordered', color:'#3b82f6', text:valueText(bucket.ordered, bucket.orderedCount), carryIn:0});
   }
-  if (deliveredTotal > 0) {
-    rows.push({label:'Delivered', color:'#1f2937', text:valueText(deliveredTotal, bucket.deliveredCount), carryIn: viewMode === 'cy' ? bucket.deliveredCarryIn : 0});
+  if(deliveredTotal > 0){
+    rows.push({label:'Delivered', color:'#1f2937', text:valueText(deliveredTotal, bucket.deliveredCount), carryIn: VIEW_MODE === 'cy' ? bucket.deliveredCarryIn : 0});
   }
-  if (bucket.poured > 0) {
+  if(bucket.poured > 0){
     rows.push({label:'Poured', color:'#84cc16', text:valueText(bucket.poured, bucket.pouredCount), carryIn:0});
   }
-  if (!rows.length) return null;
+  if(!rows.length) return null;
 
-  return e('div', {
-    style: {
-      background: '${cardBg}',
-      border: '1px solid ${borderColor}',
-      borderRadius: 6,
-      padding: 10,
-      fontSize: 12,
-      minWidth: 200,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-      color: '${textPrimary}'
+  return e('div',{
+    style:{
+      background:'${bg}',
+      border:'1px solid ${gridColor}',
+      borderRadius:6,
+      padding:10,
+      fontSize:12,
+      minWidth:200,
+      boxShadow:'0 4px 12px rgba(0,0,0,0.15)',
+      color:'${textPrimary}'
     }
   },
-    e('div', {style:{fontWeight:700, fontSize:13, marginBottom:6, paddingBottom:4, borderBottom:'1px solid ${borderColor}'}}, props.label),
-    rows.map(function(r, idx) {
-      return e('div', {key:idx},
-        e('div', {style:{display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'2px 0'}},
-          e('div', {style:{display:'flex', alignItems:'center', gap:8}},
-            e('span', {style:{width:12, height:12, borderRadius:2, background:r.color, display:'inline-block'}}),
-            e('span', {style:{color:'${textSecondary}'}}, r.label)
+    e('div',{style:{fontWeight:700, fontSize:13, marginBottom:6, paddingBottom:4, borderBottom:'1px solid ${gridColor}'}}, props.label),
+    rows.map(function(r,idx){
+      return e('div',{key:idx},
+        e('div',{style:{display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'2px 0'}},
+          e('div',{style:{display:'flex', alignItems:'center', gap:8}},
+            e('span',{style:{width:12, height:12, borderRadius:2, background:r.color, display:'inline-block'}}),
+            e('span',{style:{color:'${textSecondary}'}}, r.label)
           ),
-          e('span', {style:{fontWeight:600, color:'${textPrimary}'}}, r.text)
+          e('span',{style:{fontWeight:600, color:'${textPrimary}'}}, r.text)
         ),
         r.carryIn > 0
-          ? e('div', {style:{marginLeft:20, fontSize:10, color:'${textSecondary}', paddingBottom:2}},
+          ? e('div',{style:{marginLeft:20, fontSize:10, color:'${textSecondary}', paddingBottom:2}},
               '↓ ' + fmtQty(r.carryIn) + ' CY from backlog (poured > delivered)')
           : null
       );
@@ -798,389 +975,260 @@ function ODPTooltip(props) {
   );
 }
 
-// =========================================================================
-// Main chart card — mirrors web HourlyODPChart return JSX
-// =========================================================================
-function HourlyODPChart() {
-  var modeState = React.useState('cy');
-  var viewMode = modeState[0];
-  var setViewMode = modeState[1];
+// ---- Customized X-axis boundary labels
+//      (performance-charts.tsx:2099-2145).
+function CustomizedXAxis(props){
+  var xAxisMap = props.xAxisMap;
+  var yAxisMap = props.yAxisMap;
+  if(!xAxisMap || !yAxisMap) return e('g');
+  var xAxis = xAxisMap[Object.keys(xAxisMap)[0]];
+  var yAxis = yAxisMap[Object.keys(yAxisMap)[0]];
+  if(!xAxis || !xAxis.scale || !yAxis) return e('g');
+  var bandSize = xAxis.bandSize || 0;
+  var axisY = yAxis.y + yAxis.height + 14;
 
-  var odpData = React.useMemo(function(){
-    return runReducer(RAW.productScheduleItems || [], RAW.tickets || []);
-  }, []);
-
-  // Match web: hide entire card if no data.
-  if (!odpData.length) {
-    return e('div', {className:'card'},
-      e('div', {className:'no-data'}, 'No data yet for this order.')
-    );
-  }
-
-  var yMax = computeYMax(odpData, RAW.productScheduleItems || [], viewMode);
-
-  var orderedSolidKey = viewMode === 'cy' ? 'orderedSolid' : 'orderedCountSolid';
-  var orderedStripedKey = viewMode === 'cy' ? 'orderedStriped' : 'orderedCountStriped';
-  var deliveredCarryInKey = viewMode === 'cy' ? 'deliveredCarryIn' : 'deliveredCountCarryIn';
-  var deliveredSolidKey = viewMode === 'cy' ? 'deliveredSolid' : 'deliveredCountSolid';
-  var pouredKey = viewMode === 'cy' ? 'poured' : 'pouredCount';
-  var unitLabel = viewMode === 'cy' ? 'CY' : 'Loads';
-
-  // Header
-  var headerLeft = e('div', {className:'header-left'},
-    e('div', {className:'title'}, 'Ordered / Delivered / Poured'),
-    e('div', {className:'pills'},
-      PILL.spacingMin > 0 ? e('span', {className:'pill pill-spacing'},
-        e('span', {className:'pill-label'}, 'Spacing'),
-        e('span', {className:'pill-value'}, PILL.spacingMin + ' min')
-      ) : null,
-      PILL.rate > 0 ? e('span', {className:'pill pill-rate'},
-        e('span', {className:'pill-label'}, 'Rate'),
-        e('span', {className:'pill-value'}, PILL.rate.toFixed(2) + ' CY/HR')
-      ) : null,
-      PILL.scheduledQty > 0 ? e('span', {className:'pill pill-scheduled'},
-        e('span', {className:'pill-label'}, 'Scheduled'),
-        e('span', {className:'pill-value'}, PILL.scheduledQty.toFixed(2) + ' CY')
-      ) : null,
-      PILL.numberOfLoads > 0 ? e('span', {className:'pill pill-loads'},
-        e('span', {className:'pill-label'}, 'Loads'),
-        e('span', {className:'pill-value'}, String(PILL.numberOfLoads))
-      ) : null,
-      PILL.loadQty > 0 ? e('span', {className:'pill pill-loadsize'},
-        e('span', {className:'pill-label'}, 'Load Size'),
-        e('span', {className:'pill-value'}, PILL.loadQty.toFixed(2) + ' CY')
-      ) : null
-    )
-  );
-
-  var toggle = e('div', {className:'toggle'},
-    e('button', {className: viewMode === 'cy' ? 'active' : '', onClick: function(){setViewMode('cy');}}, 'CY'),
-    e('button', {className: viewMode === 'loads' ? 'active' : '', onClick: function(){setViewMode('loads');}}, 'Loads')
-  );
-
-  // Stripe pattern defs (matches performance-charts.tsx:2163-2180)
-  var stripeDefs = e('defs', null,
-    e('pattern', {id:'odp-stripe-ordered', patternUnits:'userSpaceOnUse', width:10, height:10},
-      e('rect', {width:10, height:10, fill:'#3b82f6', fillOpacity:0.25}),
-      e('path', {d:'M-1,1 l2,-2 M0,10 l10,-10 M9,11 l2,-2', stroke:'#3b82f6', strokeWidth:3, strokeOpacity:0.6})
-    ),
-    e('pattern', {id:'odp-carryover-delivered', patternUnits:'userSpaceOnUse', width:10, height:10},
-      e('rect', {width:10, height:10, fill:'#d1d5db', fillOpacity:0.5}),
-      e('path', {d:'M-1,1 l2,-2 M0,10 l10,-10 M9,11 l2,-2', stroke:'#6b7280', strokeWidth:3, strokeOpacity:0.7})
-    )
-  );
-
-  var hasCarryover = viewMode === 'cy' && odpData.some(function(d){return d.deliveredCarryIn > 0;});
-
-  // Helper: make an SVG <path> for a rounded-top rect. Matches web
-  // performance-charts.tsx:2215,2256,2307 exactly.
-  function roundedTopPath(x, y, width, height, r) {
-    return 'M' + x + ',' + (y + r) +
-      ' Q' + x + ',' + y + ' ' + (x + r) + ',' + y +
-      ' L' + (x + width - r) + ',' + y +
-      ' Q' + (x + width) + ',' + y + ' ' + (x + width) + ',' + (y + r) +
-      ' L' + (x + width) + ',' + (y + height) +
-      ' L' + x + ',' + (y + height) + ' Z';
-  }
-
-  // Custom X-axis boundary labels — exact port of web's <Customized/>
-  // component (performance-charts.tsx:2099-2145). Draws hour labels at
-  // band EDGES (not centers) with N+1 labels for N buckets.
-  function CustomizedXAxis(props) {
-    var xAxisMap = props.xAxisMap;
-    var yAxisMap = props.yAxisMap;
-    if (!xAxisMap || !yAxisMap) return e('g');
-    var xAxis = xAxisMap[Object.keys(xAxisMap)[0]];
-    var yAxis = yAxisMap[Object.keys(yAxisMap)[0]];
-    if (!xAxis || !xAxis.scale || !yAxis) return e('g');
-    var bandSize = xAxis.bandSize || 0;
-    var axisY = yAxis.y + yAxis.height + 14;
-
-    var children = [];
-    for (var i = 0; i < odpData.length; i++) {
-      (function(i){
-        var bucket = odpData[i];
-        var bucketX = xAxis.scale(bucket.label);
-        if (bucketX === undefined) return;
-        var leftEdge = bucketX;
-        var groupKids = [
-          e('text', {
-            key: 't' + i,
-            x: leftEdge,
-            y: axisY,
-            textAnchor: 'middle',
-            fontSize: 11,
-            fill: '${axisText}',
-            fontWeight: 500
-          }, bucket.label),
-          e('line', {
-            key: 'l' + i,
-            x1: leftEdge,
-            y1: yAxis.y + yAxis.height,
-            x2: leftEdge,
-            y2: yAxis.y + yAxis.height + 4,
-            stroke: '${gridColor}',
-            strokeWidth: 1
-          })
-        ];
-        if (i === odpData.length - 1) {
-          var parts = bucket.label.split(':');
-          var totalMin = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0) + 60;
-          var nextLabel = (Math.floor(totalMin / 60) % 24) + ':' + String(totalMin % 60).padStart(2, '0');
-          groupKids.push(
-            e('text', {
-              key: 'nt',
-              x: leftEdge + bandSize,
-              y: axisY,
-              textAnchor: 'middle',
-              fontSize: 11,
-              fill: '${axisText}',
-              fontWeight: 500
-            }, nextLabel)
-          );
-          groupKids.push(
-            e('line', {
-              key: 'nl',
-              x1: leftEdge + bandSize,
-              y1: yAxis.y + yAxis.height,
-              x2: leftEdge + bandSize,
-              y2: yAxis.y + yAxis.height + 4,
-              stroke: '${gridColor}',
-              strokeWidth: 1
-            })
-          );
-        }
-        children.push(e('g', {key: 'bnd-' + i}, groupKids));
-      })(i);
-    }
-    return e('g', null, children);
-  }
-
-  // --- CUSTOM BAR SHAPES (byte-for-byte port of web shape functions) ---
-  // Performance-charts.tsx:2206-2224 Ordered Solid: rounded top only if
-  // orderedStriped === 0 (no segment above).
-  function OrderedSolidShape(props) {
-    var x = props.x, y = props.y, width = props.width, height = props.height;
-    var payload = props.payload;
-    if (!height || height <= 0) return e('g');
-    var isTop = !payload || payload.orderedStriped <= 0;
-    if (isTop) {
-      return e('path', {d: roundedTopPath(x, y, width, height, 3), fill: '#3b82f6'});
-    }
-    return e('rect', {x:x, y:y, width:width, height:height, fill:'#3b82f6'});
-  }
-
-  // Performance-charts.tsx:2249-2260 — striped ordered always topmost.
-  function OrderedStripedShape(props) {
-    var x = props.x, y = props.y, width = props.width, height = props.height;
-    if (!height || height <= 0) return e('g');
-    return e('path', {d: roundedTopPath(x, y, width, height, 3), fill: 'url(#odp-stripe-ordered)'});
-  }
-
-  // Performance-charts.tsx:2269-2276 — delivered carry-in rect with border.
-  function DeliveredCarryInShape(props) {
-    var x = props.x, y = props.y, width = props.width, height = props.height;
-    if (!height || height <= 0) return e('g');
-    return e('rect', {
-      x: x, y: y, width: width, height: height,
-      fill: 'url(#odp-carryover-delivered)',
-      stroke: '#1f2937',
-      strokeWidth: 0.5
-    });
-  }
-
-  // Performance-charts.tsx:2301-2311 — delivered solid always top of stack.
-  function DeliveredSolidShape(props) {
-    var x = props.x, y = props.y, width = props.width, height = props.height;
-    if (!height || height <= 0) return e('g');
-    return e('path', {d: roundedTopPath(x, y, width, height, 3), fill: '#1f2937'});
-  }
-
-  // --- CUSTOM LABEL CONTENT FUNCTIONS (byte-for-byte port) ---
-  // Web 2189-2204: ordered solid label — only when orderedStriped is 0.
-  function OrderedSolidLabel(props) {
-    var x = props.x, y = props.y, width = props.width, index = props.index;
-    var entry = odpData[index];
-    if (!entry || entry.orderedStriped > 0) return null;
-    var total = viewMode === 'cy' ? entry.ordered : entry.orderedCount;
-    if (total <= 0) return null;
-    return e('text', {
-      x: x + width / 2,
-      y: y - 5,
-      textAnchor: 'middle',
-      fontSize: 11,
-      fill: '#3b82f6',
-      fontWeight: 600
-    }, viewMode === 'cy' ? fmtQty(total) : String(total));
-  }
-
-  // Web 2231-2248: ordered striped label — shows solid+striped total.
-  function OrderedStripedLabel(props) {
-    var x = props.x, y = props.y, width = props.width, index = props.index;
-    var entry = odpData[index];
-    if (!entry || entry.orderedStriped <= 0) return null;
-    var total = viewMode === 'cy'
-      ? (entry.orderedSolid + entry.orderedStriped)
-      : (entry.orderedCountSolid + entry.orderedCountStriped);
-    if (total <= 0) return null;
-    return e('text', {
-      x: x + width / 2,
-      y: y - 5,
-      textAnchor: 'middle',
-      fontSize: 11,
-      fill: '#3b82f6',
-      fontWeight: 600
-    }, viewMode === 'cy' ? fmtQty(total) : String(total));
-  }
-
-  // Web 2284-2299: delivered label — sum of carryIn + solid.
-  function DeliveredLabel(props) {
-    var x = props.x, y = props.y, width = props.width, index = props.index;
-    var entry = odpData[index];
-    if (!entry) return null;
-    var total = viewMode === 'cy'
-      ? (entry.deliveredCarryIn + entry.delivered)
-      : entry.deliveredCount;
-    if (total <= 0) return null;
-    return e('text', {
-      x: x + width / 2,
-      y: y - 5,
-      textAnchor: 'middle',
-      fontSize: 11,
-      fill: '#1f2937',
-      fontWeight: 600
-    }, viewMode === 'cy' ? fmtQty(total) : String(total));
-  }
-
-  var chart = e('div', {className:'chart-wrap'},
-    e(R.ResponsiveContainer, {width:'100%', height:'100%'},
-      e(R.BarChart, {
-        data: odpData,
-        margin: {top:20, right:30, bottom:20, left:5},
-        barGap: 10,
-        barCategoryGap: '35%'
-      },
-        stripeDefs,
-        e(R.CartesianGrid, {strokeDasharray:'3 3', vertical:false, stroke:'#e5e7eb'}),
-        // Hide default centered X-axis labels — we draw boundary labels via Customized
-        e(R.XAxis, {
-          dataKey: 'label',
-          tick: false,
-          tickLine: false,
-          axisLine: {stroke: '#e5e7eb'}
-        }),
-        // Custom X-axis boundary labels at band edges
-        e(R.Customized, { component: CustomizedXAxis }),
-        e(R.YAxis, {
-          tick: {fontSize:11, fill:'#6b7280'},
-          tickLine: false,
-          axisLine: false,
-          allowDecimals: false,
-          domain: [0, yMax],
-          label: {
-            value: unitLabel,
-            angle: -90,
-            position: 'insideLeft',
-            offset: 10,
-            style: {fontSize:13, fill:'#6b7280', fontWeight:600}
-          }
-        }),
-        e(R.Tooltip, {
-          content: function(p){ return e(ODPTooltip, Object.assign({}, p, {viewMode:viewMode})); },
-          cursor: {fill: '#f3f4f6', fillOpacity: 0.5}
-        }),
-        // Ordered: solid segment with custom shape + conditional label
-        e(R.Bar, {
-          dataKey: orderedSolidKey,
-          name: 'Ordered Solid',
-          stackId: 'ordered',
-          fill: '#3b82f6',
-          isAnimationActive: false,
-          shape: OrderedSolidShape,
-          label: {content: OrderedSolidLabel}
-        }),
-        // Ordered: striped padding (last bucket)
-        e(R.Bar, {
-          dataKey: orderedStripedKey,
-          name: 'Ordered Striped',
-          stackId: 'ordered',
-          fill: 'url(#odp-stripe-ordered)',
-          isAnimationActive: false,
-          shape: OrderedStripedShape,
-          label: {content: OrderedStripedLabel}
-        }),
-        // Delivered: carry-in striped segment (bottom)
-        e(R.Bar, {
-          dataKey: deliveredCarryInKey,
-          name: 'Delivered CarryIn',
-          stackId: 'delivered',
-          fill: 'url(#odp-carryover-delivered)',
-          isAnimationActive: false,
-          shape: DeliveredCarryInShape
-        }),
-        // Delivered: solid segment (top of stack)
-        e(R.Bar, {
-          dataKey: deliveredSolidKey,
-          name: 'Delivered',
-          stackId: 'delivered',
-          fill: '#1f2937',
-          isAnimationActive: false,
-          shape: DeliveredSolidShape,
-          label: {content: DeliveredLabel}
-        }),
-        // Poured: simple solid bar (no striping)
-        e(R.Bar, {
-          dataKey: pouredKey,
-          name: 'Poured',
-          fill: '#84cc16',
-          radius: [3,3,0,0],
-          isAnimationActive: false,
-          label: {
-            position: 'top',
-            fontSize: 11,
-            fill: '#65a30d',
-            fontWeight: 600,
-            formatter: function(v){
-              if (!(v > 0)) return '';
-              return viewMode === 'cy' ? fmtQty(v) : String(v);
-            }
-          }
+  var children = [];
+  for(var i = 0; i < BUCKETS.length; i++){
+    (function(i){
+      var bucket = BUCKETS[i];
+      var bucketX = xAxis.scale(bucket.label);
+      if(bucketX === undefined) return;
+      var kids = [
+        e('text',{
+          key:'t'+i,
+          x:bucketX,
+          y:axisY,
+          textAnchor:'middle',
+          fontSize:11,
+          fill:'${axisText}',
+          fontWeight:500
+        }, bucket.label),
+        e('line',{
+          key:'l'+i,
+          x1:bucketX,
+          y1:yAxis.y + yAxis.height,
+          x2:bucketX,
+          y2:yAxis.y + yAxis.height + 4,
+          stroke:'${gridColor}',
+          strokeWidth:1
         })
-      )
+      ];
+      if(i === BUCKETS.length - 1){
+        var parts = bucket.label.split(':');
+        var totalMin = (parseInt(parts[0],10) || 0) * 60 + (parseInt(parts[1],10) || 0) + 60;
+        var nextLabel = (Math.floor(totalMin/60) % 24) + ':' + String(totalMin % 60).padStart(2,'0');
+        kids.push(
+          e('text',{
+            key:'nt',
+            x:bucketX + bandSize,
+            y:axisY,
+            textAnchor:'middle',
+            fontSize:11,
+            fill:'${axisText}',
+            fontWeight:500
+          }, nextLabel)
+        );
+        kids.push(
+          e('line',{
+            key:'nl',
+            x1:bucketX + bandSize,
+            y1:yAxis.y + yAxis.height,
+            x2:bucketX + bandSize,
+            y2:yAxis.y + yAxis.height + 4,
+            stroke:'${gridColor}',
+            strokeWidth:1
+          })
+        );
+      }
+      children.push(e('g',{key:'b-'+i}, kids));
+    })(i);
+  }
+  return e('g', null, children);
+}
+
+// ---- Rounded-top rect helper (matches web custom shape paths). ----------
+function roundedTopPath(x, y, w, h, r){
+  return 'M' + x + ',' + (y + r) +
+    ' Q' + x + ',' + y + ' ' + (x + r) + ',' + y +
+    ' L' + (x + w - r) + ',' + y +
+    ' Q' + (x + w) + ',' + y + ' ' + (x + w) + ',' + (y + r) +
+    ' L' + (x + w) + ',' + (y + h) +
+    ' L' + x + ',' + (y + h) + ' Z';
+}
+
+// ---- Custom bar shapes (byte-for-byte ports). ---------------------------
+function OrderedSolidShape(props){
+  var x = props.x, y = props.y, w = props.width, h = props.height, payload = props.payload;
+  if(!h || h <= 0) return e('g');
+  var isTop = !payload || payload.orderedStriped <= 0;
+  if(isTop) return e('path',{d:roundedTopPath(x,y,w,h,3), fill:'#3b82f6'});
+  return e('rect',{x:x, y:y, width:w, height:h, fill:'#3b82f6'});
+}
+function OrderedStripedShape(props){
+  var x = props.x, y = props.y, w = props.width, h = props.height;
+  if(!h || h <= 0) return e('g');
+  return e('path',{d:roundedTopPath(x,y,w,h,3), fill:'url(#odp-stripe-ordered)'});
+}
+function DeliveredCarryInShape(props){
+  var x = props.x, y = props.y, w = props.width, h = props.height;
+  if(!h || h <= 0) return e('g');
+  return e('rect',{x:x, y:y, width:w, height:h, fill:'url(#odp-carryover-delivered)', stroke:'#1f2937', strokeWidth:0.5});
+}
+function DeliveredSolidShape(props){
+  var x = props.x, y = props.y, w = props.width, h = props.height;
+  if(!h || h <= 0) return e('g');
+  return e('path',{d:roundedTopPath(x,y,w,h,3), fill:'#1f2937'});
+}
+
+// ---- Custom label content functions. ------------------------------------
+function OrderedSolidLabel(props){
+  var x = props.x, y = props.y, w = props.width, index = props.index;
+  var entry = BUCKETS[index];
+  if(!entry || entry.orderedStriped > 0) return null;
+  var total = VIEW_MODE === 'cy' ? entry.ordered : entry.orderedCount;
+  if(total <= 0) return null;
+  return e('text',{
+    x:x + w/2, y:y - 5, textAnchor:'middle',
+    fontSize:11, fill:'#3b82f6', fontWeight:600
+  }, VIEW_MODE === 'cy' ? fmtQty(total) : String(total));
+}
+function OrderedStripedLabel(props){
+  var x = props.x, y = props.y, w = props.width, index = props.index;
+  var entry = BUCKETS[index];
+  if(!entry || entry.orderedStriped <= 0) return null;
+  var total = VIEW_MODE === 'cy'
+    ? (entry.orderedSolid + entry.orderedStriped)
+    : (entry.orderedCountSolid + entry.orderedCountStriped);
+  if(total <= 0) return null;
+  return e('text',{
+    x:x + w/2, y:y - 5, textAnchor:'middle',
+    fontSize:11, fill:'#3b82f6', fontWeight:600
+  }, VIEW_MODE === 'cy' ? fmtQty(total) : String(total));
+}
+function DeliveredLabel(props){
+  var x = props.x, y = props.y, w = props.width, index = props.index;
+  var entry = BUCKETS[index];
+  if(!entry) return null;
+  var total = VIEW_MODE === 'cy'
+    ? (entry.deliveredCarryIn + entry.delivered)
+    : entry.deliveredCount;
+  if(total <= 0) return null;
+  return e('text',{
+    x:x + w/2, y:y - 5, textAnchor:'middle',
+    fontSize:11, fill:'${deliveredLabelFill}', fontWeight:600
+  }, VIEW_MODE === 'cy' ? fmtQty(total) : String(total));
+}
+
+// ---- Main chart render. -------------------------------------------------
+function ChartBody(){
+  if(!BUCKETS.length){
+    return e('div',{className:'no-data'}, 'No data yet for this order.');
+  }
+
+  var stripeDefs = e('defs', null,
+    e('pattern',{id:'odp-stripe-ordered', patternUnits:'userSpaceOnUse', width:10, height:10},
+      e('rect',{width:10, height:10, fill:'#3b82f6', fillOpacity:0.25}),
+      e('path',{d:'M-1,1 l2,-2 M0,10 l10,-10 M9,11 l2,-2', stroke:'#3b82f6', strokeWidth:3, strokeOpacity:0.6})
+    ),
+    e('pattern',{id:'odp-carryover-delivered', patternUnits:'userSpaceOnUse', width:10, height:10},
+      e('rect',{width:10, height:10, fill:'#d1d5db', fillOpacity:0.5}),
+      e('path',{d:'M-1,1 l2,-2 M0,10 l10,-10 M9,11 l2,-2', stroke:'#6b7280', strokeWidth:3, strokeOpacity:0.7})
     )
   );
 
-  var legend = e('div', {className:'legend'},
-    e('div', {className:'legend-item'},
-      e('span', {className:'legend-swatch', style:{background:'#3b82f6'}}),
-      'Ordered'
-    ),
-    e('div', {className:'legend-item'},
-      e('span', {className:'legend-swatch', style:{background:'#1f2937'}}),
-      'Delivered'
-    ),
-    e('div', {className:'legend-item'},
-      e('span', {className:'legend-swatch', style:{background:'#84cc16'}}),
-      'Poured'
-    ),
-    hasCarryover ? e('div', {className:'legend-item'},
-      e('span', {className:'legend-swatch', style:{background:'#d1d5db', border:'1px solid #6b7280'}}),
-      'Carryover'
-    ) : null
-  );
-
-  return e('div', {className:'card'},
-    e('div', {className:'header'}, headerLeft, toggle),
-    chart,
-    legend
+  return e(R.BarChart, {
+    width: WIDTH,
+    height: HEIGHT,
+    data: BUCKETS,
+    margin: {top:20, right:30, bottom:20, left:5},
+    barGap: 10,
+    barCategoryGap: '35%'
+  },
+    stripeDefs,
+    e(R.CartesianGrid, {strokeDasharray:'3 3', vertical:false, stroke:'${gridColor}'}),
+    // X-axis: tickless, label-less — Customized draws boundary labels.
+    e(R.XAxis, {
+      dataKey:'label',
+      tick:false,
+      tickLine:false,
+      axisLine:{stroke:'${gridColor}'}
+    }),
+    e(R.Customized, { component: CustomizedXAxis }),
+    // Y-axis: hidden (labels live in RN column) but scale is used for bars.
+    e(R.YAxis, {
+      domain:[0, Y_MAX],
+      hide:true,
+      allowDecimals:false
+    }),
+    e(R.Tooltip, {
+      content: function(p){ return e(ODPTooltip, p); },
+      cursor: {fill:'#f3f4f6', fillOpacity:0.5}
+    }),
+    // Ordered solid
+    e(R.Bar, {
+      dataKey: orderedSolidKey,
+      name:'Ordered Solid',
+      stackId:'ordered',
+      fill:'#3b82f6',
+      isAnimationActive:false,
+      shape: OrderedSolidShape,
+      label: {content: OrderedSolidLabel}
+    }),
+    // Ordered striped
+    e(R.Bar, {
+      dataKey: orderedStripedKey,
+      name:'Ordered Striped',
+      stackId:'ordered',
+      fill:'url(#odp-stripe-ordered)',
+      isAnimationActive:false,
+      shape: OrderedStripedShape,
+      label: {content: OrderedStripedLabel}
+    }),
+    // Delivered carry-in
+    e(R.Bar, {
+      dataKey: deliveredCarryInKey,
+      name:'Delivered CarryIn',
+      stackId:'delivered',
+      fill:'url(#odp-carryover-delivered)',
+      isAnimationActive:false,
+      shape: DeliveredCarryInShape
+    }),
+    // Delivered solid
+    e(R.Bar, {
+      dataKey: deliveredSolidKey,
+      name:'Delivered',
+      stackId:'delivered',
+      fill:'#1f2937',
+      isAnimationActive:false,
+      shape: DeliveredSolidShape,
+      label: {content: DeliveredLabel}
+    }),
+    // Poured
+    e(R.Bar, {
+      dataKey: pouredKey,
+      name:'Poured',
+      fill:'#84cc16',
+      radius:[3,3,0,0],
+      isAnimationActive:false,
+      label:{
+        position:'top',
+        fontSize:11,
+        fill:'${pouredLabelFill}',
+        fontWeight:600,
+        formatter: function(v){
+          if(!(v > 0)) return '';
+          return VIEW_MODE === 'cy' ? fmtQty(v) : String(v);
+        }
+      }
+    })
   );
 }
 
 try {
-  ReactDOM.createRoot(document.getElementById('root')).render(e(HourlyODPChart));
-} catch (err) {
+  ReactDOM.createRoot(document.getElementById('root')).render(e(ChartBody));
+} catch(err){
   document.getElementById('root').innerHTML =
-    '<div class="card"><div class="no-data">Chart render failed: ' + (err && err.message ? err.message : String(err)) + '</div></div>';
+    '<div class="no-data">Chart render failed: ' + (err && err.message ? err.message : String(err)) + '</div>';
 }
 
 })();
@@ -1189,10 +1237,164 @@ try {
 </html>`;
 }
 
+// ===========================================================================
+// Styles
+// ===========================================================================
 const styles = StyleSheet.create({
-  webview: {
+  // Outer card: borderless, rounded. Horizontal gutter comes from the
+  // parent `OrderDetailsScreen.contentContainer` (padding: GRID.md = 16).
+  // `marginVertical: ms(8)` is a slightly tighter outer gap than the
+  // previous ms(12), giving the graph a more compact vertical footprint
+  // while still maintaining readable separation from sibling charts.
+  // This also aligns with `PourSpeedChart` and `TrucksOnJobChart` which
+  // both use `marginVertical: ms(8)`.
+  container: {
+    borderRadius: ms(16),
+    borderWidth: 0,
+    overflow: 'hidden',
+    marginVertical: ms(2),
+    paddingBottom: ms(12),
+  },
+  // Header: title only (toggle + zoom moved to the bottom controls row).
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: ms(14),
+    paddingTop: ms(14),
+    paddingBottom: ms(10),
+  },
+  headerTitle: {
+    fontSize: ms(15),
+    fontFamily: fontFamily.semiBold,
     flex: 1,
+    minWidth: 0,
+  },
+  // Toggle pill group — rounded, borderless.
+  toggle: {
+    flexDirection: 'row',
+    borderRadius: ms(10),
+    borderWidth: 0,
+    padding: ms(2),
+  },
+  toggleButton: {
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(4),
+    borderRadius: ms(8),
+    borderWidth: 0,
+    minWidth: ms(38),
+    alignItems: 'center',
+  },
+  toggleLabel: {
+    fontSize: ms(10),
+    fontWeight: '600',
+  },
+  // Zoom controls — three round soft buttons.
+  zoomControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(6),
+  },
+  zoomButton: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(10),
+    borderWidth: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Pills row — sits directly below the title and above the CY/Loads +
+  // zoom controls row. Left-aligned to mirror the title's alignment,
+  // with gentle vertical padding to separate it from both the title
+  // above and the controls below.
+  pillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: ms(6),
+    paddingHorizontal: ms(14),
+    paddingTop: ms(2),
+    paddingBottom: ms(10),
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(4),
+    borderRadius: ms(999),
+    borderWidth: 0,
+    gap: ms(4),
+  },
+  pillLabel: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.medium,
+  },
+  pillValue: {
+    fontSize: ms(10),
+    fontFamily: fontFamily.bold,
+  },
+  // Chart row: Y-axis + horizontally-scrollable WebView. ZERO horizontal
+  // padding so the chart fills the card edge-to-edge.
+  chartRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 0,
+  },
+  scrollView: {
+    flexGrow: 0,
+  },
+  webview: {
     backgroundColor: 'transparent',
+  },
+  swipeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: ms(6),
+    marginTop: ms(6),
+  },
+  swipeText: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.medium,
+  },
+  // Legend — Ordered / Delivered / Poured in a single horizontal row with
+  // equal spacing between items. `space-around` evenly distributes the
+  // swatches across the full card width.
+  legend: {
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingTop: ms(14),
+    paddingBottom: ms(10),
+    paddingHorizontal: ms(14),
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(6),
+  },
+  legendSwatch: {
+    width: ms(12),
+    height: ms(12),
+    borderRadius: ms(4),
+    borderWidth: 0,
+  },
+  legendLabel: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.medium,
+  },
+  // Top controls row: CY/Loads toggle on the left, zoom controls on
+  // the right, separated by `justify-content: space-between` so they
+  // hug the card edges and never crowd each other on narrow screens.
+  // Placed directly below the title, above the chart.
+  topControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: ms(14),
+    paddingTop: ms(4),
+    paddingBottom: ms(10),
+    gap: ms(8),
   },
 });
 
