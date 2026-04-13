@@ -5,13 +5,13 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  KeyboardAvoidingView,
   Platform,
   FlatList,
   ActivityIndicator,
   Modal,
   Keyboard,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CalendarPickerModal from '../../components/common/CalendarPickerModal';
@@ -1066,20 +1066,16 @@ export const OrderRequestDetailScreen: React.FC = () => {
     <ScreenContainer edges={[]} usePlainView={false}>
       <ScreenHeader title={'Order Request'} showBackButton showRefreshButton isRefreshing={isFetching && !isLoading} onRefresh={() => { refetch(); refetchMessages(); }} />
 
-      <KeyboardAvoidingView
+      <KeyboardAwareScrollView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: TAB_BAR_HEIGHT + insets.bottom + ms(24) },
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={ms(80)}
       >
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: TAB_BAR_HEIGHT + insets.bottom + ms(24) },
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
           {/* ========== HEADER INFO ========== */}
           <View style={[styles.headerCard, { backgroundColor: cardBg }]}>
             <View style={styles.headerRow}>
@@ -1608,8 +1604,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
 
       <ConfirmationModal
         state={confirmModal}
