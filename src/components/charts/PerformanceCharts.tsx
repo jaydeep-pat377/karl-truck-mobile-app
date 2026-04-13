@@ -1,6 +1,6 @@
 
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { moderateScale as ms } from 'react-native-size-matters';
 import { PourSpeedChart } from './PourSpeedChart';
@@ -68,6 +68,45 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
   orderDate,
   orderId,
 }) => {
+  // Compute shared x-axis domain from Pour Speed data — mirrors web
+  // performance-charts.tsx:2938-2983 (pourSpeedXAxisDomain useMemo).
+  const pourSpeedXAxisDomain = useMemo(():
+    | [number, number]
+    | undefined => {
+    const ordered = graphData?.pour_speed?.ordered;
+    if (!ordered?.length) return undefined;
+
+    const firstScheduledTime = new Date(ordered[0].time).getTime();
+    const lastScheduledTime = new Date(ordered[ordered.length - 1].time).getTime();
+
+    const delivered = graphData?.pour_speed?.delivered;
+    let earliestDeliveredTime = firstScheduledTime;
+    let latestDeliveredTime = lastScheduledTime;
+    if (delivered?.length) {
+      earliestDeliveredTime = new Date(delivered[0].time).getTime();
+      latestDeliveredTime = new Date(delivered[delivered.length - 1].time).getTime();
+    }
+
+    const poured = graphData?.pour_speed?.poured;
+    let latestPouredTime = lastScheduledTime;
+    if (poured?.length) {
+      latestPouredTime = new Date(poured[poured.length - 1].time).getTime();
+    }
+
+    const rawDomainStart = Math.min(firstScheduledTime, earliestDeliveredTime);
+    const startDate = new Date(rawDomainStart);
+    startDate.setUTCMinutes(0, 0, 0);
+    const domainStart = startDate.getTime();
+
+    const rawDomainEnd = Math.max(lastScheduledTime, latestDeliveredTime, latestPouredTime);
+    const endDate = new Date(rawDomainEnd);
+    endDate.setUTCMinutes(0, 0, 0);
+    endDate.setUTCHours(endDate.getUTCHours() + 1);
+    const domainEnd = endDate.getTime();
+
+    return [domainStart, domainEnd];
+  }, [graphData?.pour_speed?.ordered, graphData?.pour_speed?.delivered, graphData?.pour_speed?.poured]);
+
   return (
     <View style={styles.container}>
       {showPourSpeed && (
@@ -100,6 +139,7 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
           orderCode={orderCode}
           orderDate={orderDate}
           orderId={orderId}
+          xAxisDomain={pourSpeedXAxisDomain}
         />
       )}
 

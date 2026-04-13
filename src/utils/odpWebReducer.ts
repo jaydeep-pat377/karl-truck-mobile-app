@@ -64,7 +64,10 @@ function getLoadQty(ticket: ODPRawTicket): number {
 // ---------------------------------------------------------------------------
 // runWebReducer — the full web reducer, line-for-line.
 // ---------------------------------------------------------------------------
-export function runWebReducer(raw: ODPRawForReducer): WebReducerBucket[] {
+export function runWebReducer(
+  raw: ODPRawForReducer,
+  xAxisDomain?: [number, number],
+): WebReducerBucket[] {
   const productScheduleItems = raw.productScheduleItems || [];
   const tickets = raw.tickets || [];
 
@@ -118,11 +121,24 @@ export function runWebReducer(raw: ODPRawForReducer): WebReducerBucket[] {
   }
 
   // ----- anchors (unfloored, single source of truth) ---------------------
-  const startMinFromMidnight =
+  // Web lines 1561-1569: when xAxisDomain is provided, use its floored
+  // start hour so bucket boundaries align with the Pour Speed chart.
+  let startMinFromMidnight: number;
+  if (xAxisDomain) {
+    const domainStartDate = new Date(xAxisDomain[0]);
+    startMinFromMidnight =
+      domainStartDate.getUTCHours() * 60 + domainStartDate.getUTCMinutes();
+  } else {
+    startMinFromMidnight =
+      scheduledStartHour !== null
+        ? scheduledStartHour * 60 + scheduledStartMinute
+        : 0;
+  }
+  // Clamping always uses actual scheduled time, not xAxisDomain start
+  const scheduledStartMinFromMidnight =
     scheduledStartHour !== null
       ? scheduledStartHour * 60 + scheduledStartMinute
       : 0;
-  const scheduledStartMinFromMidnight = startMinFromMidnight;
 
   const formatTimeLabel = (totalMin: number): string => {
     const h = Math.floor(totalMin / 60);
@@ -227,9 +243,20 @@ export function runWebReducer(raw: ODPRawForReducer): WebReducerBucket[] {
 
   if (bucketKeys.length === 0) return [];
 
-  bucketKeys.sort((a, b) => a - b);
-  const minBucket = Math.min(0, bucketKeys[0]);
-  const maxBucket = bucketKeys[bucketKeys.length - 1];
+  // Web lines 1721-1739: when xAxisDomain is provided, extend the bucket
+  // range to cover the full Pour Speed chart time range.
+  let minBucket: number;
+  let maxBucket: number;
+  if (xAxisDomain && scheduledStartHour !== null) {
+    const durationMs = xAxisDomain[1] - xAxisDomain[0];
+    const durationHours = Math.ceil(durationMs / (60 * 60 * 1000));
+    minBucket = 0;
+    maxBucket = durationHours - 1;
+  } else {
+    bucketKeys.sort((a, b) => a - b);
+    minBucket = Math.min(0, bucketKeys[0]);
+    maxBucket = bucketKeys[bucketKeys.length - 1];
+  }
 
   const orderedRate = Math.round(orderedRatePerHour * 100) / 100;
   const loadsPerHour = truckSpace > 0 ? Math.floor(60 / truckSpace) : 0;
@@ -382,7 +409,11 @@ export function runWebReducer(raw: ODPRawForReducer): WebReducerBucket[] {
     });
   }
 
-  // ----- Filter ALL empty buckets (not just trailing) ---------------------
+  // ----- Filter empty buckets (web lines 1917-1929) -----------------------
+  // When xAxisDomain is provided, keep ALL buckets for chart alignment.
+  if (xAxisDomain) {
+    return result;
+  }
   return result.filter(
     (b) => b.ordered > 0 || b.delivered > 0 || b.poured > 0,
   );

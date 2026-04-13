@@ -127,6 +127,12 @@ export interface ODPChartWebViewProps {
   orderCode?: string;
   orderDate?: string;
   orderId?: number | string;
+  /**
+   * Shared x-axis domain from the Pour Speed chart (epoch-ms tuple).
+   * When provided the reducer floors startMinFromMidnight to the domain
+   * start hour — matching the web's HourlyODPChart xAxisDomain prop.
+   */
+  xAxisDomain?: [number, number];
 }
 
 // ---------------------------------------------------------------------------
@@ -187,6 +193,7 @@ export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
   orderCode,
   orderDate,
   orderId,
+  xAxisDomain,
 }) => {
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -238,8 +245,8 @@ export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
   // We keep it in useMemo so it only recomputes when raw data changes.
   const reducerBuckets = useMemo<WebReducerBucket[]>(() => {
     if (!effectiveRaw) return [];
-    return runWebReducer(effectiveRaw);
-  }, [effectiveRaw]);
+    return runWebReducer(effectiveRaw, xAxisDomain);
+  }, [effectiveRaw, xAxisDomain]);
 
   // ----- View mode (CY / Loads) -----
   const [viewMode, setViewMode] = useState<ViewMode>('cy');
