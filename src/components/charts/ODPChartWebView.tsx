@@ -832,7 +832,7 @@ interface BuildOdpHtmlArgs {
 function buildOdpHtml(args: BuildOdpHtmlArgs): string {
   const { buckets, yMax, viewMode, isDark, width, height } = args;
 
-  const bg = isDark ? '#1f2937' : '#ffffff';
+  const bg = isDark ? '#323232' : '#ffffff';
   const textPrimary = isDark ? '#f3f4f6' : '#111827';
   const textSecondary = isDark ? '#9ca3af' : '#6b7280';
   const gridColor = isDark ? '#374151' : '#e5e7eb';
@@ -1147,7 +1147,7 @@ function ChartBody(){
     width: WIDTH,
     height: HEIGHT,
     data: BUCKETS,
-    margin: {top:20, right:30, bottom:20, left:5},
+    margin: {top:20, right:30, bottom:20, left:20},
     barGap: 10,
     barCategoryGap: '35%'
   },

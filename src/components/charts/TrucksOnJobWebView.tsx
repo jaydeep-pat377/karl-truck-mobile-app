@@ -415,7 +415,7 @@ function generateHighchartsHTML(
             width: ${chartWidth},
             height: chartHeight,
             spacingRight: 20,
-            spacingLeft: 10,
+            spacingLeft: 25,
             spacingTop: 20,
             spacingBottom: 50,
             style: { fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }
