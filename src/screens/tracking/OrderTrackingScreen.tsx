@@ -780,7 +780,9 @@ export const OrderTrackingScreen: React.FC = () => {
           </View>
         )}
 
-        {isMapReady && (() => {
+      </Animated.View>
+
+      {isMapReady && (() => {
           const legendItems = [
             ['ticketed', 'Ticketed',  'loading',  'Loading'],
             ['to_job',   'To Job',    'at_job',   'At Job'],
@@ -788,42 +790,45 @@ export const OrderTrackingScreen: React.FC = () => {
             ['to_plant', 'To Plant',  'at_plant', 'At Plant'],
           ];
           return (
-            <Pressable
-              onPress={() => setIsLegendExpanded(!isLegendExpanded)}
+            <Animated.View
               style={{
                 position: 'absolute',
-                bottom: 8,
+                bottom: Animated.add(sheetHeight, 8),
                 left: 8,
                 zIndex: 20,
                 elevation: 20,
-                backgroundColor: isDark ? 'rgba(30,30,30,0.92)' : 'rgba(255,255,255,0.95)',
-                borderRadius: 8,
-                paddingHorizontal: ms(10),
-                paddingVertical: ms(6),
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.25,
-                shadowRadius: 4,
               }}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(4) }}>
-                <Icon name="information-outline" size={ms(12)} color={themeColors.text.primary} />
-                <Text style={{ fontSize: ms(10), fontFamily: fontFamily.bold, color: themeColors.text.primary }}>Status</Text>
-                <Icon name={isLegendExpanded ? 'chevron-up' : 'chevron-down'} size={ms(12)} color={themeColors.text.primary} />
-              </View>
-              {isLegendExpanded && legendItems.map((row, i) => (
-                <Text key={`r${i}`} style={{ marginTop: i === 0 ? ms(4) : ms(2), lineHeight: ms(14) }}>
-                  <Text style={{ color: statusConfig[row[0]]?.color || FALLBACK_STATUS_COLOR, fontSize: ms(15) }}>{'\u25A0 '}</Text>
-                  <Text style={{ fontSize: ms(10), fontFamily: fontFamily.medium, color: themeColors.text.secondary }}>{row[1]}    </Text>
-                  <Text style={{ color: statusConfig[row[2]]?.color || FALLBACK_STATUS_COLOR, fontSize: ms(15) }}>{'\u25A0 '}</Text>
-                  <Text style={{ fontSize: ms(10), fontFamily: fontFamily.medium, color: themeColors.text.secondary }}>{row[3]}</Text>
-                </Text>
-              ))}
-            </Pressable>
+              <Pressable
+                onPress={() => setIsLegendExpanded(!isLegendExpanded)}
+                style={{
+                  backgroundColor: isDark ? 'rgba(30,30,30,0.92)' : 'rgba(255,255,255,0.95)',
+                  borderRadius: 8,
+                  paddingHorizontal: ms(10),
+                  paddingVertical: ms(6),
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 4,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(4) }}>
+                  <Icon name="information-outline" size={ms(12)} color={themeColors.text.primary} />
+                  <Text style={{ fontSize: ms(10), fontFamily: fontFamily.bold, color: themeColors.text.primary }}>Status</Text>
+                  <Icon name={isLegendExpanded ? 'chevron-up' : 'chevron-down'} size={ms(12)} color={themeColors.text.primary} />
+                </View>
+                {isLegendExpanded && legendItems.map((row, i) => (
+                  <Text key={`r${i}`} style={{ marginTop: i === 0 ? ms(4) : ms(2), lineHeight: ms(14) }}>
+                    <Text style={{ color: statusConfig[row[0]]?.color || FALLBACK_STATUS_COLOR, fontSize: ms(15) }}>{'\u25A0 '}</Text>
+                    <Text style={{ fontSize: ms(10), fontFamily: fontFamily.medium, color: themeColors.text.secondary }}>{row[1]}    </Text>
+                    <Text style={{ color: statusConfig[row[2]]?.color || FALLBACK_STATUS_COLOR, fontSize: ms(15) }}>{'\u25A0 '}</Text>
+                    <Text style={{ fontSize: ms(10), fontFamily: fontFamily.medium, color: themeColors.text.secondary }}>{row[3]}</Text>
+                  </Text>
+                ))}
+              </Pressable>
+            </Animated.View>
           );
         })()}
-
-      </Animated.View>
 
       <Animated.View style={[styles.sheet, { height: sheetHeight, backgroundColor: themeColors.background, paddingBottom: insets.bottom }]}>
 
