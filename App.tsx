@@ -30,10 +30,9 @@ import { handleDeepLink, isShortUrl } from './src/services/deepLinkService';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { API_BASE_URL } from '@env';
 
-// Initialize Sentry
 initSentry();
 
-// Note: Background message handlers are registered in index.js for killed state support
+// Background message handlers are registered in index.js for killed state support
 
 LogBox.ignoreLogs([
   'Non-serializable values were found in the navigation state',
@@ -71,17 +70,11 @@ const AppContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Hide native splash immediately to show our animated splash
-    const hideSplash = async () => {
-      await BootSplash.hide({ fade: false }); // No fade - we handle animation ourselves
-    };
-    hideSplash();
+    BootSplash.hide({ fade: false });
   }, []);
 
-  // Hide splash when all conditions are met
   useEffect(() => {
     if (animationCompleted && navigationReady && isInitialized) {
-      // Small delay to ensure smooth transition
       const timer = setTimeout(() => {
         setShowAnimatedSplash(false);
       }, 100);
@@ -115,7 +108,6 @@ const AppContent: React.FC = () => {
       if (isAuthenticated) {
         runDeepLink(url);
       } else {
-        console.log('[DeepLink] url......', url);
         pendingDeepLinkRef.current = url;
       }
     },
@@ -134,8 +126,7 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
-  // Clear the deep link URL from the Android intent after reading it, so
-  // the next AppState 'active' check doesn't re-process the same stale URL.
+  // Clear Android intent so the next AppState 'active' check doesn't re-process it
   const clearDeepLinkIntent = useCallback(async () => {
     try {
       if (Platform.OS === 'android' && NativeModules.DeepLinkModule) {
@@ -146,12 +137,9 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
-  // Check for a deep link URL from the native intent and dispatch it
-  // through processDeepLink. De-duped via lastHandledUrlRef.
   const checkForDeepLink = useCallback(async () => {
     try {
       const url = await getDeepLinkFromIntent();
-      console.log('[DeepLink] Intent URL:', url, 'isAuth:', isAuthenticated);
       if (url && isShortUrl(url) && url !== lastHandledUrlRef.current) {
         lastHandledUrlRef.current = url;
         await clearDeepLinkIntent();
@@ -162,10 +150,8 @@ const AppContent: React.FC = () => {
     }
   }, [getDeepLinkFromIntent, clearDeepLinkIntent, processDeepLink, isAuthenticated]);
 
-  // Listen for Linking events (iOS universal links + Android fallback).
   useEffect(() => {
     const subscription = Linking.addEventListener('url', ({ url }) => {
-      console.log('[DeepLink] Received URL via Linking event:', url);
       if (url !== lastHandledUrlRef.current) {
         lastHandledUrlRef.current = url;
         processDeepLink(url);
@@ -174,13 +160,11 @@ const AppContent: React.FC = () => {
     return () => subscription.remove();
   }, [processDeepLink]);
 
-  // Cold-start check: read the initial intent URL once on mount.
   useEffect(() => {
     checkForDeepLink();
   }, [checkForDeepLink]);
 
-  // Warm-start check: re-read the intent when the app becomes active.
-  // This covers the onNewIntent path for singleTask launchMode.
+  // Re-read intent when app becomes active (singleTask launchMode)
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
@@ -190,12 +174,11 @@ const AppContent: React.FC = () => {
     return () => subscription.remove();
   }, [checkForDeepLink]);
 
-  // Once the user finishes logging in, run any pending deep link.
+  // Process pending deep link after login
   useEffect(() => {
     if (isAuthenticated && pendingDeepLinkRef.current) {
       const pendingUrl = pendingDeepLinkRef.current;
       pendingDeepLinkRef.current = null;
-      console.log('[DeepLink] Processing pending deep link after login:', pendingUrl);
       runDeepLink(pendingUrl);
     }
   }, [isAuthenticated, runDeepLink]);
@@ -249,16 +232,13 @@ const AppContent: React.FC = () => {
           </NotificationProvider>
         </NavigationContainer>
 
-        {/* Lock Screen - renders on top of app content */}
         <LockScreen />
 
-        {/* Animated Splash Screen - renders on top of everything */}
         {showAnimatedSplash && (
           <AnimatedSplashScreen onAnimationComplete={handleSplashComplete} />
         )}
 
-        {/* Deep Link loader - shows while resolving a short URL and navigating.
-            Suppressed during the initial boot splash to avoid stacking two. */}
+        {/* Deep link loader — suppressed during boot splash to avoid stacking */}
         {isHandlingDeepLink && !showAnimatedSplash && (
           <AnimatedSplashScreen onAnimationComplete={() => {}} />
         )}
@@ -267,7 +247,6 @@ const AppContent: React.FC = () => {
   );
 };
 
-// Fallback component for Sentry error boundary
 const ErrorFallback = ({ error, resetError }: { error: Error; resetError: () => void }) => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
     <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Something went wrong</Text>

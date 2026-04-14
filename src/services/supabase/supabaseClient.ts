@@ -112,7 +112,7 @@ AppState.addEventListener('change', (state: AppStateStatus) => {
   if (state === 'active' && isInitialized) {
     supabase.realtime.connect();
   } else if (state === 'background') {
-    console.log('App going to background');
+    // App going to background
   }
 });
 

@@ -183,11 +183,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   fetchAppPermissions: async () => {
     try {
       const response = await authService.getAppPermissions();
-      console.log('[Auth] App permissions API response:', JSON.stringify(response, null, 2));
       if (response.success && response.data?.permissions) {
         const permissions = response.data.permissions;
         const showRegion = response.data?.showRegion !== false;
-        console.log('[Auth] showRegion from API:', response.data?.showRegion, '→ resolved:', showRegion);
         set({ appPermissions: permissions, showRegion });
         await AsyncStorage.setItem(STORAGE_KEYS.APP_PERMISSIONS, JSON.stringify(permissions));
       }

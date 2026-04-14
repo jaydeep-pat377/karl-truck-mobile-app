@@ -10,8 +10,6 @@ const BASE_URL = API_BASE_URL || FALLBACK_URL;
 const TIMEOUT = Number(API_TIMEOUT) || 60000;
 const ENABLE_API_LOGGING = __DEV__;
 
-console.log('API_BASE_URL:', BASE_URL);
-
 const PUBLIC_ENDPOINTS = [
   '/auth/login',
   '/auth/mobile/login',

@@ -10,7 +10,6 @@ import { name as appName } from './app.json';
 
 const CHANNEL_ID = 'truckast_heads_up';
 
-
 async function createNotificationChannel() {
   if (Platform.OS === 'android') {
     try {
@@ -79,9 +78,13 @@ async function displayNotification(title, body, data = {}) {
 createNotificationChannel();
 
 notifee.onBackgroundEvent(async ({ type, detail }) => {
-
   switch (type) {
     case EventType.PRESS:
+      // Navigate to the relevant screen when user taps a background notification
+      if (detail.notification?.data) {
+        const { navigateFromNotification } = require('./src/services/navigationService');
+        navigateFromNotification(detail.notification.data);
+      }
       break;
     case EventType.DISMISSED:
       break;

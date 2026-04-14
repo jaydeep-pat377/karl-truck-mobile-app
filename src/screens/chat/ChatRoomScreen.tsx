@@ -115,8 +115,7 @@ export const ChatRoomScreen: React.FC = () => {
 
       newMessages.forEach((msg) => {
         if (msg.sender_id !== user?.id && !msg.id.startsWith('temp-')) {
-          const played = playMessageSound();
-          console.log('[ChatRoom DEBUG] Sound played:', played);
+          playMessageSound();
         }
       });
     }

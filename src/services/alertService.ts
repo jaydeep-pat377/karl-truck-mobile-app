@@ -195,9 +195,7 @@ class AlertService {
       apiResponseData: JSON.stringify(error?.response?.data),
     });
 
-    this.showError(title, message, () => {
-      console.log(`[AlertService] OK button pressed for error - Title: "${title}", Message: "${message}"`);
-    });
+    this.showError(title, message);
   }
 }
 

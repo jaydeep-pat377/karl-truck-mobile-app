@@ -218,6 +218,10 @@ export function useSupabaseNotifications({
         data: {
           notification_id: String(notification.id),
           event_code: notification.event_code || '',
+          entity_type: notification.entity_type || '',
+          entity_id: notification.entity_id != null ? String(notification.entity_id) : '',
+          order_code: (notification as any).order_code || '',
+          order_date: (notification as any).order_date || '',
         },
         android: {
           channelId: CHANNEL_ID,
@@ -239,7 +243,7 @@ export function useSupabaseNotifications({
       });
 
     } catch (err) {
-      console.error('[useSupabaseNotifications] ❌ Failed to show local notification:', err);
+      console.error('[useSupabaseNotifications] Failed to show local notification:', err);
     }
   }, []);
 

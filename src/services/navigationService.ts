@@ -1,4 +1,3 @@
-
 import { createNavigationContainerRef, CommonActions } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 
@@ -39,35 +38,38 @@ export function navigateToTab(tabName: 'Home' | 'Orders' | 'Notifications' | 'Se
 }
 
 export function navigateFromNotification(data: Record<string, string | unknown>): void {
-  const eventCode = (data.event_code as string)?.toUpperCase() || '';
-  const orderId = data.order_id as string;
-  const orderCode = data.order_code as string;
-  const orderDate = data.order_date as string;
-  const ticketCode = data.ticket_code as string;
-  const chatId = data.chat_id as string;
-  const roomId = data.room_id as string;
+  // Normalize field names — handle both snake_case (FCM) and camelCase (Supabase/notifee)
+  const eventCode = ((data.event_code || data.eventCode) as string)?.toUpperCase() || '';
+  const orderId = (data.order_id || data.orderId || data.entity_id || data.entityId) as string;
+  const orderCode = (data.order_code || data.orderCode) as string;
+  const orderDate = (data.order_date || data.orderDate) as string;
+  const ticketCode = (data.ticket_code || data.ticketCode) as string;
+  const chatId = (data.chat_id || data.chatId) as string;
+  const roomId = (data.room_id || data.roomId) as string;
+
+  // Use orderId as orderCode fallback (they are often identical)
+  const effectiveOrderId = orderId || orderCode || '';
+  const effectiveOrderCode = orderCode || orderId || '';
 
   if (eventCode.includes('ORDER')) {
-    if (orderId && orderCode && orderDate) {
+    if (effectiveOrderId || effectiveOrderCode) {
       navigate('OrderDetail', {
-        orderId,
-        orderCode,
-        orderDate,
+        orderId: effectiveOrderId,
+        orderCode: effectiveOrderCode,
+        orderDate: orderDate || '',
       });
     } else {
-
       navigateToTab('Orders');
     }
     return;
   }
-
 
   if (eventCode.includes('TRUCK')) {
-    if (orderId && orderCode && orderDate) {
+    if (effectiveOrderId || effectiveOrderCode) {
       navigate('OrderDetail', {
-        orderId,
-        orderCode,
-        orderDate,
+        orderId: effectiveOrderId,
+        orderCode: effectiveOrderCode,
+        orderDate: orderDate || '',
       });
     } else {
       navigateToTab('Orders');
@@ -75,18 +77,17 @@ export function navigateFromNotification(data: Record<string, string | unknown>)
     return;
   }
 
-
   if (eventCode.includes('TICKET')) {
-    if (orderCode && orderDate && ticketCode) {
+    if (effectiveOrderCode && orderDate && ticketCode) {
       navigate('TicketDetail', {
-        orderCode,
+        orderCode: effectiveOrderCode,
         orderDate,
         ticketCode,
       });
-    } else if (orderId && orderCode && orderDate) {
+    } else if (effectiveOrderId && effectiveOrderCode && orderDate) {
       navigate('Ticket', {
-        orderId,
-        orderCode,
+        orderId: effectiveOrderId,
+        orderCode: effectiveOrderCode,
         orderDate,
       });
     } else {
@@ -94,28 +95,25 @@ export function navigateFromNotification(data: Record<string, string | unknown>)
     }
     return;
   }
-
 
   if (eventCode.includes('CHAT') || eventCode.includes('MESSAGE')) {
     if (roomId && chatId) {
       navigate('ChatRoom', {
         roomId,
-        roomName: (data.room_name as string) || 'Chat',
+        roomName: ((data.room_name || data.roomName) as string) || 'Chat',
         chatId: parseInt(chatId, 10),
-        orderId: parseInt(orderId || '0', 10),
+        orderId: parseInt(effectiveOrderId || '0', 10),
       });
     } else {
-
       navigateToTab('Orders');
     }
     return;
   }
 
-
   if (eventCode.includes('WEATHER') || eventCode.includes('ALERT')) {
-    if (orderCode && orderDate) {
+    if (effectiveOrderCode && orderDate) {
       navigate('Weather', {
-        orderCode,
+        orderCode: effectiveOrderCode,
         orderDate,
       });
     } else {
@@ -123,7 +121,6 @@ export function navigateFromNotification(data: Record<string, string | unknown>)
     }
     return;
   }
-
 
   navigateToTab('Notifications');
 }

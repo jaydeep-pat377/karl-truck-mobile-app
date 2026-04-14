@@ -49,20 +49,13 @@ export function NotificationProvider({
 
   useEffect(() => {
     if (!isSoundReady()) {
-      initMessageSound().then((success) => {
-        console.log('[NotificationProvider] Sound init:', success ? 'success' : 'failed');
-      });
+      initMessageSound();
     }
   }, []);
 
-
   useEffect(() => {
     if (userId && enabled) {
-      testNotificationConnection(userId).then((success) => {
-        console.log('[NotificationProvider] Connection test:', success ? '✅ PASSED' : '❌ FAILED');
-      });
-    } else {
-      console.log('[NotificationProvider] ⚠️ Not enabling - userId:', userId, 'enabled:', enabled);
+      testNotificationConnection(userId);
     }
   }, [userId, tenantId, enabled]);
 

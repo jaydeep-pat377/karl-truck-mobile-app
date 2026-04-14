@@ -94,7 +94,7 @@ export function unsubscribeFromNotifications(channel: RealtimeChannel): void {
 
 AppState.addEventListener('change', (state: AppStateStatus) => {
   if (state === 'active') {
-    console.log('[NotificationClient] App active');
+    // App became active
   }
 });
 

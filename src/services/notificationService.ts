@@ -125,8 +125,6 @@ class NotificationService {
   }
 
   async syncTokenToServer(_token?: string): Promise<boolean> {
-
-
     return false;
   }
 
@@ -239,10 +237,6 @@ class NotificationService {
     remoteMessage: FirebaseMessagingTypes.RemoteMessage,
   ): void {
     const { data } = remoteMessage;
-
-    if (data?.deepLink) {
-      console.log('[Notifications] Deep link provided:', data.deepLink);
-    }
 
     if (data) {
       navigateFromNotification(data as Record<string, string>);

@@ -373,7 +373,6 @@ const DashboardScreen: React.FC = () => {
     const initNotifications = async () => {
       try {
         const deviceToken = await notificationService.getToken();
-        console.log('Device Token:', deviceToken);
       } catch (error) {
         console.log('Error fetching device token:', error);
       }

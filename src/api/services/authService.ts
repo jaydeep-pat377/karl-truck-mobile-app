@@ -70,9 +70,8 @@ export const authService = {
     let mobileLoginResponse: MobileLoginResponse;
     try {
       mobileLoginResponse = await authService.mobileLogin(credentials.email, credentials.password);
-      console.log('[Auth] Step 1 - mobile/login response:', JSON.stringify(mobileLoginResponse, null, 2));
     } catch (error: any) {
-      console.error('[Auth] Step 1 - mobile/login error:', error?.response?.data || error?.message || error);
+      console.error('[Auth] Step 1 - mobile/login error:', error?.message);
       throw error;
     }
 
@@ -89,9 +88,8 @@ export const authService = {
         client_secret: mobileLoginResponse.data.client_secret,
         device_info: credentials.device_info,
       });
-      console.log('[Auth] Step 2 - exchange-code response:', JSON.stringify(exchangeResponse, null, 2));
     } catch (error: any) {
-      console.error('[Auth] Step 2 - exchange-code error:', error?.response?.data || error?.message || error);
+      console.error('[Auth] Step 2 - exchange-code error:', error?.message);
       throw error;
     }
 
