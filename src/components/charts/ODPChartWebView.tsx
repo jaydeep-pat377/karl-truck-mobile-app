@@ -110,6 +110,101 @@ const COLOR_CARRYOVER_STROKE = '#6b7280';
 
 type ViewMode = 'cy' | 'loads';
 
+// ---------------------------------------------------------------------------
+// computeXAxisDomainFromRaw — derives the xAxisDomain directly from the
+// Supabase-fetched raw data, mirroring the web's pourSpeedXAxisDomain
+// computation (performance-charts.tsx:2938-2983).
+//
+// Why: The parent's xAxisDomain prop is computed from the backend API's
+// pour_speed data, which may be stale for in-progress orders (cached up
+// to 2 min via React Query staleTime). Meanwhile the ODP raw data is
+// fetched fresh from Supabase. If new trucks arrived/poured after the
+// API call, the API-derived domain won't extend far enough and the
+// reducer will silently drop the latest buckets. Computing the domain
+// from the same raw data the reducer consumes eliminates this mismatch.
+// ---------------------------------------------------------------------------
+function computeXAxisDomainFromRaw(
+  raw: ODPRawForReducer,
+): [number, number] | undefined {
+  // Find primary mix schedule — same traversal as the reducer
+  let startTimeStr: string | null = null;
+  let numberOfLoads = 0;
+  let truckSpaceMin = 0;
+
+  for (const psi of raw.productScheduleItems || []) {
+    if (psi.is_mix && psi.schedules && psi.schedules.length) {
+      const sched = psi.schedules[0];
+      startTimeStr = sched.start_time || null;
+      numberOfLoads = sched.number_of_loads || 0;
+      truckSpaceMin = sched.truck_space || 0;
+      break;
+    }
+  }
+
+  if (!startTimeStr) return undefined;
+
+  const startDate = new Date(startTimeStr);
+  if (isNaN(startDate.getTime())) return undefined;
+
+  const firstScheduledTime = startDate.getTime();
+  // Last scheduled load time = start + (nLoads - 1) * truckSpace
+  const lastScheduledTime =
+    numberOfLoads > 1 && truckSpaceMin > 0
+      ? firstScheduledTime +
+        (numberOfLoads - 1) * truckSpaceMin * 60 * 1000
+      : firstScheduledTime;
+
+  // Scan tickets for earliest/latest delivered and poured times
+  let earliestDeliveredTime = firstScheduledTime;
+  let latestDeliveredTime = lastScheduledTime;
+  let latestPouredTime = lastScheduledTime;
+  let hasDelivered = false;
+
+  for (const t of raw.tickets || []) {
+    if (t.remove_reason_code && String(t.remove_reason_code).trim() !== '') {
+      continue;
+    }
+    if (t.on_job_time) {
+      const d = new Date(t.on_job_time).getTime();
+      if (!isNaN(d)) {
+        if (!hasDelivered) {
+          earliestDeliveredTime = d;
+          latestDeliveredTime = d;
+          hasDelivered = true;
+        } else {
+          if (d < earliestDeliveredTime) earliestDeliveredTime = d;
+          if (d > latestDeliveredTime) latestDeliveredTime = d;
+        }
+      }
+    }
+    const pourTimeStr = t.wash_time || t.to_plant_time;
+    if (pourTimeStr) {
+      const p = new Date(pourTimeStr).getTime();
+      if (!isNaN(p) && p > latestPouredTime) {
+        latestPouredTime = p;
+      }
+    }
+  }
+
+  // Floor start to hour, ceil end to next hour (matches web)
+  const rawDomainStart = Math.min(firstScheduledTime, earliestDeliveredTime);
+  const domainStartDate = new Date(rawDomainStart);
+  domainStartDate.setUTCMinutes(0, 0, 0);
+  const domainStart = domainStartDate.getTime();
+
+  const rawDomainEnd = Math.max(
+    lastScheduledTime,
+    latestDeliveredTime,
+    latestPouredTime,
+  );
+  const domainEndDate = new Date(rawDomainEnd);
+  domainEndDate.setUTCMinutes(0, 0, 0);
+  domainEndDate.setUTCHours(domainEndDate.getUTCHours() + 1);
+  const domainEnd = domainEndDate.getTime();
+
+  return [domainStart, domainEnd];
+}
+
 export interface ODPChartWebViewProps {
   data?: ODPGraphData | null;
   isDark: boolean;
@@ -203,6 +298,20 @@ export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
   const [supabaseFetched, setSupabaseFetched] = useState<boolean>(false);
   const canUseDirectFetch = !!(orderCode && orderDate && orderId);
 
+  // Re-fetch from Supabase when the parent's API data refreshes (e.g.
+  // user pulls to refresh). Without this, the Supabase data is fetched
+  // once and never updated — for in-progress orders, this causes the
+  // chart to show stale values while the web (with realtime subscriptions)
+  // shows the latest data.
+  const prevDataRef = useRef(data);
+  const [fetchKey, setFetchKey] = useState(0);
+  useEffect(() => {
+    if (data && data !== prevDataRef.current && supabaseFetched) {
+      prevDataRef.current = data;
+      setFetchKey((k) => k + 1);
+    }
+  }, [data, supabaseFetched]);
+
   useEffect(() => {
     if (!canUseDirectFetch) {
       setSupabaseRaw(null);
@@ -230,7 +339,10 @@ export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [canUseDirectFetch, orderCode, orderDate, orderId]);
+    // fetchKey changes when the parent API data refreshes (pull-to-refresh),
+    // triggering a re-fetch from Supabase so the chart shows fresh data.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canUseDirectFetch, orderCode, orderDate, orderId, fetchKey]);
 
   // ----- Effective raw data: prefer Supabase, fall back to backend. -----
   const effectiveRaw: ODPRawForReducer | null = useMemo(() => {
@@ -240,13 +352,35 @@ export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
     return data?.raw_for_reducer ?? null;
   }, [canUseDirectFetch, supabaseFetched, supabaseRaw, data?.raw_for_reducer]);
 
+  // ----- Effective xAxisDomain: when we have fresh Supabase data,
+  //       compute domain from it and merge with the parent's API-derived
+  //       domain, taking the WIDER of the two. This ensures in-progress
+  //       orders always show the latest buckets (Supabase may have newer
+  //       tickets than the API's pour_speed snapshot). -----
+  const effectiveXAxisDomain = useMemo<
+    [number, number] | undefined
+  >(() => {
+    if (canUseDirectFetch && supabaseFetched && supabaseRaw) {
+      const selfDomain = computeXAxisDomainFromRaw(supabaseRaw);
+      if (selfDomain && xAxisDomain) {
+        // Take the wider of the two domains so no bucket is dropped
+        return [
+          Math.min(selfDomain[0], xAxisDomain[0]),
+          Math.max(selfDomain[1], xAxisDomain[1]),
+        ];
+      }
+      return selfDomain ?? xAxisDomain;
+    }
+    return xAxisDomain;
+  }, [canUseDirectFetch, supabaseFetched, supabaseRaw, xAxisDomain]);
+
   // ----- Run the reducer on RN side (byte-for-byte web port). -----
   // This produces `WebReducerBucket[]` with snake_case field names.
   // We keep it in useMemo so it only recomputes when raw data changes.
   const reducerBuckets = useMemo<WebReducerBucket[]>(() => {
     if (!effectiveRaw) return [];
-    return runWebReducer(effectiveRaw, xAxisDomain);
-  }, [effectiveRaw, xAxisDomain]);
+    return runWebReducer(effectiveRaw, effectiveXAxisDomain);
+  }, [effectiveRaw, effectiveXAxisDomain]);
 
   // ----- View mode (CY / Loads) -----
   const [viewMode, setViewMode] = useState<ViewMode>('cy');
@@ -1147,7 +1281,7 @@ function ChartBody(){
     width: WIDTH,
     height: HEIGHT,
     data: BUCKETS,
-    margin: {top:20, right:30, bottom:20, left:20},
+    margin: {top:20, right:30, bottom:20, left:5},
     barGap: 10,
     barCategoryGap: '35%'
   },
