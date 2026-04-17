@@ -1,7 +1,7 @@
 import axios from 'axios';
 import apiClient from '../apiClient';
 import { API_ENDPOINTS } from '../endpoints';
-import { LoginRequest, LoginResponse, MobileLoginResponse, FederatedLoginResponse, ExchangeCodeRequest, User } from '../../types/user';
+import { LoginRequest, LoginResponse, FederatedLoginResponse, ExchangeCodeRequest, User } from '../../types/user';
 import { FEDERATED_AUTH_URL } from '@env';
 
 export interface ApiResponse<T> {
@@ -80,13 +80,6 @@ export const authService = {
   },
 
   /**
-   * Step 1: Mobile login — uses dynamic backend_url, returns auth code + client_secret.
-   */
-  mobileLogin: async (email: string, password: string): Promise<MobileLoginResponse> => {
-    return apiClient.post<MobileLoginResponse>(API_ENDPOINTS.AUTH.MOBILE_LOGIN, { email, password });
-  },
-
-  /**
    * Step 2: Exchange code — sends code + client_secret + device_info, returns user + tokens.
    */
   exchangeCode: async (request: ExchangeCodeRequest): Promise<LoginResponse> => {
@@ -94,36 +87,18 @@ export const authService = {
   },
 
   /**
-   * Full two-step login flow: mobileLogin -> exchangeCode.
+   * Login flow: exchange federated code for tokens.
    */
-  login: async (credentials: LoginRequest, federatedClientSecret?: string): Promise<LoginResponse> => {
-    // Step 1: Get auth code
-    let mobileLoginResponse: MobileLoginResponse;
-    try {
-      mobileLoginResponse = await authService.mobileLogin(credentials.email, credentials.password);
-    } catch (error: any) {
-      console.error('[Auth] Step 1 - mobile/login error:', error?.message);
-      throw error;
-    }
-
-    if (!mobileLoginResponse.success || !mobileLoginResponse.data?.code) {
-      console.error('[Auth] Step 1 - mobile/login failed:', mobileLoginResponse.message);
-      throw new Error(mobileLoginResponse.message || 'Login failed');
-    }
-
-    // Use client_secret from federated login if mobile/login didn't return one
-    const clientSecret = mobileLoginResponse.data.client_secret || federatedClientSecret;
-
-    // Step 2: Exchange code for tokens
+  login: async (credentials: LoginRequest, federatedCode: string, federatedClientSecret: string): Promise<LoginResponse> => {
     let exchangeResponse: LoginResponse;
     try {
       exchangeResponse = await authService.exchangeCode({
-        code: mobileLoginResponse.data.code,
-        client_secret: clientSecret,
+        code: federatedCode,
+        client_secret: federatedClientSecret,
         device_info: credentials.device_info,
       });
     } catch (error: any) {
-      console.error('[Auth] Step 2 - exchange-code error:', error?.message);
+      console.error('[Auth] exchange-code error:', error?.message);
       throw error;
     }
 

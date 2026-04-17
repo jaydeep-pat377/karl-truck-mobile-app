@@ -53,7 +53,7 @@ export const useLogin = () => {
         password,
         device_info: getDeviceInfo(deviceToken),
       };
-      return authService.login(credentials, federatedResponse.data.client_secret);
+      return authService.login(credentials, federatedResponse.data.code, federatedResponse.data.client_secret);
     },
     onSuccess: async (response) => {
       if (response.success && response.data) {

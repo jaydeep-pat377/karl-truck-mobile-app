@@ -1,7 +1,6 @@
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/auth/login',
-    MOBILE_LOGIN: '/auth/mobile/login',
     EXCHANGE_CODE: '/auth/mobile/exchange-code',
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',

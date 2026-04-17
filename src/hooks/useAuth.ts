@@ -46,7 +46,13 @@ export const useAuth = (): UseAuthReturn => {
           device_info: deviceInfo,
         };
 
-        const response = await authService.login(credentials);
+        // Federated login to get code + client_secret
+        const federatedResponse = await authService.federatedLogin(email, password);
+        if (!federatedResponse.success || !federatedResponse.data?.code) {
+          throw new Error(federatedResponse.message || 'Federated login failed');
+        }
+
+        const response = await authService.login(credentials, federatedResponse.data.code, federatedResponse.data.client_secret);
 
         await setAuth(
           response.user,
