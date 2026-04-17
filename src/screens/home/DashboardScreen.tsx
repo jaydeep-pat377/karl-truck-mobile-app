@@ -34,6 +34,7 @@ import { useAuthStore } from '../../store/authStore';
 import { DeliveryProgress } from '../../types/order';
 import Svg, { Defs, Pattern, Line, Rect } from 'react-native-svg';
 import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
+import { WorkspaceSwitcher } from '../../components/workspace';
 
 const getSegmentColor = (status: string): string => {
   const statusColorMap: Record<string, string> = {
@@ -856,9 +857,12 @@ const DashboardScreen: React.FC = () => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['bottom']}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-        <Text variant="h2" style={{ color: themeColors.text.primary }}>
-          Overview
-        </Text>
+        <View style={styles.headerLeft}>
+          <WorkspaceSwitcher />
+          <Text variant="h2" style={{ color: themeColors.text.primary, marginLeft: ms(10) }}>
+            Overview
+          </Text>
+        </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={[styles.headerActionBtn, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
@@ -1120,6 +1124,11 @@ const createStyles = (
       alignItems: 'center',
       paddingHorizontal: spacing.lg,
       paddingBottom: spacing.sm,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexShrink: 1,
     },
     headerActions: {
       flexDirection: 'row',
