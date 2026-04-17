@@ -1,7 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { authService } from '../api/services/authService';
+import { setDynamicBaseUrl } from '../api/axiosInstance';
+import { STORAGE_KEYS } from '../utils/storage';
 import { DeviceInfo, LoginRequest, LoginResponse } from '../types/user';
 import { AxiosError } from 'axios';
 
@@ -34,12 +37,23 @@ export const useLogin = () => {
 
   const mutation = useMutation<LoginResponse, AxiosError<ApiErrorResponse>, LoginParams>({
     mutationFn: async ({ email, password, deviceToken }: LoginParams) => {
+      // Federated login to get tenant backend_url
+      const federatedResponse = await authService.federatedLogin(email, password);
+      if (!federatedResponse.success || !federatedResponse.data?.tenant?.backend_url) {
+        throw new Error(federatedResponse.message || 'Federated login failed');
+      }
+
+      const backendUrl = `${federatedResponse.data.tenant.backend_url}/api`;
+      await AsyncStorage.setItem(STORAGE_KEYS.BACKEND_URL, backendUrl);
+      setDynamicBaseUrl(backendUrl);
+
+      // Existing two-step login flow using the new backend_url
       const credentials: LoginRequest = {
         email,
         password,
         device_info: getDeviceInfo(deviceToken),
       };
-      return authService.login(credentials);
+      return authService.login(credentials, federatedResponse.data.client_secret);
     },
     onSuccess: async (response) => {
       if (response.success && response.data) {
@@ -59,7 +73,7 @@ export const useLogin = () => {
   const errorMessage =
     mutation.error?.response?.data?.message ||
     mutation.error?.response?.data?.error ||
-    (mutation.error ? 'Login failed. Please check your credentials.' : null);
+    (mutation.error ? mutation.error.message || 'Login failed. Please check your credentials.' : null);
 
   return {
     login,

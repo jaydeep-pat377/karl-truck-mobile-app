@@ -5,10 +5,7 @@ import { STORAGE_KEYS } from '../utils/storage';
 import { alertService } from '../services/alertService';
 import { useAuthStore } from '../store/authStore';
 
-const FALLBACK_URL = 'http://10.0.2.2:5000/api';
-const BASE_URL = API_BASE_URL || FALLBACK_URL;
 const TIMEOUT = Number(API_TIMEOUT) || 60000;
-const ENABLE_API_LOGGING = __DEV__;
 
 const PUBLIC_ENDPOINTS = [
   '/auth/login',
@@ -52,12 +49,20 @@ const shouldShowGlobalAlert = (url: string | undefined, status: number | undefin
 };
 
 export const axiosInstance = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_BASE_URL || '',
   timeout: TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+export const setDynamicBaseUrl = (url: string) => {
+  axiosInstance.defaults.baseURL = url;
+};
+
+export const resetBaseUrl = () => {
+  axiosInstance.defaults.baseURL = API_BASE_URL || '';
+};
 
 axiosInstance.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
@@ -72,43 +77,39 @@ axiosInstance.interceptors.request.use(
       }
     }
 
-    if (ENABLE_API_LOGGING) {
-      console.log('Full URL:', `${config.baseURL}${config.url}`);
-      if (config.params && Object.keys(config.params).length > 0) {
-        console.log('Query Params:', JSON.stringify(config.params, null, 2));
-      }
-      if (config.data) {
-        console.log('Body:', JSON.stringify(config.data, null, 2));
-      }
-      console.log('Headers:', JSON.stringify(config.headers, null, 2));
+    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    if (config.params && Object.keys(config.params).length > 0) {
+      console.log('[API Request] Query Params:', JSON.stringify(config.params, null, 2));
     }
+    if (config.data) {
+      const safeData = config.data?.password
+        ? { ...config.data, password: '***' }
+        : config.data;
+      console.log('[API Request] Body:', JSON.stringify(safeData, null, 2));
+    }
+    console.log('[API Request] Headers:', JSON.stringify(config.headers, null, 2));
 
     return config;
   },
   (error: AxiosError) => {
-    if (ENABLE_API_LOGGING) {
-      console.error('[API] Request Error:', error.message);
-    }
+    console.error('[API Request Error]', error.message);
     return Promise.reject(error);
   }
 );
 
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
-    if (ENABLE_API_LOGGING) {
-      console.log('Response Data:', JSON.stringify(response.data, null, 2));
-    }
+    console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.baseURL}${response.config.url} — Status: ${response.status}`);
+    console.log('[API Response] Data:', JSON.stringify(response.data, null, 2));
     return response;
   },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _silentError?: boolean };
-    const isSilentEndpoint = SILENT_ERROR_ENDPOINTS.some(endpoint => originalRequest.url?.includes(endpoint));
 
-    if (ENABLE_API_LOGGING && !isSilentEndpoint) {
-      console.error('Error Message:', error.message);
-      if (error.response?.data) {
-        console.error('Error Response:', JSON.stringify(error.response.data, null, 2));
-      }
+    console.error(`[API Error] ${originalRequest.method?.toUpperCase()} ${originalRequest.baseURL}${originalRequest.url} — Status: ${error.response?.status}`);
+    console.error('[API Error] Message:', error.message);
+    if (error.response?.data) {
+      console.error('[API Error] Response:', JSON.stringify(error.response.data, null, 2));
     }
 
     if (
@@ -123,7 +124,7 @@ axiosInstance.interceptors.response.use(
 
         if (refreshToken) {
           const response = await axios.post(
-            `${BASE_URL}/auth/refresh`,
+            `${axiosInstance.defaults.baseURL}/auth/refresh`,
             { refreshToken },
             {
               headers: {

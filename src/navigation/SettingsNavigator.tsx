@@ -8,6 +8,8 @@ import { ChangePINScreen } from '../screens/settings/ChangePINScreen';
 import { WebViewScreen } from '../screens/settings/WebViewScreen';
 import { EmailTemplateListScreen } from '../screens/settings/EmailTemplateListScreen';
 import { EmailTemplateEditScreen } from '../screens/settings/EmailTemplateEditScreen';
+import { TicketScanScreen } from '../screens/settings/TicketScanScreen';
+import { TicketScanHistoryScreen } from '../screens/settings/TicketScanHistoryScreen';
 
 export type SettingsStackParamList = {
   SettingsMain: undefined;
@@ -18,6 +20,8 @@ export type SettingsStackParamList = {
   WebView: { url: string; title: string };
   EmailTemplateList: undefined;
   EmailTemplateEdit: { templateKey: string; templateId?: string; templateName: string };
+  TicketScan: undefined;
+  TicketScanHistory: undefined;
 };
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
@@ -41,6 +45,8 @@ export const SettingsNavigator: React.FC = () => {
       <Stack.Screen name="WebView" component={WebViewScreen} />
       <Stack.Screen name="EmailTemplateList" component={EmailTemplateListScreen} />
       <Stack.Screen name="EmailTemplateEdit" component={EmailTemplateEditScreen} />
+      <Stack.Screen name="TicketScan" component={TicketScanScreen} />
+      <Stack.Screen name="TicketScanHistory" component={TicketScanHistoryScreen} />
     </Stack.Navigator>
   );
 };

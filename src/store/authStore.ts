@@ -5,10 +5,8 @@ import { authService } from '../api/services/authService';
 import { STORAGE_KEYS } from '../utils/storage';
 import { setAuthCredentials, clearWidgetData } from '../modules/TodayOverviewWidget';
 import { setWidgetLoggedIn, reloadWidget } from '../native/WidgetModule';
-import { API_BASE_URL } from '@env';
 import { normaliseUserRole } from '../utils/permissions';
-
-const WIDGET_API_URL = API_BASE_URL || 'http://api.truckast.ai/api';
+import { setDynamicBaseUrl, resetBaseUrl } from '../api/axiosInstance';
 
 interface AuthState {
   user: User | null;
@@ -52,9 +50,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
 
-      setAuthCredentials(accessToken, WIDGET_API_URL).catch((err) =>
-        console.log('Widget auth setup error:', err)
-      );
+      // Use the dynamic tenant backend URL for the widget
+      const widgetApiUrl = await AsyncStorage.getItem(STORAGE_KEYS.BACKEND_URL);
+      if (widgetApiUrl) {
+        setAuthCredentials(accessToken, widgetApiUrl).catch((err) =>
+          console.log('Widget auth setup error:', err)
+        );
+      }
 
       setWidgetLoggedIn(true);
       reloadWidget();
@@ -82,7 +84,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         STORAGE_KEYS.REFRESH_TOKEN,
         STORAGE_KEYS.USER,
         STORAGE_KEYS.APP_PERMISSIONS,
+        STORAGE_KEYS.BACKEND_URL,
       ]);
+
+      resetBaseUrl();
 
       clearWidgetData().catch((err) =>
         console.log('Widget clear error:', err)
@@ -113,6 +118,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   initialize: async () => {
     try {
       set({ isLoading: true });
+
+      // Restore dynamic backend URL before any API calls
+      const savedBackendUrl = await AsyncStorage.getItem(STORAGE_KEYS.BACKEND_URL);
+      if (savedBackendUrl) {
+        setDynamicBaseUrl(savedBackendUrl);
+      }
 
       const accessToken = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
       const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
@@ -150,9 +161,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
 
         if (accessToken) {
-          setAuthCredentials(accessToken, WIDGET_API_URL).catch((err) =>
-            console.log('Widget auth setup error:', err)
-          );
+          const widgetApiUrl = await AsyncStorage.getItem(STORAGE_KEYS.BACKEND_URL);
+          if (widgetApiUrl) {
+            setAuthCredentials(accessToken, widgetApiUrl).catch((err) =>
+              console.log('Widget auth setup error:', err)
+            );
+          }
         }
 
         setWidgetLoggedIn(true);

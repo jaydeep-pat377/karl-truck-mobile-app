@@ -10,6 +10,8 @@ export const STORAGE_KEYS = {
   BIOMETRIC_ENABLED: 'biometricEnabled',
   APP_LAST_BACKGROUND_TIME: 'appLastBackgroundTime',
   APP_PERMISSIONS: 'appPermissions',
+  BACKEND_URL: 'backendUrl',
+  TICKET_SCAN_HISTORY: 'ticketScanHistory',
 } as const;
 
 export const storageUtils = {

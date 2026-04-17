@@ -174,6 +174,10 @@ export const SettingsScreen: React.FC = () => {
     navigation.navigate('EmailTemplateList');
   };
 
+  const handleNavigateToTicketScan = () => {
+    navigation.navigate('TicketScan');
+  };
+
   const handleNavigateToPrivacyPolicy = () => {
     navigation.navigate('WebView', {
       url: 'https://dolese.truckast.ai/privacy-policy',
@@ -342,6 +346,20 @@ export const SettingsScreen: React.FC = () => {
             />
           </Card>
         </View>
+        <View style={styles.section}>
+          <Text variant="label" color="secondary" style={styles.sectionTitle}>
+            Ticket Scanner
+          </Text>
+          <Card padding="none">
+            <SettingsItem
+              icon="qrcode-scan"
+              title="Scan Ticket QR"
+              subtitle="Scan QR codes on tickets"
+              onPress={handleNavigateToTicketScan}
+            />
+          </Card>
+        </View>
+
         {!isContractor && (
           <View style={styles.section}>
             <Text variant="label" color="secondary" style={styles.sectionTitle}>

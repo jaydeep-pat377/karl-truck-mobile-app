@@ -101,6 +101,25 @@ export interface LoginRequest {
   device_info: DeviceInfo;
 }
 
+export interface FederatedLoginResponseData {
+  code: string;
+  client_secret: string;
+  redirect_url: string;
+  expires_in: number;
+  tenant: {
+    id: number;
+    name: string;
+    subdomain: string;
+    backend_url: string;
+  };
+}
+
+export interface FederatedLoginResponse {
+  success: boolean;
+  message: string;
+  data: FederatedLoginResponseData;
+}
+
 export interface MobileLoginResponseData {
   code: string;
   client_secret: string;
