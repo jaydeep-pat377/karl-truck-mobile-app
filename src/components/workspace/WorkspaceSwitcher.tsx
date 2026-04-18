@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Modal,
   Pressable,
@@ -8,6 +9,8 @@ import {
   View,
   Animated,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 import { Icon, Text } from '../common';
@@ -20,6 +23,7 @@ import {
   useWorkspaceStore,
   getWorkspaceInitial,
 } from '../../store/workspaceStore';
+import { useAuthStore } from '../../store/authStore';
 
 interface WorkspaceAvatarProps {
   workspace: Workspace;
@@ -91,49 +95,99 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({
 }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
+  const queryClient = useQueryClient();
 
+  const user = useAuthStore((s) => s.user);
   const workspaces = useWorkspaceStore((s) => s.workspaces);
   const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
-  const setCurrentWorkspace = useWorkspaceStore((s) => s.setCurrentWorkspace);
+  const isLoadingTenants = useWorkspaceStore((s) => s.isLoadingTenants);
+  const isSwitching = useWorkspaceStore((s) => s.isSwitching);
   const hydrate = useWorkspaceStore((s) => s.hydrate);
+  const fetchTenants = useWorkspaceStore((s) => s.fetchTenants);
+  const switchTenant = useWorkspaceStore((s) => s.switchTenant);
 
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [pendingWorkspace, setPendingWorkspace] = useState<Workspace | null>(null);
+  const [switchError, setSwitchError] = useState<string | null>(null);
+
+  // Check if user is admin
+  const isAdmin = useMemo(() => {
+    if (!user) return false;
+    const raw = user as any;
+    const userType = (raw.userType ?? raw.user_type ?? '').toString();
+    const userRole = (raw.userRole ?? raw.user_role ?? '').toString().toLowerCase();
+    return userType === 'admin' || userRole.includes('tk-admin') || userRole.includes('tk admin');
+  }, [user]);
+
+  // Hydrate + fetch tenants on mount
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
+  useEffect(() => {
+    if (isAdmin) {
+      fetchTenants();
+    }
+  }, [isAdmin, fetchTenants]);
+
+  // Set current workspace from user's tenant metadata if not already set
+  useEffect(() => {
+    if (!currentWorkspaceId && user?.metadata?.tenant?.tenant_subdomain) {
+      const subdomain = user.metadata.tenant.tenant_subdomain;
+      useWorkspaceStore.getState().setCurrentWorkspace(subdomain);
+    }
+  }, [currentWorkspaceId, user]);
+
   const current = useMemo(
-    () => workspaces.find((w) => w.id === currentWorkspaceId) ?? workspaces[0],
+    () => workspaces.find((w) => w.id === currentWorkspaceId) ?? null,
     [workspaces, currentWorkspaceId],
   );
 
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [pendingWorkspace, setPendingWorkspace] = useState<Workspace | null>(
-    null,
-  );
+  const currentDisplay = useMemo(() => {
+    if (current) {
+      return { initial: getWorkspaceInitial(current.name), name: current.name };
+    }
+    // Fallback: use tenant info from user metadata
+    const tenantName = user?.metadata?.tenant?.tenant_name;
+    if (tenantName) {
+      return { initial: getWorkspaceInitial(tenantName), name: tenantName };
+    }
+    return { initial: 'W', name: 'Workspace' };
+  }, [current, user]);
 
   const openSheet = () => setSheetOpen(true);
   const closeSheet = () => setSheetOpen(false);
 
   const onSelectWorkspace = (ws: Workspace) => {
-    if (ws.id === current.id) {
+    if (ws.id === currentWorkspaceId) {
       closeSheet();
       return;
     }
     closeSheet();
+    setSwitchError(null);
     setTimeout(() => setPendingWorkspace(ws), 260);
   };
 
-  const confirmSwitch = async () => {
+  const confirmSwitch = useCallback(async () => {
     if (!pendingWorkspace) return;
-    await setCurrentWorkspace(pendingWorkspace.id);
-    setPendingWorkspace(null);
-  };
+    setSwitchError(null);
+    try {
+      await switchTenant(pendingWorkspace);
+      setPendingWorkspace(null);
+      // Remove stale cache from all screens so old tenant data isn't shown
+      queryClient.removeQueries();
+      // Only refetch dashboard queries (other screens refetch when navigated to)
+      queryClient.refetchQueries({ queryKey: ['dashboard'] });
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Switch failed';
+      setSwitchError(msg);
+    }
+  }, [pendingWorkspace, switchTenant, queryClient]);
 
-  return (
-    <>
-      <TouchableOpacity
-        onPress={openSheet}
-        activeOpacity={0.8}
+  // Non-admin: show static workspace name, no dropdown
+  if (!isAdmin) {
+    return (
+      <View
         style={[
           compact ? styles.triggerCompact : styles.triggerExpanded,
           {
@@ -146,7 +200,26 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({
           },
         ]}
       >
-        <WorkspaceAvatar workspace={current} size={ms(28)} />
+        <View
+          style={{
+            width: ms(28),
+            height: ms(28),
+            borderRadius: ms(8),
+            backgroundColor: colors.primary.main,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text
+            style={{
+              color: colors.common.white,
+              fontSize: ms(12),
+              fontWeight: '700',
+            }}
+          >
+            {currentDisplay.initial}
+          </Text>
+        </View>
         {!compact && (
           <Text
             numberOfLines={1}
@@ -158,7 +231,68 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({
               maxWidth: ms(110),
             }}
           >
-            {current.name}
+            {currentDisplay.name}
+          </Text>
+        )}
+      </View>
+    );
+  }
+
+  // Admin: full dropdown
+  return (
+    <>
+      <TouchableOpacity
+        onPress={openSheet}
+        activeOpacity={0.8}
+        disabled={isSwitching}
+        style={[
+          compact ? styles.triggerCompact : styles.triggerExpanded,
+          {
+            backgroundColor: isDark
+              ? colors.semiTransparent.white08
+              : colors.common.white,
+            borderColor: isDark
+              ? colors.semiTransparent.white10
+              : colors.semiTransparent.black06,
+          },
+        ]}
+      >
+        {current ? (
+          <WorkspaceAvatar workspace={current} size={ms(28)} />
+        ) : (
+          <View
+            style={{
+              width: ms(28),
+              height: ms(28),
+              borderRadius: ms(8),
+              backgroundColor: colors.primary.main,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text
+              style={{
+                color: colors.common.white,
+                fontSize: ms(12),
+                fontWeight: '700',
+              }}
+            >
+              {currentDisplay.initial}
+            </Text>
+          </View>
+        )}
+        {!compact && (
+          <Text
+            numberOfLines={1}
+            style={{
+              marginLeft: ms(8),
+              color: themeColors.text.primary,
+              fontWeight: '600',
+              fontSize: fontSizes.sm,
+              maxWidth: ms(110),
+            }}
+          >
+            {currentDisplay.name}
           </Text>
         )}
         <View
@@ -171,11 +305,15 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({
             },
           ]}
         >
-          <Icon
-            name="chevron-down"
-            size={ms(12)}
-            color={themeColors.text.secondary}
-          />
+          {isSwitching ? (
+            <ActivityIndicator size="small" color={themeColors.text.secondary} />
+          ) : (
+            <Icon
+              name="chevron-down"
+              size={ms(12)}
+              color={themeColors.text.secondary}
+            />
+          )}
         </View>
       </TouchableOpacity>
 
@@ -183,14 +321,23 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({
         visible={sheetOpen}
         onClose={closeSheet}
         workspaces={workspaces}
-        currentId={current.id}
+        currentId={currentWorkspaceId}
         onSelect={onSelectWorkspace}
+        isLoading={isLoadingTenants}
+        isSwitching={isSwitching}
       />
 
       <SwitchWorkspaceConfirmModal
         visible={!!pendingWorkspace}
         workspace={pendingWorkspace}
-        onCancel={() => setPendingWorkspace(null)}
+        isSwitching={isSwitching}
+        error={switchError}
+        onCancel={() => {
+          if (!isSwitching) {
+            setPendingWorkspace(null);
+            setSwitchError(null);
+          }
+        }}
         onConfirm={confirmSwitch}
       />
     </>
@@ -203,6 +350,8 @@ interface WorkspaceListSheetProps {
   workspaces: Workspace[];
   currentId: string;
   onSelect: (ws: Workspace) => void;
+  isLoading: boolean;
+  isSwitching: boolean;
 }
 
 const WorkspaceListSheet: React.FC<WorkspaceListSheetProps> = ({
@@ -211,9 +360,20 @@ const WorkspaceListSheet: React.FC<WorkspaceListSheetProps> = ({
   workspaces,
   currentId,
   onSelect,
+  isLoading,
+  isSwitching,
 }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
+  const insets = useSafeAreaInsets();
+
+  // Calculate tight height: handle(28) + header(~90) + content padding(16) + items + bottom safe area
+  const itemCount = Math.max(workspaces.length, 1);
+  const ROW_HEIGHT = ms(70);   // avatar(44) + padding(12*2) + border(2)
+  const GAP = ms(10);
+  const HEADER = ms(130);      // handle + title + subtitle + border + top content padding
+  const contentHeight = HEADER + (ROW_HEIGHT * itemCount) + (GAP * (itemCount - 1)) + insets.bottom + ms(16);
+  const sheetHeight = Math.min(contentHeight, SCREEN_HEIGHT * 0.85);
 
   return (
     <BottomSheet
@@ -223,74 +383,114 @@ const WorkspaceListSheet: React.FC<WorkspaceListSheetProps> = ({
       subtitle="Choose the environment you want to work in"
       headerIcon="office-building-outline"
       headerIconColor={colors.primary.main}
-      height={Math.min(SCREEN_HEIGHT * 0.75, ms(70) * workspaces.length + ms(220))}
+      height={sheetHeight}
     >
       <View style={{ gap: ms(10) }}>
-        {workspaces.map((ws) => {
-          const isSelected = ws.id === currentId;
-          return (
-            <TouchableOpacity
-              key={ws.id}
-              activeOpacity={0.85}
-              onPress={() => onSelect(ws)}
-              style={[
-                styles.workspaceRow,
-                {
-                  backgroundColor: isSelected
-                    ? colors.semiTransparent.green08
-                    : isDark
-                    ? colors.semiTransparent.white05
-                    : colors.grey[3],
-                  borderColor: isSelected
-                    ? colors.primary.main
-                    : isDark
-                    ? colors.semiTransparent.white08
-                    : colors.semiTransparent.black06,
-                },
-              ]}
+        {isLoading ? (
+          <View style={{ alignItems: 'center', paddingVertical: ms(30) }}>
+            <ActivityIndicator size="large" color={colors.primary.main} />
+            <Text
+              style={{
+                color: themeColors.text.secondary,
+                fontSize: fontSizes.sm,
+                marginTop: ms(12),
+              }}
             >
-              <WorkspaceAvatar
-                workspace={ws}
-                size={ms(44)}
-                showStatusDot
-              />
-
-              <View style={{ flex: 1, marginLeft: ms(14) }}>
-                <Text
-                  style={{
-                    color: themeColors.text.primary,
-                    fontWeight: '700',
-                    fontSize: fontSizes.md,
-                  }}
-                  numberOfLines={1}
-                >
-                  {ws.name}
-                </Text>
-              </View>
-
-              {isSelected ? (
-                <View style={styles.selectedBadge}>
-                  <Icon
-                    name="check"
-                    size={ms(14)}
-                    color={colors.common.white}
-                  />
-                </View>
-              ) : (
-                <View
-                  style={[
-                    styles.radio,
-                    {
-                      borderColor: isDark
-                        ? colors.semiTransparent.white20
-                        : colors.grey[15],
-                    },
-                  ]}
+              Loading workspaces...
+            </Text>
+          </View>
+        ) : workspaces.length === 0 ? (
+          <View style={{ alignItems: 'center', paddingVertical: ms(30) }}>
+            <Icon name="office-building-outline" size={ms(36)} color={themeColors.text.secondary} />
+            <Text
+              style={{
+                color: themeColors.text.secondary,
+                fontSize: fontSizes.sm,
+                marginTop: ms(12),
+              }}
+            >
+              No workspaces available
+            </Text>
+          </View>
+        ) : (
+          workspaces.map((ws) => {
+            const isSelected = ws.id === currentId;
+            return (
+              <TouchableOpacity
+                key={ws.id}
+                activeOpacity={0.85}
+                onPress={() => onSelect(ws)}
+                disabled={isSwitching}
+                style={[
+                  styles.workspaceRow,
+                  {
+                    backgroundColor: isSelected
+                      ? colors.semiTransparent.green08
+                      : isDark
+                      ? colors.semiTransparent.white05
+                      : colors.grey[3],
+                    borderColor: isSelected
+                      ? colors.primary.main
+                      : isDark
+                      ? colors.semiTransparent.white08
+                      : colors.semiTransparent.black06,
+                    opacity: isSwitching && !isSelected ? 0.5 : 1,
+                  },
+                ]}
+              >
+                <WorkspaceAvatar
+                  workspace={ws}
+                  size={ms(44)}
+                  showStatusDot
                 />
-              )}
-            </TouchableOpacity>
-          );
-        })}
+
+                <View style={{ flex: 1, marginLeft: ms(14) }}>
+                  <Text
+                    style={{
+                      color: themeColors.text.primary,
+                      fontWeight: '700',
+                      fontSize: fontSizes.md,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {ws.name}
+                  </Text>
+                  <Text
+                    style={{
+                      color: themeColors.text.secondary,
+                      fontSize: fontSizes.xs,
+                      marginTop: ms(2),
+                    }}
+                    numberOfLines={1}
+                  >
+                    {ws.subdomain}.truckast.ai
+                  </Text>
+                </View>
+
+                {isSelected ? (
+                  <View style={styles.selectedBadge}>
+                    <Icon
+                      name="check"
+                      size={ms(14)}
+                      color={colors.common.white}
+                    />
+                  </View>
+                ) : (
+                  <View
+                    style={[
+                      styles.radio,
+                      {
+                        borderColor: isDark
+                          ? colors.semiTransparent.white20
+                          : colors.grey[15],
+                      },
+                    ]}
+                  />
+                )}
+              </TouchableOpacity>
+            );
+          })
+        )}
       </View>
     </BottomSheet>
   );
@@ -299,13 +499,20 @@ const WorkspaceListSheet: React.FC<WorkspaceListSheetProps> = ({
 interface SwitchWorkspaceConfirmModalProps {
   visible: boolean;
   workspace: Workspace | null;
+  isSwitching: boolean;
+  error: string | null;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
-const SwitchWorkspaceConfirmModal: React.FC<
-  SwitchWorkspaceConfirmModalProps
-> = ({ visible, workspace, onCancel, onConfirm }) => {
+const SwitchWorkspaceConfirmModal: React.FC<SwitchWorkspaceConfirmModalProps> = ({
+  visible,
+  workspace,
+  isSwitching,
+  error,
+  onCancel,
+  onConfirm,
+}) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -341,12 +548,15 @@ const SwitchWorkspaceConfirmModal: React.FC<
       transparent
       animationType="none"
       statusBarTranslucent
-      onRequestClose={onCancel}
+      onRequestClose={isSwitching ? undefined : onCancel}
     >
       <Animated.View
         style={[styles.confirmOverlay, { opacity }]}
       >
-        <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={isSwitching ? undefined : onCancel}
+        />
         <Animated.View
           style={[
             styles.confirmCard,
@@ -356,17 +566,19 @@ const SwitchWorkspaceConfirmModal: React.FC<
             },
           ]}
         >
-          <TouchableOpacity
-            style={styles.confirmClose}
-            onPress={onCancel}
-            activeOpacity={0.7}
-          >
-            <Icon
-              name="close"
-              size={ms(18)}
-              color={themeColors.text.secondary}
-            />
-          </TouchableOpacity>
+          {!isSwitching && (
+            <TouchableOpacity
+              style={styles.confirmClose}
+              onPress={onCancel}
+              activeOpacity={0.7}
+            >
+              <Icon
+                name="close"
+                size={ms(18)}
+                color={themeColors.text.secondary}
+              />
+            </TouchableOpacity>
+          )}
 
           <View
             style={[
@@ -435,7 +647,7 @@ const SwitchWorkspaceConfirmModal: React.FC<
                 }}
                 numberOfLines={1}
               >
-                {workspace.subdomain}
+                {workspace.subdomain}.truckast.ai
               </Text>
             </View>
             <Icon
@@ -444,6 +656,32 @@ const SwitchWorkspaceConfirmModal: React.FC<
               color={colors.success.main}
             />
           </View>
+
+          {error && (
+            <View
+              style={[
+                styles.errorBanner,
+                {
+                  backgroundColor: isDark
+                    ? colors.semiTransparent.white05
+                    : '#FEF2F2',
+                },
+              ]}
+            >
+              <Icon name="alert-circle" size={ms(16)} color={colors.error.main} />
+              <Text
+                style={{
+                  color: colors.error.main,
+                  fontSize: fontSizes.xs,
+                  marginLeft: ms(8),
+                  flex: 1,
+                }}
+                numberOfLines={2}
+              >
+                {error}
+              </Text>
+            </View>
+          )}
 
           <View style={styles.confirmButtons}>
             <TouchableOpacity
@@ -461,12 +699,14 @@ const SwitchWorkspaceConfirmModal: React.FC<
               ]}
               onPress={onCancel}
               activeOpacity={0.8}
+              disabled={isSwitching}
             >
               <Text
                 style={{
                   color: themeColors.text.primary,
                   fontWeight: '600',
                   fontSize: fontSizes.md,
+                  opacity: isSwitching ? 0.5 : 1,
                 }}
               >
                 Cancel
@@ -476,20 +716,29 @@ const SwitchWorkspaceConfirmModal: React.FC<
               style={[
                 styles.confirmBtn,
                 styles.confirmPrimary,
-                { backgroundColor: colors.common.black },
+                {
+                  backgroundColor: isSwitching
+                    ? colors.grey[40]
+                    : colors.common.black,
+                },
               ]}
               onPress={onConfirm}
               activeOpacity={0.85}
+              disabled={isSwitching}
             >
-              <Text
-                style={{
-                  color: colors.common.white,
-                  fontWeight: '700',
-                  fontSize: fontSizes.md,
-                }}
-              >
-                Switch Workspace
-              </Text>
+              {isSwitching ? (
+                <ActivityIndicator size="small" color={colors.common.white} />
+              ) : (
+                <Text
+                  style={{
+                    color: colors.common.white,
+                    fontWeight: '700',
+                    fontSize: fontSizes.md,
+                  }}
+                >
+                  Switch Workspace
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -599,6 +848,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginTop: vs(18),
     marginBottom: vs(18),
+    width: '100%',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: ms(10),
+    borderRadius: ms(10),
+    marginBottom: vs(12),
     width: '100%',
   },
   confirmButtons: {

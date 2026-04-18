@@ -1,7 +1,7 @@
 import axios from 'axios';
 import apiClient from '../apiClient';
 import { API_ENDPOINTS } from '../endpoints';
-import { LoginRequest, LoginResponse, FederatedLoginResponse, ExchangeCodeRequest, User } from '../../types/user';
+import { LoginRequest, LoginResponse, FederatedLoginResponse, ExchangeCodeRequest, User, TenantListItem, SwitchTenantResponseData } from '../../types/user';
 import { FEDERATED_AUTH_URL } from '@env';
 
 export interface ApiResponse<T> {
@@ -129,6 +129,25 @@ export const authService = {
 
   getAppPermissions: async (): Promise<{ success: boolean; data: { permissions: string[]; showRegion?: boolean } }> => {
     return apiClient.get(API_ENDPOINTS.AUTH.APP_PERMISSIONS);
+  },
+
+  /**
+   * Fetch the list of tenants the current user has access to.
+   * Calls the current tenant's backend: GET /auth/mobile/tenants
+   */
+  getTenantList: async (): Promise<ApiResponse<TenantListItem[]>> => {
+    return apiClient.get<ApiResponse<TenantListItem[]>>(API_ENDPOINTS.AUTH.MOBILE_TENANTS);
+  },
+
+  /**
+   * Switch to a different tenant — returns auth code + new tenant backend_url.
+   * Calls the current tenant's backend: POST /auth/mobile/switch-tenant
+   */
+  switchTenant: async (targetSubdomain: string): Promise<ApiResponse<SwitchTenantResponseData>> => {
+    return apiClient.post<ApiResponse<SwitchTenantResponseData>, { target_subdomain: string }>(
+      API_ENDPOINTS.AUTH.MOBILE_SWITCH_TENANT,
+      { target_subdomain: targetSubdomain },
+    );
   },
 };
 

@@ -12,6 +12,7 @@ export const STORAGE_KEYS = {
   APP_PERMISSIONS: 'appPermissions',
   BACKEND_URL: 'backendUrl',
   TICKET_SCAN_HISTORY: 'ticketScanHistory',
+  CURRENT_TENANT: 'currentTenant',
 } as const;
 
 export const storageUtils = {

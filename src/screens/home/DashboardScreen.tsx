@@ -31,6 +31,7 @@ import { announcementService, Announcement as ApiAnnouncement } from '../../api/
 import { updateWidgetData } from '../../modules/TodayOverviewWidget';
 import { fontFamily } from '../../theme/typography';
 import { useAuthStore } from '../../store/authStore';
+import { useWorkspaceStore } from '../../store/workspaceStore';
 import { DeliveryProgress } from '../../types/order';
 import Svg, { Defs, Pattern, Line, Rect } from 'react-native-svg';
 import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
@@ -381,6 +382,8 @@ const DashboardScreen: React.FC = () => {
     initNotifications();
   }, []);
 
+  const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
@@ -393,7 +396,7 @@ const DashboardScreen: React.FC = () => {
       }
     };
     fetchAnnouncements();
-  }, []);
+  }, [currentWorkspaceId]);
 
   useEffect(() => {
     if (Platform.OS === 'android' && todayOverview) {

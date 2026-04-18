@@ -144,3 +144,22 @@ export interface AuthResponse {
   refreshToken: string;
   expiresIn: number;
 }
+
+export interface TenantListItem {
+  id: number;
+  uuid: string;
+  name: string;
+  subdomain: string;
+  backend_url?: string;
+}
+
+export interface SwitchTenantResponseData {
+  code: string;
+  client_secret: string;
+  tenant: {
+    id: number;
+    name: string;
+    subdomain: string;
+    backend_url: string;
+  };
+}

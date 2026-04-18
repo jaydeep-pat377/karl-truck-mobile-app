@@ -2076,7 +2076,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: ms(20),
     borderTopRightRadius: ms(20),
     maxHeight: '85%',
-    paddingBottom: ms(5),
+    paddingBottom: TAB_BAR_HEIGHT,
   },
   modalHeader: {
     flexDirection: 'row',

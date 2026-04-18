@@ -85,6 +85,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         STORAGE_KEYS.USER,
         STORAGE_KEYS.APP_PERMISSIONS,
         STORAGE_KEYS.BACKEND_URL,
+        STORAGE_KEYS.CURRENT_TENANT,
       ]);
 
       resetBaseUrl();

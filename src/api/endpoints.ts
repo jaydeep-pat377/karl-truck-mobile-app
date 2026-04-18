@@ -8,6 +8,8 @@ export const API_ENDPOINTS = {
     FORGOT_PASSWORD: '/auth/forgot-password',
     CHANGE_PASSWORD: '/auth/change-password',
     APP_PERMISSIONS: '/auth/app-permissions',
+    MOBILE_TENANTS: '/auth/mobile/tenants',
+    MOBILE_SWITCH_TENANT: '/auth/mobile/switch-tenant',
   },
   USER: {
     PROFILE: '/users/profile',

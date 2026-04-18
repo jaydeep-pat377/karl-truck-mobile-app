@@ -227,7 +227,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
               style={[
                 styles.scrollView,
                 styles.contentContainer,
-                { paddingBottom: insets.bottom + ms(32) }
+                { paddingBottom: insets.bottom + ms(16) }
               ]}
             >
               {children}
@@ -237,7 +237,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
               style={styles.scrollView}
               contentContainerStyle={[
                 styles.contentContainer,
-                { paddingBottom: insets.bottom + ms(32) }
+                { paddingBottom: insets.bottom + ms(16) }
               ]}
               showsVerticalScrollIndicator={true}
               bounces={true}
