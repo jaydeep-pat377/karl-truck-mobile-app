@@ -205,6 +205,8 @@ export interface TicketsByOrderWeatherData {
   temperature_max_fahrenheit?: number;
   temperature_min_fahrenheit?: number;
   concrete_temperature_fahrenheit?: number | null;
+  concrete_evaporation_rate?: number | null;
+  concrete_evaporation_level?: string | null;
 }
 
 export interface TicketsByOrderOrder {

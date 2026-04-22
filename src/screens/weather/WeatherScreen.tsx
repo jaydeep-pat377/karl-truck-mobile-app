@@ -456,13 +456,13 @@ const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({ rate,
       </View>
 
       <Text style={[styles.concreteEvapValue, { color: WEATHER_COLORS.text.primary }]}>
-        {hasData ? rate.toFixed(4) : '--'}
+        {hasData ? rate.toFixed(4) : 'N/A'}
       </Text>
 
       {hasData ? (
         <View style={styles.concreteEvapLevelBadge}>
           <View style={[styles.concreteEvapDot, { backgroundColor: levelColor }]} />
-          <Text style={[styles.concreteEvapLevelText, { color: WEATHER_COLORS.text.primary }]}>
+          <Text style={[styles.concreteEvapLevelText, { color: levelColor }]}>
             {level}
           </Text>
           <Text style={[styles.concreteEvapUnitText, { color: WEATHER_COLORS.text.secondary }]}>
@@ -476,8 +476,19 @@ const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({ rate,
       </View>
 
       <Text style={[styles.concreteEvapDesc, { color: WEATHER_COLORS.text.secondary }]} numberOfLines={1}>
-        {hasData ? `Concrete evaporation rate` : 'No data available'}
+        {hasData
+          ? (level === 'Low' ? 'Minimal risk'
+            : level === 'Moderate' ? 'Monitor conditions'
+            : level === 'High' ? 'Take precautions'
+            : level === 'Critical' ? 'Immediate action required'
+            : 'Based on ACI 305R formula')
+          : 'No Verifi Data'}
       </Text>
+      {!hasData && (
+        <Text style={[styles.concreteEvapDesc, { color: WEATHER_COLORS.text.hint, fontSize: ms(8), marginTop: vs(2) }]} numberOfLines={2}>
+          Requires concrete discharge temperature from Verifi
+        </Text>
+      )}
     </View>
   );
 };

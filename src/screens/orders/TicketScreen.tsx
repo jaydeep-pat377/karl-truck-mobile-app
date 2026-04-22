@@ -603,17 +603,42 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
               </Text>
             </>
           )}
-          {weatherData.evaporation_rate !== null && weatherData.evaporation_rate !== undefined && (
-            <View
-              style={[
-                styles.headerEvapRateBadge,
-                { backgroundColor: getEvaporationBgColor(weatherData.evaporation_rate) }
-              ]}>
-              <Text style={styles.headerEvapRateText}>
-                {getEvaporationText(weatherData.evaporation_rate)}
-              </Text>
-            </View>
-          )}
+          {(() => {
+            const concreteEvapLevel = weatherData.concrete_evaporation_level;
+            if (concreteEvapLevel) {
+              const concreteEvapColors: Record<string, string> = {
+                Low: colors.success.main,
+                Moderate: colors.warning.main,
+                High: '#FF6D00',
+                Critical: '#B71C1C',
+              };
+              return (
+                <View
+                  style={[
+                    styles.headerEvapRateBadge,
+                    { backgroundColor: concreteEvapColors[concreteEvapLevel] || colors.grey[40] },
+                  ]}>
+                  <Text style={styles.headerEvapRateText}>
+                    {concreteEvapLevel}
+                  </Text>
+                </View>
+              );
+            }
+            if (weatherData.evaporation_rate !== null && weatherData.evaporation_rate !== undefined) {
+              return (
+                <View
+                  style={[
+                    styles.headerEvapRateBadge,
+                    { backgroundColor: getEvaporationBgColor(weatherData.evaporation_rate) },
+                  ]}>
+                  <Text style={styles.headerEvapRateText}>
+                    {getEvaporationText(weatherData.evaporation_rate)}
+                  </Text>
+                </View>
+              );
+            }
+            return null;
+          })()}
         </TouchableOpacity>
       )}
 

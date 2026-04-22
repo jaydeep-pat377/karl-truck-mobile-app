@@ -1566,7 +1566,7 @@ export const TicketDetailScreen: React.FC = () => {
         ) : null}
 
 
-        {timestamps.toJob && !timestamps.atPlant && verifiJson && (
+        {timestamps.toJob && !timestamps.atPlant && (
           <TouchableOpacity
             activeOpacity={0.7}
             disabled={weatherLoading}
@@ -1652,17 +1652,42 @@ export const TicketDetailScreen: React.FC = () => {
                     </Text>
                   </>
                 )}
-                {weatherData.evaporation_rate != null && (
-                  <View
-                    style={[
-                      styles.headerCardEvapRateBadge,
-                      { backgroundColor: getEvaporationBgColor(weatherData.evaporation_rate) }
-                    ]}>
-                    <Text style={styles.headerCardEvapRateText}>
-                      {getEvaporationText(weatherData.evaporation_rate)}
-                    </Text>
-                  </View>
-                )}
+                {(() => {
+                  const concreteEvapLevel = freshWeather?.concrete_evaporation_level;
+                  if (concreteEvapLevel) {
+                    const concreteEvapColors: Record<string, string> = {
+                      Low: colors.success.main,
+                      Moderate: colors.warning.main,
+                      High: '#FF6D00',
+                      Critical: '#B71C1C',
+                    };
+                    return (
+                      <View
+                        style={[
+                          styles.headerCardEvapRateBadge,
+                          { backgroundColor: concreteEvapColors[concreteEvapLevel] || colors.grey[40] },
+                        ]}>
+                        <Text style={styles.headerCardEvapRateText}>
+                          {concreteEvapLevel}
+                        </Text>
+                      </View>
+                    );
+                  }
+                  if (weatherData.evaporation_rate != null) {
+                    return (
+                      <View
+                        style={[
+                          styles.headerCardEvapRateBadge,
+                          { backgroundColor: getEvaporationBgColor(weatherData.evaporation_rate) },
+                        ]}>
+                        <Text style={styles.headerCardEvapRateText}>
+                          {getEvaporationText(weatherData.evaporation_rate)}
+                        </Text>
+                      </View>
+                    );
+                  }
+                  return null;
+                })()}
               </>
             ) : (
               <>
