@@ -46,6 +46,7 @@ interface WorkspaceActions {
   fetchTenants: () => Promise<void>;
   switchTenant: (workspace: Workspace) => Promise<void>;
   setIsSwitching: (switching: boolean) => void;
+  reset: () => void;
 }
 
 type WorkspaceStore = WorkspaceState & WorkspaceActions;
@@ -196,6 +197,16 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   },
 
   setIsSwitching: (switching) => set({ isSwitching: switching }),
+
+  reset: () => {
+    set({
+      workspaces: [],
+      currentWorkspaceId: '',
+      hydrated: false,
+      isLoadingTenants: false,
+      isSwitching: false,
+    });
+  },
 }));
 
 export const getWorkspaceInitial = (name: string): string => {

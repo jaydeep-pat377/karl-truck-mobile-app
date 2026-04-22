@@ -7,6 +7,7 @@ import { setAuthCredentials, clearWidgetData } from '../modules/TodayOverviewWid
 import { setWidgetLoggedIn, reloadWidget } from '../native/WidgetModule';
 import { normaliseUserRole } from '../utils/permissions';
 import { setDynamicBaseUrl, resetBaseUrl } from '../api/axiosInstance';
+import { useWorkspaceStore } from './workspaceStore';
 
 interface AuthState {
   user: User | null;
@@ -96,6 +97,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       setWidgetLoggedIn(false);
       reloadWidget();
+
+      // Reset workspace store so stale tenant doesn't persist across logins
+      useWorkspaceStore.getState().reset();
 
       set({
         user: null,

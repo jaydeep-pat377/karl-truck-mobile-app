@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
+import { useWorkspaceStore } from '../store/workspaceStore';
 import { authService } from '../api/services/authService';
 import { setDynamicBaseUrl } from '../api/axiosInstance';
 import { STORAGE_KEYS } from '../utils/storage';
@@ -53,6 +54,12 @@ export const useLogin = () => {
         : `${federatedResponse.data.tenant.backend_url}/api`;
       await AsyncStorage.setItem(STORAGE_KEYS.BACKEND_URL, backendUrl);
       setDynamicBaseUrl(backendUrl);
+
+      // Persist the logged-in tenant so it shows in the dropdown on reopen
+      const tenantSubdomain = federatedResponse.data.tenant.subdomain;
+      if (tenantSubdomain) {
+        await useWorkspaceStore.getState().setCurrentWorkspace(tenantSubdomain);
+      }
 
       // Existing two-step login flow using the new backend_url
       const credentials: LoginRequest = {
