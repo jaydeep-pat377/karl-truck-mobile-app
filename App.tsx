@@ -12,7 +12,7 @@ import {
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import BootSplash from 'react-native-bootsplash';
 import './src/locales';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
@@ -27,6 +27,7 @@ import { NotificationProvider } from './src/providers/NotificationProvider';
 import { AppLockProvider } from './src/contexts/AppLockContext';
 import { LockScreen } from './src/components/LockScreen';
 import { handleDeepLink, isShortUrl } from './src/services/deepLinkService';
+import { queryClient } from './src/lib/queryClient';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { API_BASE_URL } from '@env';
 
@@ -37,16 +38,6 @@ initSentry();
 LogBox.ignoreLogs([
   'Non-serializable values were found in the navigation state',
 ]);
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-    },
-  },
-});
 
 const AppContent: React.FC = () => {
   const { theme, isDark } = useTheme();

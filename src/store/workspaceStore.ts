@@ -26,6 +26,7 @@ export interface Workspace {
   id: string;
   name: string;
   subdomain: string;
+  slug: string;
   accent: string;
   status: 'active' | 'inactive';
   backendUrl?: string;
@@ -59,6 +60,7 @@ const mapTenantsToWorkspaces = (tenants: TenantListItem[]): Workspace[] =>
     id: t.subdomain,
     name: t.name,
     subdomain: t.subdomain,
+    slug: t.slug || t.subdomain,
     accent: getAccent(i),
     status: 'active' as const,
     backendUrl: t.backend_url,

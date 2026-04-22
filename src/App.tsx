@@ -4,7 +4,7 @@ import { StatusBar, LogBox, Linking, AppState, NativeModules, Platform } from 'r
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { NotificationProvider } from './providers/NotificationProvider';
@@ -19,20 +19,11 @@ import './locales';
 import { RootNavigator } from './navigation';
 import { navigationRef } from './services/navigationService';
 import { handleDeepLink, isShortUrl } from './services/deepLinkService';
+import { queryClient } from './lib/queryClient';
 
 LogBox.ignoreLogs([
   'Non-serializable values were found in the navigation state',
 ]);
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-    },
-  },
-});
 
 interface AppContentProps {
   onReady?: () => void;

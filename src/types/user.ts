@@ -150,6 +150,7 @@ export interface TenantListItem {
   uuid: string;
   name: string;
   subdomain: string;
+  slug?: string;
   backend_url?: string;
 }
 
