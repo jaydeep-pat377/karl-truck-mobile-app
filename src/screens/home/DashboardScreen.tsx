@@ -383,6 +383,15 @@ const DashboardScreen: React.FC = () => {
   }, []);
 
   const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
+  const workspaces = useWorkspaceStore((s) => s.workspaces);
+
+  const headerTitle = useMemo(() => {
+    const current = workspaces.find((w) => w.id === currentWorkspaceId);
+    if (current) return current.name;
+    const tenantName = user?.metadata?.tenant?.tenant_name;
+    if (tenantName) return tenantName;
+    return 'Overview';
+  }, [workspaces, currentWorkspaceId, user]);
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
@@ -769,8 +778,8 @@ const DashboardScreen: React.FC = () => {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['bottom']}>
         <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-          <Text variant="h2" style={{ color: themeColors.text.primary }}>
-            Overview
+          <Text variant="h3" style={{ color: themeColors.text.primary }} numberOfLines={1}>
+            {headerTitle}
           </Text>
           <View style={{ width: ms(40), height: ms(40), backgroundColor: shimmerColor, borderRadius: ms(20) }} />
         </View>
@@ -862,8 +871,13 @@ const DashboardScreen: React.FC = () => {
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <View style={styles.headerLeft}>
           <WorkspaceSwitcher />
-          <Text variant="h2" style={{ color: themeColors.text.primary, marginLeft: ms(10) }}>
-            Overview
+          <Text
+            variant="h3"
+            style={{ color: themeColors.text.primary, marginLeft: ms(10), marginRight: ms(8), flexShrink: 1 }}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {headerTitle}
           </Text>
         </View>
         <View style={styles.headerActions}>
