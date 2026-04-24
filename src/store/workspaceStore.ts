@@ -5,7 +5,7 @@ import { colors } from '../theme/colors';
 import { STORAGE_KEYS } from '../utils/storage';
 import { TenantListItem } from '../types/user';
 import { authService } from '../api/services/authService';
-import { setDynamicBaseUrl } from '../api/axiosInstance';
+import { setDynamicBaseUrl, normalizeBackendUrl } from '../api/axiosInstance';
 import { APP_ENV } from '@env';
 
 // TODO: Remove after testing — forces code exchange to use local backend
@@ -154,7 +154,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       // In development, stay on local backend; in production, switch to target tenant's backend
       const newBackendUrl = APP_ENV === 'development'
         ? DEV_LOCAL_BACKEND_URL
-        : `${tenant.backend_url}/api`;
+        : `${normalizeBackendUrl(tenant.backend_url)}/api`;
 
       // Step 2: Set new base URL
       await AsyncStorage.setItem(STORAGE_KEYS.BACKEND_URL, newBackendUrl);

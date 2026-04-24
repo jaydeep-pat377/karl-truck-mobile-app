@@ -1,155 +1,298 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   StyleSheet,
   FlatList,
   TouchableOpacity,
   Alert,
-  RefreshControl,
+  ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Swipeable } from 'react-native-gesture-handler';
+import { useNavigation, useFocusEffect, NavigationProp } from '@react-navigation/native';
 import { Text, Card, Icon } from '../../components/common';
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
 import { spacing, ms } from '../../utils/responsive';
-import { STORAGE_KEYS } from '../../utils/storage';
-import { TicketScanRecord } from './TicketScanScreen';
+import { getScanHistory, deleteScanRecord, clearScanHistory } from '../../utils/scanStorage';
+import type { ScanRecord, Pagination, APITicketDetails } from '../../types/qrScan';
+import { SettingsStackParamList } from '../../navigation/SettingsNavigator';
 
-const formatDate = (isoString: string): string => {
-  const date = new Date(isoString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-};
+const PAGE_SIZE = 20;
 
 export const TicketScanHistoryScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<SettingsStackParamList>>();
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
 
-  const [history, setHistory] = useState<TicketScanRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [history, setHistory] = useState<ScanRecord[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const currentPage = useRef(1);
+  const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
 
-  const loadHistory = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const historyStr = await AsyncStorage.getItem(STORAGE_KEYS.TICKET_SCAN_HISTORY);
-      const data: TicketScanRecord[] = historyStr ? JSON.parse(historyStr) : [];
-      setHistory(data);
-    } catch (error) {
-      console.error('[TicketScanHistory] Failed to load history:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const closeSwipeable = useCallback((id: string) => {
+    swipeableRefs.current.get(id)?.close();
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadHistory();
-    }, [loadHistory])
-  );
-
-  const handleClearHistory = () => {
-    Alert.alert(
-      'Clear History',
-      'Are you sure you want to clear all scan history?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: async () => {
-            await AsyncStorage.removeItem(STORAGE_KEYS.TICKET_SCAN_HISTORY);
-            setHistory([]);
-          },
-        },
-      ],
-    );
-  };
-
-  const handleDeleteItem = (id: string) => {
-    Alert.alert(
-      'Delete Record',
-      'Remove this scan from history?',
-      [
+  const handleDeleteItem = useCallback(
+    (item: ScanRecord) => {
+      closeSwipeable(item.id);
+      Alert.alert('Delete Scan', 'Are you sure you want to delete this scan?', [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            const updated = history.filter(item => item.id !== id);
-            setHistory(updated);
-            await AsyncStorage.setItem(
-              STORAGE_KEYS.TICKET_SCAN_HISTORY,
-              JSON.stringify(updated)
-            );
+            await deleteScanRecord(item.id);
+            setHistory(prev => prev.filter(h => h.id !== item.id));
+            if (pagination) {
+              setPagination(p => p ? { ...p, total: p.total - 1 } : null);
+            }
           },
         },
-      ],
+      ]);
+    },
+    [closeSwipeable, pagination],
+  );
+
+  const loadHistory = useCallback(
+    async (page: number = 1, append: boolean = false) => {
+      try {
+        const result = await getScanHistory(page, PAGE_SIZE);
+        if (append) {
+          setHistory(prev => [...prev, ...(result?.records ?? [])]);
+        } else {
+          setHistory(result?.records ?? []);
+        }
+        setPagination(result?.pagination ?? null);
+        currentPage.current = result?.pagination?.page ?? page;
+      } catch {
+        if (!append) setHistory([]);
+        setPagination(null);
+      }
+    },
+    [],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      setInitialLoading(true);
+      loadHistory(1).finally(() => setInitialLoading(false));
+    }, [loadHistory]),
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadHistory(1);
+    setRefreshing(false);
+  }, [loadHistory]);
+
+  const onEndReached = useCallback(async () => {
+    if (loadingMore || !pagination?.has_next) return;
+    setLoadingMore(true);
+    await loadHistory(currentPage.current + 1, true);
+    setLoadingMore(false);
+  }, [loadHistory, loadingMore, pagination]);
+
+  const handleClearHistory = useCallback(() => {
+    Alert.alert('Clear History', 'Are you sure you want to delete all scan history?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear All',
+        style: 'destructive',
+        onPress: async () => {
+          await clearScanHistory();
+          setHistory([]);
+          setPagination(null);
+        },
+      },
+    ]);
+  }, []);
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+    });
+  };
+
+  const totalCount = pagination?.total ?? history.length;
+
+  const renderRightActions = (
+    item: ScanRecord,
+    _progress: Animated.AnimatedInterpolation<number>,
+    dragX: Animated.AnimatedInterpolation<number>,
+  ) => {
+    const scale = dragX.interpolate({
+      inputRange: [-80, 0],
+      outputRange: [1, 0.5],
+      extrapolate: 'clamp',
+    });
+    return (
+      <TouchableOpacity
+        style={[styles.swipeDeleteBtn, { backgroundColor: colors.error.main }]}
+        onPress={() => handleDeleteItem(item)}
+        activeOpacity={0.8}
+      >
+        <Animated.View style={{ transform: [{ scale }] }}>
+          <Icon name="delete-outline" size={ms(22)} color={colors.common.white} />
+        </Animated.View>
+      </TouchableOpacity>
     );
   };
 
-  const renderItem = ({ item }: { item: TicketScanRecord }) => (
-    <Card padding="none" style={styles.itemCard}>
-      <TouchableOpacity
-        style={styles.itemContainer}
-        activeOpacity={0.7}
-        onLongPress={() => handleDeleteItem(item.id)}
+  const renderItem = ({ item }: { item: ScanRecord }) => {
+    const tkData = item.tkData;
+    const apiData = item.apiData;
+    const isTicket = tkData?.kind === 'ticket';
+    const isTruck = tkData?.kind === 'truck';
+    const isTK = isTicket || isTruck;
+
+    const ticketCode = isTicket
+      ? (apiData as APITicketDetails)?.ticket_code || (tkData as any)?.ticketCode
+      : null;
+    const truckCode = isTruck
+      ? (apiData as any)?.code || (tkData as any)?.truckCode
+      : null;
+    const tenantName = tkData?.tenantName || null;
+
+    const iconName = isTicket
+      ? 'ticket-confirmation-outline'
+      : isTruck
+        ? 'truck-outline'
+        : 'qrcode-scan';
+
+    const title = isTicket
+      ? `Ticket ${ticketCode || '\u2014'}`
+      : isTruck
+        ? `Truck ${truckCode || '\u2014'}`
+        : item.data;
+
+    return (
+      <Swipeable
+        ref={ref => {
+          if (ref) swipeableRefs.current.set(item.id, ref);
+          else swipeableRefs.current.delete(item.id);
+        }}
+        renderRightActions={(progress, dragX) => renderRightActions(item, progress, dragX)}
+        overshootRight={false}
+        rightThreshold={40}
       >
-        <View style={[styles.itemIcon, { backgroundColor: colors.primary.main + '15' }]}>
-          <Icon name="qrcode-scan" size={ms(20)} color={colors.primary.main} />
-        </View>
-        <View style={styles.itemContent}>
-          <Text variant="bodySmall" style={{ fontWeight: '600' }}>
-            {item.ticketCode || 'Unknown Ticket'}
-          </Text>
-          {item.orderCode && (
-            <Text variant="caption" color="secondary">
-              Order: {item.orderCode}
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: themeColors.surface }]}
+          onPress={() => navigation.navigate('ScanDetails', { scan: item })}
+          activeOpacity={0.7}
+        >
+          <View
+            style={[
+              styles.cardIcon,
+              {
+                backgroundColor: isTicket
+                  ? colors.primary.main + '15'
+                  : isTruck
+                    ? colors.info.main + '15'
+                    : themeColors.background,
+              },
+            ]}
+          >
+            <Icon
+              name={iconName}
+              size={ms(22)}
+              color={isTicket ? colors.primary.main : isTruck ? colors.info.main : colors.primary.main}
+            />
+          </View>
+          <View style={styles.cardContent}>
+            <Text variant="bodySmall" style={{ fontWeight: '600' }} numberOfLines={1}>
+              {title}
             </Text>
-          )}
-          <Text variant="caption" color="hint">
-            {formatDate(item.scannedAt)}
-          </Text>
-        </View>
-        <Icon name="chevron-right" size={ms(18)} color={themeColors.text.hint} />
-      </TouchableOpacity>
-    </Card>
-  );
+            <View style={styles.cardMeta}>
+              {tenantName ? (
+                <View style={[styles.tenantBadge, { backgroundColor: colors.primary.main + '15' }]}>
+                  <Text variant="captionSmall" style={{ color: colors.primary.main, fontWeight: '500' }}>
+                    {tenantName}
+                  </Text>
+                </View>
+              ) : !isTK ? (
+                <View style={[styles.tenantBadge, { backgroundColor: colors.primary.main + '15' }]}>
+                  <Text variant="captionSmall" style={{ color: colors.primary.main, fontWeight: '500' }}>
+                    QR Code
+                  </Text>
+                </View>
+              ) : null}
+              <Text variant="caption" color="hint">{formatDate(item.timestamp)}</Text>
+            </View>
+          </View>
+          <Icon name="chevron-right" size={ms(20)} color={themeColors.text.hint} />
+        </TouchableOpacity>
+      </Swipeable>
+    );
+  };
 
   const renderEmpty = () => {
-    if (isLoading) return null;
+    if (initialLoading) return null;
     return (
       <View style={styles.emptyContainer}>
         <View style={[styles.emptyIcon, { backgroundColor: themeColors.surface }]}>
-          <Icon name="qrcode-scan" size={ms(40)} color={themeColors.text.hint} />
+          <Icon name="qrcode-scan" size={ms(48)} color={themeColors.text.hint} />
         </View>
-        <Text variant="body" color="secondary" style={styles.emptyTitle}>
-          No Scan History
+        <Text variant="body" style={{ fontWeight: '600', marginBottom: ms(4) }}>
+          No Scans Yet
         </Text>
-        <Text variant="caption" color="hint" style={styles.emptySubtitle}>
-          Scanned tickets will appear here
+        <Text variant="caption" color="hint" style={{ textAlign: 'center' }}>
+          Scan a QR code or barcode to see it here
         </Text>
       </View>
     );
   };
+
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={colors.primary.main} />
+        <Text variant="caption" color="secondary" style={{ marginLeft: spacing.sm }}>
+          Loading more...
+        </Text>
+      </View>
+    );
+  };
+
+  if (initialLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top', 'bottom']}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={[styles.headerButton, { backgroundColor: themeColors.surface }]}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
+          </TouchableOpacity>
+          <Text variant="h2">Scan History</Text>
+          <View style={styles.headerButton} />
+        </View>
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={colors.primary.main} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -179,34 +322,33 @@ export const TicketScanHistoryScreen: React.FC = () => {
         )}
       </View>
 
-      {/* Scan count */}
-      {history.length > 0 && (
-        <View style={styles.countContainer}>
+      {/* Count & clear */}
+      {totalCount > 0 && (
+        <View style={styles.subHeader}>
           <Text variant="caption" color="secondary">
-            {history.length} scan{history.length !== 1 ? 's' : ''}
+            {totalCount} scan{totalCount !== 1 ? 's' : ''}
           </Text>
+          <TouchableOpacity onPress={handleClearHistory} activeOpacity={0.7}>
+            <Text variant="caption" style={{ color: colors.error.main, fontWeight: '600' }}>
+              Clear All
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
 
-      {/* History List */}
+      {/* List */}
       <FlatList
         data={history}
-        keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        keyExtractor={item => item.id}
+        contentContainerStyle={history.length === 0 ? styles.emptyList : styles.list}
         ListEmptyComponent={renderEmpty}
-        contentContainerStyle={[
-          styles.listContent,
-          history.length === 0 && styles.listContentEmpty,
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={loadHistory}
-            tintColor={colors.primary.main}
-          />
-        }
+        ListFooterComponent={renderFooter}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.3}
         showsVerticalScrollIndicator={false}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
     </SafeAreaView>
   );
@@ -231,45 +373,83 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  countContainer: {
+  subHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
   },
-  listContent: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
-  },
-  listContentEmpty: {
+  loaderContainer: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  itemCard: {
-    overflow: 'hidden',
+  list: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+    paddingBottom: ms(60),
   },
-  itemContainer: {
+  emptyList: {
+    flex: 1,
+  },
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: ms(12),
-    paddingHorizontal: ms(14),
+    borderRadius: ms(12),
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  itemIcon: {
-    width: ms(40),
-    height: ms(40),
+  swipeDeleteBtn: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: ms(72),
+    borderRadius: ms(12),
+    marginBottom: spacing.sm,
+    marginLeft: spacing.xs,
+  },
+  cardIcon: {
+    width: ms(44),
+    height: ms(44),
     borderRadius: ms(10),
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: spacing.sm,
+    alignSelf: 'flex-start',
+    marginTop: ms(2),
   },
-  itemContent: {
+  cardContent: {
     flex: 1,
-    marginLeft: spacing.md,
-    gap: ms(2),
+    marginRight: spacing.xs,
   },
-  separator: {
-    height: spacing.sm,
+  cardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: ms(4),
+    marginTop: ms(4),
+  },
+  tenantBadge: {
+    borderRadius: ms(4),
+    paddingHorizontal: ms(6),
+    paddingVertical: 2,
+  },
+  footerLoader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
   },
   emptyContainer: {
-    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: spacing.xxl,
   },
   emptyIcon: {
@@ -279,13 +459,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
-  },
-  emptyTitle: {
-    fontWeight: '600',
-    marginBottom: ms(4),
-  },
-  emptySubtitle: {
-    textAlign: 'center',
   },
 });
 

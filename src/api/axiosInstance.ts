@@ -56,8 +56,27 @@ export const axiosInstance = axios.create({
   },
 });
 
+/**
+ * Normalise a backend URL returned by the federated auth server.
+ * Some tenants (e.g. StevensonWeir) return a Vercel frontend URL like
+ * https://stevensonweir-frontend-truckast-ai.vercel.app instead of the
+ * real API host https://stevensonweir-api.truckast.ai.  This helper
+ * converts those and strips trailing slashes.
+ */
+export const normalizeBackendUrl = (url: string): string => {
+  let cleaned = url.replace(/\/+$/, '');
+  // Convert Vercel frontend URLs → correct API domain
+  const vercelMatch = cleaned.match(
+    /^https?:\/\/(\w[\w-]*?)-frontend-truckast-ai\.vercel\.app$/i,
+  );
+  if (vercelMatch) {
+    cleaned = `https://${vercelMatch[1]}-api.truckast.ai`;
+  }
+  return cleaned;
+};
+
 export const setDynamicBaseUrl = (url: string) => {
-  axiosInstance.defaults.baseURL = url;
+  axiosInstance.defaults.baseURL = normalizeBackendUrl(url);
 };
 
 export const resetBaseUrl = () => {

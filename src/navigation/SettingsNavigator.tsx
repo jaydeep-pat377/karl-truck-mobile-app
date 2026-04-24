@@ -10,6 +10,9 @@ import { EmailTemplateListScreen } from '../screens/settings/EmailTemplateListSc
 import { EmailTemplateEditScreen } from '../screens/settings/EmailTemplateEditScreen';
 import { TicketScanScreen } from '../screens/settings/TicketScanScreen';
 import { TicketScanHistoryScreen } from '../screens/settings/TicketScanHistoryScreen';
+import { ScanDetailsScreen } from '../screens/settings/ScanDetailsScreen';
+import { PdfViewerScreen } from '../screens/settings/PdfViewerScreen';
+import type { ScanRecord } from '../types/qrScan';
 
 export type SettingsStackParamList = {
   SettingsMain: undefined;
@@ -22,6 +25,8 @@ export type SettingsStackParamList = {
   EmailTemplateEdit: { templateKey: string; templateId?: string; templateName: string };
   TicketScan: undefined;
   TicketScanHistory: undefined;
+  ScanDetails: { scan: ScanRecord };
+  PdfViewer: { filePath: string; title?: string };
 };
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
@@ -47,6 +52,8 @@ export const SettingsNavigator: React.FC = () => {
       <Stack.Screen name="EmailTemplateEdit" component={EmailTemplateEditScreen} />
       <Stack.Screen name="TicketScan" component={TicketScanScreen} />
       <Stack.Screen name="TicketScanHistory" component={TicketScanHistoryScreen} />
+      <Stack.Screen name="ScanDetails" component={ScanDetailsScreen} />
+      <Stack.Screen name="PdfViewer" component={PdfViewerScreen} />
     </Stack.Navigator>
   );
 };

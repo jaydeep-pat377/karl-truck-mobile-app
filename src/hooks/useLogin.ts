@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { authService } from '../api/services/authService';
-import { setDynamicBaseUrl } from '../api/axiosInstance';
+import { setDynamicBaseUrl, normalizeBackendUrl } from '../api/axiosInstance';
 import { STORAGE_KEYS } from '../utils/storage';
 import { DeviceInfo, LoginRequest, LoginResponse } from '../types/user';
 import { AxiosError } from 'axios';
@@ -51,7 +51,7 @@ export const useLogin = () => {
       // In development, use local backend; in production, use the tenant's backend_url
       const backendUrl = APP_ENV === 'development'
         ? DEV_LOCAL_BACKEND_URL
-        : `${federatedResponse.data.tenant.backend_url}/api`;
+        : `${normalizeBackendUrl(federatedResponse.data.tenant.backend_url)}/api`;
       await AsyncStorage.setItem(STORAGE_KEYS.BACKEND_URL, backendUrl);
       setDynamicBaseUrl(backendUrl);
 
