@@ -73,7 +73,7 @@ const kpiCards: KpiCardConfig[] = [
   {
     key: 'trucks_waiting',
     label: 'Trucks Waiting',
-    icon: 'truck-alert-outline',
+    icon: 'timer-sand',
     getValue: (d) => d.stuck_at_job_total,
     getSubLabel: () => 'idle > 30min',
     getHighlightColor: (d) => (d.stuck_at_job_total > 0 ? colors.warning.main : null),
