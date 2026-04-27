@@ -1134,12 +1134,17 @@ function CustomizedXAxis(props){
       var bucket = BUCKETS[i];
       var bucketX = xAxis.scale(bucket.label);
       if(bucketX === undefined) return;
+      // First label sits at x=0 (right next to the RN Y-axis column).
+      // Centering it would push half the text into negative x where it gets
+      // clipped (e.g. "16:00" rendering as "6:00"). Anchor it to 'start' so
+      // the full label sits to the right of the band's left edge.
+      var firstAnchor = i === 0 ? 'start' : 'middle';
       var kids = [
         e('text',{
           key:'t'+i,
           x:bucketX,
           y:axisY,
-          textAnchor:'middle',
+          textAnchor:firstAnchor,
           fontSize:11,
           fill:'${axisText}',
           fontWeight:500
@@ -1282,8 +1287,8 @@ function ChartBody(){
     height: HEIGHT,
     data: BUCKETS,
     margin: {top:20, right:30, bottom:20, left:5},
-    barGap: 10,
-    barCategoryGap: '35%'
+    barGap: 8,
+    barCategoryGap: '10%'
   },
     stripeDefs,
     e(R.CartesianGrid, {strokeDasharray:'3 3', vertical:false, stroke:'${gridColor}'}),

@@ -375,15 +375,23 @@ export function runWebReducer(
     let orderedStriped = 0;
     let orderedLoadsSolid = rb.orderedCount;
     let orderedLoadsStriped = 0;
-    if (
-      ri === lastOrderedIndex &&
-      rb.ordered > 0 &&
-      rb.ordered < orderedRate
-    ) {
-      orderedSolid = rb.ordered;
-      orderedStriped = orderedRate - rb.ordered;
-      orderedLoadsSolid = rb.orderedCount;
-      orderedLoadsStriped = loadsPerHour - rb.orderedCount;
+    const isScheduledHour = rb.h >= scheduledStartBucket;
+    if (isScheduledHour && orderedRate > 0) {
+      if (
+        ri === lastOrderedIndex &&
+        rb.ordered > 0 &&
+        rb.ordered < orderedRate
+      ) {
+        orderedSolid = rb.ordered;
+        orderedStriped = orderedRate - rb.ordered;
+        orderedLoadsSolid = rb.orderedCount;
+        orderedLoadsStriped = loadsPerHour - rb.orderedCount;
+      } else if (ri > lastOrderedIndex && rb.ordered === 0) {
+        orderedSolid = 0;
+        orderedStriped = orderedRate;
+        orderedLoadsSolid = 0;
+        orderedLoadsStriped = loadsPerHour;
+      }
     }
 
     result.push({
