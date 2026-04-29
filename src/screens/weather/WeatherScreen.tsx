@@ -11,6 +11,7 @@ import {
   Share,
   ActivityIndicator,
   InteractionManager,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -25,6 +26,7 @@ import { ms, vs, responsive, wp, hp, isTablet } from '../../utils/responsive';
 import { RootStackParamList } from '../../navigation/types';
 import { useWeather, useAlert } from '../../hooks';
 import { WeatherIcon as SharedWeatherIcon } from '../../utils/weatherIcon';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 import { axiosInstance } from '../../api/axiosInstance';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -627,13 +629,32 @@ export const WeatherScreen: React.FC = () => {
   const [evapInfoVisible, setEvapInfoVisible] = useState(false);
   const [loadingLink, setLoadingLink] = useState<string | null>(null);
 
-  const handlePdfLink = useCallback((pdfPath: string, title: string) => {
+  const handlePdfLink = useCallback(async (pdfPath: string, title: string) => {
     setLoadingLink(pdfPath);
-    InteractionManager.runAfterInteractions(() => {
+    try {
+      const filename = pdfPath.split('/').pop() || 'document.pdf';
+      const localPath = `${ReactNativeBlobUtil.fs.dirs.CacheDir}/${filename}`;
+
+      // Check if already downloaded
+      const exists = await ReactNativeBlobUtil.fs.exists(localPath);
+      if (!exists) {
+        const baseUrl = (axiosInstance.defaults.baseURL || '').replace(/\/api\/?$/, '');
+        const pdfUrl = `${baseUrl}${pdfPath}`;
+        await ReactNativeBlobUtil.config({ path: localPath }).fetch('GET', pdfUrl);
+      }
+
+      if (Platform.OS === 'ios') {
+        ReactNativeBlobUtil.ios.openDocument(localPath);
+      } else {
+        ReactNativeBlobUtil.android.actionViewIntent(localPath, 'application/pdf');
+      }
+    } catch {
+      // Fallback: open in WebView
       const baseUrl = (axiosInstance.defaults.baseURL || '').replace(/\/api\/?$/, '');
       navigation.navigate('WebView', { url: `${baseUrl}${pdfPath}`, title });
+    } finally {
       setLoadingLink(null);
-    });
+    }
   }, [navigation]);
 
   // Only fetch from order-level API when fresh weather is NOT available
@@ -1086,13 +1107,13 @@ export const WeatherScreen: React.FC = () => {
               A pattern of fine cracks that do not penetrate much below the surface and are usually a cosmetic problem only.
             </Text>
             <TouchableOpacity
-              onPress={() => handlePdfLink('/docs/nrmca-cip-3-crazing.pdf', 'NRMCA CIP #3: Crazing Concrete Surfaces')}
+              onPress={() => handlePdfLink('/pdfs/nrmca-cip-3-crazing.pdf', 'NRMCA CIP #3: Crazing Concrete Surfaces')}
               activeOpacity={0.7}
-              disabled={loadingLink === '/docs/nrmca-cip-3-crazing.pdf'}
+              disabled={loadingLink === '/pdfs/nrmca-cip-3-crazing.pdf'}
             >
               <View style={styles.evapInfoReferenceRow}>
                 <Text style={styles.evapInfoReference}>NRMCA Concrete in Practice #3: Crazing Concrete Surfaces</Text>
-                {loadingLink === '/docs/nrmca-cip-3-crazing.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
+                {loadingLink === '/pdfs/nrmca-cip-3-crazing.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
               </View>
             </TouchableOpacity>
           </View>
@@ -1103,13 +1124,13 @@ export const WeatherScreen: React.FC = () => {
               Can occur when water evaporates from the surface of freshly placed concrete faster than it is replaced by bleed water.
             </Text>
             <TouchableOpacity
-              onPress={() => handlePdfLink('/docs/nrmca-cip-5-plastic-shrinkage.pdf', 'NRMCA CIP #5: Plastic Shrinkage Cracking')}
+              onPress={() => handlePdfLink('/pdfs/nrmca-cip-5-plastic-shrinkage.pdf', 'NRMCA CIP #5: Plastic Shrinkage Cracking')}
               activeOpacity={0.7}
-              disabled={loadingLink === '/docs/nrmca-cip-5-plastic-shrinkage.pdf'}
+              disabled={loadingLink === '/pdfs/nrmca-cip-5-plastic-shrinkage.pdf'}
             >
               <View style={styles.evapInfoReferenceRow}>
                 <Text style={styles.evapInfoReference}>NRMCA Concrete in Practice #5: Plastic Shrinkage Cracking</Text>
-                {loadingLink === '/docs/nrmca-cip-5-plastic-shrinkage.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
+                {loadingLink === '/pdfs/nrmca-cip-5-plastic-shrinkage.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
               </View>
             </TouchableOpacity>
           </View>
@@ -1120,13 +1141,13 @@ export const WeatherScreen: React.FC = () => {
               The most common cause of concrete cracking. Because almost all concrete is mixed with more water than is needed to hydrate the cement, much of the remaining water evaporates, causing the concrete to shrink.
             </Text>
             <TouchableOpacity
-              onPress={() => handlePdfLink('/docs/nrmca-cip-4-drying-shrinkage.pdf', 'NRMCA CIP #4: Cracking Concrete Surfaces')}
+              onPress={() => handlePdfLink('/pdfs/nrmca-cip-4-drying-shrinkage.pdf', 'NRMCA CIP #4: Cracking Concrete Surfaces')}
               activeOpacity={0.7}
-              disabled={loadingLink === '/docs/nrmca-cip-4-drying-shrinkage.pdf'}
+              disabled={loadingLink === '/pdfs/nrmca-cip-4-drying-shrinkage.pdf'}
             >
               <View style={styles.evapInfoReferenceRow}>
                 <Text style={styles.evapInfoReference}>NRMCA Concrete in Practice #4: Cracking Concrete Surfaces</Text>
-                {loadingLink === '/docs/nrmca-cip-4-drying-shrinkage.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
+                {loadingLink === '/pdfs/nrmca-cip-4-drying-shrinkage.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
               </View>
             </TouchableOpacity>
           </View>
