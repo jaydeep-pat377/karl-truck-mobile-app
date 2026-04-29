@@ -342,6 +342,9 @@ export interface FreshWeatherData extends OrderDetailsWeatherData {
   concrete_evaporation_level?: string | null;
   concrete_temperature_source?: string | null;
   concrete_temperature_is_estimated?: boolean | null;
+  plant_default_temperature?: number | null;
+  plant_concrete_temperature?: number | null;
+  plant_status_type?: 0 | 1 | null;
 }
 
 export interface TruckStatusCount {

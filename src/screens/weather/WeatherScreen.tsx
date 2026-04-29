@@ -10,13 +10,14 @@ import {
   Pressable,
   Share,
   ActivityIndicator,
+  InteractionManager,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Path, Line, Text as SvgText, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
-import { Text, EvaporationProgress, TruckLoader, Icon, AlertModal } from '../../components/common';
+import { Text, EvaporationProgress, TruckLoader, Icon, AlertModal, BottomSheet } from '../../components/common';
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
@@ -24,6 +25,7 @@ import { ms, vs, responsive, wp, hp, isTablet } from '../../utils/responsive';
 import { RootStackParamList } from '../../navigation/types';
 import { useWeather, useAlert } from '../../hooks';
 import { WeatherIcon as SharedWeatherIcon } from '../../utils/weatherIcon';
+import { axiosInstance } from '../../api/axiosInstance';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type WeatherScreenRouteProp = RouteProp<RootStackParamList, 'Weather'>;
@@ -392,12 +394,12 @@ const HumidityCard: React.FC<HumidityCardProps> = ({ value, description }) => {
       titleIcon="water-percent"
       description={description}
     >
-      <View style={styles.humidityContent}>
-        <View style={styles.humidityValueContainer}>
-          <Text style={[styles.humidityValue, { color: WEATHER_COLORS.text.primary }]}>
+      <View style={styles.simpleContent}>
+        <View style={styles.simpleValueContainer}>
+          <Text style={[styles.simpleValue, { color: WEATHER_COLORS.text.primary }]}>
             {value}
           </Text>
-          <Text style={[styles.humidityUnit, { color: WEATHER_COLORS.text.primary }]}>
+          <Text style={[styles.simpleUnit, { color: WEATHER_COLORS.text.primary }]}>
             %
           </Text>
         </View>
@@ -430,19 +432,29 @@ interface ConcreteEvaporationCardProps {
   level?: string | null;
   tempSource?: string | null;
   isEstimated?: boolean | null;
+  plantDefaultTemperature?: number | null;
+  plantConcreteTemperature?: number | null;
+  plantStatusType?: 0 | 1 | null;
+  onMorePress?: () => void;
 }
 
 const CONCRETE_EVAP_COLORS: Record<string, string> = {
   Low: '#22C55E',
   Moderate: '#F59E0B',
-  High: '#EF4444',
+  High: '#F97316',
   Critical: '#DC2626',
 };
 
-const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({ rate, level, tempSource, isEstimated }) => {
+const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({
+  rate, level, tempSource, isEstimated,
+  plantDefaultTemperature, plantConcreteTemperature, plantStatusType,
+  onMorePress,
+}) => {
   const hasData = rate != null && level;
   const levelColor = hasData ? (CONCRETE_EVAP_COLORS[level] || CONCRETE_EVAP_COLORS.Low) : WEATHER_COLORS.text.hint;
   const progress = hasData ? (level === 'Low' ? 25 : level === 'Moderate' ? 50 : level === 'High' ? 75 : 100) : 0;
+  const isNonVerifi = tempSource != null && !['Discharge', 'Arrival', 'Leave Plant'].includes(tempSource);
+  const showPlantConfig = isNonVerifi || (!hasData && (plantDefaultTemperature != null || plantConcreteTemperature != null));
 
   return (
     <View style={[styles.metricCard, { backgroundColor: WEATHER_COLORS.cardBackground, borderColor: WEATHER_COLORS.cardBorder }]}>
@@ -475,19 +487,35 @@ const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({ rate,
         <View style={[styles.concreteEvapBarFill, { width: `${progress}%`, backgroundColor: levelColor }]} />
       </View>
 
-      <Text style={[styles.concreteEvapDesc, { color: WEATHER_COLORS.text.secondary }]} numberOfLines={1}>
-        {hasData
-          ? (level === 'Low' ? 'Minimal risk'
-            : level === 'Moderate' ? 'Monitor conditions'
-            : level === 'High' ? 'Take precautions'
-            : level === 'Critical' ? 'Immediate action required'
-            : 'Based on ACI 305R formula')
-          : 'No Verifi Data'}
-      </Text>
+      <View style={styles.concreteEvapDescRow}>
+        <Text style={[styles.concreteEvapDesc, { color: WEATHER_COLORS.text.secondary }]} numberOfLines={1}>
+          {hasData
+            ? (level === 'Low' ? 'Minimal risk'
+              : level === 'Moderate' ? 'Monitor conditions'
+              : level === 'High' ? 'Take precautions'
+              : level === 'Critical' ? 'Immediate action required'
+              : 'Based on ACI 305R formula')
+            : 'No Verifi Data'}
+        </Text>
+        {hasData && onMorePress && (
+          <TouchableOpacity onPress={onMorePress} activeOpacity={0.7}>
+            <Text style={styles.concreteEvapMoreLink}>More</Text>
+          </TouchableOpacity>
+        )}
+      </View>
       {!hasData && (
         <Text style={[styles.concreteEvapDesc, { color: WEATHER_COLORS.text.hint, fontSize: ms(8), marginTop: vs(2) }]} numberOfLines={2}>
           Requires concrete discharge temperature from Verifi
         </Text>
+      )}
+      {showPlantConfig && (
+        <View style={styles.concreteEvapPlantConfig}>
+          <Text style={[styles.concreteEvapPlantConfigText, { color: WEATHER_COLORS.text.hint }]} numberOfLines={2}>
+            Def. {plantDefaultTemperature != null ? `${plantDefaultTemperature}°F` : 'N/A'},
+            {' '}Concrete {plantConcreteTemperature != null ? `${plantConcreteTemperature}°F` : 'N/A'},
+            {' '}Status: {plantStatusType === 0 ? 'Normal' : plantStatusType === 1 ? 'High Risk' : 'N/A'}
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -536,21 +564,47 @@ const VisibilityCard: React.FC<{ value: number | null }> = ({ value }) => {
   );
 };
 
+const ConcreteTemperatureCard: React.FC<{ value: number | null; source?: string | null }> = ({ value, source }) => {
+  return (
+    <WeatherMetricCard
+      title="CONCRETE TEMP"
+      titleIcon="thermometer"
+    >
+      <View style={styles.simpleContent}>
+        <View style={styles.simpleValueContainer}>
+          <Text style={[styles.simpleValue, { color: WEATHER_COLORS.text.primary }]}>
+            {value != null ? Math.round(value) : '--'}
+          </Text>
+          <Text style={[styles.simpleUnit, { color: WEATHER_COLORS.text.primary }]}>
+            °F
+          </Text>
+        </View>
+      </View>
+      {source ? (
+        <Text style={styles.concreteTempSource} numberOfLines={1}>
+          {source}
+        </Text>
+      ) : null}
+    </WeatherMetricCard>
+  );
+};
+
 const WindGustCard: React.FC<{ value: number | null }> = ({ value }) => {
   return (
     <WeatherMetricCard
       title="WIND GUST"
       titleIcon="weather-windy"
-      description={value != null ? 'Max gust speed' : 'No gusts detected'}
     >
       <View style={styles.simpleContent}>
         <View style={styles.simpleValueContainer}>
           <Text style={[styles.simpleValue, { color: WEATHER_COLORS.text.primary }]}>
-            {value != null ? value.toFixed(1) : '--'}
+            {value != null ? `${value}` : 'N/A'}
           </Text>
-          <Text style={[styles.simpleUnit, { color: WEATHER_COLORS.text.primary }]}>
-            mph
-          </Text>
+          {value != null && (
+            <Text style={[styles.simpleUnit, { color: WEATHER_COLORS.text.primary }]}>
+              m/s
+            </Text>
+          )}
         </View>
       </View>
     </WeatherMetricCard>
@@ -570,6 +624,17 @@ export const WeatherScreen: React.FC = () => {
   const hasFreshWeather = !!(freshWeather && freshWeather.temperature_fahrenheit != null);
 
   const [menuVisible, setMenuVisible] = useState(false);
+  const [evapInfoVisible, setEvapInfoVisible] = useState(false);
+  const [loadingLink, setLoadingLink] = useState<string | null>(null);
+
+  const handlePdfLink = useCallback((pdfPath: string, title: string) => {
+    setLoadingLink(pdfPath);
+    InteractionManager.runAfterInteractions(() => {
+      const baseUrl = (axiosInstance.defaults.baseURL || '').replace(/\/api\/?$/, '');
+      navigation.navigate('WebView', { url: `${baseUrl}${pdfPath}`, title });
+      setLoadingLink(null);
+    });
+  }, [navigation]);
 
   // Only fetch from order-level API when fresh weather is NOT available
   const {
@@ -593,12 +658,13 @@ export const WeatherScreen: React.FC = () => {
     }
 
     const evapRate = weatherData.evaporation_rate ?? 0;
+    const serverLevel = weatherData.evaporation_level;
     let evaporationStatus: 'Low' | 'Moderate' | 'High' = 'Low';
     let evaporationProgress = 15;
-    if (evapRate >= 0.3) {
+    if (serverLevel === 'High' || (!serverLevel && evapRate >= 0.20)) {
       evaporationStatus = 'High';
       evaporationProgress = 85;
-    } else if (evapRate >= 0.15) {
+    } else if (serverLevel === 'Moderate' || (!serverLevel && evapRate >= 0.10)) {
       evaporationStatus = 'Moderate';
       evaporationProgress = 50;
     }
@@ -869,6 +935,10 @@ export const WeatherScreen: React.FC = () => {
                     level={freshWeather?.concrete_evaporation_level}
                     tempSource={freshWeather?.concrete_temperature_source}
                     isEstimated={freshWeather?.concrete_temperature_is_estimated}
+                    plantDefaultTemperature={freshWeather?.plant_default_temperature}
+                    plantConcreteTemperature={freshWeather?.plant_concrete_temperature}
+                    plantStatusType={freshWeather?.plant_status_type}
+                    onMorePress={() => setEvapInfoVisible(true)}
                   />
                 </View>
               </View>
@@ -928,7 +998,18 @@ export const WeatherScreen: React.FC = () => {
                   <WindGustCard value={weather.windGust} />
                 </View>
               </View>
-              <View style={styles.cardWrapper} />
+              {freshWeather?.concrete_temperature_fahrenheit != null ? (
+                <View style={styles.cardWrapper}>
+                  <View style={styles.cardTouchable}>
+                    <ConcreteTemperatureCard
+                      value={freshWeather.concrete_temperature_fahrenheit}
+                      source={freshWeather.concrete_temperature_source}
+                    />
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.cardWrapper} />
+              )}
             </View>
           </View>
         </View>
@@ -981,6 +1062,100 @@ export const WeatherScreen: React.FC = () => {
         buttons={alertState.buttons}
         onClose={hideAlert}
       />
+
+      <BottomSheet
+        visible={evapInfoVisible}
+        onClose={() => setEvapInfoVisible(false)}
+        title="High Evaporation Rate Information"
+        headerIcon="alert-circle-outline"
+        headerIconColor="#F97316"
+        height="auto"
+      >
+        <View style={styles.evapInfoContent}>
+          <Text style={[styles.evapInfoParagraph, { color: themeColors.text.secondary }]}>
+            High evaporation rates create a condition in which special precautions need to be taken to ensure proper handling, placing, finishing and curing of concrete. Hot weather problems are most frequently encountered in the summer, but the associated climatic factors of high winds and dry air can occur at any time of the year, contributing to high evaporation rates.
+          </Text>
+
+          <Text style={[styles.evapInfoSectionTitle, { color: themeColors.text.primary }]}>
+            Three Most Common Effects of High Evaporation Rates
+          </Text>
+
+          <View style={styles.evapInfoItem}>
+            <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>Crazing</Text>
+            <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary }]}>
+              A pattern of fine cracks that do not penetrate much below the surface and are usually a cosmetic problem only.
+            </Text>
+            <TouchableOpacity
+              onPress={() => handlePdfLink('/docs/nrmca-cip-3-crazing.pdf', 'NRMCA CIP #3: Crazing Concrete Surfaces')}
+              activeOpacity={0.7}
+              disabled={loadingLink === '/docs/nrmca-cip-3-crazing.pdf'}
+            >
+              <View style={styles.evapInfoReferenceRow}>
+                <Text style={styles.evapInfoReference}>NRMCA Concrete in Practice #3: Crazing Concrete Surfaces</Text>
+                {loadingLink === '/docs/nrmca-cip-3-crazing.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.evapInfoItem}>
+            <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>Plastic Shrinkage Cracking</Text>
+            <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary }]}>
+              Can occur when water evaporates from the surface of freshly placed concrete faster than it is replaced by bleed water.
+            </Text>
+            <TouchableOpacity
+              onPress={() => handlePdfLink('/docs/nrmca-cip-5-plastic-shrinkage.pdf', 'NRMCA CIP #5: Plastic Shrinkage Cracking')}
+              activeOpacity={0.7}
+              disabled={loadingLink === '/docs/nrmca-cip-5-plastic-shrinkage.pdf'}
+            >
+              <View style={styles.evapInfoReferenceRow}>
+                <Text style={styles.evapInfoReference}>NRMCA Concrete in Practice #5: Plastic Shrinkage Cracking</Text>
+                {loadingLink === '/docs/nrmca-cip-5-plastic-shrinkage.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.evapInfoItem}>
+            <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>Drying Shrinkage Cracking</Text>
+            <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary }]}>
+              The most common cause of concrete cracking. Because almost all concrete is mixed with more water than is needed to hydrate the cement, much of the remaining water evaporates, causing the concrete to shrink.
+            </Text>
+            <TouchableOpacity
+              onPress={() => handlePdfLink('/docs/nrmca-cip-4-drying-shrinkage.pdf', 'NRMCA CIP #4: Cracking Concrete Surfaces')}
+              activeOpacity={0.7}
+              disabled={loadingLink === '/docs/nrmca-cip-4-drying-shrinkage.pdf'}
+            >
+              <View style={styles.evapInfoReferenceRow}>
+                <Text style={styles.evapInfoReference}>NRMCA Concrete in Practice #4: Cracking Concrete Surfaces</Text>
+                {loadingLink === '/docs/nrmca-cip-4-drying-shrinkage.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.evapInfoRecommendedSection, { borderTopColor: themeColors.border }]}>
+            <Text style={[styles.evapInfoRecommendedTitle, { color: '#DC2626' }]}>
+              Dolese Bros. Co. Recommended Practices
+            </Text>
+            <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary, marginBottom: vs(8) }]}>
+              To reduce the effects of adverse weather on concrete:
+            </Text>
+            {[
+              'Pour during cooler temperatures, such as early morning or at night.',
+              "Don't get too spread out - Have enough manpower to quickly place, finish and cure the concrete.",
+              'Moisten the subgrade and form work prior to concrete placement.',
+              'Limit the effect of wind and sun by using windbreaks and sunshades.',
+              'Use a superplasticizer, if needed, for a concrete consistency that allows rapid placement. Try not to add water - more water = more potential for cracking.',
+              'Prevent loss of surface moisture from the plastic concrete through use of evaporation retarders.',
+              'Ask our Dispatch Department or your local Dolese Bros. Co. Sales Representative about using synthetic fibers to help control plastic shrinkage cracks.',
+              'Provide the recommended curing methods as soon as possible after the concrete finishing.',
+            ].map((item, index) => (
+              <View key={index} style={styles.evapInfoBulletRow}>
+                <Text style={[styles.evapInfoBullet, { color: themeColors.text.secondary }]}>{'\u2022'}</Text>
+                <Text style={[styles.evapInfoBulletText, { color: themeColors.text.secondary }]}>{item}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </BottomSheet>
     </View>
   );
 };
@@ -1187,7 +1362,7 @@ const styles = StyleSheet.create({
   },
   cardWrapper: {
     width: '48.5%',
-    height: responsive(ms(140), ms(180)),
+    height: responsive(ms(170), ms(210)),
   },
   cardTouchable: {
     flex: 1,
@@ -1261,8 +1436,9 @@ const styles = StyleSheet.create({
   metricCard: {
     borderRadius: RADIUS.lg,
     padding: responsive(ms(12), ms(16)),
-    height: responsive(ms(140), ms(180)),
+    height: responsive(ms(170), ms(210)),
     borderWidth: 1,
+    overflow: 'hidden',
   },
   metricCardHeader: {
     flexDirection: 'row',
@@ -1297,14 +1473,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   metricCardValue: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: responsive(ms(36), ms(44)),
-    lineHeight: responsive(ms(42), ms(50)),
+    fontFamily: fontFamily.medium,
+    fontSize: responsive(ms(28), ms(34)),
+    lineHeight: responsive(ms(34), ms(40)),
   },
   metricCardUnit: {
     fontFamily: fontFamily.regular,
-    fontSize: responsive(ms(16), ms(20)),
-    marginTop: ms(4),
+    fontSize: responsive(ms(14), ms(17)),
+    marginTop: ms(3),
     marginLeft: ms(2),
   },
   metricCardDescription: {
@@ -1314,9 +1490,9 @@ const styles = StyleSheet.create({
     marginTop: ms(8),
   },
   concreteEvapValue: {
-    fontSize: responsive(ms(28), ms(36)),
-    fontFamily: fontFamily.semiBold,
-    lineHeight: responsive(ms(32), ms(42)),
+    fontSize: responsive(ms(28), ms(34)),
+    fontFamily: fontFamily.medium,
+    lineHeight: responsive(ms(34), ms(40)),
     textAlign: 'center',
     marginTop: responsive(ms(2), ms(6)),
   },
@@ -1356,6 +1532,102 @@ const styles = StyleSheet.create({
     fontSize: responsive(ms(10), ms(13)),
     lineHeight: responsive(ms(13), ms(17)),
   },
+  concreteEvapPlantConfig: {
+    marginTop: vs(4),
+    paddingTop: vs(4),
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.12)',
+  },
+  concreteEvapPlantConfigText: {
+    fontFamily: fontFamily.regular,
+    fontSize: responsive(ms(8), ms(10)),
+    lineHeight: responsive(ms(11), ms(14)),
+  },
+  concreteEvapDescRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(6),
+  },
+  concreteEvapMoreLink: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: responsive(ms(10), ms(13)),
+    color: '#60A5FA',
+  },
+  evapInfoContent: {
+    gap: vs(12),
+  },
+  evapInfoParagraph: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(13),
+    lineHeight: ms(19),
+  },
+  evapInfoSectionTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(15),
+    lineHeight: ms(20),
+  },
+  evapInfoItem: {
+    gap: vs(2),
+    paddingLeft: ms(12),
+  },
+  evapInfoItemTitle: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(14),
+    lineHeight: ms(19),
+  },
+  evapInfoItemDesc: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
+    lineHeight: ms(17),
+  },
+  evapInfoReference: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+    lineHeight: ms(15),
+    color: '#60A5FA',
+    flex: 1,
+  },
+  evapInfoReferenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  linkLoader: {
+    marginLeft: ms(6),
+  },
+  concreteTempSource: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(10),
+    color: '#22C55E',
+    marginTop: vs(2),
+  },
+  evapInfoRecommendedSection: {
+    marginTop: vs(4),
+    paddingTop: vs(12),
+    borderTopWidth: 1,
+  },
+  evapInfoRecommendedTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(15),
+    lineHeight: ms(20),
+    marginBottom: vs(4),
+  },
+  evapInfoBulletRow: {
+    flexDirection: 'row',
+    paddingLeft: ms(12),
+    marginBottom: vs(4),
+  },
+  evapInfoBullet: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
+    lineHeight: ms(17),
+    marginRight: ms(8),
+  },
+  evapInfoBulletText: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(12),
+    lineHeight: ms(17),
+    flex: 1,
+  },
   windContent: {
     flex: 1,
     alignItems: 'center',
@@ -1392,35 +1664,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   simpleValue: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: responsive(ms(40), ms(50)),
-    lineHeight: responsive(ms(46), ms(56)),
+    fontFamily: fontFamily.medium,
+    fontSize: responsive(ms(28), ms(34)),
+    lineHeight: responsive(ms(34), ms(40)),
   },
   simpleUnit: {
     fontFamily: fontFamily.regular,
-    fontSize: responsive(ms(20), ms(26)),
-    marginTop: ms(4),
-  },
-  humidityContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: ms(4),
-  },
-  humidityValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  humidityValue: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: responsive(ms(32), ms(42)),
-    lineHeight: responsive(ms(38), ms(48)),
-  },
-  humidityUnit: {
-    fontFamily: fontFamily.regular,
-    fontSize: responsive(ms(16), ms(22)),
-    marginTop: ms(4),
+    fontSize: responsive(ms(14), ms(17)),
+    marginTop: ms(3),
+    marginLeft: ms(2),
   },
   evaporationContainer: {
     flex: 1,

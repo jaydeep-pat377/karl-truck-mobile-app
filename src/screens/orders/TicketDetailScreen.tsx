@@ -42,9 +42,9 @@ const getEvaporationBgColor = (rate: number | null | undefined): string => {
   if (rate === null || rate === undefined) return colors.grey[40];
   if (rate < 0.10) return colors.success.main;
   if (rate < 0.20) return colors.warning.main;
-  if (rate < 0.30) return '#FF6B6B';
-  if (rate < 0.40) return '#E53935';
-  return '#B71C1C';
+  if (rate < 0.30) return colors.unloadingRate.light;
+  if (rate < 0.40) return colors.unloadingRate.medium;
+  return colors.unloadingRate.dark;
 };
 
 const getEvaporationText = (rate: number | null | undefined): string => {
@@ -1566,7 +1566,7 @@ export const TicketDetailScreen: React.FC = () => {
         ) : null}
 
 
-        {timestamps.toJob && !timestamps.atPlant && (
+        {timestamps.toJob && !timestamps.atJob && (
           <TouchableOpacity
             activeOpacity={0.7}
             disabled={weatherLoading}
@@ -1658,8 +1658,8 @@ export const TicketDetailScreen: React.FC = () => {
                     const concreteEvapColors: Record<string, string> = {
                       Low: colors.success.main,
                       Moderate: colors.warning.main,
-                      High: '#FF6D00',
-                      Critical: '#B71C1C',
+                      High: '#F97316',
+                      Critical: '#DC2626',
                     };
                     return (
                       <View

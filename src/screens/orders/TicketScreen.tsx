@@ -609,8 +609,8 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
               const concreteEvapColors: Record<string, string> = {
                 Low: colors.success.main,
                 Moderate: colors.warning.main,
-                High: '#FF6D00',
-                Critical: '#B71C1C',
+                High: '#F97316',
+                Critical: '#DC2626',
               };
               return (
                 <View

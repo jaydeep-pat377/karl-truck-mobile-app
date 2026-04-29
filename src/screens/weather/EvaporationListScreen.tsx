@@ -51,14 +51,18 @@ const RADIUS = {
 const WEATHER_COLORS = colors.weatherTheme;
 
 const getEvaporationStatus = (rate: number): string => {
-  if (rate >= 0.25) return 'Plastic Shrinkage Cracking Risk';
-  if (rate >= 0.15) return 'Moderate - Monitor Closely';
+  if (rate >= 0.40) return 'Severe - Immediate Action Required';
+  if (rate >= 0.30) return 'Very High - Plastic Shrinkage Cracking Risk';
+  if (rate >= 0.20) return 'High - Take Precautions';
+  if (rate >= 0.10) return 'Moderate - Monitor Closely';
   return 'Low Risk';
 };
 
 const getStatusColor = (rate: number): string => {
-  if (rate >= 0.25) return colors.error.main;
-  if (rate >= 0.15) return colors.warning.main;
+  if (rate >= 0.40) return colors.unloadingRate.dark;
+  if (rate >= 0.30) return colors.unloadingRate.medium;
+  if (rate >= 0.20) return colors.unloadingRate.light;
+  if (rate >= 0.10) return colors.warning.main;
   return colors.success.main;
 };
 

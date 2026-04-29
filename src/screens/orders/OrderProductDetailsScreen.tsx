@@ -168,10 +168,10 @@ export const OrderProductDetailsScreen: React.FC = () => {
   const getEvaporationBgColor = (rate: number | null) => {
     if (rate === null || rate === undefined) return colors.grey[40];
     if (rate < 0.10) return colors.success.main;
-    if (rate < 0.15) return colors.success.light;
-    if (rate < 0.20) return colors.warning.light;
-    if (rate < 0.25) return colors.warning.main;
-    return colors.error.main;
+    if (rate < 0.20) return colors.warning.main;
+    if (rate < 0.30) return colors.unloadingRate.light;
+    if (rate < 0.40) return colors.unloadingRate.medium;
+    return colors.unloadingRate.dark;
   };
 
 
