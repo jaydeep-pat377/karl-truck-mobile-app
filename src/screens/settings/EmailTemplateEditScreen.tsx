@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
 import Clipboard from '@react-native-clipboard/clipboard';
+import { useTranslation } from 'react-i18next';
 import { SettingsStackParamList } from '../../navigation/SettingsNavigator';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card, Icon, Button, AlertModal } from '../../components/common';
@@ -48,6 +49,7 @@ const getFontLabel = (value: string) =>
 const FONT_SIZES = ['12px', '13px', '14px', '15px', '16px', '18px', '20px'];
 
 export const EmailTemplateEditScreen: React.FC = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const route = useRoute<EditScreenRouteProp>();
   const { templateKey, templateId, templateName } = route.params;
@@ -120,11 +122,11 @@ export const EmailTemplateEditScreen: React.FC = () => {
 
   const handleSave = useCallback(async () => {
     if (!name.trim()) {
-      showModal('warning', 'Validation Error', 'Template name is required.');
+      showModal('warning', t('emailTemplates.validationError'), t('emailTemplates.nameRequired'));
       return;
     }
     if (!subject.trim()) {
-      showModal('warning', 'Validation Error', 'Email subject is required.');
+      showModal('warning', t('emailTemplates.validationError'), t('emailTemplates.subjectRequired'));
       return;
     }
 
@@ -145,54 +147,54 @@ export const EmailTemplateEditScreen: React.FC = () => {
       } else {
         await createMutation.mutateAsync(input);
       }
-      showModal('success', 'Success', 'Email template saved successfully.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+      showModal('success', t('common.success'), t('emailTemplates.savedSuccess'), [
+        { text: t('common.ok'), onPress: () => navigation.goBack() },
       ]);
     } catch (error: any) {
-      const msg = error?.response?.data?.message || 'Failed to save template.';
-      showModal('error', 'Error', msg);
+      const msg = error?.response?.data?.message || t('emailTemplates.saveFailed');
+      showModal('error', t('common.error'), msg);
     }
   }, [
     name, subject, bodyContent, fontFamily, fontSize, footerText, isActive,
-    templateKey, isEditing, existingTemplate, createMutation, updateMutation, navigation, showModal,
+    templateKey, isEditing, existingTemplate, createMutation, updateMutation, navigation, showModal, t,
   ]);
 
   const handleDelete = useCallback(() => {
     if (!existingTemplate) return;
 
-    showModal('confirm', 'Delete Template',
-      'Are you sure you want to delete this custom template? The system will revert to the default template.',
+    showModal('confirm', t('emailTemplates.deleteTemplate'),
+      t('emailTemplates.deleteTemplateConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             hideModal();
             try {
               await deleteMutation.mutateAsync(existingTemplate.id);
-              showModal('success', 'Deleted', 'Template deleted successfully.', [
-                { text: 'OK', onPress: () => navigation.goBack() },
+              showModal('success', t('emailTemplates.deleted'), t('emailTemplates.deletedSuccess'), [
+                { text: t('common.ok'), onPress: () => navigation.goBack() },
               ]);
             } catch (error: any) {
-              const msg = error?.response?.data?.message || 'Failed to delete template.';
-              showModal('error', 'Error', msg);
+              const msg = error?.response?.data?.message || t('emailTemplates.deleteFailed');
+              showModal('error', t('common.error'), msg);
             }
           },
         },
       ]
     );
-  }, [existingTemplate, deleteMutation, navigation, showModal, hideModal]);
+  }, [existingTemplate, deleteMutation, navigation, showModal, hideModal, t]);
 
   const handleResetToDefaults = useCallback(() => {
     if (!templateDefault) return;
 
-    showModal('confirm', 'Reset to Defaults',
-      'This will reset all fields to the default template values. Any unsaved changes will be lost.',
+    showModal('confirm', t('emailTemplates.resetToDefaults'),
+      t('emailTemplates.resetConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Reset',
+          text: t('emailTemplates.reset'),
           onPress: () => {
             setName(templateDefault.name);
             setSubject(templateDefault.default_subject);
@@ -205,7 +207,7 @@ export const EmailTemplateEditScreen: React.FC = () => {
         },
       ]
     );
-  }, [templateDefault, showModal]);
+  }, [templateDefault, showModal, t]);
 
   const handleCopyVariable = useCallback((variable: string) => {
     // Variables already come as {{name}} from backend
@@ -213,8 +215,8 @@ export const EmailTemplateEditScreen: React.FC = () => {
     Clipboard.setString(formatted);
     // Also append to body content like web does
     setBodyContent((prev) => prev + formatted);
-    showModal('success', 'Copied', `${formatted} inserted into body and copied to clipboard`);
-  }, [showModal]);
+    showModal('success', t('emailTemplates.copied'), t('emailTemplates.variableCopied', { variable: formatted }));
+  }, [showModal, t]);
 
   // Sample variables for preview — matches web exactly (page.tsx lines 65-83)
   const SAMPLE_VARIABLES: Record<string, string> = {
@@ -434,7 +436,7 @@ ${body}
           activeOpacity={0.7}>
           <Icon name="refresh" size={ms(18)} color={themeColors.text.secondary} />
           <Text variant="caption" style={[styles.actionBarLabel, { color: themeColors.text.secondary }]}>
-            Reset
+            {t('emailTemplates.reset')}
           </Text>
         </TouchableOpacity>
 
@@ -447,7 +449,7 @@ ${body}
           activeOpacity={0.7}>
           <Icon name="eye-outline" size={ms(18)} color={colors.info.main} />
           <Text variant="caption" style={[styles.actionBarLabel, { color: colors.info.main }]}>
-            Preview
+            {t('emailTemplates.preview')}
           </Text>
         </TouchableOpacity>
 
@@ -462,7 +464,7 @@ ${body}
             <>
               <Icon name="content-save-outline" size={ms(18)} color={colors.common.white} />
               <Text variant="caption" style={[styles.actionBarLabel, styles.actionBarSaveLabel]}>
-                {isEditing ? 'Update' : 'Save'}
+                {isEditing ? t('emailTemplates.update') : t('common.save')}
               </Text>
             </>
           )}
@@ -480,7 +482,7 @@ ${body}
           {/* Template Name */}
           <View style={styles.fieldGroup}>
             <Text variant="label" color="secondary" style={styles.fieldLabel}>
-              Template Name
+              {t('emailTemplates.templateName')}
             </Text>
             <TextInput
               style={[
@@ -493,7 +495,7 @@ ${body}
               ]}
               value={name}
               onChangeText={setName}
-              placeholder="Enter template name"
+              placeholder={t('emailTemplates.templateNamePlaceholder')}
               placeholderTextColor={themeColors.text.hint}
             />
           </View>
@@ -503,10 +505,10 @@ ${body}
             <View style={styles.toggleRow}>
               <View style={styles.toggleLabelContainer}>
                 <Text variant="label" color="secondary">
-                  Status
+                  {t('emailTemplates.statusLabel')}
                 </Text>
                 <Text variant="caption" color="hint" style={{ marginTop: ms(2) }}>
-                  {isActive ? 'Template is active' : 'Template is inactive'}
+                  {isActive ? t('emailTemplates.templateActive') : t('emailTemplates.templateInactive')}
                 </Text>
               </View>
               <Switch
@@ -521,7 +523,7 @@ ${body}
           {/* Email Subject */}
           <View style={styles.fieldGroup}>
             <Text variant="label" color="secondary" style={styles.fieldLabel}>
-              Email Subject
+              {t('emailTemplates.emailSubject')}
             </Text>
             <TextInput
               style={[
@@ -534,7 +536,7 @@ ${body}
               ]}
               value={subject}
               onChangeText={setSubject}
-              placeholder="Enter email subject (supports {{variables}})"
+              placeholder={t('emailTemplates.emailSubjectPlaceholder')}
               placeholderTextColor={themeColors.text.hint}
             />
           </View>
@@ -542,7 +544,7 @@ ${body}
           {/* Font Family Picker */}
           <View style={styles.fieldGroup}>
             <Text variant="label" color="secondary" style={styles.fieldLabel}>
-              Font Family
+              {t('emailTemplates.fontFamily')}
             </Text>
             <TouchableOpacity
               style={[
@@ -601,7 +603,7 @@ ${body}
           {/* Font Size Picker */}
           <View style={styles.fieldGroup}>
             <Text variant="label" color="secondary" style={styles.fieldLabel}>
-              Font Size
+              {t('emailTemplates.fontSize')}
             </Text>
             <TouchableOpacity
               style={[
@@ -661,10 +663,10 @@ ${body}
           {templateDefault?.variables && templateDefault.variables.length > 0 && (
             <View style={styles.fieldGroup}>
               <Text variant="label" color="secondary" style={styles.fieldLabel}>
-                Available Variables
+                {t('emailTemplates.availableVariables')}
               </Text>
               <Text variant="caption" color="hint" style={{ marginBottom: ms(8) }}>
-                Tap to insert into body and copy
+                {t('emailTemplates.tapToInsert')}
               </Text>
               <View style={styles.variablesContainer}>
                 {templateDefault.variables.map((variable) => (
@@ -706,7 +708,7 @@ ${body}
           {/* Email Body */}
           <View style={styles.fieldGroup}>
             <Text variant="label" color="secondary" style={styles.fieldLabel}>
-              Email Body
+              {t('emailTemplates.emailBody')}
             </Text>
             <TextInput
               style={[
@@ -720,7 +722,7 @@ ${body}
               ]}
               value={bodyContent}
               onChangeText={setBodyContent}
-              placeholder="Enter email body content (supports {{variables}})"
+              placeholder={t('emailTemplates.emailBodyPlaceholder')}
               placeholderTextColor={themeColors.text.hint}
               multiline
               textAlignVertical="top"
@@ -730,7 +732,7 @@ ${body}
           {/* Footer Text */}
           <View style={styles.fieldGroup}>
             <Text variant="label" color="secondary" style={styles.fieldLabel}>
-              Footer Text
+              {t('emailTemplates.footerText')}
             </Text>
             <TextInput
               style={[
@@ -743,7 +745,7 @@ ${body}
               ]}
               value={footerText}
               onChangeText={setFooterText}
-              placeholder="Enter footer text"
+              placeholder={t('emailTemplates.footerTextPlaceholder')}
               placeholderTextColor={themeColors.text.hint}
             />
           </View>
@@ -762,7 +764,7 @@ ${body}
                   <>
                     <Icon name="delete-outline" size={ms(20)} color={colors.error.main} />
                     <Text variant="bodySmall" style={{ color: colors.error.main, fontWeight: '700', marginLeft: ms(8) }}>
-                      Delete Custom Template
+                      {t('emailTemplates.deleteCustomTemplate')}
                     </Text>
                   </>
                 )}
@@ -783,7 +785,7 @@ ${body}
           edges={['top']}>
           <View style={[styles.previewHeader, { borderBottomColor: themeColors.border }]}>
             <Text variant="bodySmall" style={{ fontWeight: '600' }}>
-              Email Preview
+              {t('emailTemplates.emailPreview')}
             </Text>
             <TouchableOpacity
               onPress={() => setShowPreview(false)}

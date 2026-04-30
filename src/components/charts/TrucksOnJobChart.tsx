@@ -20,6 +20,7 @@ import Svg, {
   Circle,
 } from 'react-native-svg';
 import { moderateScale as ms } from 'react-native-size-matters';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 
@@ -304,6 +305,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   height = ms(220),
   horizontalPadding = 16,
 }) => {
+  const { t } = useTranslation();
   const [tooltip, setTooltip] = useState<{
     x: number;
     y: number;
@@ -578,7 +580,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Text style={[styles.title, { color: themeColors.text.primary }]}>
-            Trucks on the Job
+            {t('orders.trucksOnJob')}
           </Text>
           <View style={styles.zoomControls}>
             <TouchableOpacity
@@ -737,11 +739,11 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                     <Text style={styles.tooltipTitle}>{tooltip.time}</Text>
                     <View style={styles.tooltipRow}>
                       <View style={[styles.tooltipDot, { backgroundColor: COLORS.waiting }]} />
-                      <Text style={styles.tooltipText}>Waiting: {tooltip.waiting}</Text>
+                      <Text style={styles.tooltipText}>{t('charts.waiting')}: {tooltip.waiting}</Text>
                     </View>
                     <View style={styles.tooltipRow}>
                       <View style={[styles.tooltipDot, { backgroundColor: COLORS.pouring }]} />
-                      <Text style={styles.tooltipText}>Pouring: {tooltip.pouring}</Text>
+                      <Text style={styles.tooltipText}>{t('charts.pouring')}: {tooltip.pouring}</Text>
                     </View>
                   </View>
                 )}
@@ -754,7 +756,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
       {zoomLevel > 1 && (
         <View style={styles.swipeIndicator}>
           <Icon name="gesture-swipe-horizontal" size={ms(16)} color={themeColors.text.hint} />
-          <Text style={[styles.swipeText, { color: themeColors.text.hint }]}>Swipe right to view more</Text>
+          <Text style={[styles.swipeText, { color: themeColors.text.hint }]}>{t('charts.swipeToViewMore')}</Text>
         </View>
       )}
 
@@ -779,7 +781,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
             styles.legendLabel,
             { color: selectedFilters.has('waiting') ? themeColors.text.primary : themeColors.text.hint }
           ]}>
-            Waiting
+            {t('charts.waiting')}
           </Text>
         </TouchableOpacity>
 
@@ -802,7 +804,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
             styles.legendLabel,
             { color: selectedFilters.has('pouring') ? themeColors.text.primary : themeColors.text.hint }
           ]}>
-            Pouring
+            {t('charts.pouring')}
           </Text>
         </TouchableOpacity>
       </View>

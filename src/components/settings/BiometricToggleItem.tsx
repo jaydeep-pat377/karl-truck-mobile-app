@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text, Icon } from '../common';
 import { colors } from '../../theme/colors';
 import { ms } from '../../utils/responsive';
@@ -24,6 +25,7 @@ export const BiometricToggleItem: React.FC<BiometricToggleItemProps> = ({
   onError,
 }) => {
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
   const {
     isAvailable,
@@ -100,12 +102,12 @@ export const BiometricToggleItem: React.FC<BiometricToggleItemProps> = ({
 
       <View style={styles.content}>
         <Text variant="bodySmall" style={{ fontWeight: '600' }}>
-          {isAvailable ? getBiometryTypeName() : 'Biometric Authentication'}
+          {isAvailable ? getBiometryTypeName() : t('biometric.title')}
         </Text>
         <Text variant="caption" color={isAvailable ? 'secondary' : 'error'}>
           {isAvailable
-            ? `Unlock app with ${getBiometryTypeName().toLowerCase()}`
-            : 'Not set up — tap to open settings'}
+            ? t('biometric.unlockWith', { method: getBiometryTypeName().toLowerCase() })
+            : t('biometric.notSetUp')}
         </Text>
       </View>
 

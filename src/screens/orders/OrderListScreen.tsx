@@ -17,6 +17,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { RootStackParamList, MainTabParamList, OrdersStackParamList, OrderTabFilter } from '../../navigation/types';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
@@ -265,6 +266,7 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
   onDateSelect,
   isDark,
 }) => {
+  const { t } = useTranslation();
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -340,8 +342,8 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
     const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const year = date.getFullYear();
 
-    if (isToday) return `Today, ${weekday} - ${monthDay}, ${year}`;
-    if (isTomorrow) return `Tomorrow, ${weekday} - ${monthDay}, ${year}`;
+    if (isToday) return `${t('dateFilters.today')}, ${weekday} - ${monthDay}, ${year}`;
+    if (isTomorrow) return `${t('dateFilters.tomorrow')}, ${weekday} - ${monthDay}, ${year}`;
     return `${weekday} - ${monthDay}, ${year}`;
   };
 
@@ -377,10 +379,10 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
               </View>
               <View>
                 <Text style={[styles.modalTitle, { color: themeColors.text.primary }]}>
-                  Select Date
+                  {t('dateFilters.selectDate')}
                 </Text>
                 <Text style={[styles.modalSubtitle, { color: themeColors.text.secondary }]}>
-                  Pick a date to filter orders
+                  {t('dateFilters.pickDateOrders')}
                 </Text>
               </View>
             </View>
@@ -404,7 +406,7 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
             </View>
             <View style={styles.selectedDateTextWrapper}>
               <Text style={[styles.selectedDateLabel, { color: themeColors.text.secondary }]}>
-                Selected Date
+                {t('dateFilters.selectedDate')}
               </Text>
               <Text style={[styles.selectedDateText, { color: themeColors.text.primary }]}>
                 {formatDisplayDate(tempDate)}
@@ -472,7 +474,7 @@ const DatePickerModal: React.FC<DatePickerModalProps> = ({
                 <Icon name="calendar-check" size={ms(20)} color={colors.common.white} />
               </View>
               <Text style={styles.applyButtonText} numberOfLines={1}>
-                Apply Date
+                {t('orderList.applyDate')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -498,6 +500,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   onApply,
   isDark,
 }) => {
+  const { t } = useTranslation();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
@@ -633,10 +636,10 @@ const FilterModal: React.FC<FilterModalProps> = ({
               </View>
               <View>
                 <Text style={[styles.modalTitle, { color: themeColors.text.primary }]}>
-                  Filter & Sort
+                  {t('orderList.filterAndSort')}
                 </Text>
                 <Text style={[styles.modalSubtitle, { color: themeColors.text.secondary }]}>
-                  Customize your order list
+                  {t('orderList.customizeList')}
                 </Text>
               </View>
             </View>
@@ -666,7 +669,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   <Icon name="list-status" size={ms(16)} color={colors.info.main} />
                 </View>
                 <Text style={[styles.filterSectionTitle, { color: themeColors.text.primary }]}>
-                  Order Status
+                  {t('orderList.orderStatusSection')}
                 </Text>
               </View>
               <View style={styles.filterChipsContainer}>
@@ -700,7 +703,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                           },
                         ]}
                       >
-                        {status.label}
+                        {t(`orderList.statusLabels.${status.id}`, { defaultValue: status.label })}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -714,7 +717,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   <Icon name="sort" size={ms(16)} color={colors.secondary.main} />
                 </View>
                 <Text style={[styles.filterSectionTitle, { color: themeColors.text.primary }]}>
-                  Sort By
+                  {t('orderList.sortBy')}
                 </Text>
               </View>
               <View style={[
@@ -759,7 +762,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                             },
                           ]}
                         >
-                          {option.label}
+                          {t(`orderList.sortOptions.${option.id}`, { defaultValue: option.label })}
                         </Text>
                       </View>
                       <View style={[
@@ -803,7 +806,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
             >
               <Icon name="restore" size={ms(18)} color={isDark ? colors.grey[40] : colors.grey[60]} />
               <Text style={[styles.resetButtonText, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
-                Reset All
+                {t('orderList.resetAll')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -813,7 +816,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
             >
               <Icon name="check-circle" size={ms(18)} color={colors.common.white} />
               <Text style={styles.applyButtonText}>
-                Apply {activeCount > 0 ? `(${activeCount})` : ''}
+                {t('orderList.apply')} {activeCount > 0 ? `(${activeCount})` : ''}
               </Text>
             </TouchableOpacity>
           </View>
@@ -824,6 +827,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
 };
 
 export const OrderListScreen: React.FC = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<CompositeNavigationProp<
     NativeStackNavigationProp<OrdersStackParamList>,
     NativeStackNavigationProp<RootStackParamList>
@@ -1381,8 +1385,8 @@ export const OrderListScreen: React.FC = () => {
 
     const hasActiveFilter = activeFilterCount > 0 || statusFilterFromRoute;
     const emptyMessage = hasActiveFilter
-      ? 'No orders match the selected filter. Try adjusting your filters.'
-      : 'There are no orders available at this time.';
+      ? t('orderList.emptyMatchingMessage')
+      : t('orderList.emptyMessage');
 
     return (
       <View style={styles.emptyWrap}>
@@ -1390,14 +1394,14 @@ export const OrderListScreen: React.FC = () => {
           <Icon name={hasActiveFilter ? 'filter-off-outline' : 'clipboard-text-outline'} size={ms(40)} color={colors.primary.main} />
         </View>
         <Text style={[styles.emptyTitle, { color: themeColors.text.primary }]}>
-          {hasActiveFilter ? 'No Matching Orders' : 'No Orders Found'}
+          {hasActiveFilter ? t('orderList.noMatchingOrders') : t('orderList.noOrdersFound')}
         </Text>
         <Text style={[styles.emptySubtitle, { color: themeColors.text.secondary }]}>
           {emptyMessage}
         </Text>
       </View>
     );
-  }, [isLoading, isFilterLoading, isDark, themeColors, activeFilterCount, statusFilterFromRoute]);
+  }, [isLoading, isFilterLoading, isDark, themeColors, activeFilterCount, statusFilterFromRoute, t]);
 
   const formatSelectedDate = (date: Date): string => {
     return date.toLocaleDateString('en-US', {
@@ -1490,13 +1494,13 @@ export const OrderListScreen: React.FC = () => {
                 fontFamily: isActive ? fontFamily.semiBold : fontFamily.medium,
                 fontSize: ms(12),
               }}>
-              {label}
+              {id ? t(`dateFilters.${id}`, { defaultValue: label }) : label}
             </Text>
           )}
         </TouchableOpacity>
       );
     },
-    [activeFilter, themeColors, handleCalendarPress, handleFilterPress, selectedDate, isDark, formatSelectedDate]
+    [activeFilter, themeColors, handleCalendarPress, handleFilterPress, selectedDate, isDark, formatSelectedDate, t]
   );
 
   const handleOrderDetails = useCallback((order: Order) => {
@@ -1582,11 +1586,11 @@ export const OrderListScreen: React.FC = () => {
         setFavoriteOverrides(prev => ({ ...prev, [orderId]: currentFavorite }));
         showAlert({
           type: 'error',
-          title: 'Error',
-          message: 'Failed to update favorite status',
+          title: t('common.error'),
+          message: t('orders.errors.toggleFavoriteFailed'),
         });
       });
-  }, [apiOrders, favoriteOverrides, showAlert]);
+  }, [apiOrders, favoriteOverrides, showAlert, t]);
 
   const handleChat = useCallback(async (order: Order) => {
     setChatLoadingOrderId(order.id);
@@ -1614,17 +1618,17 @@ export const OrderListScreen: React.FC = () => {
       });
     } catch (error) {
       console.error('Failed to open chat:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to open chat';
+      const errorMessage = error instanceof Error ? error.message : t('chat.errors.openChatFailed');
       showAlert({
         type: 'error',
-        title: 'Chat Error',
+        title: t('chat.errors.chatErrorTitle'),
         message: errorMessage,
         duration: 4000,
       });
     } finally {
       setChatLoadingOrderId(null);
     }
-  }, [getOrCreateRoom, markRoomAsRead, navigation, showAlert]);
+  }, [getOrCreateRoom, markRoomAsRead, navigation, showAlert, t]);
 
   const renderOrderCard = useCallback(
     ({ item }: { item: Order }) => (
@@ -1657,11 +1661,11 @@ export const OrderListScreen: React.FC = () => {
         <View style={styles.ordersFoundRow}>
           {isFilterLoading ? (
             <View style={styles.filterLoadingRow}>
-              <Text variant="caption" color="secondary">Updating...</Text>
+              <Text variant="caption" color="secondary">{t('common.updating')}</Text>
             </View>
           ) : (
             <Text variant="caption" color="secondary">
-              {filteredOrders.length} out of {pagination?.total ?? filteredOrders.length} orders displaying
+              {t('orders.ordersDisplaying', { count: filteredOrders.length, total: pagination?.total ?? filteredOrders.length })}
             </Text>
           )}
           {activeFilter === 'calendar' &&
@@ -1669,13 +1673,13 @@ export const OrderListScreen: React.FC = () => {
               style={styles.downloadIcon}
               onPress={handleClearFilter}
               activeOpacity={0.7}>
-              <Text style={styles.clearText}>Clear</Text>
+              <Text style={styles.clearText}>{t('common.clear')}</Text>
             </TouchableOpacity>
           }
         </View>
       </View>
     ),
-    [filteredOrders.length, pagination?.total, activeFilter, handleClearFilter, isFilterLoading]
+    [filteredOrders.length, pagination?.total, activeFilter, handleClearFilter, isFilterLoading, t]
   );
 
   return (
@@ -1697,7 +1701,7 @@ export const OrderListScreen: React.FC = () => {
           <Icon name="arrow-left" size={iconSizes.lg} color={themeColors.text.primary} />
         </TouchableOpacity>
 
-        <Text variant="h2">{isFavouriteFilter ? 'Saved Orders' : 'Orders'}</Text>
+        <Text variant="h2">{isFavouriteFilter ? t('orderList.savedOrders') : t('orders.title')}</Text>
 
         <View style={styles.headerActions}>
           {!isLoading && (
@@ -1771,10 +1775,10 @@ export const OrderListScreen: React.FC = () => {
                 />
                 <Text style={[styles.dashboardFilterText, { color: colors.primary.main }]} numberOfLines={1}>
                   {dashboardFilter.company_name
-                    ? `${dashboardFilter.company_name} (Company)`
+                    ? `${dashboardFilter.company_name} (${t('dashboard.company')})`
                     : (showRegion && dashboardFilter.region_name)
-                    ? `${dashboardFilter.region_name} (Region)`
-                    : `${dashboardFilter.plant_name || dashboardFilter.plant_code} (Plant)`}
+                    ? `${dashboardFilter.region_name} (${t('dashboard.region')})`
+                    : `${dashboardFilter.plant_name || dashboardFilter.plant_code} (${t('dashboard.plant')})`}
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
@@ -1814,7 +1818,7 @@ export const OrderListScreen: React.FC = () => {
                   color={colors.warning.main}
                 />
                 <Text style={[styles.dashboardFilterText, { color: colors.warning.main }]} numberOfLines={1}>
-                  Saved Orders
+                  {t('orderList.savedOrders')}
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
@@ -1852,7 +1856,7 @@ export const OrderListScreen: React.FC = () => {
               ]}>
               <TextInput
                 style={[styles.searchInput, { color: themeColors.text.primary }]}
-                placeholder="Search by Order Code, Customer, Address..."
+                placeholder={t('orders.searchPlaceholder')}
                 placeholderTextColor={themeColors.text.hint}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -1911,7 +1915,7 @@ export const OrderListScreen: React.FC = () => {
         <View style={styles.activeFiltersInfo}>
           <Icon name="filter-check" size={ms(16)} color={colors.primary.main} />
           <Text style={[styles.activeFiltersText, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
-            {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} applied
+            {t('orderList.filtersApplied', { count: activeFilterCount })}
           </Text>
         </View>
         <TouchableOpacity
@@ -1919,7 +1923,7 @@ export const OrderListScreen: React.FC = () => {
           onPress={handleClearAllFilters}
           activeOpacity={0.7}>
           <Icon name="close-circle" size={ms(14)} color={colors.error.main} />
-          <Text style={styles.clearFiltersText}>Clear All</Text>
+          <Text style={styles.clearFiltersText}>{t('orderList.clearAll')}</Text>
         </TouchableOpacity>
       </Animated.View>
 
@@ -1927,7 +1931,7 @@ export const OrderListScreen: React.FC = () => {
         <View style={styles.loadingContainer} pointerEvents="box-none">
           <TruckLoader
             size={120}
-            message={isTabLoading || isDateFilterLoading ? "Filtering orders..." : "Loading orders..."}
+            message={isTabLoading || isDateFilterLoading ? t('orderList.filteringOrders') : t('orders.loadingOrders')}
             color={isDark ? 'light' : 'dark'}
           />
         </View>
@@ -1938,11 +1942,11 @@ export const OrderListScreen: React.FC = () => {
             <View style={styles.ordersFoundRow}>
               {isFilterLoading ? (
                 <View style={styles.filterLoadingRow}>
-                  <Text variant="caption" color="secondary">Updating...</Text>
+                  <Text variant="caption" color="secondary">{t('common.updating')}</Text>
                 </View>
               ) : (
                 <Text variant="caption" color="secondary">
-                  {filteredOrders.length} out of {pagination?.total ?? filteredOrders.length} orders displaying
+                  {t('orders.ordersDisplaying', { count: filteredOrders.length, total: pagination?.total ?? filteredOrders.length })}
                 </Text>
               )}
               {activeFilter === 'calendar' &&
@@ -1950,7 +1954,7 @@ export const OrderListScreen: React.FC = () => {
                   style={styles.downloadIcon}
                   onPress={handleClearFilter}
                   activeOpacity={0.7}>
-                  <Text style={styles.clearText}>Clear</Text>
+                  <Text style={styles.clearText}>{t('common.clear')}</Text>
                 </TouchableOpacity>
               }
             </View>
@@ -1967,9 +1971,9 @@ export const OrderListScreen: React.FC = () => {
                   isLoading={isFetchingNextPage}
                   hasMore={hasNextPage === true}
                   totalItems={pagination?.total}
-                  loadingText="Loading more orders..."
-                  endMessageText={pagination?.total ? `Showing all ${pagination.total} orders` : undefined}
-                  noMoreText="No more orders"
+                  loadingText={t('orderList.loadingMoreOrders')}
+                  endMessageText={pagination?.total ? t('orderList.showingAllOrders', { count: pagination.total }) : undefined}
+                  noMoreText={t('orderList.noMoreOrders')}
                 />
               ) : null
             }

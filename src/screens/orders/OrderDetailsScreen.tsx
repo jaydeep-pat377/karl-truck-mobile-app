@@ -16,6 +16,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Path, Defs, LinearGradient as SvgGradient, Stop, G, Text as SvgText, Pattern, Line, Rect } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, TopGradientBackground, TruckLoader, Icon, AlertModal } from '../../components/common';
 import YellowTruck from '../../assets/svgs/yellowTruck.svg';
@@ -633,6 +634,7 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
   completedLoads,
   isDark,
 }) => {
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
 
   if (!segments || segments.length === 0) {
@@ -678,13 +680,24 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
     segmentQtyMap[key] = seg?.qty ?? 0;
   }
 
+  const progressStatusLabel = (key: string): string => {
+    const map: Record<string, string> = {
+      loading: t('tracking.statuses.loading'),
+      to_job: t('tracking.statuses.toJob'),
+      at_job: t('tracking.statuses.atJob'),
+      pouring: t('tracking.statuses.pouring'),
+      at_plant: t('tracking.statuses.poured'),
+    };
+    return map[key] || key;
+  };
+
   return (
     <View style={[styles.deliveryProgressCard, { backgroundColor: themeColors.card }, SHADOWS.sm]}>
       <View style={styles.deliveryProgressHeader}>
         <View style={styles.deliveryProgressTitleRow}>
           <Icon name="chart-timeline-variant" size={16} color={colors.primary.main} />
           <Text style={[styles.deliveryProgressTitle, { color: themeColors.text.primary }]}>
-            Delivery Status
+            {t('orders.deliveryStatus')}
           </Text>
         </View>
       </View>
@@ -755,7 +768,7 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
                   <View key={status.key} style={styles.deliveryTooltipRow}>
                     <View style={[styles.deliveryTooltipDot, { backgroundColor: segmentColors[colorIdx] }]} />
                     <Text style={[styles.deliveryTooltipLabel, { color: themeColors.text.primary }]}>
-                      {status.label}
+                      {progressStatusLabel(status.key)}
                     </Text>
                   </View>
                 );
@@ -763,7 +776,7 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
             ) : (
               <>
                 <Text style={[styles.deliveryTooltipText, { color: themeColors.text.primary }]}>
-                  {PROGRESS_STATUSES.find(s => s.key === tooltipKey)?.label}: {segmentQtyMap[tooltipKey || '']?.toFixed(2) ?? '0.00'} CY
+                  {progressStatusLabel(tooltipKey || '')}: {segmentQtyMap[tooltipKey || '']?.toFixed(2) ?? '0.00'} CY
                 </Text>
               </>
             )}
@@ -773,7 +786,7 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
 
       <View style={styles.deliveryCompletionRow}>
         <Text style={[styles.deliveryCompletionText, { color: getCompletionColor(deliveredPercent) }]}>
-          {completionPercent}% Completed
+          {completionPercent}% {t('orders.completed')}
         </Text>
       </View>
     </View>
@@ -821,6 +834,7 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
   avgPouringMinutes,
   avgWashoutMinutes,
 }) => {
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
 
   const formatDateOnly = (dateStr: string) => {
@@ -832,8 +846,8 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
   const formattedDate = displayDate || formatDateOnly(scheduleDate);
 
   const scheduleDisplay = estimatedFinish
-    ? `${scheduleTime || 'N/A'} - ${estimatedFinish}`
-    : scheduleTime || 'N/A';
+    ? `${scheduleTime || t('common.notAvailable')} - ${estimatedFinish}`
+    : scheduleTime || t('common.notAvailable');
 
   const hasAverages = (avgWaitingMinutes ?? 0) > 0 || (avgPouringMinutes ?? 0) > 0 || (avgWashoutMinutes ?? 0) > 0;
 
@@ -847,7 +861,7 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
             <Icon name="clipboard-text-outline" size={16} color={colors.common.white} />
           </View>
           <Text style={[styles.psCardTitle, { color: themeColors.text.primary }]}>
-            Product & Schedule
+            {t('orders.productAndSchedule')}
           </Text>
         </View>
         <View style={[styles.psStatusBadge, { backgroundColor: statusColor + '15' }]}>
@@ -860,7 +874,7 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
         <View style={[styles.psInfoItem, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
           <View style={styles.psInfoItemHeader}>
             <Icon name="calendar-clock" size={14} color={colors.primary.main} />
-            <Text style={[styles.psInfoItemLabel, { color: themeColors.text.hint }]}>Schedule</Text>
+            <Text style={[styles.psInfoItemLabel, { color: themeColors.text.hint }]}>{t('orders.schedule')}</Text>
           </View>
           <Text style={[styles.psInfoItemValue, { color: themeColors.text.primary }]} numberOfLines={1}>
             {scheduleDisplay}
@@ -873,7 +887,7 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
         <View style={[styles.psInfoItem, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
           <View style={styles.psInfoItemHeader}>
             <Icon name="cube-outline" size={14} color={colors.secondary.main} />
-            <Text style={[styles.psInfoItemLabel, { color: themeColors.text.hint }]}>Product</Text>
+            <Text style={[styles.psInfoItemLabel, { color: themeColors.text.hint }]}>{t('orders.product')}</Text>
           </View>
           <Text style={[styles.psInfoItemValue, { color: themeColors.text.primary }]} numberOfLines={1}>
             {productType}
@@ -889,14 +903,14 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
           <View style={[styles.psInfoItem, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
             <View style={styles.psInfoItemHeader}>
               <Icon name="truck-delivery" size={14} color={colors.success.main} />
-              <Text style={[styles.psInfoItemLabel, { color: themeColors.text.hint }]}>Delivered</Text>
+              <Text style={[styles.psInfoItemLabel, { color: themeColors.text.hint }]}>{t('orders.delivered')}</Text>
             </View>
             <Text style={[styles.psInfoItemValue, { color: colors.success.main }]}>
               {(deliveredQty ?? 0).toFixed(1)} CY
             </Text>
             {scheduleRate ? (
               <Text style={[styles.psInfoItemSubValue, { color: themeColors.text.hint }]}>
-                Rate: {scheduleRate} CY/hr
+                {t('orders.rate')}: {scheduleRate} CY/hr
               </Text>
             ) : null}
           </View>
@@ -904,7 +918,7 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
           <View style={[styles.psInfoItem, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
             <View style={styles.psInfoItemHeader}>
               <Icon name="water" size={14} color={colors.info.main} />
-              <Text style={[styles.psInfoItemLabel, { color: themeColors.text.hint }]}>Poured</Text>
+              <Text style={[styles.psInfoItemLabel, { color: themeColors.text.hint }]}>{t('orders.poured')}</Text>
             </View>
             <Text style={[styles.psInfoItemValue, { color: colors.info.main }]}>
               {(pouredQty ?? 0).toFixed(1)} CY
@@ -917,7 +931,7 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
         <View style={[styles.psAveragesRow, { backgroundColor: isDark ? themeColors.surface : colors.grey[3], marginTop: GRID.xs, marginHorizontal: GRID.md, marginBottom: GRID.sm }]}>
           <View style={styles.psAverageItem}>
             <Icon name="clock-outline" size={12} color={colors.warning.main} />
-            <Text style={[styles.psAverageLabel, { color: themeColors.text.hint }]}>Wait</Text>
+            <Text style={[styles.psAverageLabel, { color: themeColors.text.hint }]}>{t('orders.wait')}</Text>
             <Text style={[styles.psAverageValue, { color: themeColors.text.primary }]}>
               {(avgWaitingMinutes ?? 0).toFixed(0)}m
             </Text>
@@ -925,7 +939,7 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
           <View style={[styles.psAverageDivider, { backgroundColor: themeColors.border }]} />
           <View style={styles.psAverageItem}>
             <Icon name="water" size={12} color={colors.success.main} />
-            <Text style={[styles.psAverageLabel, { color: themeColors.text.hint }]}>Pour</Text>
+            <Text style={[styles.psAverageLabel, { color: themeColors.text.hint }]}>{t('orders.pour')}</Text>
             <Text style={[styles.psAverageValue, { color: themeColors.text.primary }]}>
               {(avgPouringMinutes ?? 0).toFixed(0)}m
             </Text>
@@ -933,7 +947,7 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
           <View style={[styles.psAverageDivider, { backgroundColor: themeColors.border }]} />
           <View style={styles.psAverageItem}>
             <Icon name="shower" size={12} color={colors.info.main} />
-            <Text style={[styles.psAverageLabel, { color: themeColors.text.hint }]}>Wash</Text>
+            <Text style={[styles.psAverageLabel, { color: themeColors.text.hint }]}>{t('orders.wash')}</Text>
             <Text style={[styles.psAverageValue, { color: themeColors.text.primary }]}>
               {(avgWashoutMinutes ?? 0).toFixed(0)}m
             </Text>
@@ -963,6 +977,7 @@ const ContactDetailsCard: React.FC<ContactDetailsCardProps> = ({
   isDark,
   onCallPress,
 }) => {
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
   const fullAddress = [plantAddress1, plantAddress2].filter(Boolean).join(', ');
 
@@ -974,7 +989,7 @@ const ContactDetailsCard: React.FC<ContactDetailsCardProps> = ({
             <Icon name="office-building" size={16} color={colors.common.white} />
           </View>
           <Text style={[styles.cdCardTitle, { color: themeColors.text.primary }]}>
-            Contact Details
+            {t('orders.contactDetails')}
           </Text>
         </View>
       </View>
@@ -985,13 +1000,13 @@ const ContactDetailsCard: React.FC<ContactDetailsCardProps> = ({
             <Icon name="domain" size={16} color={colors.primary.main} />
           </View>
           <View style={styles.cdInfoContent}>
-            <Text style={[styles.cdInfoLabel, { color: themeColors.text.hint }]}>Plant Name</Text>
+            <Text style={[styles.cdInfoLabel, { color: themeColors.text.hint }]}>{t('orders.plantName')}</Text>
             <Text style={[styles.cdInfoValue, { color: themeColors.text.primary }]} numberOfLines={1}>
               {plantName}
             </Text>
             {plantCode ? (
               <Text style={[styles.cdInfoSubValue, { color: themeColors.text.secondary }]}>
-                Code: {plantCode}
+                {t('orders.code')}: {plantCode}
               </Text>
             ) : null}
           </View>
@@ -1003,7 +1018,7 @@ const ContactDetailsCard: React.FC<ContactDetailsCardProps> = ({
               <Icon name="map-marker-outline" size={16} color={colors.secondary.main} />
             </View>
             <View style={styles.cdInfoContent}>
-              <Text style={[styles.cdInfoLabel, { color: themeColors.text.hint }]}>Address</Text>
+              <Text style={[styles.cdInfoLabel, { color: themeColors.text.hint }]}>{t('orders.address')}</Text>
               <Text style={[styles.cdInfoValue, { color: themeColors.text.primary }]} numberOfLines={2}>
                 {fullAddress}
               </Text>
@@ -1017,7 +1032,7 @@ const ContactDetailsCard: React.FC<ContactDetailsCardProps> = ({
               <Icon name="phone-outline" size={16} color={colors.success.main} />
             </View>
             <View style={styles.cdInfoContent}>
-              <Text style={[styles.cdInfoLabel, { color: themeColors.text.hint }]}>Phone</Text>
+              <Text style={[styles.cdInfoLabel, { color: themeColors.text.hint }]}>{t('orders.phone')}</Text>
               <Text style={[styles.cdInfoValue, { color: themeColors.text.primary }]}>
                 {plantPhone}
               </Text>
@@ -1105,6 +1120,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
   isDark,
   onOpenLoads,
 }) => {
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
 
   if (!products || products.length === 0) {
@@ -1117,7 +1133,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
   return (
     <View style={styles.skuSection}>
       <Text style={[styles.skuSectionTitle, { color: themeColors.text.primary }]}>
-        Product & Schedule
+        {t('orders.productAndSchedule')}
       </Text>
 
 
@@ -1139,7 +1155,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
                 {product.itemCode}
               </Text>
               <Text style={[styles.skuDescription, { color: themeColors.text.secondary }]} numberOfLines={1}>
-                {product.description || 'Concrete Mix'}
+                {product.description || t('orders.concreteMix')}
               </Text>
             </View>
           </View>
@@ -1149,7 +1165,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
           ]}>
             <Icon name={product.isMix ? 'water' : 'package-variant'} size={ms(12)} color={colors.common.white} />
             <Text style={styles.skuTypeBadgeText}>
-              {product.isMix ? 'Mix' : 'Product'}
+              {product.isMix ? t('orders.mix') : t('orders.product')}
             </Text>
           </View>
         </View>
@@ -1158,7 +1174,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
         {schedule && (
           <View style={[styles.skuScheduleSection, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
             <Text style={[styles.skuScheduleTitle, { color: themeColors.text.primary }]}>
-              Schedule Information
+              {t('orders.scheduleInformation')}
             </Text>
 
 
@@ -1169,7 +1185,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
                   <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                     {schedule.start_time}
                   </Text>
-                  <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Start Time</Text>
+                  <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.startTime')}</Text>
                 </View>
               </View>
             )}
@@ -1181,7 +1197,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
                 <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                   {schedule.number_of_loads ?? '-'}
                 </Text>
-                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Loads</Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.loads')}</Text>
               </View>
 
               <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
@@ -1189,7 +1205,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
                 <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                   {schedule.load_qty ? `${schedule.load_qty}` : '-'}
                 </Text>
-                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Load CY</Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.loadCy')}</Text>
               </View>
 
               <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
@@ -1197,7 +1213,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
                 <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                   {schedule.delivery_rate_per_hour ?? '-'}
                 </Text>
-                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>CY/Hr</Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.cyPerHr')}</Text>
               </View>
             </View>
 
@@ -1208,7 +1224,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
                 <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                   {schedule.truck_space ? `${schedule.truck_space}m` : '-'}
                 </Text>
-                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Spacing</Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.spacing')}</Text>
               </View>
 
               <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
@@ -1216,7 +1232,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
                 <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                   {schedule.distance ? `${schedule.distance}` : '-'}
                 </Text>
-                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Miles</Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.miles')}</Text>
               </View>
 
               <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
@@ -1224,7 +1240,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
                 <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                   {schedule.time_to_job ? `${schedule.time_to_job}m` : '-'}
                 </Text>
-                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>To Job</Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.toJob')}</Text>
               </View>
             </View>
 
@@ -1235,7 +1251,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
                 <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                   {schedule.unload_time ? `${schedule.unload_time}m` : '-'}
                 </Text>
-                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Unload</Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.unload')}</Text>
               </View>
 
               <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
@@ -1243,7 +1259,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
                 <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                   {schedule.job_wash_time ? `${schedule.job_wash_time}m` : '-'}
                 </Text>
-                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Wash</Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.wash')}</Text>
               </View>
 
               <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
@@ -1251,7 +1267,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
                 <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                   {schedule.time_to_plant ? `${schedule.time_to_plant}m` : '-'}
                 </Text>
-                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>To Plant</Text>
+                <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.toPlant')}</Text>
               </View>
             </View>
 
@@ -1284,10 +1300,10 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
                 </View>
                 <View style={styles.skuLoadsButtonText}>
                   <Text style={[styles.skuLoadsTitle, { color: themeColors.text.primary }]}>
-                    Scheduled Loads
+                    {t('orders.scheduledLoads')}
                   </Text>
                   <Text style={[styles.skuLoadsSubtitle, { color: themeColors.text.secondary }]}>
-                    {scheduledLoads.filter(l => !!l.actual_time).length} of {scheduledLoads.length} completed
+                    {t('orders.loadsCompleted', { completed: scheduledLoads.filter(l => !!l.actual_time).length, total: scheduledLoads.length })}
                   </Text>
                 </View>
               </View>
@@ -1383,6 +1399,7 @@ const SmartChart: React.FC<SmartChartProps> = ({
   showPickPoint = false,
   pickPointIndex = 3,
 }) => {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState('All');
   const [showDropdown, setShowDropdown] = useState(false);
   const [showTooltip, setShowTooltip] = useState(showPickPoint);
@@ -1496,7 +1513,7 @@ const SmartChart: React.FC<SmartChartProps> = ({
             style={[styles.chartFilterBtn, { backgroundColor: isDark ? themeColors.surface : colors.grey[5] }]}
             onPress={() => setShowDropdown(!showDropdown)}
             activeOpacity={0.7}>
-            <Text style={[styles.chartFilterText, { color: themeColors.text.primary }]}>{filter}</Text>
+            <Text style={[styles.chartFilterText, { color: themeColors.text.primary }]}>{filter === 'All' ? t('orders.all') : filter}</Text>
             <Icon name={showDropdown ? 'chevron-up' : 'chevron-down'} size={14} color={themeColors.text.hint} />
           </TouchableOpacity>
 
@@ -1528,7 +1545,7 @@ const SmartChart: React.FC<SmartChartProps> = ({
                       fontFamily: filter === option ? fontFamily.semiBold : fontFamily.medium,
                     }
                   ]}>
-                    {option}
+                    {option === 'All' ? t('orders.all') : option}
                   </Text>
                   {filter === option && (
                     <Icon name="check" size={16} color={colors.primary.main} />
@@ -1628,7 +1645,7 @@ const SmartChart: React.FC<SmartChartProps> = ({
 
             <View style={styles.tooltipDataRow}>
               <Text style={[styles.tooltipDataLabel, { color: themeColors.text.hint }]}>
-                Ordered
+                {t('orders.ordered')}
               </Text>
               <Text style={[styles.tooltipDataValue, { color: themeColors.text.primary }]}>
                 {tooltipInfo?.ordered || '18.5 CY/HR'}
@@ -1637,7 +1654,7 @@ const SmartChart: React.FC<SmartChartProps> = ({
 
             <View style={styles.tooltipDataRow}>
               <Text style={[styles.tooltipDataLabel, { color: themeColors.text.hint }]}>
-                Spacing
+                {t('orders.spacing')}
               </Text>
               <Text style={[styles.tooltipDataValue, { color: themeColors.text.primary }]}>
                 {tooltipInfo?.spacing || '45 min'}
@@ -1699,6 +1716,7 @@ const SmartChart: React.FC<SmartChartProps> = ({
 };
 
 export const OrderDetailsScreen: React.FC = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const route = useRoute<OrderDetailsRouteProp>();
   const queryClient = useQueryClient();
@@ -1837,7 +1855,7 @@ export const OrderDetailsScreen: React.FC = () => {
       temperature: orderDetails.weather_data?.temperature_fahrenheit ?? null,
       windSpeed: orderDetails.weather_data?.wind_speed_mph || null,
       humidity: orderDetails.weather_data?.humidity || null,
-      weatherDescription: orderDetails.weather_data?.weather_description || 'Partly cloudy',
+      weatherDescription: orderDetails.weather_data?.weather_description || t('weather.conditions.partlyCloudy'),
       weatherIcon: orderDetails.weather_data?.weather_icon || null,
       evaporationRate: orderDetails.weather_data?.evaporation_rate ?? (orderDetails as any).weather?.evaporationRate ?? null,
       siteName: orderDetails.customer_name,
@@ -1865,10 +1883,10 @@ export const OrderDetailsScreen: React.FC = () => {
         const activeStatus = counts.find(c => c.count > 0)?.status || '';
 
         return [
-          { label: 'Loading', value: loadingCount, unit: `/${total}`, active: activeStatus === 'loading', icon: 'truck-loading' },
-          { label: 'To Job', value: toJobCount, unit: `/${total}`, active: activeStatus === 'to_job', icon: 'truck-fast' },
-          { label: 'At Job', value: atJobCount, unit: `/${total}`, active: activeStatus === 'at_job', icon: 'map-marker' },
-          { label: 'Pouring', value: pouringCount, unit: `/${total}`, active: activeStatus === 'pouring', icon: 'water' },
+          { label: t('tracking.statuses.loading'), value: loadingCount, unit: `/${total}`, active: activeStatus === 'loading', icon: 'truck-loading' },
+          { label: t('tracking.statuses.toJob'), value: toJobCount, unit: `/${total}`, active: activeStatus === 'to_job', icon: 'truck-fast' },
+          { label: t('tracking.statuses.atJob'), value: atJobCount, unit: `/${total}`, active: activeStatus === 'at_job', icon: 'map-marker' },
+          { label: t('tracking.statuses.pouring'), value: pouringCount, unit: `/${total}`, active: activeStatus === 'pouring', icon: 'water' },
         ];
       })(),
 
@@ -1982,7 +2000,7 @@ export const OrderDetailsScreen: React.FC = () => {
         actual_to_plant_time: l.actual_to_plant_time,
       })) || [],
     };
-  }, [orderDetails]);
+  }, [orderDetails, t]);
 
   const [refreshing, setRefreshing] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -2041,7 +2059,7 @@ export const OrderDetailsScreen: React.FC = () => {
         console.error('Failed to toggle favorite:', error);
 
         setIsFavorite(previousValue);
-        showError('Error', 'Failed to update favorite status');
+        showError(t('common.error'), t('orders.errors.favoriteUpdateFailed'));
       });
   }, [order.id, isFavorite, showError, queryClient]);
 
@@ -2089,13 +2107,13 @@ export const OrderDetailsScreen: React.FC = () => {
   const handleShare = useCallback(async () => {
     try {
       await Share.share({
-        message: `Order Details\n\nOrder: ${order.orderCode}\nCustomer: ${order.customerName}\nStatus: ${order.status}\nProduct: ${order.productType}\nQuantity: ${order.quantity} ${order.unit}\nDelivery: ${order.deliveryAddress}`,
-        title: `Order ${order.orderCode}`,
+        message: `${t('orders.orderDetails')}\n\n${t('orders.order')}: ${order.orderCode}\n${t('orders.customer')}: ${order.customerName}\n${t('orders.statusLabel')}: ${order.status}\n${t('orders.product')}: ${order.productType}\n${t('orders.quantity')}: ${order.quantity} ${order.unit}\n${t('orders.delivery')}: ${order.deliveryAddress}`,
+        title: `${t('orders.order')} ${order.orderCode}`,
       });
     } catch (error) {
-      showError('Error', 'Failed to share order details');
+      showError(t('common.error'), t('orders.errors.shareFailed'));
     }
-  }, [order, showError]);
+  }, [order, showError, t]);
 
   // Matches web: passes full order data for form prefill
   const handleOrderRequest = useCallback(() => {
@@ -2126,13 +2144,13 @@ export const OrderDetailsScreen: React.FC = () => {
 
   const handleViewOrderHistory = useCallback(() => {
     setMenuVisible(false);
-    showInfo('Order History', 'Order history feature coming soon');
-  }, [showInfo]);
+    showInfo(t('orders.orderHistory'), t('orders.orderHistoryComingSoon'));
+  }, [showInfo, t]);
 
   const handleDownloadInvoice = useCallback(() => {
     setMenuVisible(false);
-    showInfo('Download Invoice', 'Invoice download feature coming soon');
-  }, [showInfo]);
+    showInfo(t('orders.downloadInvoice'), t('orders.invoiceDownloadComingSoon'));
+  }, [showInfo, t]);
 
   const handleTrackOrder = useCallback(() => {
     setMenuVisible(false);
@@ -2149,12 +2167,12 @@ export const OrderDetailsScreen: React.FC = () => {
   }, [navigation, orderCode, orderDate, order.status, order.scheduledTime]);
 
   const handleProductPress = useCallback((product: ProductCardItem) => {
-    showInfo('Product Details', `Product: ${product.itemCode}\nQuantity: ${product.orderedQty.toFixed(2)} CY`);
-  }, [showInfo]);
+    showInfo(t('orders.productDetails'), `${t('orders.product')}: ${product.itemCode}\n${t('orders.quantity')}: ${product.orderedQty.toFixed(2)} CY`);
+  }, [showInfo, t]);
 
   const menuItems = [
-    { id: '1', icon: 'share-variant', label: 'Share Order', onPress: handleShare },
-    { id: '2', icon: 'crosshairs-gps', label: 'Track Order', onPress: handleTrackOrder },
+    { id: '1', icon: 'share-variant', label: t('orders.shareOrder'), onPress: handleShare },
+    { id: '2', icon: 'crosshairs-gps', label: t('orders.trackOrder'), onPress: handleTrackOrder },
   ];
 
   const formatScheduleDate = (dateStr: string, timeStr: string) => {
@@ -2180,7 +2198,7 @@ export const OrderDetailsScreen: React.FC = () => {
         <View style={styles.loadingContainer} pointerEvents="box-none">
           <TruckLoader
             size={120}
-            message="Loading order details..."
+            message={t('orders.loadingOrderDetails')}
             color={isDark ? 'light' : 'dark'}
           />
         </View>
@@ -2203,7 +2221,7 @@ export const OrderDetailsScreen: React.FC = () => {
         <View style={styles.errorContainer}>
           <Icon name="alert-circle-outline" size={64} color={colors.error.main} />
           <Text style={[styles.errorText, { color: themeColors.text.primary }]}>
-            {error || 'Failed to load order details'}
+            {error || t('orders.errors.loadOrderFailed')}
           </Text>
           <TouchableOpacity
             style={styles.retryButton}
@@ -2211,7 +2229,7 @@ export const OrderDetailsScreen: React.FC = () => {
             activeOpacity={0.7}
           >
             <Icon name="refresh" size={20} color={colors.common.white} />
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <Text style={styles.retryButtonText}>{t('orders.tryAgain')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -2334,7 +2352,7 @@ export const OrderDetailsScreen: React.FC = () => {
                   <>
                     <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
                     <Text style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
-                      {jobData.windSpeed} mph wind
+                      {jobData.windSpeed} {t('orders.mphWind')}
                     </Text>
                   </>
                 )}
@@ -2342,7 +2360,7 @@ export const OrderDetailsScreen: React.FC = () => {
                   <>
                     <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
                     <Text style={[styles.headerWeatherText, { color: themeColors.text.secondary }]}>
-                      {jobData.humidity}% RH
+                      {jobData.humidity}% {t('orders.relativeHumidity')}
                     </Text>
                   </>
                 )}
@@ -2384,12 +2402,12 @@ export const OrderDetailsScreen: React.FC = () => {
                   </Text>
                   <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>CY</Text>
                 </View>
-                <Text style={[styles.metricLabel, { color: themeColors.text.hint }]}>Delivered</Text>
+                <Text style={[styles.metricLabel, { color: themeColors.text.hint }]}>{t('orders.delivered')}</Text>
               </View>
 
               <CircularProgress
                 time={`${Math.round(order.progress ?? 0)}%`}
-                label="Poured"
+                label={t('orders.poured')}
                 progress={order.progress ?? 0}
                 isDark={isDark}
                 unitValue={formatQty(jobData.pouredVolume)}
@@ -2403,14 +2421,14 @@ export const OrderDetailsScreen: React.FC = () => {
                   </Text>
                   <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>CY</Text>
                 </View>
-                <Text style={[styles.metricLabel, { color: themeColors.text.hint }]}>Ordered</Text>
+                <Text style={[styles.metricLabel, { color: themeColors.text.hint }]}>{t('orders.ordered')}</Text>
               </View>
             </View>
 
             <View style={[styles.estimatedRow, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
               <Icon name="clock-fast" size={16} color={colors.secondary.main} />
               <Text style={[styles.estimatedText, { color: themeColors.text.secondary }]}>
-                Estimated Finish:
+                {t('orders.estimatedFinish')}:
               </Text>
               <Text style={[styles.estimatedTime, { color: themeColors.text.primary }]}>
                 {jobData.estimatedFinish}
@@ -2452,7 +2470,7 @@ export const OrderDetailsScreen: React.FC = () => {
                   <View style={[styles.quickActionIcon, { backgroundColor: colors.primary.main + '15' }]}>
                     <Icon name="ticket-outline" size={20} color={colors.primary.main} />
                   </View>
-                  <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>Tickets</Text>
+                  <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>{t('orders.tickets')}</Text>
                 </TouchableOpacity>
                 <View style={[styles.quickActionDivider, { backgroundColor: themeColors.border }]} />
               </>
@@ -2475,7 +2493,7 @@ export const OrderDetailsScreen: React.FC = () => {
                       </View>
                     )}
                   </View>
-                  <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>Chat</Text>
+                  <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>{t('orders.chat')}</Text>
                 </TouchableOpacity>
                 <View style={[styles.quickActionDivider, { backgroundColor: themeColors.border }]} />
               </>
@@ -2489,7 +2507,7 @@ export const OrderDetailsScreen: React.FC = () => {
               <View style={[styles.quickActionIcon, { backgroundColor: colors.success.main + '15' }]}>
                 <Icon name="map-marker-outline" size={20} color={colors.success.main} />
               </View>
-              <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>Map</Text>
+              <Text style={[styles.quickActionLabel, { color: themeColors.text.primary }]}>{t('orders.map')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -2505,7 +2523,7 @@ export const OrderDetailsScreen: React.FC = () => {
               </View>
               <View style={styles.productDetailsTextContent}>
                 <Text style={[styles.productDetailsTitle, { color: themeColors.text.primary }]}>
-                  Product & Schedule Details
+                  {t('orders.productAndScheduleDetails')}
                 </Text>
                 {jobData.scheduleDetails && jobData.scheduleDetails.length > 0 ? (
                   <View style={styles.productScheduleInfo}>
@@ -2513,15 +2531,15 @@ export const OrderDetailsScreen: React.FC = () => {
                       <View key={schedule.schedule_id || index} style={index > 0 ? styles.productScheduleItem : undefined}>
                         <View style={styles.productScheduleRow}>
                           <Text style={[styles.productScheduleLabel, { color: themeColors.text.secondary }]}>
-                            Start Time
+                            {t('orders.startTime')}
                           </Text>
                           <Text style={[styles.productScheduleValue, { color: themeColors.text.primary }]}>
-                            {jobData.scheduledTime || 'N/A'}
+                            {jobData.scheduledTime || t('common.notAvailable')}
                           </Text>
                         </View>
                         <View style={styles.productScheduleRow}>
                           <Text style={[styles.productScheduleLabel, { color: themeColors.text.secondary }]}>
-                            Product
+                            {t('orders.product')}
                           </Text>
                           <Text style={[styles.productScheduleValue, { color: themeColors.text.primary }]} numberOfLines={1}>
                             {schedule.item_code} {schedule.schedule_qty} CY
@@ -2532,7 +2550,7 @@ export const OrderDetailsScreen: React.FC = () => {
                             {schedule.associated_products.map((ap: any, apIndex: number) => (
                               <View key={ap.order_product_id || apIndex} style={styles.productScheduleRow}>
                                 <Text style={[styles.productScheduleLabel, { color: themeColors.text.hint }]}>
-                                  {apIndex === 0 ? 'Associated' : ''}
+                                  {apIndex === 0 ? t('orders.associated') : ''}
                                 </Text>
                                 <Text style={[styles.productScheduleValue, { color: themeColors.text.secondary }]} numberOfLines={1}>
                                   {ap.item_code} {ap.ordered_qty} {ap.order_qty_unit || 'ea'}
@@ -2546,7 +2564,7 @@ export const OrderDetailsScreen: React.FC = () => {
                   </View>
                 ) : (
                   <Text style={[styles.productDetailsSubtitle, { color: themeColors.text.secondary }]}>
-                    View product & schedule information
+                    {t('orders.viewProductScheduleInfo')}
                   </Text>
                 )}
               </View>
@@ -2593,7 +2611,7 @@ export const OrderDetailsScreen: React.FC = () => {
                   <View style={styles.orderUpdatesTitleRow}>
                     <Icon name="history" size={ms(20)} color={colors.primary.main} />
                     <Text style={[styles.orderUpdatesSectionTitle, { color: themeColors.text.primary }]}>
-                      Order Activity
+                      {t('orders.orderActivity')}
                     </Text>
                   </View>
                   <View style={[styles.orderUpdatesCountBadge, { backgroundColor: colors.primary.main + '15' }]}>
@@ -2639,7 +2657,7 @@ export const OrderDetailsScreen: React.FC = () => {
                           <Icon name="clipboard-plus-outline" size={ms(18)} color={colors.success.main} />
                         </View>
                         <Text style={[styles.orderCreatedTitle, { color: themeColors.text.primary }]}>
-                          Order Created
+                          {t('orders.orderCreated')}
                         </Text>
                       </View>
                       <Text style={[styles.orderCreatedTime, { color: themeColors.text.hint }]}>
@@ -2649,32 +2667,32 @@ export const OrderDetailsScreen: React.FC = () => {
 
                     <View style={styles.orderCreatedDetails}>
                       <View style={styles.orderCreatedRow}>
-                        <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>Status</Text>
+                        <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>{t('orders.statusLabel')}</Text>
                         <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]}>{orderCreatedItem.order_status}</Text>
                       </View>
                       <View style={styles.orderCreatedRow}>
-                        <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>Plant</Text>
+                        <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>{t('orders.plant')}</Text>
                         <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]}>{orderCreatedItem.plant}</Text>
                       </View>
                       <View style={styles.orderCreatedRow}>
-                        <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>Delivery</Text>
+                        <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>{t('orders.delivery')}</Text>
                         <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]}>{orderCreatedItem.delivery_address}</Text>
                       </View>
                       {orderCreatedItem.purchase_order && (
                         <View style={styles.orderCreatedRow}>
-                          <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>PO#</Text>
+                          <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>{t('orders.poNumber')}</Text>
                           <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]}>{orderCreatedItem.purchase_order === 'n/a' ? '-' : orderCreatedItem.purchase_order}</Text>
                         </View>
                       )}
                       {orderCreatedItem.instructions && (
                         <View style={styles.orderCreatedRow}>
-                          <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>Instructions</Text>
+                          <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>{t('orders.instructions')}</Text>
                           <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]}>{orderCreatedItem.instructions === 'n/a' ? '-' : orderCreatedItem.instructions}</Text>
                         </View>
                       )}
                       {orderCreatedItem.ordered_by && (
                         <View style={styles.orderCreatedRow}>
-                          <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>Ordered By</Text>
+                          <Text style={[styles.orderCreatedLabel, { color: themeColors.text.hint }]}>{t('orders.orderedBy')}</Text>
                           <Text style={[styles.orderCreatedValue, { color: themeColors.text.primary }]} numberOfLines={2}>{orderCreatedItem.ordered_by === 'n/a' ? '-' : orderCreatedItem.ordered_by}</Text>
                         </View>
                       )}
@@ -2686,7 +2704,7 @@ export const OrderDetailsScreen: React.FC = () => {
                 {(showAllUpdates || updateItems.length === 0) && orderCreatedItem && orderCreatedItem.products && orderCreatedItem.products.length > 0 && (
                   <View style={[styles.orderCreatedProducts, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
                     <Text style={[styles.orderCreatedProductsTitle, { color: themeColors.text.secondary }]}>
-                      Products ({orderCreatedItem.products.length})
+                      {t('orders.products')} ({orderCreatedItem.products.length})
                     </Text>
                     {orderCreatedItem.products.map((product, index) => (
                       <View key={index} style={[styles.orderCreatedProductItem, { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }]}>
@@ -2712,7 +2730,7 @@ export const OrderDetailsScreen: React.FC = () => {
                           <View style={styles.orderCreatedProductRow}>
                             <Icon name="water" size={ms(14)} color={themeColors.text.hint} />
                             <Text style={[styles.orderCreatedProductSlump, { color: themeColors.text.hint }]}>
-                              Slump: {product.slump}"
+                              {t('orders.slump')}: {product.slump}"
                             </Text>
                           </View>
                         )}
@@ -2729,7 +2747,7 @@ export const OrderDetailsScreen: React.FC = () => {
                     activeOpacity={0.7}
                   >
                     <Text style={[styles.seeMoreText, { color: colors.primary.main }]}>
-                      {showAllUpdates ? 'See Less' : 'See More'}
+                      {showAllUpdates ? t('orders.seeLess') : t('orders.seeMore')}
                     </Text>
                     <Icon
                       name={showAllUpdates ? 'chevron-up' : 'chevron-down'}
@@ -2768,7 +2786,7 @@ export const OrderDetailsScreen: React.FC = () => {
 
                     <View style={[styles.menuHeader, { borderBottomColor: isDark ? themeColors.border : colors.grey[10] }]}>
                       <Text style={[styles.menuTitle, { color: themeColors.text.primary }]}>
-                        Order Options
+                        {t('orders.orderOptions')}
                       </Text>
                       <TouchableOpacity
                         onPress={handleMenuToggle}

@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useNavigation, useFocusEffect, NavigationProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { Text, Card, Icon } from '../../components/common';
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
@@ -22,6 +23,7 @@ import { SettingsStackParamList } from '../../navigation/SettingsNavigator';
 const PAGE_SIZE = 20;
 
 export const TicketScanHistoryScreen: React.FC = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp<SettingsStackParamList>>();
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -41,10 +43,10 @@ export const TicketScanHistoryScreen: React.FC = () => {
   const handleDeleteItem = useCallback(
     (item: ScanRecord) => {
       closeSwipeable(item.id);
-      Alert.alert('Delete Scan', 'Are you sure you want to delete this scan?', [
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(t('scanHistory.deleteScan'), t('scanHistory.deleteScanConfirm'), [
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             await deleteScanRecord(item.id);
@@ -56,7 +58,7 @@ export const TicketScanHistoryScreen: React.FC = () => {
         },
       ]);
     },
-    [closeSwipeable, pagination],
+    [closeSwipeable, pagination, t],
   );
 
   const loadHistory = useCallback(
@@ -99,10 +101,10 @@ export const TicketScanHistoryScreen: React.FC = () => {
   }, [loadHistory, loadingMore, pagination]);
 
   const handleClearHistory = useCallback(() => {
-    Alert.alert('Clear History', 'Are you sure you want to delete all scan history?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('scanHistory.clearHistory'), t('scanHistory.clearHistoryConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Clear All',
+        text: t('scanHistory.clearAll'),
         style: 'destructive',
         onPress: async () => {
           await clearScanHistory();
@@ -111,7 +113,7 @@ export const TicketScanHistoryScreen: React.FC = () => {
         },
       },
     ]);
-  }, []);
+  }, [t]);
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -231,7 +233,7 @@ export const TicketScanHistoryScreen: React.FC = () => {
               ) : !isTK ? (
                 <View style={[styles.tenantBadge, { backgroundColor: colors.primary.main + '15' }]}>
                   <Text variant="captionSmall" style={{ color: colors.primary.main, fontWeight: '500' }}>
-                    QR Code
+                    {t('scanHistory.qrCode')}
                   </Text>
                 </View>
               ) : null}
@@ -252,10 +254,10 @@ export const TicketScanHistoryScreen: React.FC = () => {
           <Icon name="qrcode-scan" size={ms(48)} color={themeColors.text.hint} />
         </View>
         <Text variant="body" style={{ fontWeight: '600', marginBottom: ms(4) }}>
-          No Scans Yet
+          {t('scanHistory.noScansYet')}
         </Text>
         <Text variant="caption" color="hint" style={{ textAlign: 'center' }}>
-          Scan a QR code or barcode to see it here
+          {t('scanHistory.noScansHint')}
         </Text>
       </View>
     );
@@ -267,7 +269,7 @@ export const TicketScanHistoryScreen: React.FC = () => {
       <View style={styles.footerLoader}>
         <ActivityIndicator size="small" color={colors.primary.main} />
         <Text variant="caption" color="secondary" style={{ marginLeft: spacing.sm }}>
-          Loading more...
+          {t('common.loadingMore')}
         </Text>
       </View>
     );
@@ -284,7 +286,7 @@ export const TicketScanHistoryScreen: React.FC = () => {
           >
             <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
           </TouchableOpacity>
-          <Text variant="h2">Scan History</Text>
+          <Text variant="h2">{t('scanHistory.title')}</Text>
           <View style={styles.headerButton} />
         </View>
         <View style={styles.loaderContainer}>
@@ -308,7 +310,7 @@ export const TicketScanHistoryScreen: React.FC = () => {
         >
           <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
         </TouchableOpacity>
-        <Text variant="h2">Scan History</Text>
+        <Text variant="h2">{t('scanHistory.title')}</Text>
         {history.length > 0 ? (
           <TouchableOpacity
             style={[styles.headerButton, { backgroundColor: colors.error.main + '15' }]}
@@ -326,11 +328,11 @@ export const TicketScanHistoryScreen: React.FC = () => {
       {totalCount > 0 && (
         <View style={styles.subHeader}>
           <Text variant="caption" color="secondary">
-            {totalCount} scan{totalCount !== 1 ? 's' : ''}
+            {t('scanHistory.scansCount', { count: totalCount })}
           </Text>
           <TouchableOpacity onPress={handleClearHistory} activeOpacity={0.7}>
             <Text variant="caption" style={{ color: colors.error.main, fontWeight: '600' }}>
-              Clear All
+              {t('scanHistory.clearAll')}
             </Text>
           </TouchableOpacity>
         </View>

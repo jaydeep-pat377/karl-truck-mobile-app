@@ -13,6 +13,7 @@ import {
   Pressable,
 } from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Icon, Text } from '../common';
 import { colors } from '../../theme/colors';
@@ -41,6 +42,7 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
   onCameraPress,
   onGalleryPress,
 }) => {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -67,21 +69,21 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Animated.View style={[styles.modalSheet, { backgroundColor: bgColor, transform: [{ translateY }] }]}>
           <View style={styles.modalHandle} />
-          <Text style={[styles.modalTitle, { color: textColor }]}>Share</Text>
+          <Text style={[styles.modalTitle, { color: textColor }]}>{t('chat.share')}</Text>
 
           <View style={styles.modalOptions}>
             <TouchableOpacity style={styles.modalOption} onPress={() => { onClose(); setTimeout(onCameraPress, 300); }}>
               <View style={[styles.modalOptionIcon, { backgroundColor: colors.chat.whatsappGreen }]}>
                 <Icon name="camera" size={ms(24)} color={colors.common.white} />
               </View>
-              <Text style={[styles.modalOptionText, { color: textColor }]}>Camera</Text>
+              <Text style={[styles.modalOptionText, { color: textColor }]}>{t('chat.camera')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.modalOption} onPress={() => { onClose(); setTimeout(onGalleryPress, 300); }}>
               <View style={[styles.modalOptionIcon, { backgroundColor: colors.statusBadge.purple.text }]}>
                 <Icon name="image-multiple" size={ms(24)} color={colors.common.white} />
               </View>
-              <Text style={[styles.modalOptionText, { color: textColor }]}>Gallery</Text>
+              <Text style={[styles.modalOptionText, { color: textColor }]}>{t('chat.gallery')}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -94,8 +96,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   onSend,
   onTyping,
   isSending = false,
-  placeholder = 'Type a message...',
+  placeholder,
 }) => {
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t('chat.messagePlaceholder');
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
   const [message, setMessage] = useState('');
@@ -134,10 +138,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       }]);
     } catch (error: any) {
       if (error.code !== 'E_PICKER_CANCELLED') {
-        Alert.alert('Error', 'Failed to open camera');
+        Alert.alert(t('common.error'), t('chat.errors.openCameraFailed'));
       }
     }
-  }, []);
+  }, [t]);
 
   const openGallery = useCallback(async () => {
     try {
@@ -157,10 +161,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       setSelectedImages(prev => [...prev, ...attachments].slice(0, 5));
     } catch (error: any) {
       if (error.code !== 'E_PICKER_CANCELLED') {
-        Alert.alert('Error', 'Failed to open gallery');
+        Alert.alert(t('common.error'), t('chat.errors.openGalleryFailed'));
       }
     }
-  }, []);
+  }, [t]);
 
   const removeImage = useCallback((index: number) => {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
@@ -185,11 +189,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     } catch (error: any) {
       setMessage(trimmed);
       setSelectedImages(images);
-      Alert.alert('Error', error?.message || 'Failed to send');
+      Alert.alert(t('common.error'), error?.message || t('chat.errors.sendFailed'));
     } finally {
       setIsUploading(false);
     }
-  }, [message, selectedImages, isSending, isUploading, onSend, sendAnim]);
+  }, [message, selectedImages, isSending, isUploading, onSend, sendAnim, t]);
 
   const canSend = (message.trim().length > 0 || selectedImages.length > 0) && !isSending && !isUploading;
   const isProcessing = isSending || isUploading;
@@ -230,7 +234,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
           <TextInput
             style={[styles.input, { color: textColor }]}
-            placeholder={placeholder}
+            placeholder={resolvedPlaceholder}
             placeholderTextColor={hintColor}
             value={message}
             onChangeText={handleChangeText}

@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, TopGradientBackground, TruckLoader, Icon } from '../../components/common';
 import { ScheduledLoadsBottomSheet } from '../../components/orders';
@@ -128,6 +129,7 @@ interface ScheduledLoadItem {
 }
 
 export const OrderProductDetailsScreen: React.FC = () => {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<OrderProductDetailsRouteProp>();
@@ -440,7 +442,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>
-                Product & Schedule
+                {t('orders.productAndSchedule')}
               </Text>
             </View>
             <View style={styles.headerPlaceholder} />
@@ -449,7 +451,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
         <View style={styles.loadingContainer}>
           <TruckLoader
             size={120}
-            message="Loading product details..."
+            message={t('orders.loadingProductDetails')}
             color={isDark ? 'light' : 'dark'}
           />
         </View>
@@ -471,7 +473,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>
-                Product & Schedule
+                {t('orders.productAndSchedule')}
               </Text>
             </View>
             <View style={styles.headerPlaceholder} />
@@ -480,13 +482,13 @@ export const OrderProductDetailsScreen: React.FC = () => {
         <View style={styles.errorContainer}>
           <Icon name="alert-circle-outline" size={60} color={colors.error.main} />
           <Text style={[styles.errorText, { color: themeColors.text.primary }]}>
-            {error || 'Failed to load product details'}
+            {error || t('orders.errors.loadProductFailed')}
           </Text>
           <TouchableOpacity
             style={[styles.retryButton, { backgroundColor: colors.primary.main }]}
             onPress={() => refetch()}
           >
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -498,8 +500,8 @@ export const OrderProductDetailsScreen: React.FC = () => {
   const statusText = getStatusLabel(status || 'NORMAL');
 
   const scheduleDisplay = jobData.estimatedFinishTime
-    ? `${jobData.scheduleTime || 'N/A'} - ${jobData.estimatedFinishTime}`
-    : jobData.scheduleTime || 'N/A';
+    ? `${jobData.scheduleTime || t('common.notAvailable')} - ${jobData.estimatedFinishTime}`
+    : jobData.scheduleTime || t('common.notAvailable');
 
   const formattedDate = formatDateOnly(jobData.displayDate);
 
@@ -520,7 +522,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
 
           <View style={styles.headerTitleContainer}>
             <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>
-              Product & Schedule
+              {t('orders.productAndSchedule')}
             </Text>
             <View style={[styles.headerOrderBadge, { backgroundColor: colors.primary.main + '20' }]}>
               <Icon name="file-document-outline" size={12} color={colors.primary.main} />
@@ -589,7 +591,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 ]}>
                 <WeatherIcon icon={jobData.weatherData.weather_icon} size={ms(14)} />
                 <Text style={[styles.weatherDescText, { color: themeColors.text.secondary }]} numberOfLines={1}>
-                  {jobData.weatherData.weather_description || 'Partly cloudy'}
+                  {jobData.weatherData.weather_description || t('weather.conditions.partlyCloudy')}
                 </Text>
                 {jobData.weatherData.temperature_fahrenheit != null && (
                   <>
@@ -603,7 +605,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                   <>
                     <View style={[styles.weatherDot, { backgroundColor: themeColors.text.hint }]} />
                     <Text style={[styles.weatherValueText, { color: themeColors.text.secondary }]}>
-                      {jobData.weatherData.wind_speed_mph} mph wind
+                      {jobData.weatherData.wind_speed_mph} {t('orders.mphWind')}
                     </Text>
                   </>
                 )}
@@ -611,7 +613,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                   <>
                     <View style={[styles.weatherDot, { backgroundColor: themeColors.text.hint }]} />
                     <Text style={[styles.weatherValueText, { color: themeColors.text.secondary }]}>
-                      {jobData.weatherData.humidity}% RH
+                      {jobData.weatherData.humidity}% {t('orders.relativeHumidity')}
                     </Text>
                   </>
                 )}
@@ -633,7 +635,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 <Icon name="clipboard-text-outline" size={16} color={colors.common.white} />
               </View>
               <Text style={[styles.cardTitle, { color: themeColors.text.primary }]}>
-                Order Overview
+                {t('orders.orderOverview')}
               </Text>
             </View>
             <View style={[styles.statusBadge, { backgroundColor: statusColor + '15' }]}>
@@ -646,10 +648,10 @@ export const OrderProductDetailsScreen: React.FC = () => {
             <View style={[styles.infoItem, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
               <View style={styles.infoItemHeader}>
                 <Icon name="clock-start" size={14} color={colors.primary.main} />
-                <Text style={[styles.infoItemLabel, { color: themeColors.text.hint }]}>Start Time</Text>
+                <Text style={[styles.infoItemLabel, { color: themeColors.text.hint }]}>{t('orders.startTime')}</Text>
               </View>
               <Text style={[styles.infoItemValue, { color: themeColors.text.primary }]} numberOfLines={1}>
-                {jobData.scheduleTime || 'N/A'}
+                {jobData.scheduleTime || t('common.notAvailable')}
               </Text>
               <Text style={[styles.infoItemSubValue, { color: themeColors.text.secondary }]}>
                 {formattedDate}
@@ -659,7 +661,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
             <View style={[styles.infoItem, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
               <View style={styles.infoItemHeader}>
                 <Icon name="cube-outline" size={14} color={colors.secondary.main} />
-                <Text style={[styles.infoItemLabel, { color: themeColors.text.hint }]}>Product</Text>
+                <Text style={[styles.infoItemLabel, { color: themeColors.text.hint }]}>{t('orders.product')}</Text>
               </View>
               <Text style={[styles.infoItemValue, { color: themeColors.text.primary }]} numberOfLines={1}>
                 {jobData.productType}
@@ -671,7 +673,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 <View style={styles.productSlumpRow}>
                   <Icon name="scale" size={ms(10)} color={colors.primary.main} />
                   <Text style={[styles.productInfoBadgeText, { color: colors.primary.main }]}>
-                    Order Qty: {jobData.orderedVolume} CY
+                    {t('orders.orderQty')}: {jobData.orderedVolume} CY
                   </Text>
                 </View>
               )}
@@ -679,7 +681,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 <View style={styles.productSlumpRow}>
                   <Icon name="arrow-collapse-down" size={ms(10)} color={colors.info.main} />
                   <Text style={[styles.productInfoBadgeText, { color: colors.info.main }]}>
-                    Slump: {jobData.slump} inch
+                    {t('orders.slump')}: {jobData.slump} {t('orders.inch')}
                   </Text>
                 </View>
               )}
@@ -691,20 +693,20 @@ export const OrderProductDetailsScreen: React.FC = () => {
               <View style={[styles.infoItem, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
                 <View style={styles.infoItemHeader}>
                   <ConcreteTruck width={ms(18)} height={ms(12)} color={colors.success.main} />
-                  <Text style={[styles.infoItemLabel, { color: themeColors.text.hint }]}>Delivered Qty</Text>
+                  <Text style={[styles.infoItemLabel, { color: themeColors.text.hint }]}>{t('orders.deliveredQty')}</Text>
                 </View>
                 <Text style={[styles.infoItemValue, { color: colors.success.main }]}>
                   {formatQty(jobData.scheduledDelvQty ?? 0)} CY
                 </Text>
                 <Text style={[styles.infoItemSubValue, { color: themeColors.text.secondary }]}>
-                  Poured {jobData.pouredPercent}%
+                  {t('orders.poured')} {jobData.pouredPercent}%
                 </Text>
               </View>
 
               <View style={[styles.infoItem, { backgroundColor: isDark ? themeColors.surface : colors.grey[3] }]}>
                 <View style={styles.infoItemHeader}>
                   <ConcreteTruck width={ms(18)} height={ms(12)} color={colors.info.main} />
-                  <Text style={[styles.infoItemLabel, { color: themeColors.text.hint }]}>Loads</Text>
+                  <Text style={[styles.infoItemLabel, { color: themeColors.text.hint }]}>{t('orders.loads')}</Text>
                 </View>
                 <Text style={[styles.infoItemValue, { color: colors.info.main }]}>
                   {jobData.numberOfLoads}/{jobData.totalLoads}
@@ -718,15 +720,15 @@ export const OrderProductDetailsScreen: React.FC = () => {
             <View style={[styles.timingRow, { backgroundColor: isDark ? themeColors.surface : colors.grey[3], marginTop: GRID.xs, marginHorizontal: GRID.md }]}>
               <View style={styles.timingItem}>
                 <Icon name="timer-sand" size={14} color={colors.secondary.main} />
-                <Text style={[styles.timingLabel, { color: themeColors.text.hint }]}>Spacing</Text>
+                <Text style={[styles.timingLabel, { color: themeColors.text.hint }]}>{t('orders.spacing')}</Text>
                 <Text style={[styles.timingValue, { color: themeColors.text.primary }]}>
-                  {jobData.spacingMinutes > 0 ? `${jobData.spacingMinutes} min` : '-'}
+                  {jobData.spacingMinutes > 0 ? `${jobData.spacingMinutes} ${t('orders.min')}` : '-'}
                 </Text>
               </View>
               <View style={[styles.timingDivider, { backgroundColor: themeColors.border }]} />
               <View style={styles.timingItem}>
                 <Icon name="speedometer" size={14} color={colors.primary.main} />
-                <Text style={[styles.timingLabel, { color: themeColors.text.hint }]}>Sched Rate</Text>
+                <Text style={[styles.timingLabel, { color: themeColors.text.hint }]}>{t('orders.schedRate')}</Text>
                 <Text style={[styles.timingValue, { color: themeColors.text.primary }]}>
                   {jobData.scheduledRate > 0 ? `${jobData.scheduledRate} CY/HR` : '-'}
                 </Text>
@@ -734,9 +736,9 @@ export const OrderProductDetailsScreen: React.FC = () => {
               <View style={[styles.timingDivider, { backgroundColor: themeColors.border }]} />
               <View style={styles.timingItem}>
                 <Icon name="clock-check-outline" size={14} color={colors.success.main} />
-                <Text style={[styles.timingLabel, { color: themeColors.text.hint }]}>Actual</Text>
+                <Text style={[styles.timingLabel, { color: themeColors.text.hint }]}>{t('orders.actual')}</Text>
                 <Text style={[styles.timingValue, { color: themeColors.text.primary }]}>
-                  {jobData.actualSpacingMinutes > 0 ? `${jobData.actualSpacingMinutes.toFixed(1)} min` : '-'}
+                  {jobData.actualSpacingMinutes > 0 ? `${jobData.actualSpacingMinutes.toFixed(1)} ${t('orders.min')}` : '-'}
                 </Text>
               </View>
             </View>
@@ -746,7 +748,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
             <View style={[styles.averagesRow, { backgroundColor: isDark ? themeColors.surface : colors.grey[3], marginTop: GRID.xs, marginHorizontal: GRID.md }]}>
               <View style={styles.averageItem}>
                 <Icon name="clock-outline" size={12} color={colors.warning.main} />
-                <Text style={[styles.averageLabel, { color: themeColors.text.hint }]}>Wait</Text>
+                <Text style={[styles.averageLabel, { color: themeColors.text.hint }]}>{t('orders.wait')}</Text>
                 <Text style={[styles.averageValue, { color: themeColors.text.primary }]}>
                   {(jobData.avgWaitingMinutes ?? 0).toFixed(0)}m
                 </Text>
@@ -754,7 +756,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
               <View style={[styles.averageDivider, { backgroundColor: themeColors.border }]} />
               <View style={styles.averageItem}>
                 <Icon name="water" size={12} color={colors.success.main} />
-                <Text style={[styles.averageLabel, { color: themeColors.text.hint }]}>Pour</Text>
+                <Text style={[styles.averageLabel, { color: themeColors.text.hint }]}>{t('orders.pour')}</Text>
                 <Text style={[styles.averageValue, { color: themeColors.text.primary }]}>
                   {(jobData.avgPouringMinutes ?? 0).toFixed(0)}m
                 </Text>
@@ -762,7 +764,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
               <View style={[styles.averageDivider, { backgroundColor: themeColors.border }]} />
               <View style={styles.averageItem}>
                 <Icon name="shower" size={12} color={colors.info.main} />
-                <Text style={[styles.averageLabel, { color: themeColors.text.hint }]}>Wash</Text>
+                <Text style={[styles.averageLabel, { color: themeColors.text.hint }]}>{t('orders.wash')}</Text>
                 <Text style={[styles.averageValue, { color: themeColors.text.primary }]}>
                   {(jobData.avgWashoutMinutes ?? 0).toFixed(0)}m
                 </Text>
@@ -792,7 +794,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                       <Icon name="cube-outline" size={ms(16)} color={colors.primary.main} />
                     </View>
                     <Text style={[styles.associatedProductsTitle, { color: themeColors.text.primary }]}>
-                      Products
+                      {t('orders.products')}
                     </Text>
                     <View style={[styles.associatedProductsCountBadge, { backgroundColor: colors.primary.main }]}>
                       <Text style={styles.associatedProductsCountText}>{jobData.combinedProducts.length}</Text>
@@ -824,7 +826,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                             styles.productTypeLabelText,
                             { color: item.isPrimary ? colors.primary.main : colors.secondary.main }
                           ]}>
-                            {item.isPrimary ? 'Concrete' : 'Associated'}
+                            {item.isPrimary ? t('orders.concrete') : t('orders.associated')}
                           </Text>
                         </View>
                         <Text style={[styles.productListItemCode, { color: colors.primary.main }]}>
@@ -843,7 +845,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                       <View style={styles.productListDetailsGrid}>
 
                         <View style={styles.productListDetailItem}>
-                          <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Qty</Text>
+                          <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>{t('orders.qty')}</Text>
                           <Text style={[styles.productListDetailValue, { color: colors.success.main }]}>
                             {item.quantity} {item.quantityUnit || ''}
                           </Text>
@@ -852,7 +854,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
 
                         {item.isPrimary && (
                           <View style={styles.productListDetailItem}>
-                            <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>Slump</Text>
+                            <Text style={[styles.productListDetailLabel, { color: themeColors.text.hint }]}>{t('orders.slump')}</Text>
                             <Text style={[styles.productListDetailValue, { color: themeColors.text.primary }]}>
                               {item.slump !== '-' ? `${item.slump}"` : '-'}
                             </Text>
@@ -871,7 +873,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                     <Icon name="calendar-clock" size={16} color={colors.common.white} />
                   </View>
                   <Text style={[styles.cardTitle, { color: themeColors.text.primary }]}>
-                    Delivery Schedule
+                    {t('orders.deliverySchedule')}
                   </Text>
                 </View>
               </View>
@@ -895,7 +897,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                         {schedule.number_of_loads ?? '-'}
                       </Text>
-                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Loads</Text>
+                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.loads')}</Text>
                     </View>
 
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
@@ -903,7 +905,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                         {schedule.load_qty ? `${schedule.load_qty}` : '-'}
                       </Text>
-                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Load CY</Text>
+                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.loadCy')}</Text>
                     </View>
 
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
@@ -911,7 +913,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                         {schedule.delivery_rate_per_hour ?? '-'}
                       </Text>
-                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>CY/Hr</Text>
+                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.cyPerHr')}</Text>
                     </View>
                   </View>
 
@@ -920,9 +922,9 @@ export const OrderProductDetailsScreen: React.FC = () => {
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                       <Icon name="clock-outline" size={ms(18)} color={colors.info.main} />
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
-                        {schedule.truck_space ? `${schedule.truck_space} min` : '-'}
+                        {schedule.truck_space ? `${schedule.truck_space} ${t('orders.min')}` : '-'}
                       </Text>
-                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Spacing</Text>
+                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.spacing')}</Text>
                     </View>
 
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
@@ -930,15 +932,15 @@ export const OrderProductDetailsScreen: React.FC = () => {
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
                         {schedule.distance ? `${schedule.distance}` : '-'}
                       </Text>
-                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Miles</Text>
+                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.miles')}</Text>
                     </View>
 
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                       <ConcreteTruck width={ms(22)} height={ms(16)} color={colors.success.main} />
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
-                        {schedule.time_to_job ? `${schedule.time_to_job} min` : '-'}
+                        {schedule.time_to_job ? `${schedule.time_to_job} ${t('orders.min')}` : '-'}
                       </Text>
-                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>To Job</Text>
+                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.toJob')}</Text>
                     </View>
                   </View>
 
@@ -947,25 +949,25 @@ export const OrderProductDetailsScreen: React.FC = () => {
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                       <ConcreteTruck width={ms(22)} height={ms(16)} color={colors.secondary.main} />
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
-                        {schedule.unload_time ? `${schedule.unload_time} min` : '-'}
+                        {schedule.unload_time ? `${schedule.unload_time} ${t('orders.min')}` : '-'}
                       </Text>
-                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Unload</Text>
+                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.unload')}</Text>
                     </View>
 
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                       <Icon name="water" size={ms(18)} color={colors.info.main} />
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
-                        {schedule.job_wash_time ? `${schedule.job_wash_time} min` : '-'}
+                        {schedule.job_wash_time ? `${schedule.job_wash_time} ${t('orders.min')}` : '-'}
                       </Text>
-                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>Wash</Text>
+                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.wash')}</Text>
                     </View>
 
                     <View style={[styles.skuScheduleItem, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                       <ConcreteTruck width={ms(22)} height={ms(16)} color={colors.warning.main} />
                       <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
-                        {schedule.time_to_plant ? `${schedule.time_to_plant} min` : '-'}
+                        {schedule.time_to_plant ? `${schedule.time_to_plant} ${t('orders.min')}` : '-'}
                       </Text>
-                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>To Plant</Text>
+                      <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.toPlant')}</Text>
                     </View>
                   </View>
                 </View>
@@ -978,7 +980,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                     <Icon name="office-building" size={ms(16)} color={colors.info.main} />
                   </View>
                   <Text style={[styles.associatedProductsTitle, { color: themeColors.text.primary }]}>
-                    Plant Details
+                    {t('orders.plantDetails')}
                   </Text>
                 </View>
 
@@ -988,13 +990,13 @@ export const OrderProductDetailsScreen: React.FC = () => {
                       <Icon name="domain" size={16} color={colors.primary.main} />
                     </View>
                     <View style={styles.contactInfoContent}>
-                      <Text style={[styles.contactInfoLabel, { color: themeColors.text.hint }]}>Plant Name</Text>
+                      <Text style={[styles.contactInfoLabel, { color: themeColors.text.hint }]}>{t('orders.plantName')}</Text>
                       <Text style={[styles.contactInfoValue, { color: themeColors.text.primary }]} numberOfLines={1}>
                         {jobData.plantName}
                       </Text>
                       {jobData.plantCode ? (
                         <Text style={[styles.contactInfoSubValue, { color: themeColors.text.secondary }]}>
-                          Code: {jobData.plantCode}
+                          {t('orders.code')}: {jobData.plantCode}
                         </Text>
                       ) : null}
                     </View>
@@ -1006,7 +1008,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                         <Icon name="map-marker-outline" size={16} color={colors.secondary.main} />
                       </View>
                       <View style={styles.contactInfoContent}>
-                        <Text style={[styles.contactInfoLabel, { color: themeColors.text.hint }]}>Address</Text>
+                        <Text style={[styles.contactInfoLabel, { color: themeColors.text.hint }]}>{t('orders.address')}</Text>
                         <Text style={[styles.contactInfoValue, { color: themeColors.text.primary }]} numberOfLines={2}>
                           {[jobData.plantAddress1, jobData.plantAddress2].filter(Boolean).join(', ')}
                         </Text>
@@ -1020,7 +1022,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                         <Icon name="phone-outline" size={16} color={colors.success.main} />
                       </View>
                       <View style={styles.contactInfoContent}>
-                        <Text style={[styles.contactInfoLabel, { color: themeColors.text.hint }]}>Phone</Text>
+                        <Text style={[styles.contactInfoLabel, { color: themeColors.text.hint }]}>{t('orders.phone')}</Text>
                         <Text style={[styles.contactInfoValue, { color: themeColors.text.primary }]}>
                           {jobData.plantPhone}
                         </Text>
@@ -1050,10 +1052,10 @@ export const OrderProductDetailsScreen: React.FC = () => {
                       </View>
                       <View style={styles.skuLoadsTextContainer}>
                         <Text style={[styles.skuLoadsTitle, { color: themeColors.text.primary }]}>
-                          Scheduled Loads
+                          {t('orders.scheduledLoads')}
                         </Text>
                         <Text style={[styles.skuLoadsSubtitle, { color: themeColors.text.secondary }]}>
-                          {jobData.scheduledLoadsSummary.completedCount} of {jobData.scheduledLoadsSummary.total} completed
+                          {t('orders.loadsCompleted', { completed: jobData.scheduledLoadsSummary.completedCount, total: jobData.scheduledLoadsSummary.total })}
                         </Text>
                       </View>
                     </View>

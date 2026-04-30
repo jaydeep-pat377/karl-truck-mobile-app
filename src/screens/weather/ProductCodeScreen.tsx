@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { Text, Icon } from '../../components/common';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
@@ -201,7 +202,7 @@ const OrderCodeCard: React.FC<OrderCodeCardProps> = ({ orderCode, onPress, showT
     </View>
     <Text style={styles.codeText}>{orderCode.code}</Text>
     <TouchableOpacity style={styles.checkDetailsBtn} onPress={onPress} activeOpacity={0.7}>
-      <Text style={styles.checkDetailsText}>Click here to check details</Text>
+      <Text style={styles.checkDetailsText}>{t('product.clickToCheckDetails')}</Text>
       <Icon name="chevron-right" size={ms(16)} color={colors.light.text.hint} />
     </TouchableOpacity>
   </View>
@@ -211,6 +212,7 @@ export const ProductCodeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ProductCodeRouteProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const {
     orderStatus = 'Pending',
@@ -241,23 +243,23 @@ export const ProductCodeScreen: React.FC = () => {
           <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
             <Icon name="chevron-left" size={ms(24)} color={colors.common.white} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Product Details</Text>
+          <Text style={styles.headerTitle}>{t('product.details')}</Text>
           <View style={styles.backButton} />
         </View>
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Status</Text>
+            <Text style={styles.statLabel}>{t('orders.statusLabel')}</Text>
             <Text style={styles.statValue}>{orderStatus}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>On Job</Text>
+            <Text style={styles.statLabel}>{t('product.onJob')}</Text>
             <Text style={styles.statValueLarge}>{onJobTime}</Text>
             <Text style={styles.statSubtext}>{orderDate}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Rate</Text>
+            <Text style={styles.statLabel}>{t('product.rate')}</Text>
             <Text style={styles.statValueLarge}>{rate}</Text>
           </View>
         </View>
@@ -275,7 +277,7 @@ export const ProductCodeScreen: React.FC = () => {
           />
         ))}
         <View style={styles.orderCodeSection}>
-          <Text style={styles.sectionTitle}>Order Code Details</Text>
+          <Text style={styles.sectionTitle}>{t('appointments.orderCodeDetails')}</Text>
 
           {mockData.orderCodes.map((orderCode, index) => (
             <OrderCodeCard

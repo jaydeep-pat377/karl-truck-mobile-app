@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 import { Icon, Text } from '../common';
@@ -94,6 +95,7 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({
   compact = true,
 }) => {
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
   const queryClient = useQueryClient();
 
@@ -364,6 +366,7 @@ const WorkspaceListSheet: React.FC<WorkspaceListSheetProps> = ({
   isSwitching,
 }) => {
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
   const insets = useSafeAreaInsets();
 
@@ -379,8 +382,8 @@ const WorkspaceListSheet: React.FC<WorkspaceListSheetProps> = ({
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title="Switch Workspace"
-      subtitle="Choose the environment you want to work in"
+      title={t('workspace.switchWorkspace')}
+      subtitle={t('workspace.chooseEnv')}
       headerIcon="office-building-outline"
       headerIconColor={colors.primary.main}
       height={sheetHeight}

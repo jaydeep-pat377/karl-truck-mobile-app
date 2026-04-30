@@ -139,7 +139,7 @@ export const NotificationScreen: React.FC = () => {
               </Text>
               {isNew ? (
                 <View style={styles.newBadge}>
-                  <Text style={styles.newBadgeText}>NEW</Text>
+                  <Text style={styles.newBadgeText}>{t('notifications.newBadge')}</Text>
                 </View>
               ) : (
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
@@ -153,8 +153,8 @@ export const NotificationScreen: React.FC = () => {
               {item.body}
             </Text>
             <Text style={styles.timeText}>
-              {isNew ? 'Just arrived!' : formatTimeAgo(item.created_at)}
-              {item.priority >= 8 && ' • High Priority'}
+              {isNew ? t('notifications.justArrived') : formatTimeAgo(item.created_at)}
+              {item.priority >= 8 && ` • ${t('notifications.highPriority')}`}
             </Text>
           </View>
         </View>

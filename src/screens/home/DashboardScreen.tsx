@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Text, Icon } from '../../components/common';
+import { useTranslation } from 'react-i18next';
+import { Text, Icon, LanguageSwitcherModal } from '../../components/common';
 import {
   DateFilterChips,
   ProductionSummaryCard,
@@ -198,24 +199,24 @@ const getOrderStatusCategory = (order: {
   return 'PRE_POUR';
 };
 
-const getStatusLabel = (order: any): string => {
+const getStatusLabelKey = (order: any): string => {
   const category = getOrderStatusCategory(order);
   switch (category) {
-    case 'CANCELED': return 'Canceled';
-    case 'COMPLETED': return 'Completed';
-    case 'IN_PROCESS': return 'In-Process';
+    case 'CANCELED': return 'orders.status.canceled';
+    case 'COMPLETED': return 'orders.status.completed';
+    case 'IN_PROCESS': return 'orders.status.inProcess';
     case 'PRE_POUR': {
       const cs = order.currentStatus ?? 0;
       switch (cs) {
-        case 0: return 'Pre-Pour - Normal';
-        case 1: return 'Pre-Pour - Will Call';
-        case 2: return 'Pre-Pour - Weather Permitting';
-        case 3: return 'Pre-Pour - Hold';
-        case 5: return 'Pre-Pour - Wait List';
-        default: return 'Normal';
+        case 0: return 'orders.status.prePourNormal';
+        case 1: return 'orders.status.prePourWillCall';
+        case 2: return 'orders.status.prePourWeatherPermitting';
+        case 3: return 'orders.status.prePourHold';
+        case 5: return 'orders.status.prePourWaitList';
+        default: return 'orders.status.normal';
       }
     }
-    default: return 'Normal';
+    default: return 'orders.status.normal';
   }
 };
 
@@ -265,6 +266,7 @@ const defaultQuickLaunchActions: QuickLaunchAction[] = [
 
 const DashboardScreen: React.FC = () => {
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const navigation = useNavigation<any>();
   const { isTablet } = useResponsive();
   const { width: screenWidth } = useWindowDimensions();
@@ -277,6 +279,7 @@ const DashboardScreen: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [apiAnnouncements, setApiAnnouncements] = useState<ApiAnnouncement[]>([]);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
 
 
   const formatDateForApi = (date: Date): string => {
@@ -390,8 +393,8 @@ const DashboardScreen: React.FC = () => {
     if (current) return current.name;
     const tenantName = user?.metadata?.tenant?.tenant_name;
     if (tenantName) return tenantName;
-    return 'Overview';
-  }, [workspaces, currentWorkspaceId, user]);
+    return t('dashboard.overview');
+  }, [workspaces, currentWorkspaceId, user, t]);
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
@@ -481,18 +484,18 @@ const DashboardScreen: React.FC = () => {
       const hasImage = !!announcement.icon_or_percent;
       return {
         id: String(announcement.id),
-        badge: announcement.tagline || announcement.campaign || 'Announcement',
+        badge: announcement.tagline || announcement.campaign || t('dashboard.announcement'),
         headline: announcement.title || announcement.name,
         subheadline: announcement.subtitle,
         description: announcement.message_details_code || announcement.subtitle || '',
-        ctaText: 'Learn More',
+        ctaText: t('dashboard.learnMore'),
         illustrationType: getIllustrationType(announcement.tile_type, hasImage),
         image: hasImage ? { uri: announcement.icon_or_percent } : undefined,
         gradientColors: announcement.color ? generateGradientFromColor(announcement.color, isDark) : undefined,
         accentColor: announcement.color || undefined,
         onAction: announcement.url ? () => {
 
-          const rawTitle = announcement.title || announcement.name || 'Announcement';
+          const rawTitle = announcement.title || announcement.name || t('dashboard.announcement');
           const capitalizedTitle = rawTitle
             .split(' ')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -507,8 +510,18 @@ const DashboardScreen: React.FC = () => {
   }, [navigation, apiAnnouncements, isDark]);
 
   const quickLaunchActions = useMemo(() => {
-    return defaultQuickLaunchActions;
-  }, []);
+    return defaultQuickLaunchActions.map((action) => {
+      const titleMap: Record<string, string> = {
+        invite_customer: t('dashboard.customerInvite'),
+        order_concrete: t('dashboard.savedOrders'),
+        reports: t('dashboard.reports'),
+      };
+      return {
+        ...action,
+        title: titleMap[action.id] ?? action.title,
+      };
+    });
+  }, [t]);
 
   const handleQuickLaunchPress = useCallback((action: QuickLaunchAction) => {
     if (action.id === 'order_concrete') {
@@ -592,7 +605,7 @@ const DashboardScreen: React.FC = () => {
     // Tier color for badge, border, shadow — same as OrderCard
     const cardTierColor = getCompletionColor(deliveredPercent);
     // Status label — same as web's getCardStatus → getOrderStatusCategory
-    const statusLabel = getStatusLabel(item);
+    const statusLabel = t(getStatusLabelKey(item));
 
     const segmentColors = PROGRESS_STATUSES.map(status => {
       const apiSeg = (item.deliveryProgress?.segments || []).find(
@@ -672,7 +685,7 @@ const DashboardScreen: React.FC = () => {
                 </Text>
                 <Text style={[styles.deliveryStatUnit, { color: themeColors.text.primary }]}> CY</Text>
               </View>
-              <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Ordered</Text>
+              <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>{t('dashboard.ordered')}</Text>
             </View>
             <View style={[styles.deliveryStatDivider, { backgroundColor: themeColors.border }]} />
             <View style={styles.deliveryStatItem}>
@@ -682,7 +695,7 @@ const DashboardScreen: React.FC = () => {
                 </Text>
                 <Text style={[styles.deliveryStatUnit, { color: colors.dashboard.statGreen }]}> CY</Text>
               </View>
-              <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Poured</Text>
+              <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>{t('dashboard.poured')}</Text>
             </View>
             <View style={[styles.deliveryStatDivider, { backgroundColor: themeColors.border }]} />
             <View style={styles.deliveryStatItem}>
@@ -692,14 +705,14 @@ const DashboardScreen: React.FC = () => {
                 </Text>
                 <Text style={[styles.deliveryStatUnit, { color: colors.dashboard.statYellow }]}> CY</Text>
               </View>
-              <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Remaining</Text>
+              <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>{t('dashboard.remaining')}</Text>
             </View>
             <View style={[styles.deliveryStatDivider, { backgroundColor: themeColors.border }]} />
             <View style={styles.deliveryStatItem}>
               <Text style={[styles.deliveryStatValue, { color: cardTierColor }]}>
                 {progressPercent}%
               </Text>
-              <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>Progress</Text>
+              <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>{t('dashboard.progress')}</Text>
             </View>
           </View>
 
@@ -849,17 +862,17 @@ const DashboardScreen: React.FC = () => {
       >
         <Icon name="alert-circle-outline" size={48} color={colors.error.main} />
         <Text variant="h4" style={{ marginTop: spacing.md, color: colors.error.main }}>
-          Failed to load dashboard
+          {t('dashboard.failedToLoad')}
         </Text>
         <Text variant="body" color="secondary" style={{ marginTop: spacing.sm, textAlign: 'center', paddingHorizontal: spacing.xl }}>
-          {error || 'Please check your connection and try again'}
+          {error || t('dashboard.checkConnection')}
         </Text>
         <TouchableOpacity
           style={{ marginTop: spacing.lg, padding: spacing.md, backgroundColor: colors.primary.main, borderRadius: ms(8) }}
           onPress={() => refetch()}
         >
           <Text variant="body" color="white">
-            Retry
+            {t('common.retry')}
           </Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -881,6 +894,12 @@ const DashboardScreen: React.FC = () => {
           </Text>
         </View>
         <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={[styles.headerActionBtn, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
+            onPress={() => setShowLanguageModal(true)}
+            activeOpacity={0.7}>
+            <Icon name="translate" size={ms(18)} color={colors.primary.main} />
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.headerActionBtn, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
             onPress={onRefresh}
@@ -925,7 +944,7 @@ const DashboardScreen: React.FC = () => {
       >
         <View style={styles.summarySection}>
           <ProductionSummaryCard
-            title={marketSummary?.companies?.[0]?.name || user?.company || 'Tenant Company Name'}
+            title={marketSummary?.companies?.[0]?.name || user?.company || t('dashboard.tenantCompanyName')}
             totalOrders={todayOverview?.total_orders ?? 0}
             activeOrders={(todayOverview?.in_progress ?? 0) + (todayOverview?.normal ?? 0) + (todayOverview?.will_call ?? 0) + (todayOverview?.hold_delivery ?? 0)}
             cancelledOrders={todayOverview?.cancelled ?? 0}
@@ -982,7 +1001,7 @@ const DashboardScreen: React.FC = () => {
 
         {quickLaunchActions.length > 0 && (
           <>
-            <SectionHeader title="Quick Launch" />
+            <SectionHeader title={t('dashboard.quickLaunch')} />
             <View style={styles.quickLaunchContainer}>
               {quickLaunchActions.map((action) => (
                 <QuickLaunchCard
@@ -997,7 +1016,7 @@ const DashboardScreen: React.FC = () => {
 
         {dateFilter === 'today' && (
           <View style={{ marginTop: spacing.md }}>
-            <SectionHeader title="Active Deliveries" actionLabel="View All" onAction={() => navigation.navigate('Orders', { date_filter: 'today', _timestamp: Date.now() })} />
+            <SectionHeader title={t('dashboard.activeDeliveries')} actionLabel={t('common.seeAll')} onAction={() => navigation.navigate('Orders', { date_filter: 'today', _timestamp: Date.now() })} />
             {activeDeliveries?.orders && activeDeliveries.orders.length > 0 ? (
               <ScrollView
                 horizontal
@@ -1117,6 +1136,11 @@ const DashboardScreen: React.FC = () => {
 
         <View style={{ height: TAB_BAR_HEIGHT + spacing.lg }} />
       </ScrollView>
+
+      <LanguageSwitcherModal
+        visible={showLanguageModal}
+        onClose={() => setShowLanguageModal(false)}
+      />
     </SafeAreaView>
   );
 };

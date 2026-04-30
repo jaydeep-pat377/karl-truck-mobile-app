@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text, Icon, Card } from '../common';
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
@@ -76,6 +77,7 @@ export const InformationSection: React.FC<InformationSectionProps> = ({
   onStatsPress,
   maxVisible = 2,
 }) => {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -96,7 +98,7 @@ export const InformationSection: React.FC<InformationSectionProps> = ({
             <Icon name={getWeatherIcon(weather?.condition)} size={ms(18)} color={colors.info.main} />
           </View>
           <Text style={[styles.infoCardTitle, { color: themeColors.text.primary }]} numberOfLines={1}>
-            {weather?.location || 'Weather'}
+            {weather?.location || t('weather.title')}
           </Text>
           <View style={styles.weatherStats}>
             <Text style={[styles.weatherMainStat, { color: themeColors.text.primary }]}>
@@ -129,7 +131,7 @@ export const InformationSection: React.FC<InformationSectionProps> = ({
             <View style={[styles.infoCardIcon, { backgroundColor: `${colors.primary.main}15` }]}>
               <Icon name="chart-box-outline" size={ms(18)} color={colors.primary.main} />
             </View>
-            <Text style={[styles.infoCardTitle, { color: themeColors.text.primary }]}>Today's Orders</Text>
+            <Text style={[styles.infoCardTitle, { color: themeColors.text.primary }]}>{t('dashboard.todaysOrders')}</Text>
             <Text style={[styles.totalOrdersValue, { color: themeColors.text.primary }]}>
               {todayStats?.total ?? 0}
             </Text>
@@ -139,19 +141,19 @@ export const InformationSection: React.FC<InformationSectionProps> = ({
                 <Text style={[styles.statValue, { color: colors.dashboard.statGreen }]}>
                   {todayStats?.completed ?? 0}
                 </Text>
-                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Done</Text>
+                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>{t('dashboard.done')}</Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={[styles.statValue, { color: colors.dashboard.statYellow }]}>
                   {todayStats?.inProgress ?? 0}
                 </Text>
-                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Active</Text>
+                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>{t('common.active')}</Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={[styles.statValue, { color: colors.dashboard.statRed }]}>
                   {todayStats?.cancelled ?? 0}
                 </Text>
-                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Cancel</Text>
+                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>{t('dashboard.cancel')}</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -166,13 +168,13 @@ export const InformationSection: React.FC<InformationSectionProps> = ({
             <View style={styles.alertsHeaderLeft}>
               <Icon name="bell-outline" size={ms(16)} color={colors.warning.main} />
               <Text style={[styles.alertsTitle, { color: themeColors.text.primary }]}>
-                Alerts & Notices
+                {t('dashboard.alertsAndNotices')}
               </Text>
             </View>
             {messages.length > maxVisible && onSeeAllPress && (
               <TouchableOpacity onPress={onSeeAllPress} activeOpacity={0.7}>
                 <Text style={[styles.seeAllText, { color: colors.primary.main }]}>
-                  See All ({messages.length})
+                  {t('common.seeAll')} ({messages.length})
                 </Text>
               </TouchableOpacity>
             )}
