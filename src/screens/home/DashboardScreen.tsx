@@ -12,7 +12,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { Text, Icon, LanguageSwitcherModal } from '../../components/common';
+import { Text, Icon } from '../../components/common';
 import {
   DateFilterChips,
   ProductionSummaryCard,
@@ -279,7 +279,6 @@ const DashboardScreen: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [apiAnnouncements, setApiAnnouncements] = useState<ApiAnnouncement[]>([]);
-  const [showLanguageModal, setShowLanguageModal] = useState(false);
 
 
   const formatDateForApi = (date: Date): string => {
@@ -896,12 +895,6 @@ const DashboardScreen: React.FC = () => {
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={[styles.headerActionBtn, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
-            onPress={() => setShowLanguageModal(true)}
-            activeOpacity={0.7}>
-            <Icon name="translate" size={ms(18)} color={colors.primary.main} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.headerActionBtn, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
             onPress={onRefresh}
             activeOpacity={0.7}>
             <Icon name="refresh" size={ms(18)} color={colors.primary.main} />
@@ -1136,11 +1129,6 @@ const DashboardScreen: React.FC = () => {
 
         <View style={{ height: TAB_BAR_HEIGHT + spacing.lg }} />
       </ScrollView>
-
-      <LanguageSwitcherModal
-        visible={showLanguageModal}
-        onClose={() => setShowLanguageModal(false)}
-      />
     </SafeAreaView>
   );
 };
