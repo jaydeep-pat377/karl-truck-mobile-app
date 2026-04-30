@@ -47,6 +47,8 @@ export function navigateFromNotification(data: Record<string, string | unknown>)
   const chatId = (data.chat_id || data.chatId) as string;
   const roomId = (data.room_id || data.roomId) as string;
 
+  console.log('[NavFromNotif] eventCode=', eventCode, 'orderId=', orderId, 'orderCode=', orderCode, 'orderDate=', orderDate);
+
   // Use orderId as orderCode fallback (they are often identical)
   const effectiveOrderId = orderId || orderCode || '';
   const effectiveOrderCode = orderCode || orderId || '';

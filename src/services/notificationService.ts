@@ -4,6 +4,8 @@ import { Platform } from 'react-native';
 import { useNotificationStore } from '../store/notificationStore';
 import { AppNotification, NotificationType } from '../types/notification';
 import { navigateFromNotification, navigateToTab } from './navigationService';
+import { ensureCorrectTenant } from './deepLinkService';
+import { alertService } from './alertService';
 
 const CHANNEL_ID = 'truckast_heads_up';
 
@@ -177,11 +179,9 @@ class NotificationService {
     notifee.onForegroundEvent(({ type, detail }) => {
       if (type === EventType.PRESS) {
         const { notification } = detail;
-        if (notification?.data) {
-          navigateFromNotification(notification.data as Record<string, string>);
-        } else {
-          navigateToTab('Notifications');
-        }
+        void this.dispatchNotificationOpen(
+          notification?.data as Record<string, string> | undefined,
+        );
       }
     });
   }
@@ -202,11 +202,9 @@ class NotificationService {
     const initialNotification = await notifee.getInitialNotification();
     if (initialNotification) {
       const { notification } = initialNotification;
-      if (notification?.data) {
-        navigateFromNotification(notification.data as Record<string, string>);
-      } else {
-        navigateToTab('Notifications');
-      }
+      await this.dispatchNotificationOpen(
+        notification?.data as Record<string, string> | undefined,
+      );
     }
   }
 
@@ -236,14 +234,60 @@ class NotificationService {
   private handleNotificationNavigation(
     remoteMessage: FirebaseMessagingTypes.RemoteMessage,
   ): void {
-    const { data } = remoteMessage;
+    void this.dispatchNotificationOpen(
+      remoteMessage.data as Record<string, string> | undefined,
+    );
+  }
 
-    if (data) {
-      navigateFromNotification(data as Record<string, string>);
-    } else {
+  /**
+   * Single entry point for "user opened a notification".
+   *
+   * If the push carries a `tenant_slug` / `tenant_subdomain` (stamped by the
+   * web sender at /api/notifications/send) and the user is currently in a
+   * different tenant, switch to the sender's tenant before deep-linking.
+   * The switch reuses ensureCorrectTenant() from deepLinkService — same
+   * mechanism we already use for shared deep-link URLs, including the
+   * "you no longer have access" failure path.
+   */
+  async dispatchNotificationOpen(
+    data: Record<string, string> | undefined,
+  ): Promise<void> {
+    console.log('[NotifTap] dispatchNotificationOpen called. data =', JSON.stringify(data));
 
+    if (!data) {
+      console.log('[NotifTap] no data → Notifications tab');
       navigateToTab('Notifications');
+      return;
     }
+
+    const tenantSlug = data.tenant_slug || data.tenant_subdomain;
+    console.log('[NotifTap] tenantSlug from payload =', tenantSlug);
+
+    if (tenantSlug) {
+      try {
+        const result = await ensureCorrectTenant(
+          tenantSlug,
+          data.tenant_subdomain,
+        );
+        console.log('[NotifTap] ensureCorrectTenant result =', JSON.stringify(result));
+        if (!result.matched) {
+          console.warn('[NotifTap] tenant switch failed → Notifications tab. reason:', result.reason);
+          alertService.showError(
+            'Tenant unavailable',
+            "You don't have access to the workspace this notification was sent from.",
+          );
+          navigateToTab('Notifications');
+          return;
+        }
+      } catch (err) {
+        console.error('[NotifTap] tenant switch threw → Notifications tab:', err);
+        navigateToTab('Notifications');
+        return;
+      }
+    }
+
+    console.log('[NotifTap] calling navigateFromNotification');
+    navigateFromNotification(data);
   }
 
   cleanup(): void {

@@ -168,14 +168,14 @@ function findWorkspaceByTenant(
  * Returns true if already on the correct tenant or switch succeeded.
  * Returns false if the user doesn't have access or switch failed.
  */
-interface TenantMatchResult {
+export interface TenantMatchResult {
   matched: boolean;
   workspace?: Workspace;
   reason: string;
   debug: string;
 }
 
-async function ensureCorrectTenant(tenantSlug: string, tenantSubdomain?: string): Promise<TenantMatchResult> {
+export async function ensureCorrectTenant(tenantSlug: string, tenantSubdomain?: string): Promise<TenantMatchResult> {
   const store = useWorkspaceStore.getState();
 
   // Load workspace list if not already loaded
