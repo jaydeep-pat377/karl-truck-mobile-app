@@ -152,6 +152,42 @@ export async function verifyQRPayload(
   }
 }
 
+// ── QR Encryption (for generating same QR as web) ──
+
+interface QrEncryptResponse {
+  ok: boolean;
+  payload?: string;
+  error?: string;
+}
+
+export interface QrEncryptParams {
+  kind: 'ticket' | 'truck';
+  orderCode?: string;
+  orderId?: string;
+  ticketCode?: string;
+  ticketId?: string;
+  truckCode?: string;
+  truckId?: string;
+}
+
+export async function encryptQRPayload(
+  params: QrEncryptParams,
+): Promise<string | null> {
+  try {
+    const response = await axiosInstance.post<QrEncryptResponse>(
+      '/qr/encrypt',
+      params,
+      { _silentError: true } as any,
+    );
+    if (response.data.ok && response.data.payload) {
+      return response.data.payload;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Scan History API ──
 
 interface ScanHistoryResponse {

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -29,6 +29,7 @@ import { RootStackParamList } from '../../navigation/types';
 import { useTicketDetails, useAlert } from '../../hooks';
 import { ApiTicketStatus, VerifiJson, FreshWeatherData } from '../../types/ticket';
 import { ticketService } from '../../api/services/ticketService';
+import { encryptQRPayload } from '../../api/services/qrService';
 
 type TicketDetailRouteProp = RouteProp<RootStackParamList, 'TicketDetail'>;
 
@@ -54,6 +55,19 @@ const getEvaporationText = (rate: number | null | undefined): string => {
   if (rate < 0.30) return 'High';
   if (rate < 0.40) return 'Very High';
   return 'Severe';
+};
+
+/** QR modal status → dot/text color (mirrors web getStatusStyles) */
+const getQrStatusColor = (status: string): string => {
+  const s = (status || '').toLowerCase();
+  if (s.includes('cancel')) return '#ef4444';
+  if (s === 'at plant') return '#10b981';
+  if (s.includes('pour') || s.includes('unload')) return '#f59e0b';
+  if (s.includes('wash')) return '#0ea5e9';
+  if (s === 'to plant') return '#3b82f6';
+  if (s.includes('job')) return '#6366f1';
+  if (s === 'loaded' || s === 'loading') return '#8b5cf6';
+  return '#94a3b8';
 };
 
 interface StatusConfig {
@@ -1088,6 +1102,7 @@ export const TicketDetailScreen: React.FC = () => {
 
   const [showDirectionsMenu, setShowDirectionsMenu] = useState(false);
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
+  const [encryptedQr, setEncryptedQr] = useState<string>('');
   const [weatherLoading, setWeatherLoading] = useState(false);
   // ETA feature temporarily disabled
   // const [etaLoading, setEtaLoading] = useState(false);
@@ -1142,6 +1157,7 @@ export const TicketDetailScreen: React.FC = () => {
 
   const {
     ticket,
+    ticketId,
     ticketCode: apiTicketCode,
     orderCode: apiOrderCode,
     orderId,
@@ -1299,6 +1315,29 @@ export const TicketDetailScreen: React.FC = () => {
   const closeQRCodeModal = useCallback(() => {
     setShowQRCodeModal(false);
   }, []);
+
+  // Fetch encrypted QR payload when modal opens (matches web QR)
+  useEffect(() => {
+    if (!showQRCodeModal || !apiTicketCode) {
+      setEncryptedQr('');
+      return;
+    }
+    let cancelled = false;
+    encryptQRPayload({
+      kind: 'ticket',
+      orderCode: apiOrderCode || orderCode || '',
+      orderId: orderId ? String(orderId) : '',
+      ticketCode: apiTicketCode,
+      ticketId: ticketId ? String(ticketId) : '',
+      truckCode: truckCode || '',
+      truckId: '',
+    }).then((payload) => {
+      if (!cancelled && payload) {
+        setEncryptedQr(payload);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [showQRCodeModal, apiTicketCode, apiOrderCode, orderCode, orderId, ticketId, truckCode]);
 
   const closeDirectionsMenu = useCallback(() => {
     setShowDirectionsMenu(false);
@@ -2151,40 +2190,92 @@ export const TicketDetailScreen: React.FC = () => {
             activeOpacity={1}
             onPress={closeQRCodeModal}
           />
-          <View style={[styles.qrModalContent, { backgroundColor: themeColors.card }]}>
-            <View style={styles.qrModalHeader}>
-              <Text style={[styles.qrModalTitle, { color: themeColors.text.primary }]}>
-                Ticket QR Code
-              </Text>
+          <View style={styles.qrModalContent}>
+            {/* ═══ GRADIENT HEADER ═══ */}
+            <LinearGradient
+              colors={['#7c3aed', '#9333ea', '#4338ca']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.qrGradientHeader}
+            >
+              {/* Close button - top right */}
               <TouchableOpacity
-                style={[styles.qrModalCloseBtn, { backgroundColor: isDark ? colors.grey[60] + '20' : colors.grey[10] }]}
+                style={styles.qrHeaderCloseBtn}
                 onPress={closeQRCodeModal}
                 activeOpacity={0.7}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Icon name="close" size={ms(20)} color={themeColors.text.secondary} />
+                <Icon name="close" size={ms(16)} color={colors.common.white} />
               </TouchableOpacity>
-            </View>
 
-            <View style={[styles.qrCodeWrapper, { backgroundColor: colors.common.white }]}>
-              <QRCode
-                value={apiTicketCode || ticketCode || 'N/A'}
-                size={Math.min(Dimensions.get('window').width * 0.45, ms(160))}
-                backgroundColor={colors.common.white}
-                color={colors.grey[85]}
-              />
-            </View>
+              {/* Row 1: Icon + Title */}
+              <View style={styles.qrHeaderRow1}>
+                <View style={styles.qrHeaderIconBox}>
+                  <Icon name="qrcode" size={ms(18)} color={colors.common.white} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <AppText style={styles.qrHeaderTitle}>Ticket QR Code</AppText>
+                  <AppText style={styles.qrHeaderSubtitle}>Scan to view ticket details</AppText>
+                </View>
+              </View>
 
-            <View style={styles.qrTicketInfo}>
-              <Text style={[styles.qrTicketLabel, { color: themeColors.text.secondary }]}>
-                Ticket Number
-              </Text>
-              <Text style={[styles.qrTicketCode, { color: themeColors.text.primary }]}>
-                {apiTicketCode || ticketCode || '---'}
-              </Text>
-            </View>
+              {/* Row 2: Ticket Number */}
+              <View style={styles.qrHeaderTicketRow}>
+                <AppText style={styles.qrHeaderTicketLabel}>TICKET NUMBER</AppText>
+                <AppText style={styles.qrHeaderTicketCode}>{apiTicketCode || ticketCode || '---'}</AppText>
+              </View>
 
-                      </View>
+              {/* Row 3: Status pill + Live indicator */}
+              <View style={styles.qrHeaderStatusRow}>
+                <View style={[styles.qrStatusPill, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
+                  <View style={[styles.qrStatusDot, { backgroundColor: getQrStatusColor(currentStatusDisplayText || '') }]} />
+                  <AppText style={[styles.qrStatusText, { color: getQrStatusColor(currentStatusDisplayText || '') }]}>
+                    {currentStatusDisplayText || 'Pending'}
+                  </AppText>
+                </View>
+                <View style={styles.qrLivePill}>
+                  <View style={styles.qrLiveDot} />
+                  <AppText style={styles.qrLiveText}>LIVE</AppText>
+                </View>
+              </View>
+            </LinearGradient>
+
+            {/* ═══ BODY ═══ */}
+            <View style={[styles.qrBodySection, { backgroundColor: isDark ? themeColors.background : '#f8fafc' }]}>
+              {/* QR code frame with corner brackets */}
+              <View style={styles.qrFrameOuter}>
+                <View style={[styles.qrFrameInner, { backgroundColor: colors.common.white }]}>
+                  {/* Corner brackets */}
+                  <View style={[styles.qrCorner, styles.qrCornerTL]} />
+                  <View style={[styles.qrCorner, styles.qrCornerTR]} />
+                  <View style={[styles.qrCorner, styles.qrCornerBL]} />
+                  <View style={[styles.qrCorner, styles.qrCornerBR]} />
+
+                  {encryptedQr ? (
+                    <QRCode
+                      value={encryptedQr}
+                      size={ms(200)}
+                      backgroundColor={colors.common.white}
+                      color="#1e1b4b"
+                      ecl="H"
+                    />
+                  ) : (
+                    <View style={{ width: ms(200), height: ms(200), justifyContent: 'center', alignItems: 'center' }}>
+                      <ActivityIndicator size="large" color="#7c3aed" />
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {/* Scan hint */}
+              <View style={styles.qrScanHint}>
+                <Icon name="line-scan" size={ms(14)} color={isDark ? colors.grey[40] : colors.grey[50]} />
+                <AppText style={[styles.qrScanHintText, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>
+                  Point your phone camera at the code
+                </AppText>
+              </View>
+            </View>
+          </View>
         </View>
       </Modal>
     </View>
@@ -3316,16 +3407,16 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   qrModalContent: {
-    borderRadius: RADIUS.xl,
-    padding: GRID.md,
-    marginHorizontal: GRID.xl,
-    maxWidth: ms(280),
-    width: '85%',
+    borderRadius: ms(16),
+    overflow: 'hidden',
+    marginHorizontal: GRID.lg,
+    maxWidth: ms(380),
+    width: '92%',
     ...Platform.select({
       ios: {
         shadowColor: colors.common.black,
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.25,
+        shadowOpacity: 0.3,
         shadowRadius: 24,
       },
       android: {
@@ -3333,43 +3424,190 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  qrModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: GRID.md,
-    paddingLeft: GRID.xs,
+  // ── Gradient Header ──
+  qrGradientHeader: {
+    paddingHorizontal: ms(20),
+    paddingTop: ms(20),
+    paddingBottom: ms(16),
+    position: 'relative',
   },
-  qrModalTitle: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: ms(16),
-  },
-  qrModalCloseBtn: {
-    width: ms(32),
-    height: ms(32),
-    borderRadius: ms(16),
+  qrHeaderCloseBtn: {
+    position: 'absolute',
+    top: ms(10),
+    right: ms(10),
+    zIndex: 20,
+    width: ms(28),
+    height: ms(28),
+    borderRadius: ms(8),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  qrCodeWrapper: {
-    alignSelf: 'center',
-    padding: GRID.md,
-    borderRadius: RADIUS.md,
-    marginBottom: GRID.md,
-  },
-  qrTicketInfo: {
+  qrHeaderRow1: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: GRID.sm,
+    gap: ms(10),
+    paddingRight: ms(36),
   },
-  qrTicketLabel: {
-    fontFamily: fontFamily.regular,
-    fontSize: ms(12),
-    marginBottom: GRID.xs,
+  qrHeaderIconBox: {
+    width: ms(40),
+    height: ms(40),
+    borderRadius: ms(12),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  qrTicketCode: {
+  qrHeaderTitle: {
     fontFamily: fontFamily.bold,
-    fontSize: ms(20),
+    fontSize: ms(15),
+    color: colors.common.white,
+    letterSpacing: -0.3,
+  },
+  qrHeaderSubtitle: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(10),
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: ms(1),
+  },
+  qrHeaderTicketRow: {
+    marginTop: ms(16),
+  },
+  qrHeaderTicketLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(8),
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 2,
+  },
+  qrHeaderTicketCode: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(22),
+    color: colors.common.white,
+    letterSpacing: -0.5,
+    marginTop: ms(2),
+  },
+  qrHeaderStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(8),
+    marginTop: ms(10),
+    flexWrap: 'wrap',
+  },
+  qrStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(5),
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(4),
+    borderRadius: ms(20),
+  },
+  qrStatusDot: {
+    width: ms(6),
+    height: ms(6),
+    borderRadius: ms(3),
+  },
+  qrStatusText: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(9),
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  qrLivePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(5),
+    paddingHorizontal: ms(8),
+    paddingVertical: ms(4),
+    borderRadius: ms(20),
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  qrLiveDot: {
+    width: ms(6),
+    height: ms(6),
+    borderRadius: ms(3),
+    backgroundColor: '#34d399',
+  },
+  qrLiveText: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(8),
+    color: colors.common.white,
     letterSpacing: 1,
+  },
+  // ── Body ──
+  qrBodySection: {
+    alignItems: 'center',
+    paddingHorizontal: ms(20),
+    paddingVertical: ms(20),
+    gap: ms(14),
+  },
+  qrFrameOuter: {
+    position: 'relative',
+  },
+  qrFrameInner: {
+    padding: ms(18),
+    borderRadius: ms(16),
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    position: 'relative',
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.common.black,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  qrCorner: {
+    position: 'absolute',
+    width: ms(12),
+    height: ms(12),
+    borderColor: '#7c3aed',
+  },
+  qrCornerTL: {
+    top: ms(6),
+    left: ms(6),
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderTopLeftRadius: ms(2),
+  },
+  qrCornerTR: {
+    top: ms(6),
+    right: ms(6),
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderTopRightRadius: ms(2),
+  },
+  qrCornerBL: {
+    bottom: ms(6),
+    left: ms(6),
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomLeftRadius: ms(2),
+  },
+  qrCornerBR: {
+    bottom: ms(6),
+    right: ms(6),
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomRightRadius: ms(2),
+  },
+  qrScanHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(6),
+  },
+  qrScanHintText: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
   },
   // Verifi Modern Card-Based Styles
   vfContainer: {
