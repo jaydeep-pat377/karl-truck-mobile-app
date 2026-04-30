@@ -19,7 +19,12 @@ import {
   Vibration,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+<<<<<<< Updated upstream
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+=======
+import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+>>>>>>> Stashed changes
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text } from '../../components/common/Text';
 import { ms, vs, spacing } from '../../utils/responsive';
@@ -32,9 +37,15 @@ type Step = 'verify' | 'create' | 'confirm';
 
 const PIN_LENGTH = 4;
 
+<<<<<<< Updated upstream
 export const ChangePINScreen: React.FC<ChangePINScreenProps> = ({
   navigation,
 }) => {
+=======
+export const ChangePINScreen: React.FC = () => {
+  const { t } = useTranslation();
+  const navigation = useNavigation();
+>>>>>>> Stashed changes
   const { theme, isDark } = useTheme();
 
   const [step, setStep] = useState<Step>('verify');
@@ -112,7 +123,7 @@ export const ChangePINScreen: React.FC<ChangePINScreenProps> = ({
       if (pin === '1234') {
         setStep('create');
       } else {
-        setError('Incorrect PIN. Please try again.');
+        setError(t('auth.pin.errors.incorrectPin'));
         triggerShake();
         setTimeout(() => {
           setCurrentPIN('');
@@ -123,7 +134,7 @@ export const ChangePINScreen: React.FC<ChangePINScreenProps> = ({
       // Check for weak PINs
       const weakPINs = ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999', '1234', '4321'];
       if (weakPINs.includes(pin)) {
-        setError('This PIN is too easy to guess. Please choose a different PIN.');
+        setError(t('auth.pin.errors.weakPin'));
         triggerShake();
         setTimeout(() => {
           setNewPIN('');
@@ -139,13 +150,24 @@ export const ChangePINScreen: React.FC<ChangePINScreenProps> = ({
         await new Promise(resolve => setTimeout(resolve, 1000));
         setIsLoading(false);
 
+<<<<<<< Updated upstream
         Alert.alert(
           'PIN Changed',
           'Your PIN has been updated successfully.',
           [{ text: 'OK', onPress: () => navigation?.goBack() }]
+=======
+        showSuccess(
+          t('auth.pin.successTitle'),
+          t('auth.pin.successMessage'),
+          () => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            }
+          }
+>>>>>>> Stashed changes
         );
       } else {
-        setError('PINs do not match. Please try again.');
+        setError(t('auth.pin.errors.pinsDoNotMatch'));
         triggerShake();
         setTimeout(() => {
           setConfirmPIN('');
@@ -171,20 +193,20 @@ export const ChangePINScreen: React.FC<ChangePINScreenProps> = ({
     switch (step) {
       case 'verify':
         return {
-          title: 'Enter Current PIN',
-          subtitle: 'Please enter your current PIN to continue',
+          title: t('auth.pin.verify.title'),
+          subtitle: t('auth.pin.verify.subtitle'),
           icon: 'lock-outline',
         };
       case 'create':
         return {
-          title: 'Create New PIN',
-          subtitle: 'Enter a 4-digit PIN that you will remember',
+          title: t('auth.pin.create.title'),
+          subtitle: t('auth.pin.create.subtitle'),
           icon: 'lock-plus-outline',
         };
       case 'confirm':
         return {
-          title: 'Confirm New PIN',
-          subtitle: 'Re-enter your new PIN to confirm',
+          title: t('auth.pin.confirm.title'),
+          subtitle: t('auth.pin.confirm.subtitle'),
           icon: 'lock-check-outline',
         };
     }
@@ -362,17 +384,23 @@ export const ChangePINScreen: React.FC<ChangePINScreenProps> = ({
       {step === 'verify' && (
         <TouchableOpacity
           onPress={() => {
+<<<<<<< Updated upstream
             Alert.alert(
               'Forgot PIN?',
               'Please contact your administrator to reset your PIN.',
               [{ text: 'OK' }]
+=======
+            showSuccess(
+              t('auth.pin.forgotTitle'),
+              t('auth.pin.forgotMessage')
+>>>>>>> Stashed changes
             );
           }}
           activeOpacity={0.7}
           style={styles.forgotLink}
         >
           <Text variant="body" style={{ color: theme.colors.primary.main }}>
-            Forgot PIN?
+            {t('auth.pin.forgotPin')}
           </Text>
         </TouchableOpacity>
       )}

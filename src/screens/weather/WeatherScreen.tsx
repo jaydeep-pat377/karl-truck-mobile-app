@@ -16,6 +16,8 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
+import { useTranslation } from 'react-i18next';
+import i18n from 'i18next';
 import Svg, { Circle, Path, Line, Text as SvgText, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { Text, EvaporationProgress } from '../../components/common';
 import { colors } from '../../theme/colors';
@@ -110,10 +112,18 @@ interface PressureCardProps {
 }
 
 const PressureCard: React.FC<PressureCardProps> = ({ value, unit }) => {
+<<<<<<< Updated upstream
   const svgWidth = responsive(ms(120), ms(150));
   const svgHeight = responsive(ms(75), ms(95));
   const radius = responsive(ms(48), ms(60));
   const strokeWidth = responsive(ms(3), ms(4));
+=======
+  const { t } = useTranslation();
+  const svgWidth = responsive(ms(130), ms(160));
+  const svgHeight = responsive(ms(95), ms(115));
+  const radius = responsive(ms(45), ms(55));
+  const strokeWidth = responsive(ms(4), ms(5));
+>>>>>>> Stashed changes
   const centerX = svgWidth / 2;
   const centerY = responsive(ms(5), ms(8));
 
@@ -142,7 +152,7 @@ const PressureCard: React.FC<PressureCardProps> = ({ value, unit }) => {
   const progressY = centerY + Math.sin(toRad(progressAngle)) * radius;
 
   return (
-    <WeatherMetricCard title="PRESSURE" titleIcon="arrow-up-down">
+    <WeatherMetricCard title={t('weather.metrics.pressure')} titleIcon="arrow-up-down">
       <View style={styles.pressureContent}>
         <Svg width={svgWidth} height={svgHeight}>
           {/* Background arc (gray track) */}
@@ -300,6 +310,7 @@ interface WindCardProps {
 }
 
 const WindCard: React.FC<WindCardProps> = ({ direction, speed, unit }) => {
+  const { t } = useTranslation();
   const size = responsive(ms(60), ms(80));
   const center = size / 2;
   const radius = size / 2 - responsive(8, 10);
@@ -327,7 +338,7 @@ const WindCard: React.FC<WindCardProps> = ({ direction, speed, unit }) => {
   ];
 
   return (
-    <WeatherMetricCard title="WIND" titleIcon="weather-windy">
+    <WeatherMetricCard title={t('weather.metrics.wind')} titleIcon="weather-windy">
       <View style={styles.windContent}>
         <Svg width={size} height={size}>
           {/* Outer circle */}
@@ -404,9 +415,10 @@ interface DewPointCardProps {
 }
 
 const DewPointCard: React.FC<DewPointCardProps> = ({ value, description }) => {
+  const { t } = useTranslation();
   return (
     <WeatherMetricCard
-      title="DEW POINT"
+      title={t('weather.metrics.dewPoint')}
       titleIcon="thermometer-low"
       description={description}
     >
@@ -433,9 +445,10 @@ interface HumidityCardProps {
 }
 
 const HumidityCard: React.FC<HumidityCardProps> = ({ value, description }) => {
+  const { t } = useTranslation();
   return (
     <WeatherMetricCard
-      title="HUMIDITY"
+      title={t('weather.metrics.humidity')}
       titleIcon="water-percent"
       description={description}
     >
@@ -473,7 +486,202 @@ const RecommendationChip: React.FC<RecommendationChipProps> = ({ label, color, o
       >
         {label}
       </Text>
+<<<<<<< Updated upstream
     </TouchableOpacity>
+=======
+    </View>
+  );
+};
+
+interface ConcreteEvaporationCardProps {
+  rate?: number | null;
+  level?: string | null;
+  tempSource?: string | null;
+  isEstimated?: boolean | null;
+  plantDefaultTemperature?: number | null;
+  plantConcreteTemperature?: number | null;
+  plantStatusType?: 0 | 1 | null;
+  onMorePress?: () => void;
+}
+
+const CONCRETE_EVAP_COLORS: Record<string, string> = {
+  Low: '#22C55E',
+  Moderate: '#F59E0B',
+  High: '#F97316',
+  Critical: '#DC2626',
+};
+
+const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({
+  rate, level, tempSource, isEstimated,
+  plantDefaultTemperature, plantConcreteTemperature, plantStatusType,
+  onMorePress,
+}) => {
+  const { t } = useTranslation();
+  const hasData = rate != null && level;
+  const levelColor = hasData ? (CONCRETE_EVAP_COLORS[level] || CONCRETE_EVAP_COLORS.Low) : WEATHER_COLORS.text.hint;
+  const progress = hasData ? (level === 'Low' ? 25 : level === 'Moderate' ? 50 : level === 'High' ? 75 : 100) : 0;
+  const isNonVerifi = tempSource != null && !['Discharge', 'Arrival', 'Leave Plant'].includes(tempSource);
+  const showPlantConfig = isNonVerifi || (!hasData && (plantDefaultTemperature != null || plantConcreteTemperature != null));
+
+  return (
+    <View style={[styles.metricCard, { backgroundColor: WEATHER_COLORS.cardBackground, borderColor: WEATHER_COLORS.cardBorder }]}>
+      <View style={styles.metricCardHeader}>
+        <View style={styles.metricCardIconWrap}>
+          <Icon name="water-outline" size={ms(14)} color={WEATHER_COLORS.text.hint} />
+        </View>
+        <Text style={[styles.metricCardTitle, { color: WEATHER_COLORS.text.hint }]}>
+          {t('weather.metrics.concreteEvap')}
+        </Text>
+      </View>
+
+      <Text style={[styles.concreteEvapValue, { color: WEATHER_COLORS.text.primary }]}>
+        {hasData ? rate.toFixed(4) : 'N/A'}
+      </Text>
+
+      {hasData ? (
+        <View style={styles.concreteEvapLevelBadge}>
+          <View style={[styles.concreteEvapDot, { backgroundColor: levelColor }]} />
+          <Text style={[styles.concreteEvapLevelText, { color: levelColor }]}>
+            {level}
+          </Text>
+          <Text style={[styles.concreteEvapUnitText, { color: WEATHER_COLORS.text.secondary }]}>
+            kg/m²/hr
+          </Text>
+        </View>
+      ) : null}
+
+      <View style={styles.concreteEvapBarTrack}>
+        <View style={[styles.concreteEvapBarFill, { width: `${progress}%`, backgroundColor: levelColor }]} />
+      </View>
+
+      <View style={styles.concreteEvapDescRow}>
+        <Text style={[styles.concreteEvapDesc, { color: WEATHER_COLORS.text.secondary }]} numberOfLines={1}>
+          {hasData
+            ? (level === 'Low' ? t('weather.evapLevel.minimalRisk')
+              : level === 'Moderate' ? t('weather.evapLevel.monitorConditions')
+              : level === 'High' ? t('weather.evapLevel.takePrecautions')
+              : level === 'Critical' ? t('weather.evapLevel.immediateAction')
+              : t('weather.evapLevel.aci305Formula'))
+            : t('weather.noVerifiData')}
+        </Text>
+        {hasData && onMorePress && (
+          <TouchableOpacity onPress={onMorePress} activeOpacity={0.7}>
+            <Text style={styles.concreteEvapMoreLink}>{t('weather.more')}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {!hasData && (
+        <Text style={[styles.concreteEvapDesc, { color: WEATHER_COLORS.text.hint, fontSize: ms(8), marginTop: vs(2) }]} numberOfLines={2}>
+          {t('weather.requiresConcreteDischarge')}
+        </Text>
+      )}
+      {showPlantConfig && (
+        <View style={styles.concreteEvapPlantConfig}>
+          <Text style={[styles.concreteEvapPlantConfigText, { color: WEATHER_COLORS.text.hint }]} numberOfLines={2}>
+            {t('weather.plantConfigSummary', {
+              def: plantDefaultTemperature != null ? `${plantDefaultTemperature}°F` : 'N/A',
+              concrete: plantConcreteTemperature != null ? `${plantConcreteTemperature}°F` : 'N/A',
+              status: plantStatusType === 0 ? t('weather.plantStatus.normal') : plantStatusType === 1 ? t('weather.plantStatus.highRisk') : 'N/A',
+            })}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+const CloudsCard: React.FC<{ value: number }> = ({ value }) => {
+  const { t } = useTranslation();
+  return (
+    <WeatherMetricCard
+      title={t('weather.metrics.cloudCover')}
+      titleIcon="cloud-outline"
+      description={t('weather.cloudCoverage')}
+    >
+      <View style={styles.simpleContent}>
+        <View style={styles.simpleValueContainer}>
+          <Text style={[styles.simpleValue, { color: WEATHER_COLORS.text.primary }]}>
+            {value}
+          </Text>
+          <Text style={[styles.simpleUnit, { color: WEATHER_COLORS.text.primary }]}>
+            %
+          </Text>
+        </View>
+      </View>
+    </WeatherMetricCard>
+  );
+};
+
+const VisibilityCard: React.FC<{ value: number | null }> = ({ value }) => {
+  const { t } = useTranslation();
+  const displayValue = value != null ? (value / 1000).toFixed(1) : '--';
+  return (
+    <WeatherMetricCard
+      title={t('weather.metrics.visibility')}
+      titleIcon="eye-outline"
+      description={value != null ? t('weather.visibilityDistance') : t('common.noData')}
+    >
+      <View style={styles.simpleContent}>
+        <View style={styles.simpleValueContainer}>
+          <Text style={[styles.simpleValue, { color: WEATHER_COLORS.text.primary }]}>
+            {displayValue}
+          </Text>
+          <Text style={[styles.simpleUnit, { color: WEATHER_COLORS.text.primary }]}>
+            km
+          </Text>
+        </View>
+      </View>
+    </WeatherMetricCard>
+  );
+};
+
+const ConcreteTemperatureCard: React.FC<{ value: number | null; source?: string | null }> = ({ value, source }) => {
+  const { t } = useTranslation();
+  return (
+    <WeatherMetricCard
+      title={t('weather.metrics.concreteTemp')}
+      titleIcon="thermometer"
+    >
+      <View style={styles.simpleContent}>
+        <View style={styles.simpleValueContainer}>
+          <Text style={[styles.simpleValue, { color: WEATHER_COLORS.text.primary }]}>
+            {value != null ? Math.round(value) : '--'}
+          </Text>
+          <Text style={[styles.simpleUnit, { color: WEATHER_COLORS.text.primary }]}>
+            °F
+          </Text>
+        </View>
+      </View>
+      {source ? (
+        <Text style={styles.concreteTempSource} numberOfLines={1}>
+          {source}
+        </Text>
+      ) : null}
+    </WeatherMetricCard>
+  );
+};
+
+const WindGustCard: React.FC<{ value: number | null }> = ({ value }) => {
+  const { t } = useTranslation();
+  return (
+    <WeatherMetricCard
+      title={t('weather.metrics.windGust')}
+      titleIcon="weather-windy"
+    >
+      <View style={styles.simpleContent}>
+        <View style={styles.simpleValueContainer}>
+          <Text style={[styles.simpleValue, { color: WEATHER_COLORS.text.primary }]}>
+            {value != null ? `${value}` : 'N/A'}
+          </Text>
+          {value != null && (
+            <Text style={[styles.simpleUnit, { color: WEATHER_COLORS.text.primary }]}>
+              m/s
+            </Text>
+          )}
+        </View>
+      </View>
+    </WeatherMetricCard>
+>>>>>>> Stashed changes
   );
 };
 
@@ -483,10 +691,129 @@ const RecommendationChip: React.FC<RecommendationChipProps> = ({ label, color, o
 export const WeatherScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+<<<<<<< Updated upstream
+=======
+  const { isDark } = useTheme();
+  const themeColors = isDark ? colors.dark : colors.light;
+  const { alertState, hideAlert, showInfo } = useAlert();
+  const { t } = useTranslation();
+
+  const { orderCode = '', orderDate = '', orderStatus = 'Pending', startTime = '--:--', ticketCode, freshWeather = null } = route.params ?? {};
+
+  const hasFreshWeather = !!(freshWeather && freshWeather.temperature_fahrenheit != null);
+>>>>>>> Stashed changes
 
   const [refreshing, setRefreshing] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+<<<<<<< Updated upstream
   const weather = mockWeatherData;
+=======
+  const [evapInfoVisible, setEvapInfoVisible] = useState(false);
+  const [loadingLink, setLoadingLink] = useState<string | null>(null);
+
+  const handlePdfLink = useCallback(async (pdfPath: string, title: string) => {
+    setLoadingLink(pdfPath);
+    try {
+      const filename = pdfPath.split('/').pop() || 'document.pdf';
+      const localPath = `${ReactNativeBlobUtil.fs.dirs.CacheDir}/${filename}`;
+
+      // Check if already downloaded
+      const exists = await ReactNativeBlobUtil.fs.exists(localPath);
+      if (!exists) {
+        const baseUrl = (axiosInstance.defaults.baseURL || '').replace(/\/api\/?$/, '');
+        const pdfUrl = `${baseUrl}${pdfPath}`;
+        await ReactNativeBlobUtil.config({ path: localPath }).fetch('GET', pdfUrl);
+      }
+
+      if (Platform.OS === 'ios') {
+        ReactNativeBlobUtil.ios.openDocument(localPath);
+      } else {
+        ReactNativeBlobUtil.android.actionViewIntent(localPath, 'application/pdf');
+      }
+    } catch {
+      // Fallback: open in WebView
+      const baseUrl = (axiosInstance.defaults.baseURL || '').replace(/\/api\/?$/, '');
+      navigation.navigate('WebView', { url: `${baseUrl}${pdfPath}`, title });
+    } finally {
+      setLoadingLink(null);
+    }
+  }, [navigation]);
+
+  // Only fetch from order-level API when fresh weather is NOT available
+  const {
+    weatherData: apiWeatherData,
+    orderInfo,
+    isLoading: apiIsLoading,
+    isRefetching,
+    refetch,
+  } = useWeather({
+    order_code: hasFreshWeather ? '' : orderCode,
+    order_date: hasFreshWeather ? '' : orderDate,
+  });
+
+  // Use fresh weather from ticket when available, otherwise fall back to order-level API
+  const weatherData = hasFreshWeather ? freshWeather : apiWeatherData;
+  const isLoading = hasFreshWeather ? false : apiIsLoading;
+
+  const weather = useMemo(() => {
+    if (!weatherData) {
+      return null;
+    }
+
+    const evapRate = weatherData.evaporation_rate ?? 0;
+    const serverLevel = weatherData.evaporation_level;
+    let evaporationStatus: 'Low' | 'Moderate' | 'High' = 'Low';
+    let evaporationProgress = 15;
+    if (serverLevel === 'High' || (!serverLevel && evapRate >= 0.20)) {
+      evaporationStatus = 'High';
+      evaporationProgress = 85;
+    } else if (serverLevel === 'Moderate' || (!serverLevel && evapRate >= 0.10)) {
+      evaporationStatus = 'Moderate';
+      evaporationProgress = 50;
+    }
+
+    const tempF = weatherData.temperature_fahrenheit ?? 0;
+    const dewPointF = weatherData.dew_point_fahrenheit ?? 0;
+
+    return {
+      location: i18n.t('weather.weatherLocation'),
+      orderNo: orderCode,
+      orderDate: orderDate,
+      temperature: tempF,
+      temperatureUnit: 'F',
+      condition: weatherData.weather_condition ?? i18n.t('weather.unknown'),
+      iconCode: weatherData.weather_icon,
+      maxTemp: weatherData.temperature_max_fahrenheit,
+      minTemp: weatherData.temperature_min_fahrenheit,
+      evaporation: {
+        value: evapRate,
+        status: evaporationStatus,
+        description: i18n.t('weather.evaporationRateDescription', { level: weatherData.evaporation_level || evaporationStatus }),
+        progress: evaporationProgress,
+      },
+      wind: {
+        direction: weatherData.wind_direction ?? 'N',
+        speed: weatherData.wind_speed_mph ?? 0,
+        unit: 'mph',
+      },
+      pressure: {
+        value: weatherData.pressure_inhg ?? 0,
+        unit: 'in',
+      },
+      dewPoint: {
+        value: dewPointF,
+        description: i18n.t('weather.dewPointTemperature'),
+      },
+      humidity: {
+        value: weatherData.humidity ?? 0,
+        description: dewPointF ? i18n.t('weather.dewPointNote', { value: Math.round(dewPointF) }) : '',
+      },
+      cloudsPercentage: weatherData.clouds_percentage ?? 0,
+      visibilityMeters: weatherData.visibility_meters ?? null,
+      windGust: weatherData.wind_gust ?? null,
+    };
+  }, [weatherData, orderCode, orderDate]);
+>>>>>>> Stashed changes
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -618,8 +945,15 @@ export const WeatherScreen: React.FC = () => {
     setMenuVisible(false);
     try {
       await Share.share({
-        message: `Weather Update for ${weather.location}\nTemperature: ${weather.temperature}°${weather.temperatureUnit}\nCondition: ${weather.condition}\nMax: ${weather.maxTemp}° | Min: ${weather.minTemp}°`,
-        title: 'Weather Update',
+        message: t('weather.shareMessage', {
+          location: weather.location,
+          temperature: weather.temperature,
+          temperatureUnit: weather.temperatureUnit,
+          condition: weather.condition,
+          max: weather.maxTemp,
+          min: weather.minTemp,
+        }),
+        title: t('weather.title'),
       });
     } catch (error) {
       console.log('Error sharing:', error);
@@ -628,8 +962,13 @@ export const WeatherScreen: React.FC = () => {
 
   const handleViewForecast = useCallback(() => {
     setMenuVisible(false);
+<<<<<<< Updated upstream
     Alert.alert('7-Day Forecast', 'Extended forecast feature coming soon!');
   }, []);
+=======
+    showInfo(t('weather.sevenDayForecast'), t('weather.forecastComingSoon'));
+  }, [showInfo, t]);
+>>>>>>> Stashed changes
 
   const handleSettings = useCallback(() => {
     setMenuVisible(false);
@@ -637,11 +976,63 @@ export const WeatherScreen: React.FC = () => {
   }, [navigation]);
 
   const menuItems = [
-    { id: '1', icon: 'share-variant', label: 'Share Weather', onPress: handleShare },
-    { id: '2', icon: 'calendar-week', label: 'View 7-Day Forecast', onPress: handleViewForecast },
-    { id: '3', icon: 'cog-outline', label: 'Settings', onPress: handleSettings },
+    { id: '1', icon: 'share-variant', label: t('weather.shareWeather'), onPress: handleShare },
+    { id: '2', icon: 'calendar-week', label: t('weather.viewForecast'), onPress: handleViewForecast },
+    { id: '3', icon: 'cog-outline', label: t('settings.title'), onPress: handleSettings },
   ];
 
+<<<<<<< Updated upstream
+=======
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { backgroundColor: WEATHER_COLORS.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={WEATHER_COLORS.background} />
+        <LinearGradient
+          colors={[...WEATHER_COLORS.gradient.colors] as string[]}
+          locations={[...WEATHER_COLORS.gradient.locations] as number[]}
+          style={styles.gradientBackground}
+        />
+        <View style={[styles.headerContent, { paddingTop: insets.top }]}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
+              <Icon name="chevron-left" size={24} color={colors.common.white} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{t('weather.title')}</Text>
+            <View style={styles.headerActions}>
+              <View style={styles.headerActionBtn} />
+            </View>
+          </View>
+        </View>
+        <View style={styles.loadingContainer} pointerEvents="box-none">
+          <TruckLoader size={120} message={t('weather.loadingWeather')} color="light" />
+        </View>
+      </View>
+    );
+  }
+
+  if (!weather) {
+    return (
+      <View style={[styles.container, { backgroundColor: WEATHER_COLORS.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={WEATHER_COLORS.background} />
+        <LinearGradient
+          colors={[...WEATHER_COLORS.gradient.colors] as string[]}
+          locations={[...WEATHER_COLORS.gradient.locations] as number[]}
+          style={styles.gradientBackground}
+        />
+        <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
+          <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
+            <Icon name="chevron-left" size={24} color={colors.common.white} />
+          </TouchableOpacity>
+          <Text style={styles.errorText}>{t('weather.unableToLoad')}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
+            <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+>>>>>>> Stashed changes
   return (
     <View style={[styles.container, { backgroundColor: WEATHER_COLORS.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={WEATHER_COLORS.background} />
@@ -652,6 +1043,43 @@ export const WeatherScreen: React.FC = () => {
         style={styles.gradientBackground}
       />
 
+<<<<<<< Updated upstream
+=======
+
+      <View style={[styles.staticHeader, { paddingTop: insets.top }]}>
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
+            <Icon name="chevron-left" size={24} color={colors.common.white} />
+          </TouchableOpacity>
+
+          <Text style={styles.headerTitle}>{t('weather.title')}</Text>
+
+          <View style={styles.headerActions}>
+            {ticketCode ? (
+              <View style={styles.ticketBadge}>
+                <Icon name="ticket-outline" size={14} color={colors.common.white} />
+                <Text style={styles.ticketBadgeText}>{ticketCode}</Text>
+              </View>
+            ) : (
+              <>
+                <TouchableOpacity style={styles.headerActionBtn} onPress={onRefresh} activeOpacity={0.7}>
+                  {isRefetching ? (
+                    <ActivityIndicator size="small" color={colors.common.white} />
+                  ) : (
+                    <Icon name="refresh" size={20} color={colors.common.white} />
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.headerActionBtn} onPress={handleShare} activeOpacity={0.7}>
+                  <Icon name="share-variant" size={20} color={colors.common.white} />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </View>
+
+
+>>>>>>> Stashed changes
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top }]}
@@ -691,8 +1119,8 @@ export const WeatherScreen: React.FC = () => {
             </View>
 
             <View style={styles.orderInfoContainer}>
-              <Text style={styles.orderInfoText}>Order No: {weather.orderNo}</Text>
-              <Text style={styles.orderInfoText}>Date: {weather.orderDate}</Text>
+              <Text style={styles.orderInfoText}>{t('weather.orderNoLabel', { value: weather.orderNo })}</Text>
+              <Text style={styles.orderInfoText}>{t('weather.dateLabel', { value: weather.orderDate })}</Text>
             </View>
           </View>
           <View style={styles.weatherDisplay}>
@@ -704,7 +1132,11 @@ export const WeatherScreen: React.FC = () => {
               </Text>
               <Text style={styles.conditionText}>{weather.condition}</Text>
               <Text style={styles.minMaxText}>
+<<<<<<< Updated upstream
                 Max: {weather.maxTemp}°  Min: {weather.minTemp}°
+=======
+                {t('weather.maxMin', { max: Math.round(weather.maxTemp ?? 0), min: Math.round(weather.minTemp ?? 0) })}
+>>>>>>> Stashed changes
               </Text>
             </View>
           </View>
@@ -824,7 +1256,7 @@ export const WeatherScreen: React.FC = () => {
         <Pressable style={styles.modalOverlay} onPress={handleMenuToggle}>
           <View style={styles.menuContainer}>
             <View style={styles.menuHeader}>
-              <Text style={[styles.menuTitle, { color: WEATHER_COLORS.text.primary }]}>Menu</Text>
+              <Text style={[styles.menuTitle, { color: WEATHER_COLORS.text.primary }]}>{t('weather.menu')}</Text>
               <TouchableOpacity
                 style={styles.menuCloseBtn}
                 onPress={handleMenuToggle}
@@ -855,6 +1287,112 @@ export const WeatherScreen: React.FC = () => {
           </View>
         </Pressable>
       </Modal>
+<<<<<<< Updated upstream
+=======
+
+      <AlertModal
+        visible={alertState.visible}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={hideAlert}
+      />
+
+      <BottomSheet
+        visible={evapInfoVisible}
+        onClose={() => setEvapInfoVisible(false)}
+        title={t('weather.evapInfo.title')}
+        headerIcon="alert-circle-outline"
+        headerIconColor="#F97316"
+        height="auto"
+      >
+        <View style={styles.evapInfoContent}>
+          <Text style={[styles.evapInfoParagraph, { color: themeColors.text.secondary }]}>
+            {t('weather.evapInfo.intro')}
+          </Text>
+
+          <Text style={[styles.evapInfoSectionTitle, { color: themeColors.text.primary }]}>
+            {t('weather.evapInfo.commonEffectsTitle')}
+          </Text>
+
+          <View style={styles.evapInfoItem}>
+            <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>{t('weather.evapInfo.crazing.title')}</Text>
+            <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary }]}>
+              {t('weather.evapInfo.crazing.description')}
+            </Text>
+            <TouchableOpacity
+              onPress={() => handlePdfLink('/pdfs/nrmca-cip-3-crazing.pdf', t('weather.evapInfo.crazing.pdfTitle'))}
+              activeOpacity={0.7}
+              disabled={loadingLink === '/pdfs/nrmca-cip-3-crazing.pdf'}
+            >
+              <View style={styles.evapInfoReferenceRow}>
+                <Text style={styles.evapInfoReference}>{t('weather.evapInfo.crazing.reference')}</Text>
+                {loadingLink === '/pdfs/nrmca-cip-3-crazing.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.evapInfoItem}>
+            <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>{t('weather.evapInfo.plasticShrinkage.title')}</Text>
+            <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary }]}>
+              {t('weather.evapInfo.plasticShrinkage.description')}
+            </Text>
+            <TouchableOpacity
+              onPress={() => handlePdfLink('/pdfs/nrmca-cip-5-plastic-shrinkage.pdf', t('weather.evapInfo.plasticShrinkage.pdfTitle'))}
+              activeOpacity={0.7}
+              disabled={loadingLink === '/pdfs/nrmca-cip-5-plastic-shrinkage.pdf'}
+            >
+              <View style={styles.evapInfoReferenceRow}>
+                <Text style={styles.evapInfoReference}>{t('weather.evapInfo.plasticShrinkage.reference')}</Text>
+                {loadingLink === '/pdfs/nrmca-cip-5-plastic-shrinkage.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.evapInfoItem}>
+            <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>{t('weather.evapInfo.dryingShrinkage.title')}</Text>
+            <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary }]}>
+              {t('weather.evapInfo.dryingShrinkage.description')}
+            </Text>
+            <TouchableOpacity
+              onPress={() => handlePdfLink('/pdfs/nrmca-cip-4-drying-shrinkage.pdf', t('weather.evapInfo.dryingShrinkage.pdfTitle'))}
+              activeOpacity={0.7}
+              disabled={loadingLink === '/pdfs/nrmca-cip-4-drying-shrinkage.pdf'}
+            >
+              <View style={styles.evapInfoReferenceRow}>
+                <Text style={styles.evapInfoReference}>{t('weather.evapInfo.dryingShrinkage.reference')}</Text>
+                {loadingLink === '/pdfs/nrmca-cip-4-drying-shrinkage.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.evapInfoRecommendedSection, { borderTopColor: themeColors.border }]}>
+            <Text style={[styles.evapInfoRecommendedTitle, { color: '#DC2626' }]}>
+              {t('weather.evapInfo.recommendedTitle')}
+            </Text>
+            <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary, marginBottom: vs(8) }]}>
+              {t('weather.evapInfo.recommendedIntro')}
+            </Text>
+            {[
+              t('weather.evapInfo.tips.0'),
+              t('weather.evapInfo.tips.1'),
+              t('weather.evapInfo.tips.2'),
+              t('weather.evapInfo.tips.3'),
+              t('weather.evapInfo.tips.4'),
+              t('weather.evapInfo.tips.5'),
+              t('weather.evapInfo.tips.6'),
+              t('weather.evapInfo.tips.7'),
+            ].map((item, index) => (
+              <View key={index} style={styles.evapInfoBulletRow}>
+                <Text style={[styles.evapInfoBullet, { color: themeColors.text.secondary }]}>{'\u2022'}</Text>
+                <Text style={[styles.evapInfoBulletText, { color: themeColors.text.secondary }]}>{item}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </BottomSheet>
+>>>>>>> Stashed changes
     </View>
   );
 };

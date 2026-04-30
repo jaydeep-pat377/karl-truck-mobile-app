@@ -95,6 +95,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
           showsVerticalScrollIndicator={false}
         >
 
+<<<<<<< Updated upstream
           {justVerified && (
             <View
               style={[
@@ -103,6 +104,41 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
               ]}
             >
               <Icon name="check-circle" size={ms(20)} color={theme.colors.success.main} />
+=======
+          <Animated.View
+            entering={FadeInDown.delay(100).springify()}
+            style={styles.logoSection}
+          >
+            <View style={[styles.logoContainer, { backgroundColor: loginColors.logoContainerBg }]}>
+              <Image
+                source={require('../../assets/images/logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+            <Text variant="h1" style={[styles.brandTitle, { color: isDark ? colors.common.white : colors.primary.main }]}>
+              Truckast AI
+            </Text>
+            <Text variant="caption" style={[styles.brandTagline, { color: loginColors.brandTagline }]}>
+              {t('auth.brandTagline')}
+            </Text>
+          </Animated.View>
+
+
+          <Animated.View
+            entering={FadeInUp.delay(200).springify()}
+            style={[
+              styles.formCard,
+              {
+                backgroundColor: loginColors.glassCardBg,
+                borderColor: loginColors.glassCardBorder,
+                shadowColor: isDark ? colors.common.black : colors.grey[60],
+              },
+            ]}
+          >
+
+            <View style={styles.welcomeSection}>
+>>>>>>> Stashed changes
               <Text
                 variant="bodySmall"
                 style={{ color: theme.colors.success.main, marginLeft: ms(8), flex: 1 }}>
@@ -217,10 +253,27 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
               style={styles.loginButton}
             />
 
+<<<<<<< Updated upstream
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+=======
+
+          <Animated.View
+            entering={FadeInUp.delay(500).springify()}
+            style={styles.footer}>
+            <Text variant="caption" style={[styles.footerText, { color: loginColors.footerText }]}>
+              {t('auth.poweredBy')}{' '}
+              <Text variant="caption" style={[styles.footerBrand, { color: loginColors.footerBrand }]}>
+                Truckast AI
+              </Text>
+            </Text>
+          </Animated.View>
+        </KeyboardAwareScrollView>
+      </SafeAreaView>
+    </View>
+>>>>>>> Stashed changes
   );
 };
 

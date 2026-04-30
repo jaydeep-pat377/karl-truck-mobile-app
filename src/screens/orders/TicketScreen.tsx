@@ -15,7 +15,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, NavigationProp } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
+<<<<<<< Updated upstream
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+=======
+import Svg, { Defs, Pattern, Line as SvgLine, Rect } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
+>>>>>>> Stashed changes
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text } from '../../components/common';
 import { colors } from '../../theme/colors';
@@ -426,7 +431,12 @@ interface TicketItemProps {
   isDark: boolean;
 }
 
+<<<<<<< Updated upstream
 const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, isDark }) => {
+=======
+const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, onMapPress, isDark, isMapDisabled = false, statusConfig }) => {
+  const { t } = useTranslation();
+>>>>>>> Stashed changes
   const themeColors = isDark ? colors.dark : colors.light;
   const statusConfigMap = isDark ? STATUS_CONFIG_DARK : STATUS_CONFIG;
   const status = statusConfigMap[ticket.status];
@@ -461,6 +471,30 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, isDark }) => {
               ]}>
               {ticket.scheduledTime}
             </Text>
+<<<<<<< Updated upstream
+=======
+            {ticket.load ? (
+              <View style={[styles.loadBadge, { backgroundColor: isDark ? colors.ticket.ui.dark.badgeBg : colors.primary.main + '12' }]}>
+                <Text style={[styles.loadText, { color: isDark ? colors.ticket.ui.dark.accentBlue : colors.primary.main }]}>
+                  {t('tickets.list.loadLabel', { load: ticket.load })}
+                </Text>
+              </View>
+            ) : null}
+            <View style={styles.timeContainer}>
+              <Icon
+                name="clock-outline"
+                size={ms(11)}
+                color={isDark ? colors.ticket.ui.dark.timeText : colors.ticket.ui.light.timeText}
+              />
+              <Text
+                style={[
+                  styles.timeText,
+                  { color: isDark ? colors.ticket.ui.dark.timeText : colors.ticket.ui.light.timeText },
+                ]}>
+                {ticket.scheduledTime}
+              </Text>
+            </View>
+>>>>>>> Stashed changes
           </View>
         </View>
 
@@ -506,6 +540,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
   tickets,
   isDark,
 }) => {
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
   const ticketUi = isDark ? colors.ticket.ui.dark : colors.ticket.ui.light;
   const accentColor = isDark ? colors.ticket.ui.dark.accentBlue : colors.primary.main;
@@ -539,7 +574,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
 
         <View style={styles.orderDetails}>
           <Text style={[styles.orderDate, { color: themeColors.text.primary }]}>
-            ORDER - {orderDate}
+            {t('tickets.list.orderHeaderDate', { date: orderDate })}
           </Text>
           <View style={styles.addressRow}>
             <Icon name="map-marker-outline" size={ms(14)} color={themeColors.text.hint} />
@@ -549,6 +584,27 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
               {deliveryAddress}
             </Text>
           </View>
+<<<<<<< Updated upstream
+=======
+          <View style={styles.loadsRow}>
+            <ConcreteTruck width={ms(18)} height={ms(12)} color={colors.success.main} />
+            <Text style={[styles.loadsLabel, { color: themeColors.text.hint }]}>
+              {t('tickets.list.totalTickets')}
+            </Text>
+            <Text style={[styles.loadsValue, { color: colors.success.main }]}>
+              {totalTickets}
+            </Text>
+          </View>
+          <View style={styles.loadsRow}>
+            <Icon name="clipboard-text-outline" size={ms(14)} color={isDark ? colors.common.white : colors.common.black} />
+            <Text style={[styles.loadsLabel, { color: themeColors.text.hint }]}>
+              {t('tickets.list.orderLabel')}
+            </Text>
+            <Text style={[styles.loadsValue, { color: isDark ? colors.common.white : colors.common.black }]}>
+              {orderCode}
+            </Text>
+          </View>
+>>>>>>> Stashed changes
         </View>
 
         <View
@@ -561,16 +617,99 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
             {progressData.ticketCount}
           </Text>
           <Text style={[styles.ticketCountLabel, { color: accentColorLight }]}>
+<<<<<<< Updated upstream
             Loads
+=======
+            {t('tickets.list.tickets')}
+>>>>>>> Stashed changes
           </Text>
         </View>
       </View>
 
+<<<<<<< Updated upstream
+=======
+
+      {weatherData && (
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={onWeatherPress}
+          style={styles.headerWeatherRow}>
+          <WeatherIcon icon={weatherData.weather_icon} size={22} />
+          <Text
+            style={[styles.headerWeatherDescText, { color: themeColors.text.secondary }]}
+            numberOfLines={1}>
+            {weatherData.weather_description || t('tickets.list.partlyCloudy')}
+          </Text>
+          {weatherData.temperature_fahrenheit !== null && weatherData.temperature_fahrenheit !== undefined && (
+            <>
+              <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+              <Text style={[styles.headerWeatherInfoText, { color: themeColors.text.secondary }]}>
+                {Math.round(weatherData.temperature_fahrenheit)}°F
+              </Text>
+            </>
+          )}
+          {weatherData.wind_speed_mph !== null && weatherData.wind_speed_mph !== undefined && (
+            <>
+              <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+              <Text style={[styles.headerWeatherInfoText, { color: themeColors.text.secondary }]}>
+                {t('tickets.list.mphWind', { value: weatherData.wind_speed_mph })}
+              </Text>
+            </>
+          )}
+          {weatherData.humidity !== null && weatherData.humidity !== undefined && (
+            <>
+              <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
+              <Text style={[styles.headerWeatherInfoText, { color: themeColors.text.secondary }]}>
+                {t('tickets.list.humidityRh', { value: weatherData.humidity })}
+              </Text>
+            </>
+          )}
+          {(() => {
+            const concreteEvapLevel = weatherData.concrete_evaporation_level;
+            if (concreteEvapLevel) {
+              const concreteEvapColors: Record<string, string> = {
+                Low: colors.success.main,
+                Moderate: colors.warning.main,
+                High: '#F97316',
+                Critical: '#DC2626',
+              };
+              return (
+                <View
+                  style={[
+                    styles.headerEvapRateBadge,
+                    { backgroundColor: concreteEvapColors[concreteEvapLevel] || colors.grey[40] },
+                  ]}>
+                  <Text style={styles.headerEvapRateText}>
+                    {concreteEvapLevel}
+                  </Text>
+                </View>
+              );
+            }
+            if (weatherData.evaporation_rate !== null && weatherData.evaporation_rate !== undefined) {
+              return (
+                <View
+                  style={[
+                    styles.headerEvapRateBadge,
+                    { backgroundColor: getEvaporationBgColor(weatherData.evaporation_rate) },
+                  ]}>
+                  <Text style={styles.headerEvapRateText}>
+                    {getEvaporationText(weatherData.evaporation_rate)}
+                  </Text>
+                </View>
+              );
+            }
+            return null;
+          })()}
+        </TouchableOpacity>
+      )}
+
+>>>>>>> Stashed changes
       <View style={[styles.orderDivider, { backgroundColor: themeColors.border }]} />
 
       <View style={styles.progressSection}>
         <View style={styles.progressHeader}>
           <Text style={[styles.progressTitle, { color: themeColors.text.secondary }]}>
+<<<<<<< Updated upstream
             Delivery Progress
           </Text>
           <Text style={[styles.progressPercentage, { color: accentColor }]}>
@@ -578,6 +717,154 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
           </Text>
         </View>
         <View style={[styles.progressBarContainer, { backgroundColor: ticketUi.progressBg }]}>
+=======
+            {t('tickets.list.deliveryStatus')}
+          </Text>
+        </View>
+
+        {deliveryProgress?.segments && deliveryProgress.segments.length > 0 ? (
+          <TicketDeliveryProgressBar
+            segments={deliveryProgress.segments}
+            orderedQty={orderedQty}
+            totalDeliveredQty={totalDeliveredQty}
+            totalLoads={totalLoads}
+            totalTickets={totalTickets}
+            isDark={isDark}
+          />
+        ) : (
+          <>
+            <View style={[styles.progressBarContainer, { backgroundColor: isDark ? colors.dark.surface : colors.grey[10] }]}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: `${progressData.percentage}%`,
+                    backgroundColor: progressBarColor,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={[styles.progressLabel, { color: themeColors.text.hint }]}>
+              {progressDisplay || t('tickets.list.cyDelivered', { delivered: (progressData.totalDelivered ?? 0).toFixed(1), ordered: progressData.totalOrdered ?? 0 })}
+            </Text>
+          </>
+        )}
+
+      </View>
+    </View>
+  );
+};
+
+interface TicketDeliveryProgressBarProps {
+  segments: DeliveryProgressSegment[];
+  orderedQty: number;
+  totalDeliveredQty: number;
+  totalLoads: number;
+  totalTickets: number;
+  isDark: boolean;
+}
+
+const TicketDeliveryProgressBar: React.FC<TicketDeliveryProgressBarProps> = ({
+  segments,
+  orderedQty,
+  totalDeliveredQty,
+  totalLoads,
+  totalTickets,
+  isDark,
+}) => {
+  const themeColors = isDark ? colors.dark : colors.light;
+
+  const { fills: progressFills, atPlantQty } = computeCumulativeFills(
+    segments,
+    totalLoads,
+    totalTickets,
+  );
+  const completionPercent = orderedQty > 0 ? ((atPlantQty / orderedQty) * 100).toFixed(2) : '0.00';
+  const deliveredPercent = orderedQty > 0 ? Math.round((totalDeliveredQty / orderedQty) * 100) : 0;
+
+  const segmentColors = PROGRESS_STATUSES.map(status => {
+    const apiSeg = segments.find((s: any) => s.status === status.key);
+    return apiSeg?.color || FALLBACK_COLOR;
+  });
+
+  // Tooltip state
+  const [tooltipKey, setTooltipKey] = React.useState<string | null>(null);
+  const [tooltipY, setTooltipY] = React.useState(0);
+  const progressBarRef = React.useRef<View>(null);
+
+  const showTooltip = (key: string) => {
+    if (tooltipKey === key) {
+      setTooltipKey(null);
+      return;
+    }
+    progressBarRef.current?.measureInWindow((_x, y, _w, h) => {
+      setTooltipY(y + h + ms(4));
+      setTooltipKey(key);
+    });
+  };
+
+  const handleInfoPress = () => showTooltip('all');
+  const handleSegmentPress = (key: string) => showTooltip(key);
+
+  // Build per-status qty map for tooltip
+  const segmentQtyMap: Record<string, number> = {};
+  for (const { key } of PROGRESS_STATUSES) {
+    const seg = (segments || []).find((s: any) => s.status === key);
+    segmentQtyMap[key] = seg?.qty ?? 0;
+  }
+
+  return (
+    <View style={styles.ticketProgressSection}>
+      <View ref={progressBarRef} style={styles.ticketProgressMainRow}>
+        <Pressable onPress={handleInfoPress} hitSlop={8}>
+          <Icon
+            name="information-outline"
+            size={ms(14)}
+            color={themeColors.text.hint}
+          />
+        </Pressable>
+        <View style={styles.ticketSegmentBarsRow}>
+          {PROGRESS_STATUSES.map((status, index) => (
+            <React.Fragment key={`bar-${status.key}`}>
+              <Pressable
+                style={styles.ticketSegmentBarWrapper}
+                onPress={() => handleSegmentPress(status.key)}
+              >
+                <View style={styles.ticketSegmentTrack}>
+                  <SegmentStripes color={segmentColors[index]} patternId={`ticket-stripe-${status.key}`} />
+                  <View
+                    style={[
+                      styles.ticketSegmentFillOverlay,
+                      {
+                        width: `${progressFills[index]}%`,
+                        backgroundColor: segmentColors[index],
+                      },
+                    ]}
+                  />
+                </View>
+              </Pressable>
+              {index < PROGRESS_STATUSES.length - 1 && (
+                <View style={[styles.ticketSegmentDividerDotted, { borderColor: themeColors.text.hint }]} />
+              )}
+            </React.Fragment>
+          ))}
+        </View>
+        <Text
+          numberOfLines={1}
+          style={[styles.ticketCyValueText, { color: themeColors.text.primary }]}
+        >
+          {orderedQty.toFixed(2)} CY
+        </Text>
+      </View>
+
+      <Modal
+        visible={tooltipKey !== null}
+        transparent
+        animationType="none"
+        onRequestClose={() => setTooltipKey(null)}
+      >
+        <Pressable style={styles.ticketTooltipBackdrop} onPress={() => setTooltipKey(null)}>
+>>>>>>> Stashed changes
           <View
             style={[
               styles.progressBarFill,
@@ -589,8 +876,21 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
           />
         </View>
 
+<<<<<<< Updated upstream
         <Text style={[styles.progressLabel, { color: themeColors.text.hint }]}>
           {progressData.totalDelivered.toFixed(1)} of {progressData.totalOrdered} CY delivered
+=======
+      <View style={styles.ticketCompletionRow}>
+        <Text style={[styles.ticketCompletionText, { color: getCompletionColor(deliveredPercent) }]}>
+          {completionPercent}% {t('tickets.list.completed')}
+        </Text>
+      </View>
+
+      <View style={styles.ticketLoadsCountRow}>
+        <ConcreteTruck width={ms(14)} height={ms(10)} color={themeColors.text.secondary} />
+        <Text style={[styles.ticketLoadsCountText, { color: themeColors.text.secondary }]}>
+          {t('tickets.list.loadsCount', { active: totalTickets, total: totalLoads })}
+>>>>>>> Stashed changes
         </Text>
       </View>
     </View>
@@ -604,6 +904,7 @@ interface EmptyStateProps {
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({ hasFilter, hasSearch, isDark }) => {
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
   const gradientColors = isDark
     ? colors.ticket.emptyGradient.dark
@@ -621,14 +922,14 @@ const EmptyState: React.FC<EmptyStateProps> = ({ hasFilter, hasSearch, isDark })
         <Icon name={hasSearch ? 'magnify' : 'ticket-outline'} size={ms(48)} color={iconColor} />
       </LinearGradient>
       <Text style={[styles.emptyTitle, { color: themeColors.text.primary }]}>
-        {hasSearch ? 'No Results Found' : hasFilter ? 'No Matching Tickets' : 'No Tickets Yet'}
+        {hasSearch ? t('tickets.list.noResultsFound') : hasFilter ? t('tickets.list.noMatchingTickets') : t('tickets.list.noTicketsYet')}
       </Text>
       <Text style={[styles.emptySubtitle, { color: themeColors.text.secondary }]}>
         {hasSearch
-          ? 'Try different search terms or clear your search.'
+          ? t('tickets.list.tryDifferentSearch')
           : hasAnyFilter
-            ? 'Try adjusting your filters to see more tickets.'
-            : 'Delivery tickets will appear here once loads are scheduled.'}
+            ? t('tickets.list.tryAdjustingFilters')
+            : t('tickets.list.ticketsWillAppear')}
       </Text>
     </View>
   );
@@ -655,6 +956,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   isDark,
   activeFiltersCount,
 }) => {
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
   const ticketUi = isDark ? colors.ticket.ui.dark : colors.ticket.ui.light;
 
@@ -669,8 +971,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
         />
         <TextInput
           style={[styles.searchInput, { color: themeColors.text.primary }]}
+<<<<<<< Updated upstream
           placeholder="Search tickets, trucks, drivers..."
           placeholderTextColor={themeColors.text.hint}
+=======
+          placeholder={t('tickets.list.searchPlaceholder')}
+          placeholderTextColor={isDark ? themeColors.text.hint : colors.grey[40]}
+>>>>>>> Stashed changes
           value={value}
           onChangeText={onChangeText}
           returnKeyType="search"
@@ -735,6 +1042,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   isDark,
   availableTrucks,
 }) => {
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
   const slideAnim = useRef(new Animated.Value(0)).current;
   const [localFilters, setLocalFilters] = useState<FilterOptions>(filters);
@@ -792,6 +1100,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   };
 
   const statusOptions: { id: TicketStatus; label: string; color: string }[] = [
+<<<<<<< Updated upstream
     { id: 'at_plant', label: 'At Plant', color: colors.ticket.status.atPlant.text },
     { id: 'in_transit', label: 'In Transit', color: colors.ticket.status.inTransit.text },
     { id: 'at_site', label: 'At Site', color: colors.ticket.status.atSite.text },
@@ -804,6 +1113,23 @@ const FilterModal: React.FC<FilterModalProps> = ({
     { id: 'time', label: 'Scheduled Time', icon: 'clock-outline' },
     { id: 'ticket', label: 'Ticket Number', icon: 'ticket-outline' },
     { id: 'quantity', label: 'Load Quantity', icon: 'weight' },
+=======
+    { id: 'pending', label: t('tickets.list.statusPending'), color: statusConfig.pending.textColor },
+    { id: 'ticketed', label: t('tickets.list.statusTicketed'), color: statusConfig.ticketed.textColor },
+    { id: 'loading', label: t('tickets.list.statusLoading'), color: statusConfig.loading.textColor },
+    { id: 'loaded', label: t('tickets.list.statusLoaded'), color: statusConfig.loaded.textColor },
+    { id: 'to_job', label: t('tickets.list.statusToJob'), color: statusConfig.to_job.textColor },
+    { id: 'at_job', label: t('tickets.list.statusAtJob'), color: statusConfig.at_job.textColor },
+    { id: 'pouring', label: t('tickets.list.statusPouring'), color: statusConfig.pouring.textColor },
+    { id: 'washing', label: t('tickets.list.statusWashing'), color: statusConfig.washing.textColor },
+    { id: 'to_plant', label: t('tickets.list.statusToPlant'), color: statusConfig.to_plant.textColor },
+    { id: 'at_plant', label: t('tickets.list.statusAtPlant'), color: statusConfig.at_plant.textColor },
+    { id: 'cancelled', label: t('tickets.list.voided'), color: statusConfig.cancelled.textColor },
+  ];
+
+  const sortOptions: { id: 'time'; label: string; icon: string }[] = [
+    { id: 'time', label: t('tickets.list.scheduledTime'), icon: 'clock-outline' },
+>>>>>>> Stashed changes
   ];
 
   const activeFiltersCount =
@@ -837,7 +1163,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
             {/* Modal Header */}
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: themeColors.text.primary }]}>
-                Filter Tickets
+                {t('tickets.list.filterTickets')}
               </Text>
               <TouchableOpacity onPress={onClose} style={styles.modalCloseBtn}>
                 <Icon name="close" size={ms(24)} color={themeColors.text.primary} />
@@ -850,7 +1176,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
               {/* Status Filter */}
               <View style={styles.filterSection}>
                 <Text style={[styles.filterSectionTitle, { color: themeColors.text.primary }]}>
-                  Status
+                  {t('tickets.list.status')}
                 </Text>
                 <View style={styles.filterChipsGrid}>
                   {statusOptions.map(status => {
@@ -889,7 +1215,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
               {/* Sort By */}
               <View style={styles.filterSection}>
                 <Text style={[styles.filterSectionTitle, { color: themeColors.text.primary }]}>
-                  Sort By
+                  {t('tickets.list.sortBy')}
                 </Text>
                 <View style={styles.sortOptionsContainer}>
                   {sortOptions.map(option => {
@@ -967,7 +1293,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                               : themeColors.text.secondary,
                         },
                       ]}>
-                      Ascending
+                      {t('tickets.list.ascending')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -1004,7 +1330,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                               : themeColors.text.secondary,
                         },
                       ]}>
-                      Descending
+                      {t('tickets.list.descending')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1063,16 +1389,30 @@ const FilterModal: React.FC<FilterModalProps> = ({
               <TouchableOpacity
                 style={[styles.modalResetBtn, { borderColor: themeColors.border }]}
                 onPress={handleReset}>
+<<<<<<< Updated upstream
                 <Icon name="refresh" size={ms(18)} color={themeColors.text.secondary} />
                 <Text style={[styles.modalResetText, { color: themeColors.text.secondary }]}>
                   Reset
+=======
+                <Icon
+                  name="refresh"
+                  size={ms(18)}
+                  color={isDark ? colors.modal.dark.cancelText : colors.modal.light.cancelText}
+                />
+                <Text
+                  style={[
+                    styles.modalResetText,
+                    { color: isDark ? colors.modal.dark.cancelText : colors.modal.light.cancelText },
+                  ]}>
+                  {t('tickets.list.reset')}
+>>>>>>> Stashed changes
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalApplyBtn, { backgroundColor: colors.primary.main }]}
                 onPress={handleApply}>
                 <Text style={styles.modalApplyText}>
-                  Apply{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ''}
+                  {t('tickets.list.apply')}{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ''}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1091,6 +1431,7 @@ const DEFAULT_FILTERS: FilterOptions = {
 };
 
 export const TicketScreen: React.FC = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<TicketScreenRouteProp>();
   const { isDark } = useTheme();
@@ -1103,9 +1444,114 @@ export const TicketScreen: React.FC = () => {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<FilterOptions>(DEFAULT_FILTERS);
 
+<<<<<<< Updated upstream
   const allTickets = useMemo(
     () => generateMockTickets(orderId, orderCode),
     [orderId, orderCode]
+=======
+  const ITEMS_PER_PAGE = 10;
+  const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_PAGE);
+
+  const {
+    order,
+    tickets: apiTickets,
+    customerName,
+    projectName,
+    weatherData,
+    orderedQty,
+    totalDeliveredQty,
+    progressDisplay,
+    totalTickets,
+    activeTickets,
+    cancelledTickets,
+    totalLoads,
+    isLoading,
+    isRefetching,
+    refetch,
+    deliveryProgress,
+    statusColors: apiStatusColors,
+  } = useTicketsByOrder({
+    orderId,
+    sort_order: advancedFilters.sortOrder,
+  });
+
+  // Supabase Realtime: auto-refetch tickets when changes detected
+  useRealtimeTickets({
+    orderCode,
+    enabled: !!orderCode,
+    onUpdate: refetch,
+  });
+
+  const displayDate = order?.order_date
+    ? new Date(order.order_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+    : t('tickets.list.order');
+  const deliveryAddress = order?.delivery_address || t('common.loading');
+
+  const getDisplayStatus = useCallback((status: string, statusDisplay: string): string => {
+    const lowerStatus = status?.toLowerCase() || '';
+    const lowerDisplay = statusDisplay?.toLowerCase() || '';
+
+    if (lowerStatus.includes('cancel') || lowerDisplay.includes('cancel')) {
+      return t('tickets.list.voided');
+    }
+    return statusDisplay || status || '';
+  }, [t]);
+
+  const getTimestampForStatus = useCallback((status: string, timestamps: TicketByOrderItem['timestamps']): string => {
+    if (!timestamps) return '';
+
+
+    const statusTimestampMap: Record<string, string | null | undefined> = {
+      pending: timestamps.ticketed,
+      ticketed: timestamps.ticketed,
+      loading: timestamps.loading,
+      loaded: timestamps.loaded,
+      to_job: timestamps.to_job,
+      at_job: timestamps.at_job,
+      pouring: timestamps.pouring,
+      washing: timestamps.washing,
+      to_plant: timestamps.to_plant,
+      at_plant: timestamps.at_plant,
+      cancelled: timestamps.ticketed,
+    };
+
+    return statusTimestampMap[status] || timestamps.eta_at_job || timestamps.ticketed || '';
+  }, []);
+
+  const allTickets = useMemo(
+    () => (apiTickets || []).map((ticket: TicketByOrderItem): DeliveryTicket => {
+
+      const truckCode = typeof ticket.truck === 'string'
+        ? ticket.truck
+        : ticket.truck?.truck_code || '';
+
+
+      const truckLocation = typeof ticket.truck === 'object' && ticket.truck
+        ? { latitude: ticket.truck.latitude, longitude: ticket.truck.longitude }
+        : null;
+
+      return {
+        id: ticket.ticket_code || '',
+        ticketNumber: ticket.ticket_code || '',
+        truckId: truckCode,
+        truckName: t('tickets.list.truckPrefix', { code: truckCode || t('common.notAvailable') }),
+        loadQuantity: ticket.running_qty ?? 0,
+        totalOrderQuantity: ticket.ordered_qty ?? 0,
+        unit: 'CY',
+        status: ticket.status || 'ticketed',
+        statusDisplay: getDisplayStatus(ticket.status, ticket.status_display),
+        scheduledTime: getTimestampForStatus(ticket.status, ticket.timestamps),
+        product: ticket.product || '',
+        load: ticket.load || '',
+        loadQty: ticket.load_qty || '',
+        runQtyOrdQty: ticket.run_qty_ord_qty || '',
+        truckLocation,
+        plantLocation: ticket.plant_location || null,
+        orderLocation: ticket.order_location || null,
+      };
+    }),
+    [apiTickets, getDisplayStatus, getTimestampForStatus]
+>>>>>>> Stashed changes
   );
 
   // Get unique truck names for filter modal
@@ -1237,7 +1683,11 @@ export const TicketScreen: React.FC = () => {
       />
       <View style={styles.listHeaderRow}>
         <Text style={[styles.listHeaderText, { color: themeColors.text.secondary }]}>
+<<<<<<< Updated upstream
           {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''}
+=======
+          {t('tickets.list.ticketsCount', { count: activeTickets })}{cancelledTickets > 0 ? t('tickets.list.voidedSuffix', { count: cancelledTickets }) : ''}
+>>>>>>> Stashed changes
         </Text>
       </View>
     </View>
@@ -1270,7 +1720,7 @@ export const TicketScreen: React.FC = () => {
 
         <View style={styles.headerCenter}>
           <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>
-            Delivery Tickets
+            {t('tickets.list.title')}
           </Text>
           <Text style={[styles.headerSubtitle, { color: themeColors.text.hint }]}>
             Order #{orderCode}
@@ -1294,6 +1744,7 @@ export const TicketScreen: React.FC = () => {
         activeFiltersCount={activeFiltersCount}
       />
 
+<<<<<<< Updated upstream
       <FlatList
         style={styles.flatList}
         data={filteredTickets}
@@ -1323,6 +1774,60 @@ export const TicketScreen: React.FC = () => {
           />
         }
       />
+=======
+      {isLoading ? (
+        <View style={styles.loaderContainer} pointerEvents="box-none">
+          <TruckLoader
+            size={120}
+            message={t('tickets.list.loadingTickets')}
+            color={isDark ? 'light' : 'dark'}
+          />
+        </View>
+      ) : (
+        <FlatList
+          style={styles.flatList}
+          data={paginatedTickets}
+          renderItem={renderTicket}
+          keyExtractor={keyExtractor}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={
+            <EmptyState
+              hasFilter={activeFiltersCount > 0}
+              hasSearch={appliedSearchQuery.trim().length > 0}
+              isDark={isDark}
+            />
+          }
+          ListFooterComponent={
+            <ListFooterLoader
+              isLoading={isFetchingNextPage}
+              hasMore={hasNextPage}
+              totalItems={filteredTickets.length}
+              loadingText={t('tickets.list.loadingMoreTickets')}
+              endMessageText={filteredTickets.length > 0 ? t('tickets.list.showingAllTickets', { count: filteredTickets.length }) : undefined}
+              noMoreText={t('tickets.list.noMoreTickets')}
+            />
+          }
+          contentContainerStyle={
+            filteredTickets.length === 0
+              ? styles.listContentEmpty
+              : styles.listContent
+          }
+          showsVerticalScrollIndicator={false}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.3}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary.main}
+              colors={[colors.primary.main, colors.secondary.main]}
+              progressBackgroundColor={isDark ? themeColors.cardElevated : colors.common.white}
+            />
+          }
+        />
+      )}
+>>>>>>> Stashed changes
 
       <FilterModal
         visible={filterModalVisible}

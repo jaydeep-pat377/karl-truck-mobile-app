@@ -18,7 +18,12 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Path, Line, Text as SvgText } from 'react-native-svg';
+<<<<<<< Updated upstream
 import { Text } from '../../components/common';
+=======
+import { useTranslation } from 'react-i18next';
+import { Text, Icon } from '../../components/common';
+>>>>>>> Stashed changes
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, vs, responsive } from '../../utils/responsive';
@@ -232,10 +237,21 @@ export const ProductDetailsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ProductDetailsRouteProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const { cardType = 'products', cardValue = 0, cardUnit = '', cardDescription = '', weatherData } = route.params || {};
 
-  const config = cardConfig[cardType];
+  // Translate cardConfig labels via t()
+  const localizedConfig = {
+    ...cardConfig[cardType],
+    title: t(`product.cards.${cardType}.title`, { defaultValue: cardConfig[cardType].title }),
+    infoTitle: t(`product.cards.${cardType}.infoTitle`, { defaultValue: cardConfig[cardType].infoTitle }),
+    infoItems: cardConfig[cardType].infoItems.map((item, idx) => ({
+      label: t(`product.cards.${cardType}.items.${idx}.label`, { defaultValue: item.label }),
+      description: t(`product.cards.${cardType}.items.${idx}.description`, { defaultValue: item.description }),
+    })),
+  };
+  const config = localizedConfig;
 
   const handleBack = useCallback(() => {
     navigation.goBack();
@@ -300,7 +316,7 @@ export const ProductDetailsScreen: React.FC = () => {
               </View>
               <View style={styles.mainCardTitleContainer}>
                 <Text style={[styles.mainCardTitle, { color: THEME_COLORS.text.primary }]}>
-                  Current Reading
+                  {t('product.currentReading')}
                 </Text>
                 <Text style={[styles.mainCardSubtitle, { color: THEME_COLORS.text.secondary }]}>
                   {cardDescription}
@@ -348,26 +364,26 @@ export const ProductDetailsScreen: React.FC = () => {
             <View style={styles.tipsHeader}>
               <Icon name="lightbulb-outline" size={ms(20)} color={colors.warning.main} />
               <Text style={[styles.tipsTitle, { color: THEME_COLORS.text.primary }]}>
-                Pro Tips
+                {t('product.proTips')}
               </Text>
             </View>
             <View style={styles.tipsList}>
               <View style={styles.tipItem}>
                 <Icon name="check-circle" size={ms(16)} color={colors.success.main} />
                 <Text style={[styles.tipText, { color: THEME_COLORS.text.secondary }]}>
-                  Monitor conditions regularly throughout the pour
+                  {t('product.tip1')}
                 </Text>
               </View>
               <View style={styles.tipItem}>
                 <Icon name="check-circle" size={ms(16)} color={colors.success.main} />
                 <Text style={[styles.tipText, { color: THEME_COLORS.text.secondary }]}>
-                  Adjust mix design based on weather conditions
+                  {t('product.tip2')}
                 </Text>
               </View>
               <View style={styles.tipItem}>
                 <Icon name="check-circle" size={ms(16)} color={colors.success.main} />
                 <Text style={[styles.tipText, { color: THEME_COLORS.text.secondary }]}>
-                  Document readings for quality control records
+                  {t('product.tip3')}
                 </Text>
               </View>
             </View>

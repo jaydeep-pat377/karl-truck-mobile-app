@@ -70,6 +70,30 @@ const getNotificationIcon = (type: AppNotification['type']): string => {
   }
 };
 
+<<<<<<< Updated upstream
+=======
+const formatTimeAgo = (dateString: string, t: (key: string, options?: any) => string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return t('notifications.justNow');
+  if (diffMins < 60) return t('notifications.minutesAgo', { count: diffMins });
+  if (diffHours < 24) return t('notifications.hoursAgo', { count: diffHours });
+  if (diffDays < 7) return t('notifications.daysAgo', { count: diffDays });
+
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+>>>>>>> Stashed changes
 export const NotificationScreen: React.FC = () => {
   const { isDark } = useTheme();
   const { t } = useTranslation();
@@ -77,6 +101,7 @@ export const NotificationScreen: React.FC = () => {
   // Get theme-specific colors
   const themeColors = isDark ? colors.dark : colors.light;
 
+<<<<<<< Updated upstream
   const renderNotification = ({ item }: { item: AppNotification }) => (
     <Card
       padding="md"
@@ -102,6 +127,97 @@ export const NotificationScreen: React.FC = () => {
             size={iconSizes.md}
             color={item.isRead ? themeColors.text.secondary : colors.primary.main}
           />
+=======
+
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    isConnected,
+    error,
+    refetch,
+    markAsRead,
+    markAllAsRead,
+  } = useSupabaseNotifications({
+    userId: user?.id || null,
+    tenantId,
+    enabled: !!user?.id,
+  });
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleGoBack = () => {
+    navigation.navigate('Home');
+  };
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  }, [refetch]);
+
+  const renderNotification = ({ item }: { item: Notification }) => {
+    const isRead = item.status === 'read' || item.status === 'delivered';
+    const isNew = item.isNew === true;
+
+    return (
+      <Card
+        style={[
+          styles.notificationCard,
+          !isRead && { borderLeftWidth: 4, borderLeftColor: colors.primary.main },
+          isNew && styles.newNotificationCard,
+        ]}
+        onPress={() => markAsRead(item.id)}
+      >
+        <View style={styles.notificationContent}>
+          <View
+            style={[
+              styles.iconContainer,
+              {
+                backgroundColor: isNew
+                  ? colors.success.main + '30'
+                  : isRead
+                    ? themeColors.surface
+                    : colors.primary.main + '20',
+              },
+            ]}
+          >
+            <Icon
+              name={getNotificationIcon(item.event_code)}
+              size={ms(16)}
+              color={isNew ? colors.success.main : isRead ? themeColors.text.secondary : colors.primary.main}
+            />
+          </View>
+          <View style={styles.textContainer}>
+            <View style={styles.titleRow}>
+              <Text
+                variant="bodySmall"
+                style={[styles.title, !isRead && styles.unreadTitle]}
+                numberOfLines={1}
+              >
+                {item.subject}
+              </Text>
+              {isNew ? (
+                <View style={styles.newBadge}>
+                  <Text style={styles.newBadgeText}>{t('notifications.newBadge')}</Text>
+                </View>
+              ) : (
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+                  <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                    {t(`notifications.statuses.${item.status}`, { defaultValue: item.status.charAt(0).toUpperCase() + item.status.slice(1) })}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text variant="caption" color="secondary" numberOfLines={2}>
+              {item.body}
+            </Text>
+            <Text style={styles.timeText}>
+              {isNew ? t('notifications.justArrived') : formatTimeAgo(item.created_at, t)}
+              {item.priority >= 8 && ` ${t('notifications.highPrioritySuffix')}`}
+            </Text>
+          </View>
+>>>>>>> Stashed changes
         </View>
         <View style={styles.textContainer}>
           <Text variant="body" style={!item.isRead && styles.unreadTitle}>

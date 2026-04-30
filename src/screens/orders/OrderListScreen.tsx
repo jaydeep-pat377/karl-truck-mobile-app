@@ -17,9 +17,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+<<<<<<< Updated upstream
 import { RootStackParamList } from '../../navigation/types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+=======
+import { RootStackParamList, MainTabParamList, OrdersStackParamList, OrderTabFilter } from '../../navigation/types';
+import { CompositeNavigationProp } from '@react-navigation/native';
+import { Calendar } from 'react-native-calendars';
+import { useTranslation } from 'react-i18next';
+>>>>>>> Stashed changes
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card } from '../../components/common';
 import { OrderCard } from '../../components/orders';
@@ -30,16 +37,26 @@ import { spacing, ms, iconSizes, wp, hp } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 
 const dateFilters = [
+<<<<<<< Updated upstream
   { id: 'today', label: 'Today' },
   { id: 'yesterday', label: 'Yesterday' },
   { id: 'lastWeek', label: 'Last Week' },
   { id: 'calendar', label: '', isIcon: true },
+=======
+  { id: 'today', i18nKey: 'dateFilter.today' },
+  { id: 'yesterday', i18nKey: 'dateFilter.yesterday' },
+  { id: 'tomorrow', i18nKey: 'dateFilter.tomorrow' },
+  { id: 'nextWeek', i18nKey: 'dateFilter.nextWeek' },
+  { id: 'lastWeek', i18nKey: 'dateFilter.lastWeek' },
+  { id: 'calendar', i18nKey: '', isIcon: true },
+>>>>>>> Stashed changes
 ] as const;
 
 type DateFilterId = typeof dateFilters[number]['id'] | null;
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+<<<<<<< Updated upstream
 const statusFilters = [
   { id: 'all', label: 'All', icon: 'format-list-bulleted' },
   { id: 'PRE_POUR', label: 'Pre-Pour', icon: 'clock-outline' },
@@ -47,10 +64,20 @@ const statusFilters = [
   { id: 'COMPLETED', label: 'Completed', icon: 'check-circle-outline' },
   { id: 'DELAYED', label: 'Delayed', icon: 'alert-circle-outline' },
   { id: 'CANCELLED', label: 'Cancelled', icon: 'close-circle-outline' },
+=======
+const statusFilterDefs = [
+  { id: 'all', i18nKey: 'orderFilters.statusAll', icon: 'format-list-bulleted' },
+  { id: 'Normal', i18nKey: 'orderFilters.statusNormal', icon: 'checkbox-marked-circle-outline' },
+  { id: 'In Progress', i18nKey: 'orderFilters.statusInProgress', icon: 'progress-clock' },
+  { id: 'Completed', i18nKey: 'orderFilters.statusCompleted', icon: 'check-circle-outline' },
+  { id: 'Will Call', i18nKey: 'orderFilters.statusWillCall', icon: 'phone-outline' },
+  { id: 'Canceled', i18nKey: 'orderFilters.statusCanceled', icon: 'close-circle-outline' },
+>>>>>>> Stashed changes
 ] as const;
 
-type StatusFilterId = typeof statusFilters[number]['id'];
+type StatusFilterId = typeof statusFilterDefs[number]['id'];
 
+<<<<<<< Updated upstream
 const sortOptions = [
   { id: 'date_asc', label: 'Date (Oldest First)', icon: 'sort-calendar-ascending' },
   { id: 'date_desc', label: 'Date (Newest First)', icon: 'sort-calendar-descending' },
@@ -58,9 +85,18 @@ const sortOptions = [
   { id: 'progress_desc', label: 'Progress (High to Low)', icon: 'sort-descending' },
   { id: 'distance', label: 'Distance (Nearest)', icon: 'map-marker-distance' },
   { id: 'quantity', label: 'Quantity (Highest)', icon: 'cube-outline' },
+=======
+const sortOptionDefs = [
+  { id: 'date_asc', i18nKey: 'orderFilters.sortDateOldest', icon: 'sort-calendar-ascending' },
+  { id: 'date_desc', i18nKey: 'orderFilters.sortDateNewest', icon: 'sort-calendar-descending' },
+  { id: 'order_qty_high', i18nKey: 'orderFilters.sortOrderQtyHigh', icon: 'sort-descending' },
+  { id: 'order_qty_low', i18nKey: 'orderFilters.sortOrderQtyLow', icon: 'sort-ascending' },
+  { id: 'deliver_qty_high', i18nKey: 'orderFilters.sortDeliverQtyHigh', icon: 'sort-descending' },
+  { id: 'deliver_qty_low', i18nKey: 'orderFilters.sortDeliverQtyLow', icon: 'sort-ascending' },
+>>>>>>> Stashed changes
 ] as const;
 
-type SortOptionId = typeof sortOptions[number]['id'];
+type SortOptionId = typeof sortOptionDefs[number]['id'];
 
 const productTypes = [
   { id: 'all', label: 'All Products' },
@@ -292,6 +328,242 @@ interface FilterModalProps {
   isDark: boolean;
 }
 
+<<<<<<< Updated upstream
+=======
+interface DatePickerModalProps {
+  visible: boolean;
+  onClose: () => void;
+  selectedDate: Date;
+  onDateSelect: (date: Date) => void;
+  isDark: boolean;
+}
+
+const DatePickerModal: React.FC<DatePickerModalProps> = ({
+  visible,
+  onClose,
+  selectedDate,
+  onDateSelect,
+  isDark,
+}) => {
+  const { t } = useTranslation();
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const themeColors = isDark ? colors.dark : colors.light;
+
+  const [tempDate, setTempDate] = useState<Date>(selectedDate);
+
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const isSameDay = (date1: Date, date2: Date) => {
+    return date1.toISOString().split('T')[0] === date2.toISOString().split('T')[0];
+  };
+
+  React.useEffect(() => {
+    if (visible) {
+      setTempDate(selectedDate);
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          damping: 18,
+          stiffness: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(scaleAnim, {
+          toValue: 0.9,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible, selectedDate, scaleAnim, opacityAnim, backdropAnim]);
+
+  const handleConfirm = () => {
+    onDateSelect(tempDate);
+    onClose();
+  };
+
+  const handleCancel = () => {
+    setTempDate(selectedDate);
+    onClose();
+  };
+
+  const formatDisplayDate = (date: Date): string => {
+    const isToday = isSameDay(date, today);
+    const isTomorrow = isSameDay(date, tomorrow);
+
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+    const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const year = date.getFullYear();
+
+    if (isToday) return `${t('orders.list.today')}, ${weekday} - ${monthDay}, ${year}`;
+    if (isTomorrow) return `${t('orders.list.tomorrow')}, ${weekday} - ${monthDay}, ${year}`;
+    return `${weekday} - ${monthDay}, ${year}`;
+  };
+
+  if (!visible) return null;
+
+  return (
+    <Modal transparent visible={visible} animationType="none" onRequestClose={handleCancel} statusBarTranslucent>
+      <View style={styles.centeredModalContainer}>
+
+        <Animated.View
+          style={[
+            styles.modalBackdrop,
+            {
+              opacity: backdropAnim,
+            },
+          ]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={handleCancel} />
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.centeredDatePickerContent,
+            {
+              backgroundColor: themeColors.surface,
+              transform: [{ scale: scaleAnim }],
+              opacity: opacityAnim,
+            },
+          ]}>
+          <View style={[styles.datePickerModalHeader, { borderBottomColor: 'transparent' }]}>
+            <View style={styles.modalTitleRow}>
+              <View style={[styles.modalIconContainer, { backgroundColor: colors.primary.main }]}>
+                <Icon name="calendar-month" size={ms(20)} color={colors.common.white} />
+              </View>
+              <View>
+                <Text style={[styles.modalTitle, { color: themeColors.text.primary }]}>
+                  {t('orders.list.selectDate')}
+                </Text>
+                <Text style={[styles.modalSubtitle, { color: themeColors.text.secondary }]}>
+                  {t('orders.list.pickDateToFilter')}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={[styles.closeButton, { backgroundColor: isDark ? colors.grey[60] + '30' : colors.grey[5] }]}
+              onPress={handleCancel}
+              activeOpacity={0.7}>
+              <Icon name="close" size={ms(20)} color={isDark ? colors.grey[40] : colors.grey[60]} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={[
+            styles.selectedDateDisplay,
+            {
+              backgroundColor: isDark ? colors.primary.main + '15' : colors.primary.main + '10',
+              borderColor: colors.primary.main + '30',
+            }
+          ]}>
+            <View style={styles.selectedDateIconWrapper}>
+              <Icon name="calendar-check" size={ms(20)} color={colors.primary.main} />
+            </View>
+            <View style={styles.selectedDateTextWrapper}>
+              <Text style={[styles.selectedDateLabel, { color: themeColors.text.secondary }]}>
+                {t('orders.list.selectedDate')}
+              </Text>
+              <Text style={[styles.selectedDateText, { color: themeColors.text.primary }]}>
+                {formatDisplayDate(tempDate)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={[
+            styles.datePickerWrapper,
+            { backgroundColor: isDark ? colors.grey[60] + '10' : colors.grey[3] }
+          ]}>
+            <Calendar
+              current={tempDate.toISOString().split('T')[0]}
+              onDayPress={(day) => {
+                setTempDate(new Date(day.dateString));
+              }}
+              markedDates={{
+                [today.toISOString().split('T')[0]]: {
+                  marked: !isSameDay(tempDate, today),
+                  dotColor: colors.primary.main,
+                },
+                [tempDate.toISOString().split('T')[0]]: {
+                  selected: true,
+                  selectedColor: colors.primary.main,
+                  selectedTextColor: colors.common.white,
+                },
+              }}
+              theme={{
+                backgroundColor: 'transparent',
+                calendarBackground: 'transparent',
+                textSectionTitleColor: themeColors.text.secondary,
+                selectedDayBackgroundColor: colors.primary.main,
+                selectedDayTextColor: colors.common.white,
+                todayTextColor: colors.primary.main,
+                todayBackgroundColor: colors.primary.main + '15',
+                dayTextColor: themeColors.text.primary,
+                textDisabledColor: isDark ? colors.grey[60] : colors.grey[25],
+                arrowColor: colors.primary.main,
+                monthTextColor: themeColors.text.primary,
+                textDayFontFamily: fontFamily.medium,
+                textMonthFontFamily: fontFamily.bold,
+                textDayHeaderFontFamily: fontFamily.semiBold,
+                textDayFontSize: ms(15),
+                textMonthFontSize: ms(17),
+                textDayHeaderFontSize: ms(12),
+              }}
+              style={styles.calendar}
+              enableSwipeMonths={true}
+            />
+          </View>
+
+          <View style={[
+            styles.datePickerModalActions,
+            {
+              borderTopColor: isDark ? colors.grey[60] + '30' : colors.grey[10],
+              backgroundColor: themeColors.surface,
+            }
+          ]}>
+            <TouchableOpacity
+              style={[styles.applyButton, { flex: 1 }]}
+              onPress={handleConfirm}
+              activeOpacity={0.8}
+            >
+              <View style={styles.applyButtonIconWrapper}>
+                <Icon name="calendar-check" size={ms(20)} color={colors.common.white} />
+              </View>
+              <Text style={styles.applyButtonText} numberOfLines={1}>
+                {t('orders.list.applyDate')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+};
+
+>>>>>>> Stashed changes
 const statusColorMap: Record<string, string> = {
   all: colors.primary.main,
   PRE_POUR: colors.warning.main,
@@ -308,6 +580,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   onApply,
   isDark,
 }) => {
+  const { t } = useTranslation();
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
@@ -445,10 +718,15 @@ const FilterModal: React.FC<FilterModalProps> = ({
               </View>
               <View>
                 <Text style={[styles.modalTitle, { color: themeColors.text.primary }]}>
-                  Filter & Sort
+                  {t('orders.list.filterAndSort')}
                 </Text>
+<<<<<<< Updated upstream
                 <Text style={[styles.modalSubtitle, { color: themeColors.text.hint }]}>
                   Customize your order list
+=======
+                <Text style={[styles.modalSubtitle, { color: themeColors.text.secondary }]}>
+                  {t('orders.list.customizeOrderList')}
+>>>>>>> Stashed changes
                 </Text>
               </View>
             </View>
@@ -478,11 +756,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   <Icon name="list-status" size={ms(16)} color={colors.info.main} />
                 </View>
                 <Text style={[styles.filterSectionTitle, { color: themeColors.text.primary }]}>
-                  Order Status
+                  {t('orders.list.orderStatus')}
                 </Text>
               </View>
               <View style={styles.filterChipsContainer}>
-                {statusFilters.map((status) => {
+                {statusFilterDefs.map((status) => {
                   const isActive = localFilters.statuses.includes(status.id);
                   const statusColor = statusColorMap[status.id] || colors.primary.main;
                   return (
@@ -515,7 +793,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                           },
                         ]}
                       >
-                        {status.label}
+                        {t(status.i18nKey)}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -529,7 +807,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   <Icon name="sort" size={ms(16)} color={colors.secondary.main} />
                 </View>
                 <Text style={[styles.filterSectionTitle, { color: themeColors.text.primary }]}>
-                  Sort By
+                  {t('orders.list.sortBy')}
                 </Text>
               </View>
               <View style={[
@@ -539,14 +817,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   borderColor: isDark ? colors.grey[60] + '30' : colors.grey[10],
                 }
               ]}>
-                {sortOptions.map((option, index) => {
+                {sortOptionDefs.map((option, index) => {
                   const isActive = localFilters.sortBy === option.id;
                   return (
                     <TouchableOpacity
                       key={option.id}
                       style={[
                         styles.sortOption,
-                        index < sortOptions.length - 1 && {
+                        index < sortOptionDefs.length - 1 && {
                           borderBottomWidth: 1,
                           borderBottomColor: isDark ? colors.grey[60] + '20' : colors.grey[10],
                         },
@@ -574,7 +852,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                             },
                           ]}
                         >
-                          {option.label}
+                          {t(option.i18nKey)}
                         </Text>
                       </View>
                       <View style={[
@@ -615,9 +893,15 @@ const FilterModal: React.FC<FilterModalProps> = ({
               onPress={handleReset}
               activeOpacity={0.7}
             >
+<<<<<<< Updated upstream
               <Icon name="restore" size={ms(18)} color={themeColors.text.secondary} />
               <Text style={[styles.resetButtonText, { color: themeColors.text.secondary }]}>
                 Reset All
+=======
+              <Icon name="restore" size={ms(18)} color={isDark ? colors.grey[40] : colors.grey[60]} />
+              <Text style={[styles.resetButtonText, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
+                {t('orders.list.resetAll')}
+>>>>>>> Stashed changes
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -627,7 +911,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
             >
               <Icon name="check-circle" size={ms(18)} color={colors.common.white} />
               <Text style={styles.applyButtonText}>
-                Apply {activeCount > 0 ? `(${activeCount})` : ''}
+                {t('orders.list.apply')} {activeCount > 0 ? `(${activeCount})` : ''}
               </Text>
             </TouchableOpacity>
           </View>
@@ -638,7 +922,16 @@ const FilterModal: React.FC<FilterModalProps> = ({
 };
 
 export const OrderListScreen: React.FC = () => {
+<<<<<<< Updated upstream
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+=======
+  const { t } = useTranslation();
+  const navigation = useNavigation<CompositeNavigationProp<
+    NativeStackNavigationProp<OrdersStackParamList>,
+    NativeStackNavigationProp<RootStackParamList>
+  >>();
+  const route = useRoute<RouteProp<OrdersStackParamList, 'OrderList'>>();
+>>>>>>> Stashed changes
   const { isDark } = useTheme();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -820,9 +1113,34 @@ export const OrderListScreen: React.FC = () => {
     }, 1500);
   }, []);
 
+<<<<<<< Updated upstream
   const handleOrderPress = useCallback((order: Order) => {
     console.log('Navigate to order details:', order.id);
   }, []);
+=======
+  const renderEmpty = useCallback(() => {
+    if (isLoading || isFilterLoading) return null;
+
+    const hasActiveFilter = activeFilterCount > 0 || statusFilterFromRoute;
+    const emptyMessage = hasActiveFilter
+      ? t('orders.list.noMatchingMessage')
+      : t('orders.list.noOrdersMessage');
+
+    return (
+      <View style={styles.emptyWrap}>
+        <View style={[styles.emptyIcon, { backgroundColor: isDark ? colors.semiTransparent.green10 : colors.semiTransparent.green08 }]}>
+          <Icon name={hasActiveFilter ? 'filter-off-outline' : 'clipboard-text-outline'} size={ms(40)} color={colors.primary.main} />
+        </View>
+        <Text style={[styles.emptyTitle, { color: themeColors.text.primary }]}>
+          {hasActiveFilter ? t('orders.list.noMatchingOrders') : t('orders.list.noOrdersFound')}
+        </Text>
+        <Text style={[styles.emptySubtitle, { color: themeColors.text.secondary }]}>
+          {emptyMessage}
+        </Text>
+      </View>
+    );
+  }, [isLoading, isFilterLoading, isDark, themeColors, activeFilterCount, statusFilterFromRoute, t]);
+>>>>>>> Stashed changes
 
   const formatSelectedDate = (date: Date): string => {
     return date.toLocaleDateString('en-US', {
@@ -832,8 +1150,13 @@ export const OrderListScreen: React.FC = () => {
   };
 
   const renderDateFilter = useCallback(
+<<<<<<< Updated upstream
     ({ id, label, isIcon }: typeof dateFilters[number]) => {
+=======
+    ({ id, i18nKey, isIcon }: { id: DateFilterId; i18nKey: string; isIcon?: boolean }) => {
+>>>>>>> Stashed changes
       const isActive = activeFilter === id;
+      const label = i18nKey ? t(i18nKey) : '';
 
       return (
         <TouchableOpacity
@@ -880,7 +1203,11 @@ export const OrderListScreen: React.FC = () => {
         </TouchableOpacity>
       );
     },
+<<<<<<< Updated upstream
     [activeFilter, themeColors, handleCalendarPress, selectedDate]
+=======
+    [activeFilter, themeColors, handleCalendarPress, handleFilterPress, selectedDate, isDark, formatSelectedDate, t]
+>>>>>>> Stashed changes
   );
 
   const handleOrderDetails = useCallback((order: Order) => {
@@ -903,6 +1230,101 @@ export const OrderListScreen: React.FC = () => {
     });
   }, [navigation]);
 
+<<<<<<< Updated upstream
+=======
+  // Matches web: passes order data for form prefill
+  // Web maps delivery_addr1 → jobAddress, delivery_addr2 → jobCity, delivery_addr3 → jobState
+  const handleOrderRequest = useCallback((order: Order) => {
+    // Parse combined delivery address into parts (addr1, city, state)
+    const addrParts = (order.deliveryAddress || '').split(',').map(s => s.trim());
+    const addr1 = addrParts[0] || '';
+    const city = addrParts.length > 1 ? addrParts[addrParts.length - 2] || '' : '';
+    const state = addrParts.length > 2 ? addrParts[addrParts.length - 1] || '' : '';
+
+    (navigation as any).navigate('OrderRequests', {
+      screen: 'CreateOrderRequest',
+      params: {
+        prefillOrder: {
+          order_id: order.id,
+          order_code: order.orderCode,
+          customer_name: order.customerName,
+          project_name: order.projectName,
+          order_date: order.scheduledDate,
+          start_time: order.scheduledTime,
+          job_address: addr1,
+          job_city: city,
+          job_state: state,
+          plant_code: order.plantDetails?.code,
+          plant_name: order.plantDetails?.name,
+          item_code: order.productType,
+          quantity: order.quantity,
+          special_instructions: order.specialInstructions,
+        },
+      },
+    });
+  }, [navigation]);
+
+  const handleToggleFavorite = useCallback((orderId: string) => {
+
+    const hasOverride = favoriteOverrides[orderId] !== undefined;
+    const apiOrder = apiOrders.find(o => o.order_id === orderId);
+    const currentFavorite = hasOverride ? favoriteOverrides[orderId] : (apiOrder?.is_favourite ?? false);
+    const newFavorite = !currentFavorite;
+
+    setFavoriteOverrides(prev => ({ ...prev, [orderId]: newFavorite }));
+
+    orderService.toggleFavourite(orderId)
+      .catch((error) => {
+        console.error('Failed to toggle favorite:', error);
+
+        setFavoriteOverrides(prev => ({ ...prev, [orderId]: currentFavorite }));
+        showAlert({
+          type: 'error',
+          title: t('common.error'),
+          message: t('errors.failedToUpdateFavorite'),
+        });
+      });
+  }, [apiOrders, favoriteOverrides, showAlert, t]);
+
+  const handleChat = useCallback(async (order: Order) => {
+    setChatLoadingOrderId(order.id);
+    markRoomAsRead(order.id);
+    setApiUnreadCounts(prev => ({ ...prev, [order.id]: 0 }));
+    const parsedId = parseInt(order.id, 10);
+    if (!isNaN(parsedId)) chatService.markAsRead(parsedId);
+    try {
+      const orderId = parsedId;
+      if (isNaN(orderId)) {
+        throw new Error('Invalid order ID');
+      }
+
+      const room = await getOrCreateRoom(orderId);
+
+      navigation.navigate('ChatRoom', {
+        roomId: room.id,
+        roomName: `Order #${order.orderCode}`,
+        chatId: room.id ? Number(room.id) : orderId,
+        orderId: orderId,
+        orderDate: order.scheduledDate,
+        customerName: order.customerName,
+        projectName: order.projectName,
+        deliveryAddress: order.deliveryAddress,
+      });
+    } catch (error) {
+      console.error('Failed to open chat:', error);
+      const errorMessage = error instanceof Error ? error.message : t('errors.failedToOpenChat');
+      showAlert({
+        type: 'error',
+        title: t('errors.chatError'),
+        message: errorMessage,
+        duration: 4000,
+      });
+    } finally {
+      setChatLoadingOrderId(null);
+    }
+  }, [getOrCreateRoom, markRoomAsRead, navigation, showAlert, t]);
+
+>>>>>>> Stashed changes
   const renderOrderCard = useCallback(
     ({ item }: { item: Order }) => (
       <OrderCard
@@ -935,21 +1357,37 @@ export const OrderListScreen: React.FC = () => {
           />
         </View>
         <View style={styles.ordersFoundRow}>
+<<<<<<< Updated upstream
           <Text variant="caption" color="secondary">
             {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''} found
           </Text>
+=======
+          {isFilterLoading ? (
+            <View style={styles.filterLoadingRow}>
+              <Text variant="caption" color="secondary">{t('orders.list.updating')}</Text>
+            </View>
+          ) : (
+            <Text variant="caption" color="secondary">
+              {t('orders.list.ordersDisplaying', { count: filteredOrders.length, total: pagination?.total ?? filteredOrders.length })}
+            </Text>
+          )}
+>>>>>>> Stashed changes
           {activeFilter === 'calendar' &&
             <TouchableOpacity
               style={styles.downloadIcon}
               onPress={handleClearFilter}
               activeOpacity={0.7}>
-              <Text style={styles.clearText}>Clear</Text>
+              <Text style={styles.clearText}>{t('orders.list.clear')}</Text>
             </TouchableOpacity>
           }
         </View>
       </View>
     ),
+<<<<<<< Updated upstream
     [showMoreDetails, filteredOrders.length, themeColors, activeFilter, handleClearFilter]
+=======
+    [filteredOrders.length, pagination?.total, activeFilter, handleClearFilter, isFilterLoading, t]
+>>>>>>> Stashed changes
   );
 
   return (
@@ -964,6 +1402,11 @@ export const OrderListScreen: React.FC = () => {
           <Icon name="arrow-left" size={iconSizes.lg} color={themeColors.text.primary} />
         </TouchableOpacity>
 
+<<<<<<< Updated upstream
+=======
+        <Text variant="h2">{isFavouriteFilter ? t('orders.list.savedOrders') : t('orders.list.title')}</Text>
+
+>>>>>>> Stashed changes
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerIcon}
@@ -1012,6 +1455,7 @@ export const OrderListScreen: React.FC = () => {
         </View>
       </View>
 
+<<<<<<< Updated upstream
       <View style={styles.filtersContainer}>
         <ScrollView
           horizontal
@@ -1020,6 +1464,141 @@ export const OrderListScreen: React.FC = () => {
           {dateFilters.map(renderDateFilter)}
         </ScrollView>
       </View>
+=======
+          <View style={styles.filtersContainer}>
+            <ScrollView
+              ref={dateFilterScrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filtersScroll}>
+              {dateFilters.map(renderDateFilter)}
+            </ScrollView>
+          </View>
+
+
+          {(dashboardFilter.company_name || (showRegion && dashboardFilter.region_name) || dashboardFilter.plant_code) && (
+            <View style={styles.dashboardFilterContainer}>
+              <View style={[styles.dashboardFilterChip, { backgroundColor: colors.primary.main + '15' }]}>
+                <Icon
+                  name={dashboardFilter.company_name ? 'domain' : (showRegion && dashboardFilter.region_name) ? 'map-marker-radius' : 'factory'}
+                  size={ms(14)}
+                  color={colors.primary.main}
+                />
+                <Text style={[styles.dashboardFilterText, { color: colors.primary.main }]} numberOfLines={1}>
+                  {dashboardFilter.company_name
+                    ? t('orders.list.companyChip', { name: dashboardFilter.company_name })
+                    : (showRegion && dashboardFilter.region_name)
+                    ? t('orders.list.regionChip', { name: dashboardFilter.region_name })
+                    : t('orders.list.plantChip', { name: dashboardFilter.plant_name || dashboardFilter.plant_code })}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setDashboardFilter({});
+                    // Reset state so new navigation is detected
+                    setParentTabParams(undefined);
+                    lastAppliedTimestamp.current = undefined;
+                    // Clear params at all parent levels
+                    let parent = navigation.getParent();
+                    while (parent) {
+                      parent.setParams?.({
+                        company_name: undefined,
+                        region_name: undefined,
+                        plant_code: undefined,
+                        plant_name: undefined,
+                        _timestamp: undefined,
+                      });
+                      parent = parent.getParent?.();
+                    }
+                  }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.7}
+                >
+                  <Icon name="close-circle" size={ms(16)} color={colors.primary.main} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+
+          {isFavouriteFilter && (
+            <View style={styles.dashboardFilterContainer}>
+              <View style={[styles.dashboardFilterChip, { backgroundColor: colors.warning.main + '15' }]}>
+                <Icon
+                  name="star"
+                  size={ms(14)}
+                  color={colors.warning.main}
+                />
+                <Text style={[styles.dashboardFilterText, { color: colors.warning.main }]} numberOfLines={1}>
+                  {t('orders.list.savedOrders')}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setIsFavouriteFilter(false);
+                    // Reset state so new navigation is detected
+                    setParentTabParams(undefined);
+                    lastAppliedTimestamp.current = undefined;
+                    // Clear params at all parent levels
+                    let parent = navigation.getParent();
+                    while (parent) {
+                      parent.setParams?.({
+                        is_favourite: undefined,
+                        _timestamp: undefined,
+                      });
+                      parent = parent.getParent?.();
+                    }
+                  }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.7}
+                >
+                  <Icon name="close-circle" size={ms(16)} color={colors.warning.main} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          <View style={styles.searchContainer}>
+            <View
+              style={[
+                styles.searchBar,
+                {
+                  backgroundColor: themeColors.surface,
+                  borderColor: themeColors.border,
+                },
+              ]}>
+              <TextInput
+                style={[styles.searchInput, { color: themeColors.text.primary }]}
+                placeholder={t('orders.list.searchPlaceholder')}
+                placeholderTextColor={themeColors.text.hint}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                onSubmitEditing={handleSearch}
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={handleClearSearch} activeOpacity={0.7} style={styles.searchClearBtn}>
+                  <Icon name="close-circle" size={iconSizes.md} color={themeColors.text.secondary} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={handleSearch}
+                activeOpacity={0.7}
+                style={[styles.searchIconBtn, { backgroundColor: colors.primary.main }]}
+              >
+                <Icon name="magnify" size={iconSizes.md} color={colors.common.white} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <OrderStatusTabs
+            selectedStatus={orderStatusFilter}
+            onStatusChange={handleOrderStatusChange}
+            counts={orderStatusCounts}
+          />
+        </>
+      )}
+>>>>>>> Stashed changes
 
       <Animated.View
         style={[
@@ -1047,8 +1626,13 @@ export const OrderListScreen: React.FC = () => {
         pointerEvents={activeFilterCount > 0 ? 'auto' : 'none'}>
         <View style={styles.activeFiltersInfo}>
           <Icon name="filter-check" size={ms(16)} color={colors.primary.main} />
+<<<<<<< Updated upstream
           <Text style={[styles.activeFiltersText, { color: themeColors.text.secondary }]}>
             {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} applied
+=======
+          <Text style={[styles.activeFiltersText, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
+            {t('orders.list.filtersApplied', { count: activeFilterCount })}
+>>>>>>> Stashed changes
           </Text>
         </View>
         <TouchableOpacity
@@ -1056,10 +1640,11 @@ export const OrderListScreen: React.FC = () => {
           onPress={handleClearAllFilters}
           activeOpacity={0.7}>
           <Icon name="close-circle" size={ms(14)} color={colors.error.main} />
-          <Text style={styles.clearFiltersText}>Clear All</Text>
+          <Text style={styles.clearFiltersText}>{t('orders.list.clearAll')}</Text>
         </TouchableOpacity>
       </Animated.View>
 
+<<<<<<< Updated upstream
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <OrderCardSkeleton isDark={isDark} />
@@ -1079,6 +1664,79 @@ export const OrderListScreen: React.FC = () => {
           ]}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
+=======
+      {isLoading || isTabLoading || isDateFilterLoading ? (
+        <View style={styles.loadingContainer} pointerEvents="box-none">
+          <TruckLoader
+            size={120}
+            message={isTabLoading || isDateFilterLoading ? t('orders.list.filteringOrders') : t('orders.list.loadingOrders')}
+            color={isDark ? 'light' : 'dark'}
+          />
+        </View>
+      ) : (
+        <>
+
+          <View style={styles.staticListHeader}>
+            <View style={styles.ordersFoundRow}>
+              {isFilterLoading ? (
+                <View style={styles.filterLoadingRow}>
+                  <Text variant="caption" color="secondary">{t('orders.list.updating')}</Text>
+                </View>
+              ) : (
+                <Text variant="caption" color="secondary">
+                  {t('orders.list.ordersDisplaying', { count: filteredOrders.length, total: pagination?.total ?? filteredOrders.length })}
+                </Text>
+              )}
+              {activeFilter === 'calendar' &&
+                <TouchableOpacity
+                  style={styles.downloadIcon}
+                  onPress={handleClearFilter}
+                  activeOpacity={0.7}>
+                  <Text style={styles.clearText}>{t('orders.list.clear')}</Text>
+                </TouchableOpacity>
+              }
+            </View>
+          </View>
+
+          <FlatList
+            data={filteredOrders}
+            renderItem={renderOrderCard}
+            keyExtractor={(item) => item.id}
+            ListEmptyComponent={renderEmpty}
+            ListFooterComponent={
+              filteredOrders.length > 0 ? (
+                <ListFooterLoader
+                  isLoading={isFetchingNextPage}
+                  hasMore={hasNextPage === true}
+                  totalItems={pagination?.total}
+                  loadingText={t('orders.list.loadingMoreOrders')}
+                  endMessageText={pagination?.total ? t('orders.list.showingAllOrders', { total: pagination.total }) : undefined}
+                  noMoreText={t('orders.list.noMoreOrders')}
+                />
+              ) : null
+            }
+            contentContainerStyle={[
+              styles.listContent,
+              filteredOrders.length === 0 && styles.emptyListContent,
+              { paddingBottom: TAB_BAR_HEIGHT + spacing.xl + keyboardHeight },
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            ItemSeparatorComponent={ItemSeparator}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.3}
+            initialNumToRender={5}
+            maxToRenderPerBatch={3}
+            windowSize={3}
+            removeClippedSubviews={true}
+            updateCellsBatchingPeriod={100}
+            getItemLayout={(_, index) => ({
+              length: 180,
+              offset: 180 * index,
+              index,
+            })}
+>>>>>>> Stashed changes
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}

@@ -6,13 +6,19 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { getLocales } from 'react-native-localize';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import translation files
 import en from './en.json';
 import es from './es.json';
 import frCA from './fr-CA.json';
 
+<<<<<<< Updated upstream
 // Supported languages
+=======
+const LANGUAGE_STORAGE_KEY = 'language';
+
+>>>>>>> Stashed changes
 export const supportedLanguages = {
   en: { name: 'English', nativeName: 'English' },
   es: { name: 'Spanish', nativeName: 'Español' },
@@ -58,6 +64,7 @@ const getDeviceLanguage = (): SupportedLanguage => {
   return 'en'; // Default to English
 };
 
+<<<<<<< Updated upstream
 // Initialize i18next
 i18n
   .use(initReactI18next)
@@ -89,13 +96,74 @@ i18n
     returnEmptyString: false,
     returnNull: false,
   });
+=======
+const resolveInitialLanguage = async (): Promise<SupportedLanguage> => {
+  try {
+    const saved = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (saved && saved in supportedLanguages) {
+      return saved as SupportedLanguage;
+    }
+  } catch (error) {
+    console.warn('Failed to read saved language:', error);
+  }
+  return getDeviceLanguage();
+};
+
+export const i18nReady: Promise<void> = (async () => {
+  const lng = await resolveInitialLanguage();
+  await i18n
+    .use(initReactI18next)
+    .init({
+      resources,
+      lng,
+      fallbackLng: 'en',
+
+      interpolation: {
+        escapeValue: false,
+      },
+
+      react: {
+        useSuspense: false,
+      },
+
+      debug: __DEV__,
+
+      defaultNS: 'translation',
+      ns: ['translation'],
+
+      keySeparator: '.',
+
+      returnEmptyString: false,
+      returnNull: false,
+    });
+})();
+>>>>>>> Stashed changes
 
 // Function to change language
 export const changeLanguage = async (language: SupportedLanguage): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  } catch (error) {
+    console.warn('Failed to persist language:', error);
+  }
   await i18n.changeLanguage(language);
 };
 
+<<<<<<< Updated upstream
 // Function to get current language
+=======
+export const restoreSavedLanguage = async (): Promise<void> => {
+  try {
+    const saved = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (saved && saved in supportedLanguages && saved !== i18n.language) {
+      await i18n.changeLanguage(saved);
+    }
+  } catch (error) {
+    console.warn('Failed to restore saved language:', error);
+  }
+};
+
+>>>>>>> Stashed changes
 export const getCurrentLanguage = (): SupportedLanguage => {
   return i18n.language as SupportedLanguage;
 };

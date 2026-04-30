@@ -181,12 +181,85 @@ export const SettingsScreen: React.FC = () => {
           <Text variant="h2">{t('settings.title')}</Text>
         </View>
 
+<<<<<<< Updated upstream
         <Card padding="sm" style={styles.profileCard} onPress={handleNavigateToProfile}>
           <View style={styles.profileContent}>
             <View style={[styles.avatar, { backgroundColor: colors.primary.main }]}>
               <Text variant="body" color="white" style={{ fontWeight: '600' }}>
                 JS
               </Text>
+=======
+        <TouchableOpacity activeOpacity={1} onPress={handleNavigateToEditProfile}>
+          <Card padding="sm" style={styles.profileCard}>
+            <View style={styles.profileContent}>
+              <View style={[styles.avatar, { backgroundColor: colors.primary.main }]}>
+                {isProfileLoading ? (
+                  <ActivityIndicator size="small" color={colors.common.white} />
+                ) : profile?.avatarUrl ? (
+                  <Image
+                    source={{ uri: profile.avatarUrl }}
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <Text variant="body" color="white" style={{ fontWeight: '600' }}>
+                    {getInitials(profile?.fullName)}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.profileInfo}>
+                {isProfileLoading ? (
+                  <>
+                    <View style={[styles.skeletonText, { width: ms(120), backgroundColor: themeColors.border }]} />
+                    <View style={[styles.skeletonText, { width: ms(160), backgroundColor: themeColors.border }]} />
+                    <View style={[styles.skeletonText, { width: ms(80), backgroundColor: themeColors.border }]} />
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.profileNameRow}>
+                      <Text variant="body" style={{ fontWeight: '600', flex: 1 }}>
+                        {profile?.fullName || ''}
+                      </Text>
+                      {profile?.active && (
+                        <View style={[styles.activeBadge, { backgroundColor: colors.success.main + '20' }]}>
+                          <View style={[styles.activeDot, { backgroundColor: colors.success.main }]} />
+                          <Text variant="captionSmall" style={{ color: colors.success.main }}>
+                            {t('settingsExtra.active')}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text variant="caption" color="secondary">
+                      {profile?.email || ''}
+                    </Text>
+                    {profile?.phone ? (
+                      <View style={styles.profileDetailRow}>
+                        <Icon name="phone-outline" size={ms(12)} color={themeColors.text.hint} />
+                        <Text variant="caption" color="hint" style={{ marginLeft: ms(4) }}>
+                          {profile.phone}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {profile?.title ? (
+                      <View style={styles.profileDetailRow}>
+                        <Icon name="briefcase-outline" size={ms(12)} color={themeColors.text.hint} />
+                        <Text variant="caption" color="hint" style={{ marginLeft: ms(4) }}>
+                          {profile.title}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {profile?.company ? (
+                      <View style={styles.profileDetailRow}>
+                        <Icon name="office-building-outline" size={ms(12)} color={themeColors.text.hint} />
+                        <Text variant="caption" color="hint" style={{ marginLeft: ms(4) }}>
+                          {profile.company}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </>
+                )}
+              </View>
+              <Icon name="chevron-right" size={ms(20)} color={themeColors.text.hint} />
+>>>>>>> Stashed changes
             </View>
             <View style={styles.profileInfo}>
               <Text variant="body" style={{ fontWeight: '600' }}>John Smith</Text>
@@ -212,6 +285,14 @@ export const SettingsScreen: React.FC = () => {
               onPress={handleNavigateToEditProfile}
             />
             <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+<<<<<<< Updated upstream
+=======
+            <BiometricToggleItem
+              onSuccess={() => {}}
+              onError={(msg) => Alert.alert(t('common.error'), msg)}
+            />
+            <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+>>>>>>> Stashed changes
             <SettingsItem
               icon="lock-outline"
               title={t('settings.changePassword')}
@@ -251,12 +332,31 @@ export const SettingsScreen: React.FC = () => {
             <SettingsItem
               icon="bell-outline"
               title={t('settings.notifications')}
+<<<<<<< Updated upstream
               subtitle="Manage notification preferences"
               onPress={() => { }}
+=======
+              subtitle={t('settingsExtra.manageNotifications')}
+              onPress={handleNavigateToNotifications}
+            />
+          </Card>
+        </View>
+        <View style={styles.section}>
+          <Text variant="label" color="secondary" style={styles.sectionTitle}>
+            {t('settingsExtra.ticketScanner')}
+          </Text>
+          <Card padding="none">
+            <SettingsItem
+              icon="qrcode-scan"
+              title={t('settingsExtra.scanTicketQr')}
+              subtitle={t('settingsExtra.scanQrSubtitle')}
+              onPress={handleNavigateToTicketScan}
+>>>>>>> Stashed changes
             />
           </Card>
         </View>
 
+<<<<<<< Updated upstream
         <View style={styles.section}>
           <Text variant="label" color="secondary" style={styles.sectionTitle}>
             {t('settings.security')}
@@ -269,6 +369,23 @@ export const SettingsScreen: React.FC = () => {
             />
           </Card>
         </View>
+=======
+        {!isContractor && (
+          <View style={styles.section}>
+            <Text variant="label" color="secondary" style={styles.sectionTitle}>
+              {t('settingsExtra.configuration')}
+            </Text>
+            <Card padding="none">
+              <SettingsItem
+                icon="email-edit-outline"
+                title={t('settingsExtra.emailTemplates')}
+                subtitle={t('settingsExtra.emailTemplatesSubtitle')}
+                onPress={handleNavigateToEmailTemplates}
+              />
+            </Card>
+          </View>
+        )}
+>>>>>>> Stashed changes
 
         <View style={styles.section}>
           <Text variant="label" color="secondary" style={styles.sectionTitle}>

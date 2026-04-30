@@ -10,8 +10,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
+<<<<<<< Updated upstream
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Text } from '../../components/common';
+=======
+import { useTranslation } from 'react-i18next';
+import { Text, Icon } from '../../components/common';
+>>>>>>> Stashed changes
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, vs, responsive } from '../../utils/responsive';
@@ -101,6 +106,7 @@ interface ScheduleCardProps {
   onPress: () => void;
 }
 
+<<<<<<< Updated upstream
 const ScheduleCard: React.FC<ScheduleCardProps> = ({ schedule, onPress }) => (
   <TouchableOpacity style={styles.scheduleCard} onPress={onPress} activeOpacity={0.7}>
     {/* Blue accent border */}
@@ -132,9 +138,56 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({ schedule, onPress }) => (
           />
           <Text style={[styles.statusText, { color: schedule.statusColor }]}>
             {schedule.status}
+=======
+const ScheduleCard: React.FC<ScheduleCardProps> = ({ schedule, onPress }) => {
+  const { t } = useTranslation();
+  return (
+    <TouchableOpacity style={styles.scheduleCard} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.cardAccent} />
+
+      <View style={styles.scheduleContent}>
+        <View style={styles.scheduleHeader}>
+          <Text style={styles.scheduleNumber}>{schedule.scheduleNumber}</Text>
+          <View style={styles.scheduleDot} />
+          <Text style={styles.scheduleOrderId}>{schedule.orderId}</Text>
+          <View style={styles.scheduleDot} />
+          <Text style={styles.scheduleDate}>
+            {schedule.date} | {schedule.time}
+>>>>>>> Stashed changes
           </Text>
         </View>
+        <View style={styles.customerCheckRow}>
+          <Text style={styles.customerCheckTitle}>{schedule.customerCheck}</Text>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: schedule.statusColor + '20' },
+            ]}
+          >
+            <View
+              style={[styles.statusDot, { backgroundColor: schedule.statusColor }]}
+            />
+            <Text style={[styles.statusText, { color: schedule.statusColor }]}>
+              {schedule.status}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.detailsRow}>
+          <Icon name="timer-outline" size={ms(13)} color={colors.light.text.hint} />
+          <Text style={styles.detailText}>{t('product.spacing', { value: schedule.spacing })}</Text>
+          <Text style={styles.detailDivider}>|</Text>
+          <Text style={styles.detailText}>{t('product.pourRate', { value: schedule.pourRate })}</Text>
+        </View>
+        <View style={styles.detailsRow}>
+          <Icon name="map-marker-outline" size={ms(13)} color={colors.light.text.hint} />
+          <Text style={styles.detailText}>{schedule.location}</Text>
+        </View>
+        <View style={styles.productCodeRow}>
+          <Icon name="cube-outline" size={ms(13)} color={ACCENT_BLUE} />
+          <Text style={styles.productCodeText}>{schedule.productCode}</Text>
+        </View>
       </View>
+<<<<<<< Updated upstream
 
       {/* Details Row */}
       <View style={styles.detailsRow}>
@@ -158,6 +211,11 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({ schedule, onPress }) => (
     </View>
   </TouchableOpacity>
 );
+=======
+    </TouchableOpacity>
+  );
+};
+>>>>>>> Stashed changes
 
 // Barcode Component - Vertical lines barcode
 const BarcodeImage: React.FC = () => {
@@ -195,6 +253,7 @@ interface OrderCodeCardProps {
   showTruck?: boolean;
 }
 
+<<<<<<< Updated upstream
 const OrderCodeCard: React.FC<OrderCodeCardProps> = ({ orderCode, onPress, showTruck }) => (
   <View style={styles.orderCodeCard}>
     {/* Main Content Area */}
@@ -217,9 +276,36 @@ const OrderCodeCard: React.FC<OrderCodeCardProps> = ({ orderCode, onPress, showT
       {showTruck && (
         <View style={styles.truckImageContainer}>
           <Icon name="truck-delivery" size={ms(60)} color="#90CAF9" />
+=======
+const OrderCodeCard: React.FC<OrderCodeCardProps> = ({ orderCode, onPress, showTruck }) => {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.orderCodeCard}>
+      <View style={styles.orderCodeContent}>
+        <View style={styles.barcodeSection}>
+          <BarcodeImage />
         </View>
-      )}
+        <View style={styles.orderCodeInfo}>
+          <View style={[styles.typeBadge, { backgroundColor: orderCode.typeColor }]}>
+            <Text style={styles.typeBadgeText}>{orderCode.type}</Text>
+          </View>
+          <Text style={styles.quantityValue}>{orderCode.quantity}</Text>
+          <Text style={styles.slumpText}>{t('product.slumpLabel', { value: orderCode.slump })}</Text>
+>>>>>>> Stashed changes
+        </View>
+        {showTruck && (
+          <View style={styles.truckImageContainer}>
+            <Icon name="truck-delivery" size={ms(60)} color={colors.productStatus.truckIcon} />
+          </View>
+        )}
+      </View>
+      <Text style={styles.codeText}>{orderCode.code}</Text>
+      <TouchableOpacity style={styles.checkDetailsBtn} onPress={onPress} activeOpacity={0.7}>
+        <Text style={styles.checkDetailsText}>{t('product.clickToCheckDetails')}</Text>
+        <Icon name="chevron-right" size={ms(16)} color={colors.light.text.hint} />
+      </TouchableOpacity>
     </View>
+<<<<<<< Updated upstream
 
     {/* Code Text */}
     <Text style={styles.codeText}>{orderCode.code}</Text>
@@ -231,11 +317,16 @@ const OrderCodeCard: React.FC<OrderCodeCardProps> = ({ orderCode, onPress, showT
     </TouchableOpacity>
   </View>
 );
+=======
+  );
+};
+>>>>>>> Stashed changes
 
 // Main Screen Component
 export const ProductCodeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const handleBack = useCallback(() => {
     navigation.goBack();
@@ -264,13 +355,14 @@ export const ProductCodeScreen: React.FC = () => {
           <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
             <Icon name="chevron-left" size={ms(24)} color={colors.common.white} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Product Details</Text>
+          <Text style={styles.headerTitle}>{t('product.details')}</Text>
           <View style={styles.backButton} />
         </View>
 
         {/* Stats Row */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
+<<<<<<< Updated upstream
             <Text style={styles.statLabel}>Status</Text>
             <Text style={styles.statValue}>{mockData.status}</Text>
           </View>
@@ -284,6 +376,21 @@ export const ProductCodeScreen: React.FC = () => {
           <View style={styles.statItem}>
             <Text style={styles.statLabel}>Rate</Text>
             <Text style={styles.statValueLarge}>{mockData.rate}</Text>
+=======
+            <Text style={styles.statLabel}>{t('product.status')}</Text>
+            <Text style={styles.statValue}>{orderStatus}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>{t('product.onJob')}</Text>
+            <Text style={styles.statValueLarge}>{onJobTime}</Text>
+            <Text style={styles.statSubtext}>{orderDate}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>{t('product.rate')}</Text>
+            <Text style={styles.statValueLarge}>{rate}</Text>
+>>>>>>> Stashed changes
           </View>
         </View>
       </LinearGradient>
@@ -305,7 +412,7 @@ export const ProductCodeScreen: React.FC = () => {
 
         {/* Order Code Details Section */}
         <View style={styles.orderCodeSection}>
-          <Text style={styles.sectionTitle}>Order Code Details</Text>
+          <Text style={styles.sectionTitle}>{t('product.orderCodeDetails')}</Text>
 
           {mockData.orderCodes.map((orderCode, index) => (
             <OrderCodeCard

@@ -205,8 +205,108 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
               />
             </View>
 
+<<<<<<< Updated upstream
             <Text variant="h2" color="primary" style={styles.title}>
               {t('auth.forgotPassword.title')}
+=======
+
+          <Animated.View
+            entering={FadeInUp.delay(200).springify()}
+            style={[
+              styles.formCard,
+              {
+                backgroundColor: loginColors.glassCardBg,
+                borderColor: loginColors.glassCardBorder,
+                shadowColor: isDark ? colors.common.black : colors.grey[60],
+              },
+            ]}
+          >
+
+            <View style={styles.headerSection}>
+              <Text
+                variant="h2"
+                style={[
+                  styles.title,
+                  { color: isDark ? colors.common.white : colors.grey[100] },
+                ]}>
+                {t('auth.forgotPassword.title')}
+              </Text>
+              <Text
+                variant="body"
+                style={[
+                  styles.subtitle,
+                  { color: isDark ? colors.grey[40] : colors.grey[60] },
+                ]}>
+                {t('auth.forgotPassword.subtitle')}
+              </Text>
+            </View>
+
+
+            <View style={styles.form}>
+              <AnimatedInput
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (error) setError('');
+                }}
+                placeholder={t('auth.forgotPassword.emailPlaceholder')}
+                icon="email-outline"
+                error={error}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleSubmit}
+                isDark={isDark}
+              />
+
+
+              <AnimatedTouchable
+                onPress={handleSubmit}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                disabled={isLoading}
+                activeOpacity={0.9}
+                style={[styles.submitButton, { shadowColor: colors.primary.dark }, buttonAnimStyle]}>
+                <LinearGradient
+                  colors={[colors.primary.dark, colors.primary.main, colors.primary.light]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.submitButtonGradient}>
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color={colors.common.white} />
+                  ) : (
+                    <Text variant="body" style={[styles.submitButtonText, { color: colors.common.white }]}>
+                      {t('auth.forgotPassword.sendResetLink')}
+                    </Text>
+                  )}
+                </LinearGradient>
+              </AnimatedTouchable>
+
+
+              <TouchableOpacity
+                onPress={handleBack}
+                activeOpacity={0.7}
+                style={styles.backToLogin}
+              >
+                <Icon name="arrow-left" size={ms(16)} color={colors.primary.main} />
+                <Text variant="bodySmall" style={[styles.backToLoginText, { color: colors.primary.main }]}>
+                  {t('auth.forgotPassword.backToSignIn')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+
+
+          <Animated.View
+            entering={FadeInUp.delay(500).springify()}
+            style={styles.footer}>
+            <Text variant="caption" style={[styles.footerText, { color: loginColors.footerText }]}>
+              {t('auth.poweredBy')}{' '}
+              <Text variant="caption" style={[styles.footerBrand, { color: loginColors.footerBrand }]}>
+                Truckast AI
+              </Text>
+>>>>>>> Stashed changes
             </Text>
             <Text variant="body" color="secondary" style={styles.subtitle}>
               {t('auth.forgotPassword.subtitle')}

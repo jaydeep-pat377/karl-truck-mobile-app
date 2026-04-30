@@ -18,6 +18,7 @@ import { SplashScreen } from './components/common';
 
 // i18n
 import './locales';
+import { i18nReady } from './locales';
 
 // Navigation
 import { RootNavigator } from './navigation';
@@ -93,7 +94,20 @@ const AppContentWithSplash: React.FC<AppContentProps> = ({ onReady }) => {
 // Main App component with all providers
 const App: React.FC = () => {
   const [isAppReady, setIsAppReady] = useState(false);
+  const [isI18nReady, setIsI18nReady] = useState(false);
 
+<<<<<<< Updated upstream
+=======
+  useEffect(() => {
+    i18nReady.finally(() => setIsI18nReady(true));
+    initializeSupabaseAuth().then((session) => {
+      if (session) {
+        console.log('@@@@@@ Supabase auth initialized successfully');
+      }
+    });
+  }, []);
+
+>>>>>>> Stashed changes
   const onNavigationReady = useCallback(() => {
     // Hide splash screen when navigation is ready
     setIsAppReady(true);
@@ -101,14 +115,16 @@ const App: React.FC = () => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      {!isAppReady && <SplashScreen message="Loading..." />}
-      <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider initialMode="dark">
-            <AppContentWithSplash onReady={onNavigationReady} />
-          </ThemeProvider>
-        </QueryClientProvider>
-      </SafeAreaProvider>
+      {(!isAppReady || !isI18nReady) && <SplashScreen message="Loading..." />}
+      {isI18nReady && (
+        <SafeAreaProvider>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider initialMode="dark">
+              <AppContentWithSplash onReady={onNavigationReady} />
+            </ThemeProvider>
+          </QueryClientProvider>
+        </SafeAreaProvider>
+      )}
     </GestureHandlerRootView>
   );
 };

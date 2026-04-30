@@ -10,7 +10,11 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+<<<<<<< Updated upstream
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+=======
+import { useTranslation } from 'react-i18next';
+>>>>>>> Stashed changes
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text } from '../../components/common/Text';
 import { Input } from '../../components/common/Input';
@@ -25,6 +29,7 @@ interface ChangePasswordScreenProps {
 export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
   navigation,
 }) => {
+  const { t } = useTranslation();
   const { theme, isDark } = useTheme();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -45,19 +50,19 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
     requirements: { met: boolean; text: string }[];
   } => {
     const requirements = [
-      { met: pwd.length >= 8, text: 'At least 8 characters' },
-      { met: /[a-z]/.test(pwd), text: 'One lowercase letter' },
-      { met: /[A-Z]/.test(pwd), text: 'One uppercase letter' },
-      { met: /\d/.test(pwd), text: 'One number' },
-      { met: /[!@#$%^&*(),.?":{}|<>]/.test(pwd), text: 'One special character' },
+      { met: pwd.length >= 8, text: t('auth.changePassword.requirements.minLength') },
+      { met: /[a-z]/.test(pwd), text: t('auth.changePassword.requirements.lowercase') },
+      { met: /[A-Z]/.test(pwd), text: t('auth.changePassword.requirements.uppercase') },
+      { met: /\d/.test(pwd), text: t('auth.changePassword.requirements.number') },
+      { met: /[!@#$%^&*(),.?":{}|<>]/.test(pwd), text: t('auth.changePassword.requirements.specialChar') },
     ];
 
     const metCount = requirements.filter(r => r.met).length;
 
-    if (metCount <= 2) return { level: 1, label: 'Weak', color: theme.colors.error.main, requirements };
-    if (metCount === 3) return { level: 2, label: 'Fair', color: theme.colors.warning.main, requirements };
-    if (metCount === 4) return { level: 3, label: 'Good', color: theme.colors.info.main, requirements };
-    return { level: 4, label: 'Strong', color: theme.colors.success.main, requirements };
+    if (metCount <= 2) return { level: 1, label: t('auth.changePassword.strength.weak'), color: theme.colors.error.main, requirements };
+    if (metCount === 3) return { level: 2, label: t('auth.changePassword.strength.fair'), color: theme.colors.warning.main, requirements };
+    if (metCount === 4) return { level: 3, label: t('auth.changePassword.strength.good'), color: theme.colors.info.main, requirements };
+    return { level: 4, label: t('auth.changePassword.strength.strong'), color: theme.colors.success.main, requirements };
   };
 
   const passwordStrength = getPasswordStrength(newPassword);
@@ -66,23 +71,23 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (!currentPassword) {
-      newErrors.currentPassword = 'Current password is required';
+      newErrors.currentPassword = t('auth.changePassword.errors.currentPasswordRequired');
     }
 
     if (!newPassword) {
-      newErrors.newPassword = 'New password is required';
+      newErrors.newPassword = t('auth.changePassword.errors.newPasswordRequired');
     } else if (newPassword.length < 8) {
-      newErrors.newPassword = 'Password must be at least 8 characters';
+      newErrors.newPassword = t('auth.changePassword.errors.minLength');
     } else if (passwordStrength.level < 3) {
-      newErrors.newPassword = 'Please create a stronger password';
+      newErrors.newPassword = t('auth.changePassword.errors.weakPassword');
     }
 
     if (newPassword === currentPassword) {
-      newErrors.newPassword = 'New password must be different from current password';
+      newErrors.newPassword = t('auth.changePassword.errors.sameAsCurrent');
     }
 
     if (newPassword !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = t('auth.changePassword.errors.passwordsDoNotMatch');
     }
 
     setErrors(newErrors);
@@ -92,10 +97,25 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
   const handleChangePassword = async () => {
     if (!validateForm()) return;
 
+<<<<<<< Updated upstream
     setIsLoading(true);
+=======
+    showConfirm(
+      t('auth.changePassword.confirmTitle'),
+      t('auth.changePassword.confirmMessage'),
+      handleConfirmChangePassword,
+      undefined,
+      t('auth.changePassword.confirmAction'),
+      t('common.cancel')
+    );
+  };
+
+  const handleConfirmChangePassword = async () => {
+>>>>>>> Stashed changes
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
+<<<<<<< Updated upstream
       Alert.alert(
         'Password Changed',
         'Your password has been updated successfully. Please use your new password next time you sign in.',
@@ -105,6 +125,18 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
       setErrors({ currentPassword: 'Current password is incorrect' });
     } finally {
       setIsLoading(false);
+=======
+      if (response.success) {
+        showSuccess(
+          t('auth.changePassword.successTitle'),
+          response.message || t('auth.changePassword.successMessage'),
+          () => navigation?.goBack()
+        );
+      }
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || t('auth.changePassword.errors.changeFailed');
+      showError(t('common.error'), errorMessage);
+>>>>>>> Stashed changes
     }
   };
 
@@ -122,7 +154,7 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
           <Icon name="arrow-left" size={ms(24)} color={theme.colors.text} />
         </TouchableOpacity>
         <Text variant="h4" color="primary">
-          Change Password
+          {t('settings.changePassword')}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -145,10 +177,10 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
               </View>
               <View style={styles.noticeText}>
                 <Text variant="bodySmall" color="primary" style={{ fontWeight: '600' }}>
-                  Keep your account secure
+                  {t('auth.changePassword.notice.title')}
                 </Text>
                 <Text variant="caption" color="secondary" style={styles.noticeDescription}>
-                  Choose a strong password that you don't use for other accounts.
+                  {t('auth.changePassword.notice.description')}
                 </Text>
               </View>
             </View>
@@ -156,13 +188,13 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
 
           <View style={styles.form}>
             <Input
-              label="Current Password"
+              label={t('auth.changePassword.currentPassword')}
               value={currentPassword}
               onChangeText={(text) => {
                 setCurrentPassword(text);
                 if (errors.currentPassword) setErrors({ ...errors, currentPassword: '' });
               }}
-              placeholder="Enter current password"
+              placeholder={t('auth.changePassword.currentPasswordPlaceholder')}
               leftIcon="lock-outline"
               rightIcon={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
               onRightIconPress={() => setShowCurrentPassword(!showCurrentPassword)}
@@ -176,13 +208,13 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
 
             <Input
               ref={newPasswordRef}
-              label="New Password"
+              label={t('auth.changePassword.newPassword')}
               value={newPassword}
               onChangeText={(text) => {
                 setNewPassword(text);
                 if (errors.newPassword) setErrors({ ...errors, newPassword: '' });
               }}
-              placeholder="Create new password"
+              placeholder={t('auth.changePassword.newPasswordPlaceholder')}
               leftIcon="lock-plus-outline"
               rightIcon={showNewPassword ? 'eye-off-outline' : 'eye-outline'}
               onRightIconPress={() => setShowNewPassword(!showNewPassword)}
@@ -196,7 +228,7 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
               <View style={styles.strengthSection}>
                 <View style={styles.strengthHeader}>
                   <Text variant="caption" color="secondary">
-                    Password Strength:
+                    {t('auth.changePassword.strengthLabel')}
                   </Text>
                   <Text
                     variant="caption"
@@ -248,13 +280,13 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
 
             <Input
               ref={confirmPasswordRef}
-              label="Confirm New Password"
+              label={t('auth.changePassword.confirmPassword')}
               value={confirmPassword}
               onChangeText={(text) => {
                 setConfirmPassword(text);
                 if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
               }}
-              placeholder="Confirm new password"
+              placeholder={t('auth.changePassword.confirmPasswordPlaceholder')}
               leftIcon="lock-check-outline"
               rightIcon={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
               onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -283,14 +315,14 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
                         : theme.colors.error.main,
                     marginLeft: ms(6),
                   }}>
-                  {newPassword === confirmPassword ? 'Passwords match' : 'Passwords do not match'}
+                  {newPassword === confirmPassword ? t('auth.changePassword.passwordsMatch') : t('auth.changePassword.errors.passwordsDoNotMatch')}
                 </Text>
               </View>
             )}
           </View>
 
           <Button
-            title="Update Password"
+            title={t('auth.changePassword.updateButton')}
             onPress={handleChangePassword}
             loading={isLoading}
             disabled={isLoading || !currentPassword || !newPassword || !confirmPassword}

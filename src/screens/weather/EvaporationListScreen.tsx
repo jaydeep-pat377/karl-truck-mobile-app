@@ -16,7 +16,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
+<<<<<<< Updated upstream
 import { Text } from '../../components/common';
+=======
+import { useTranslation } from 'react-i18next';
+import i18n from 'i18next';
+import { Text, Icon } from '../../components/common';
+import { useTheme } from '../../contexts/ThemeContext';
+>>>>>>> Stashed changes
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, vs } from '../../utils/responsive';
@@ -47,6 +54,7 @@ const RADIUS = {
 
 const WEATHER_COLORS = colors.weatherTheme;
 
+<<<<<<< Updated upstream
 const mockEvaporationDetails = {
   status: 'Shrinking Cracking',
   evaporationRate: '0.15 mm/day',
@@ -69,6 +77,22 @@ const mockEvaporationDetails = {
     astmC94: 'ASTM C94 - Ready-Mixed Concrete',
     description: 'Evaporation rate calculations are based on ACI 305R guidelines. When the evaporation rate exceeds 0.25 kg/m²/hr, precautions should be taken to prevent plastic shrinkage cracking.',
   },
+=======
+const getEvaporationStatus = (rate: number): string => {
+  if (rate >= 0.40) return i18n.t('evaporation.statusSevere');
+  if (rate >= 0.30) return i18n.t('evaporation.statusVeryHigh');
+  if (rate >= 0.20) return i18n.t('evaporation.statusHigh');
+  if (rate >= 0.10) return i18n.t('evaporation.statusModerate');
+  return i18n.t('evaporation.statusLowRisk');
+};
+
+const getStatusColor = (rate: number): string => {
+  if (rate >= 0.40) return colors.unloadingRate.dark;
+  if (rate >= 0.30) return colors.unloadingRate.medium;
+  if (rate >= 0.20) return colors.unloadingRate.light;
+  if (rate >= 0.10) return colors.warning.main;
+  return colors.success.main;
+>>>>>>> Stashed changes
 };
 
 interface StatusTableRowProps {
@@ -215,7 +239,7 @@ const LoadingState: React.FC = () => (
   <View style={styles.loadingContainer}>
     <ActivityIndicator size="large" color={colors.secondary.main} />
     <Text style={styles.loadingText}>
-      Loading evaporation details...
+      {i18n.t('evaporation.loadingDetails')}
     </Text>
   </View>
 );
@@ -224,7 +248,14 @@ export const EvaporationListScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<EvaporationListRouteProp>();
   const insets = useSafeAreaInsets();
+<<<<<<< Updated upstream
   const { locationName, date, currentEvaporation } = route.params;
+=======
+  const { isDark } = useTheme();
+  const { t } = useTranslation();
+  const themeColors = isDark ? colors.dark : colors.light;
+  const { locationName, date, orderCode, currentEvaporation, weatherData } = route.params;
+>>>>>>> Stashed changes
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -246,12 +277,63 @@ export const EvaporationListScreen: React.FC = () => {
   const handleMenu = useCallback(() => {
   }, []);
 
+<<<<<<< Updated upstream
   const statusData = [
     { label: 'Status', value: details.status, valueColor: colors.warning.main },
     { label: 'Evaporation Rate', value: currentEvaporation?.value ? `${currentEvaporation.value} mm/day` : details.evaporationRate },
     { label: 'Concrete Temp', value: details.concreteTemp },
     { label: 'Order No', value: details.orderNo },
     { label: 'Current Ticket No', value: details.currentTicketNo },
+=======
+  const handleShare = useCallback(async () => {
+    setMenuVisible(false);
+    try {
+      await Share.share({
+        message: t('evaporation.shareMessage', {
+          location: locationName,
+          date,
+          rate: evaporationRate.toFixed(2),
+          status: evaporationStatus,
+          temperature: weatherData?.temperature ?? 'N/A',
+          temperatureUnit: weatherData?.temperatureUnit ?? 'F',
+          humidity: weatherData?.humidity ?? 'N/A',
+        }),
+        title: t('evaporation.title'),
+      });
+    } catch (error) {
+      console.log('Error sharing:', error);
+    }
+  }, [locationName, date, evaporationRate, evaporationStatus, weatherData]);
+
+  const handleSettings = useCallback(() => {
+    setMenuVisible(false);
+    navigation.navigate('Main' as never, { screen: 'Settings' } as never);
+  }, [navigation]);
+
+  const menuItems = [
+    { id: '1', icon: 'share-variant', label: t('evaporation.shareDetails'), onPress: handleShare },
+    { id: '2', icon: 'cog-outline', label: t('settings.title'), onPress: handleSettings },
+  ];
+
+  const statusData = [
+    { label: t('evaporation.statusLabel'), value: evaporationStatus, valueColor: statusColor },
+    { label: t('evaporation.evaporationRate'), value: `${evaporationRate.toFixed(2)} kg/m²/hr` },
+    { label: t('evaporation.evaporationLevel'), value: currentEvaporation?.status ?? 'N/A' },
+    { label: t('evaporation.orderNo'), value: orderCode ?? 'N/A' },
+  ];
+
+  const weatherDetailsData = [
+    { label: t('weather.temperature'), value: weatherData ? `${weatherData.temperature}°${weatherData.temperatureUnit}` : 'N/A' },
+    { label: t('weather.humidity'), value: weatherData ? `${weatherData.humidity}%` : 'N/A' },
+    { label: t('evaporation.windSpeed'), value: weatherData ? `${weatherData.windSpeed} mph` : 'N/A' },
+    { label: t('evaporation.windDirection'), value: weatherData?.windDirection ?? 'N/A' },
+    { label: t('evaporation.pressure'), value: weatherData ? `${weatherData.pressure.toFixed(2)} ${weatherData.pressureUnit}` : 'N/A' },
+    { label: t('weather.dewPoint'), value: weatherData ? `${weatherData.dewPoint}°F` : 'N/A' },
+    { label: t('evaporation.concreteTemp'), value: weatherData?.concreteTemp ? `${weatherData.concreteTemp}°F` : 'N/A' },
+    { label: t('evaporation.condition'), value: weatherData?.condition ?? 'N/A' },
+    { label: t('evaporation.clouds'), value: weatherData ? `${weatherData.cloudsPercentage}%` : 'N/A' },
+    { label: t('weather.visibility'), value: weatherData ? `${(weatherData.visibility / 1000).toFixed(1)} km` : 'N/A' },
+>>>>>>> Stashed changes
   ];
 
   return (
@@ -274,7 +356,7 @@ export const EvaporationListScreen: React.FC = () => {
           </TouchableOpacity>
 
           <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>Evaporation Details</Text>
+            <Text style={styles.headerTitle}>{t('evaporation.title')}</Text>
           </View>
 
           <View style={styles.headerActions}>
@@ -319,12 +401,18 @@ export const EvaporationListScreen: React.FC = () => {
         ) : (
           <>
             <StatusTableCard
+<<<<<<< Updated upstream
               title="Status of Weather"
               icon="weather-partly-cloudy"
+=======
+              title={t('evaporation.evaporationStatus')}
+              icon="water-outline"
+>>>>>>> Stashed changes
               data={statusData}
             />
 
             <ExpandableCard
+<<<<<<< Updated upstream
               title="Details"
               subtitle="You can check all the product details with weather updates."
               icon="clipboard-text-outline"
@@ -361,10 +449,75 @@ export const EvaporationListScreen: React.FC = () => {
                   {details.references.description}
                 </Text>
               </View>
+=======
+              title={t('evaporation.weatherDetails')}
+              subtitle={t('evaporation.weatherDetailsSubtitle')}
+              icon="weather-partly-cloudy"
+              defaultExpanded={true}>
+              {weatherDetailsData.map((item, index) => (
+                <DetailRow
+                  key={item.label}
+                  label={item.label}
+                  value={item.value}
+                  isLast={index === weatherDetailsData.length - 1}
+                />
+              ))}
+            </ExpandableCard>
+
+            <ExpandableCard
+              title={t('evaporation.references')}
+              icon="book-open-variant"
+              defaultExpanded={false}>
+              <Text style={styles.referenceText}>
+                {t('evaporation.referenceText')}
+              </Text>
+>>>>>>> Stashed changes
             </ExpandableCard>
           </>
         )}
       </ScrollView>
+<<<<<<< Updated upstream
+=======
+
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleMenuToggle}>
+        <Pressable style={styles.modalOverlay} onPress={handleMenuToggle}>
+          <View style={styles.menuContainer}>
+            <View style={styles.menuHeader}>
+              <Text style={styles.menuTitle}>{t('weather.menu')}</Text>
+              <TouchableOpacity
+                style={styles.menuCloseBtn}
+                onPress={handleMenuToggle}
+                activeOpacity={0.7}>
+                <Icon name="close" size={ms(18)} color={WEATHER_COLORS.text.secondary} />
+              </TouchableOpacity>
+            </View>
+
+            {menuItems.map((item, index) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[
+                  styles.menuItem,
+                  index < menuItems.length - 1 && styles.menuItemBorder,
+                ]}
+                onPress={item.onPress}
+                activeOpacity={0.7}>
+                <View style={styles.menuItemIcon}>
+                  <Icon name={item.icon} size={ms(18)} color={WEATHER_COLORS.text.secondary} />
+                </View>
+                <Text style={styles.menuItemLabel}>
+                  {item.label}
+                </Text>
+                <Icon name="chevron-right" size={ms(18)} color={WEATHER_COLORS.text.hint} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
+>>>>>>> Stashed changes
     </View>
   );
 };

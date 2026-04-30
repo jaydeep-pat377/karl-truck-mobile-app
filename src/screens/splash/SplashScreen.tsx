@@ -15,6 +15,7 @@ import {
   Animated,
   StatusBar,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text } from '../../components/common/Text';
 import { ms, vs } from '../../utils/responsive';
@@ -29,6 +30,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   duration = 2500,
 }) => {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslation();
 
   // Animation values
   const logoOpacity = useRef(new Animated.Value(0)).current;
@@ -127,7 +129,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             variant="h1"
             style={[styles.logoText, { color: theme.colors.primary.contrast }]}
           >
-            KT
+            {t('splash.logoInitials')}
           </Text>
         </View>
       </Animated.View>
@@ -139,14 +141,14 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           color="primary"
           style={styles.appName}
         >
-          Karl Track
+          {t('splash.appName')}
         </Text>
         <Text
           variant="bodySmall"
           color="secondary"
           style={styles.tagline}
         >
-          Dolese ReadyMix
+          {t('splash.tagline')}
         </Text>
       </Animated.View>
 
@@ -180,14 +182,14 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           color="hint"
           style={styles.loadingText}
         >
-          Loading...
+          {t('common.loading')}
         </Text>
       </Animated.View>
 
       {/* Version */}
       <View style={styles.versionContainer}>
         <Text variant="captionSmall" color="hint">
-          Version 1.0.0
+          {t('splash.version', { version: '1.0.0' })}
         </Text>
       </View>
     </View>
