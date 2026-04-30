@@ -1104,54 +1104,53 @@ export const TicketDetailScreen: React.FC = () => {
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
   const [encryptedQr, setEncryptedQr] = useState<string>('');
   const [weatherLoading, setWeatherLoading] = useState(false);
-  // ETA feature temporarily disabled
-  // const [etaLoading, setEtaLoading] = useState(false);
-  // const [etaResult, setEtaResult] = useState<any>(null);
-  // const [etaExpanded, setEtaExpanded] = useState(false);
-  // const [etaError, setEtaError] = useState<string | null>(null);
-  // const [etaCooldown, setEtaCooldown] = useState(0);
-  // const [etaLastCalculated, setEtaLastCalculated] = useState(0);
-  // const etaCooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  //
-  // const ONE_MINUTE_MS = 60 * 1000;
-  //
-  // const startEtaCooldown = useCallback(() => {
-  //   if (etaCooldownRef.current) clearInterval(etaCooldownRef.current);
-  //   setEtaLastCalculated(Date.now());
-  //   setEtaCooldown(60);
-  //   etaCooldownRef.current = setInterval(() => {
-  //     setEtaCooldown(prev => {
-  //       if (prev <= 1) {
-  //         if (etaCooldownRef.current) clearInterval(etaCooldownRef.current);
-  //         etaCooldownRef.current = null;
-  //         return 0;
-  //       }
-  //       return prev - 1;
-  //     });
-  //   }, 1000);
-  // }, []);
-  //
-  // const isEtaCooldownActive = useCallback(() => {
-  //   if (etaCooldown > 0) return true;
-  //   const timeSince = Date.now() - etaLastCalculated;
-  //   if (timeSince < ONE_MINUTE_MS) {
-  //     const remaining = Math.ceil((ONE_MINUTE_MS - timeSince) / 1000);
-  //     setEtaCooldown(remaining);
-  //     if (etaCooldownRef.current) clearInterval(etaCooldownRef.current);
-  //     etaCooldownRef.current = setInterval(() => {
-  //       setEtaCooldown(prev => {
-  //         if (prev <= 1) {
-  //           if (etaCooldownRef.current) clearInterval(etaCooldownRef.current);
-  //           etaCooldownRef.current = null;
-  //           return 0;
-  //         }
-  //         return prev - 1;
-  //       });
-  //     }, 1000);
-  //     return true;
-  //   }
-  //   return false;
-  // }, [etaCooldown, etaLastCalculated]);
+  const [etaLoading, setEtaLoading] = useState(false);
+  const [etaResult, setEtaResult] = useState<any>(null);
+  const [etaExpanded, setEtaExpanded] = useState(false);
+  const [etaError, setEtaError] = useState<string | null>(null);
+  const [etaCooldown, setEtaCooldown] = useState(0);
+  const [etaLastCalculated, setEtaLastCalculated] = useState(0);
+  const etaCooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const ONE_MINUTE_MS = 60 * 1000;
+
+  const startEtaCooldown = useCallback(() => {
+    if (etaCooldownRef.current) clearInterval(etaCooldownRef.current);
+    setEtaLastCalculated(Date.now());
+    setEtaCooldown(60);
+    etaCooldownRef.current = setInterval(() => {
+      setEtaCooldown(prev => {
+        if (prev <= 1) {
+          if (etaCooldownRef.current) clearInterval(etaCooldownRef.current);
+          etaCooldownRef.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  const isEtaCooldownActive = useCallback(() => {
+    if (etaCooldown > 0) return true;
+    const timeSince = Date.now() - etaLastCalculated;
+    if (timeSince < ONE_MINUTE_MS) {
+      const remaining = Math.ceil((ONE_MINUTE_MS - timeSince) / 1000);
+      setEtaCooldown(remaining);
+      if (etaCooldownRef.current) clearInterval(etaCooldownRef.current);
+      etaCooldownRef.current = setInterval(() => {
+        setEtaCooldown(prev => {
+          if (prev <= 1) {
+            if (etaCooldownRef.current) clearInterval(etaCooldownRef.current);
+            etaCooldownRef.current = null;
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return true;
+    }
+    return false;
+  }, [etaCooldown, etaLastCalculated]);
 
   const { orderCode, orderDate, ticketCode, status: passedStatus, statusDisplay: passedStatusDisplay, statusColor: passedStatusColor, statusColors: apiStatusColors } = route.params;
 
@@ -1194,7 +1193,7 @@ export const TicketDetailScreen: React.FC = () => {
     weatherData,
     freshWeather,
     verifiJson,
-    // etaData,
+    etaData,
     isLoading,
     isRefetching,
     refetch,
@@ -1605,6 +1604,112 @@ export const TicketDetailScreen: React.FC = () => {
         ) : null}
 
 
+        {currentStatus === 'to_job' && (() => {
+          const eta = etaResult || etaData;
+          const hasEta = !!eta;
+          const etaAge = eta?.calculatedAt ? Math.floor((Date.now() - new Date(eta.calculatedAt).getTime()) / 60000) : 0;
+          const isStale = etaAge > 30;
+          const etaArrival = eta?.arrivalTime ? new Date(eta.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '--';
+          const orangeColor = '#F97316';
+
+          const handleEtaCalc = async (force = false) => {
+            if (isEtaCooldownActive()) return;
+            const tId = ticket?.ticket_id;
+            if (!tId) return;
+            setEtaLoading(true);
+            setEtaError(null);
+            try {
+              const res = await ticketService.calculateTicketETA(String(tId), force);
+              if (res.success && res.data) {
+                setEtaResult(res.data);
+                setEtaExpanded(true);
+                startEtaCooldown();
+              } else {
+                setEtaError((res as any)?.message || 'Failed to calculate ETA');
+                setEtaExpanded(true);
+              }
+            } catch (err: any) {
+              setEtaError(err?.response?.data?.message || err?.message || 'Failed to calculate ETA');
+              setEtaExpanded(true);
+            } finally {
+              setEtaLoading(false);
+            }
+          };
+
+          return (
+            <View style={styles.etaSection} pointerEvents={etaLoading ? 'none' : 'auto'}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                disabled={etaLoading}
+                onPress={() => hasEta ? setEtaExpanded(prev => !prev) : handleEtaCalc()}
+                style={[styles.etaHeader, { backgroundColor: isDark ? 'rgba(249,115,22,0.06)' : 'rgba(249,115,22,0.04)' }]}>
+                <Icon name="navigation-variant" size={ms(13)} color={orangeColor} />
+                <Text style={[styles.etaHeaderTitle, { color: isDark ? '#FED7AA' : '#7C2D12' }]}>ETA</Text>
+                {hasEta && (
+                  <Text style={[styles.etaHeaderPreview, { color: orangeColor }]}>{eta.durationFormatted} · {eta.distanceMiles} mi</Text>
+                )}
+                {isStale && hasEta && (
+                  <View style={styles.etaStaleBadge}>
+                    <Text style={styles.etaStaleText}>{etaAge}m ago</Text>
+                  </View>
+                )}
+                <View style={{ flex: 1 }} />
+                {etaLoading ? (
+                  <ActivityIndicator size="small" color={orangeColor} />
+                ) : hasEta ? (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    disabled={etaCooldown > 0}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    onPress={() => handleEtaCalc(true)}>
+                    {etaCooldown > 0 ? (
+                      <Text style={[styles.etaCooldownText, { color: themeColors.text.hint }]}>{`${Math.floor(etaCooldown / 60).toString().padStart(2, '0')}:${(etaCooldown % 60).toString().padStart(2, '0')}`}</Text>
+                    ) : (
+                      <Icon name="refresh" size={ms(16)} color={orangeColor} />
+                    )}
+                  </TouchableOpacity>
+                ) : null}
+                <Icon name={etaExpanded ? 'chevron-up' : 'chevron-down'} size={ms(18)} color={themeColors.text.hint} />
+              </TouchableOpacity>
+
+              {!hasEta && etaError && etaExpanded && (
+                <View style={[styles.etaExpandedRow, { paddingVertical: ms(6) }]}>
+                  <Icon name="alert-circle-outline" size={ms(12)} color={colors.error.main} />
+                  <Text style={[styles.etaInfoLabel, { color: themeColors.text.secondary, flex: 1 }]}>{etaError}</Text>
+                </View>
+              )}
+
+              {hasEta && etaExpanded && (
+                <View style={styles.etaExpandedWrap}>
+                  <View style={styles.etaExpandedRow}>
+                    <View style={styles.etaStat}>
+                      <Icon name="clock-check-outline" size={ms(12)} color={orangeColor} />
+                      <Text style={[styles.etaStatValue, { color: orangeColor }]}>{etaArrival}</Text>
+                      <Text style={[styles.etaStatLabel, { color: themeColors.text.hint }]}>arrival</Text>
+                    </View>
+                    <View style={[styles.etaDivider, { backgroundColor: themeColors.text.hint + '30' }]} />
+                    <View style={styles.etaStat}>
+                      <Icon name="clock-fast" size={ms(12)} color={themeColors.text.secondary} />
+                      <Text style={[styles.etaStatValue, { color: themeColors.text.primary }]}>{eta.durationFormatted}</Text>
+                      <Text style={[styles.etaStatLabel, { color: themeColors.text.hint }]}>travel</Text>
+                    </View>
+                    <View style={[styles.etaDivider, { backgroundColor: themeColors.text.hint + '30' }]} />
+                    <View style={styles.etaStat}>
+                      <Icon name="map-marker-distance" size={ms(12)} color={themeColors.text.secondary} />
+                      <Text style={[styles.etaStatValue, { color: themeColors.text.primary }]}>{eta.distanceMiles} mi</Text>
+                      <Text style={[styles.etaStatLabel, { color: themeColors.text.hint }]}>{eta.distanceKm} km</Text>
+                    </View>
+                  </View>
+                  <View style={styles.etaExpandedFooter}>
+                    <Icon name="truck" size={ms(10)} color={themeColors.text.hint} />
+                    <Text style={[styles.etaFooterText, { color: themeColors.text.hint }]}>Concrete Mixer · AWS Location Services</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          );
+        })()}
+
         {timestamps.toJob && !timestamps.atJob && (
           <TouchableOpacity
             activeOpacity={0.7}
@@ -1740,113 +1845,6 @@ export const TicketDetailScreen: React.FC = () => {
           </TouchableOpacity>
         )}
 
-        {/* ETA feature temporarily disabled */}
-        {/* {currentStatus === 'to_job' && (() => {
-          const eta = etaResult || etaData;
-          const hasEta = !!eta;
-          const etaAge = eta?.calculatedAt ? Math.floor((Date.now() - new Date(eta.calculatedAt).getTime()) / 60000) : 0;
-          const isStale = etaAge > 30;
-          const etaArrival = eta?.arrivalTime ? new Date(eta.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '--';
-          const etaCalcTime = eta?.calculatedAt ? new Date(eta.calculatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-          const orangeColor = '#F97316';
-
-          const handleEtaCalc = async (force = false) => {
-            if (isEtaCooldownActive()) return;
-            const tId = ticket?.ticket_id;
-            if (!tId) return;
-            setEtaLoading(true);
-            setEtaError(null);
-            try {
-              const res = await ticketService.calculateTicketETA(String(tId), force);
-              if (res.success && res.data) {
-                setEtaResult(res.data);
-                setEtaExpanded(true);
-                startEtaCooldown();
-              } else {
-                setEtaError((res as any)?.message || 'Failed to calculate ETA');
-                setEtaExpanded(true);
-              }
-            } catch (err: any) {
-              setEtaError(err?.response?.data?.message || err?.message || 'Failed to calculate ETA');
-              setEtaExpanded(true);
-            } finally {
-              setEtaLoading(false);
-            }
-          };
-
-          return (
-            <View style={styles.etaSection} pointerEvents={etaLoading ? 'none' : 'auto'}>
-              <TouchableOpacity
-                activeOpacity={0.7}
-                disabled={etaLoading}
-                onPress={() => hasEta ? setEtaExpanded(prev => !prev) : handleEtaCalc()}
-                style={[styles.etaHeader, { backgroundColor: isDark ? 'rgba(249,115,22,0.06)' : 'rgba(249,115,22,0.04)' }]}>
-                <Icon name="navigation-variant" size={ms(13)} color={orangeColor} />
-                <Text style={[styles.etaHeaderTitle, { color: isDark ? '#FED7AA' : '#7C2D12' }]}>ETA</Text>
-                {hasEta && (
-                  <Text style={[styles.etaHeaderPreview, { color: orangeColor }]}>{eta.durationFormatted} · {eta.distanceMiles} mi</Text>
-                )}
-                {isStale && hasEta && (
-                  <View style={styles.etaStaleBadge}>
-                    <Text style={styles.etaStaleText}>{etaAge}m ago</Text>
-                  </View>
-                )}
-                <View style={{ flex: 1 }} />
-                {etaLoading ? (
-                  <ActivityIndicator size="small" color={orangeColor} />
-                ) : hasEta ? (
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    disabled={etaCooldown > 0}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    onPress={() => handleEtaCalc(true)}>
-                    {etaCooldown > 0 ? (
-                      <Text style={[styles.etaCooldownText, { color: themeColors.text.hint }]}>{`${Math.floor(etaCooldown / 60).toString().padStart(2, '0')}:${(etaCooldown % 60).toString().padStart(2, '0')}`}</Text>
-                    ) : (
-                      <Icon name="refresh" size={ms(16)} color={orangeColor} />
-                    )}
-                  </TouchableOpacity>
-                ) : null}
-                <Icon name={etaExpanded ? 'chevron-up' : 'chevron-down'} size={ms(18)} color={themeColors.text.hint} />
-              </TouchableOpacity>
-
-              {!hasEta && etaError && etaExpanded && (
-                <View style={[styles.etaExpandedRow, { paddingVertical: ms(6) }]}>
-                  <Icon name="alert-circle-outline" size={ms(12)} color={colors.error.main} />
-                  <Text style={[styles.etaInfoLabel, { color: themeColors.text.secondary, flex: 1 }]}>{etaError}</Text>
-                </View>
-              )}
-
-              {hasEta && etaExpanded && (
-                <View style={styles.etaExpandedWrap}>
-                  <View style={styles.etaExpandedRow}>
-                    <View style={styles.etaStat}>
-                      <Icon name="clock-check-outline" size={ms(12)} color={orangeColor} />
-                      <Text style={[styles.etaStatValue, { color: orangeColor }]}>{etaArrival}</Text>
-                      <Text style={[styles.etaStatLabel, { color: themeColors.text.hint }]}>arrival</Text>
-                    </View>
-                    <View style={[styles.etaDivider, { backgroundColor: themeColors.text.hint + '30' }]} />
-                    <View style={styles.etaStat}>
-                      <Icon name="clock-fast" size={ms(12)} color={themeColors.text.secondary} />
-                      <Text style={[styles.etaStatValue, { color: themeColors.text.primary }]}>{eta.durationFormatted}</Text>
-                      <Text style={[styles.etaStatLabel, { color: themeColors.text.hint }]}>travel</Text>
-                    </View>
-                    <View style={[styles.etaDivider, { backgroundColor: themeColors.text.hint + '30' }]} />
-                    <View style={styles.etaStat}>
-                      <Icon name="map-marker-distance" size={ms(12)} color={themeColors.text.secondary} />
-                      <Text style={[styles.etaStatValue, { color: themeColors.text.primary }]}>{eta.distanceMiles} mi</Text>
-                      <Text style={[styles.etaStatLabel, { color: themeColors.text.hint }]}>{eta.distanceKm} km</Text>
-                    </View>
-                  </View>
-                  <View style={styles.etaExpandedFooter}>
-                    <Icon name="truck" size={ms(10)} color={themeColors.text.hint} />
-                    <Text style={[styles.etaFooterText, { color: themeColors.text.hint }]}>Concrete Mixer · AWS Location Services</Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          );
-        })()} */}
       </View>
 
 
@@ -2485,87 +2483,86 @@ const styles = StyleSheet.create({
     color: colors.common.white,
     lineHeight: ms(13),
   },
-  // ETA styles temporarily disabled
-  // etaSection: {
-  //   marginTop: ms(6),
-  //   borderRadius: ms(10),
-  //   overflow: 'hidden',
-  //   borderWidth: 1,
-  //   borderColor: 'rgba(249,115,22,0.15)',
-  // },
-  // etaHeader: {
-  //   flexDirection: 'row',
-  //   alignItems: 'center',
-  //   paddingVertical: ms(7),
-  //   paddingHorizontal: ms(8),
-  //   gap: ms(8),
-  // },
-  // etaHeaderTitle: {
-  //   fontFamily: fontFamily.semiBold,
-  //   fontSize: ms(13),
-  // },
-  // etaHeaderPreview: {
-  //   fontFamily: fontFamily.semiBold,
-  //   fontSize: ms(12),
-  // },
-  // etaStaleBadge: {
-  //   backgroundColor: 'rgba(217,119,6,0.15)',
-  //   paddingHorizontal: ms(4),
-  //   paddingVertical: ms(1),
-  //   borderRadius: ms(6),
-  // },
-  // etaStaleText: {
-  //   fontFamily: fontFamily.medium,
-  //   fontSize: ms(8),
-  //   color: '#D97706',
-  // },
-  // etaCooldownText: {
-  //   fontFamily: fontFamily.medium,
-  //   fontSize: ms(10),
-  // },
-  // etaInfoLabel: {
-  //   fontFamily: fontFamily.regular,
-  //   fontSize: ms(11),
-  // },
-  // etaExpandedWrap: {
-  //   paddingHorizontal: ms(8),
-  //   paddingBottom: ms(6),
-  // },
-  // etaExpandedRow: {
-  //   flexDirection: 'row',
-  //   alignItems: 'center',
-  //   paddingVertical: ms(5),
-  //   gap: ms(4),
-  // },
-  // etaStat: {
-  //   flex: 1,
-  //   alignItems: 'center',
-  //   gap: ms(1),
-  // },
-  // etaStatValue: {
-  //   fontFamily: fontFamily.semiBold,
-  //   fontSize: ms(14),
-  // },
-  // etaStatLabel: {
-  //   fontFamily: fontFamily.regular,
-  //   fontSize: ms(11),
-  // },
-  // etaDivider: {
-  //   width: 1,
-  //   height: ms(24),
-  // },
-  // etaExpandedFooter: {
-  //   flexDirection: 'row',
-  //   alignItems: 'center',
-  //   gap: ms(3),
-  //   paddingTop: ms(3),
-  //   borderTopWidth: StyleSheet.hairlineWidth,
-  //   borderTopColor: 'rgba(249,115,22,0.15)',
-  // },
-  // etaFooterText: {
-  //   fontFamily: fontFamily.regular,
-  //   fontSize: ms(10),
-  // },
+  etaSection: {
+    marginTop: ms(6),
+    borderRadius: ms(10),
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(249,115,22,0.15)',
+  },
+  etaHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: ms(7),
+    paddingHorizontal: ms(8),
+    gap: ms(8),
+  },
+  etaHeaderTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(13),
+  },
+  etaHeaderPreview: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(12),
+  },
+  etaStaleBadge: {
+    backgroundColor: 'rgba(217,119,6,0.15)',
+    paddingHorizontal: ms(4),
+    paddingVertical: ms(1),
+    borderRadius: ms(6),
+  },
+  etaStaleText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(8),
+    color: '#D97706',
+  },
+  etaCooldownText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(10),
+  },
+  etaInfoLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+  },
+  etaExpandedWrap: {
+    paddingHorizontal: ms(8),
+    paddingBottom: ms(6),
+  },
+  etaExpandedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: ms(5),
+    gap: ms(4),
+  },
+  etaStat: {
+    flex: 1,
+    alignItems: 'center',
+    gap: ms(1),
+  },
+  etaStatValue: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: ms(14),
+  },
+  etaStatLabel: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(11),
+  },
+  etaDivider: {
+    width: 1,
+    height: ms(24),
+  },
+  etaExpandedFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(3),
+    paddingTop: ms(3),
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(249,115,22,0.15)',
+  },
+  etaFooterText: {
+    fontFamily: fontFamily.regular,
+    fontSize: ms(10),
+  },
   headerBar: {
     flexDirection: 'row',
     alignItems: 'center',

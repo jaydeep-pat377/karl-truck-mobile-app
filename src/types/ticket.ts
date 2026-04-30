@@ -164,6 +164,7 @@ export interface TicketByOrderLocation {
 
 export interface TicketByOrderItem {
   load: string;
+  ticket_id?: string;
   ticket_code: string;
   truck: string | TicketByOrderTruck;
   load_qty: string;
@@ -177,6 +178,28 @@ export interface TicketByOrderItem {
   timestamps: TicketTimestamps;
   plant_location?: TicketByOrderLocation | null;
   order_location?: TicketByOrderLocation | null;
+  weather_data?: TicketWeatherData | null;
+  eta_data?: TicketETAData | null;
+}
+
+export interface TicketWeatherData {
+  weather_condition?: string;
+  weather_icon?: string;
+  temperature_fahrenheit?: number;
+  humidity?: number;
+  wind_speed_mph?: number;
+  concrete_evaporation_level?: string | null;
+  concrete_evaporation_rate?: number | null;
+  evaporation_rate?: number;
+  fetched_at?: string;
+}
+
+export interface TicketETAData {
+  calculatedAt?: string;
+  durationSeconds?: number;
+  durationFormatted?: string;
+  distanceMiles?: string;
+  arrivalTime?: string;
 }
 
 export interface TicketsByOrderWeatherData {
