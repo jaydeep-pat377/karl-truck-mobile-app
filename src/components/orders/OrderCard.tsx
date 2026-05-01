@@ -8,6 +8,7 @@ import {
   Platform,
   Modal,
   Image,
+  ScrollView,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +16,7 @@ import { Text, Card, StatusBadge, Icon } from '../common';
 import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
-import { ms, breakpoint } from '../../utils/responsive';
+import { ms, breakpoint, isSmallDevice } from '../../utils/responsive';
 import { WeatherIcon } from '../../utils/weatherIcon';
 import { getStatusColor } from '../../utils/statusUtils';
 import { TicketTrackingStatus } from '../../types';
@@ -288,6 +289,9 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
 
+  const iconSize = breakpoint(ms(12), ms(13), ms(16));
+  const textSize = breakpoint(ms(9), ms(10), ms(12));
+
   return (
     <Pressable
       onPress={onPress}
@@ -304,7 +308,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
           <View>
             <Icon
               name={icon}
-              size={ms(14)}
+              size={iconSize}
               color={disabled ? themeColors.text.disabled : colors.primary.main}
             />
             {badgeCount != null && badgeCount > 0 && (
@@ -317,9 +321,10 @@ const ActionButton: React.FC<ActionButtonProps> = ({
           </View>
           <Text
             variant="captionSmall"
+            numberOfLines={1}
             style={[
               styles.actionButtonText,
-              { color: disabled ? themeColors.text.disabled : themeColors.text.secondary },
+              { color: disabled ? themeColors.text.disabled : themeColors.text.secondary, fontSize: textSize },
             ]}>
             {label}
           </Text>
@@ -721,8 +726,16 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
         const showChat = showChatButton && order.canChat;
         const dividerStyle = [styles.actionDivider, { backgroundColor: isDark ? colors.dark.border : colors.grey[25] }];
 
+        const actionBg = isDark ? colors.dark.cardElevated : colors.grey[5];
+
         return (
-          <View style={[styles.actionRow, { backgroundColor: isDark ? colors.dark.cardElevated : colors.grey[5] }]}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            bounces={false}
+            style={[styles.actionScrollView, { backgroundColor: actionBg }]}
+            contentContainerStyle={styles.actionRow}
+          >
             {showDetails && (
               <ActionButton
                 icon="clipboard-text-outline"
@@ -778,7 +791,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
                 badgeCount={chatUnreadCount}
               />
             )}
-          </View>
+          </ScrollView>
         );
       })()}
       </View>
@@ -1188,18 +1201,27 @@ const styles = StyleSheet.create({
     borderRadius: ms(1.5),
     marginHorizontal: ms(6),
   },
+  actionScrollView: {
+    maxHeight: ms(38),
+    borderBottomLeftRadius: ms(10),
+    borderBottomRightRadius: ms(10),
+  },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: ms(40),
+    flexGrow: 1,
+    height: ms(38),
   },
   actionButton: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: ms(40),
-    gap: ms(4),
+    height: ms(38),
+    minWidth: breakpoint(ms(52), ms(58), ms(80)),
+    paddingHorizontal: breakpoint(ms(4), ms(8), ms(14)),
+    gap: breakpoint(ms(2), ms(3), ms(6)),
   },
   actionButtonPressed: {
     backgroundColor: colors.primary.main + '15',

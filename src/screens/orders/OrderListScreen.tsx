@@ -790,7 +790,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
             {
               borderTopColor: isDark ? colors.grey[60] + '30' : colors.grey[10],
               backgroundColor: themeColors.surface,
-              paddingBottom: Math.max(insets.bottom, spacing.md),
+              paddingBottom: Platform.OS === 'android'
+                ? Math.max(insets.bottom, ms(40))
+                : Math.max(insets.bottom, spacing.md),
             }
           ]}>
             <TouchableOpacity
