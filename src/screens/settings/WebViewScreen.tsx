@@ -20,6 +20,9 @@ export const WebViewScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
 
+  // Detect PDF URLs — PDFs must not have injected CSS/JS
+  const isPdf = /\.pdf(\?.*)?$/i.test(url);
+
   const themeColors = isDark ? colors.dark : colors.light;
   const backgroundColor = themeColors.background;
   const textColor = themeColors.text.primary;
@@ -101,16 +104,18 @@ export const WebViewScreen: React.FC = () => {
 
       <View style={styles.webViewContainer}>
         <WebView
-          key={isDark ? 'dark' : 'light'}
+          key={isPdf ? 'pdf' : isDark ? 'dark' : 'light'}
           source={{ uri: url }}
           style={[styles.webView, { opacity: isLoading ? 0.3 : 1 }]}
           onLoadStart={() => setIsLoading(true)}
           onLoadEnd={() => setIsLoading(false)}
           onLoadProgress={({ nativeEvent }) => setLoadProgress(nativeEvent.progress)}
-          injectedJavaScriptBeforeContentLoaded={injectedJS}
-          injectedJavaScript={injectedJS}
+          {...(!isPdf && {
+            injectedJavaScriptBeforeContentLoaded: injectedJS,
+            injectedJavaScript: injectedJS,
+          })}
           injectedJavaScriptForMainFrameOnly={true}
-          javaScriptEnabled={true}
+          javaScriptEnabled={!isPdf}
           domStorageEnabled={true}
           startInLoadingState={false}
           scalesPageToFit={true}
@@ -118,8 +123,8 @@ export const WebViewScreen: React.FC = () => {
           allowsFullscreenVideo={true}
           allowsInlineMediaPlayback={true}
           mediaPlaybackRequiresUserAction={false}
-          cacheEnabled={false}
-          incognito={true}
+          cacheEnabled={isPdf}
+          incognito={!isPdf}
           {...(Platform.OS === 'android' && {
             androidLayerType: 'hardware',
             overScrollMode: 'never',

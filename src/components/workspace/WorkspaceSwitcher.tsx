@@ -705,9 +705,12 @@ const SwitchWorkspaceConfirmModal: React.FC<SwitchWorkspaceConfirmModalProps> = 
                 style={{
                   color: themeColors.text.primary,
                   fontWeight: '600',
-                  fontSize: fontSizes.md,
+                  fontSize: fontSizes.sm,
                   opacity: isSwitching ? 0.5 : 1,
                 }}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
               >
                 Cancel
               </Text>
@@ -733,8 +736,11 @@ const SwitchWorkspaceConfirmModal: React.FC<SwitchWorkspaceConfirmModalProps> = 
                   style={{
                     color: colors.common.white,
                     fontWeight: '700',
-                    fontSize: fontSizes.md,
+                    fontSize: fontSizes.sm,
                   }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.8}
                 >
                   Switch Workspace
                 </Text>
@@ -864,16 +870,19 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   confirmBtn: {
-    flex: 1,
     height: ms(48),
     borderRadius: ms(12),
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: ms(16),
   },
   confirmCancel: {
+    flex: 1,
     borderWidth: 1,
   },
-  confirmPrimary: {},
+  confirmPrimary: {
+    flex: 1,
+  },
 });
 
 export default WorkspaceSwitcher;

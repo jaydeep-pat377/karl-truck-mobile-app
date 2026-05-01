@@ -145,7 +145,7 @@ const SegmentStripes: React.FC<{ color: string; patternId: string }> = React.mem
   <Svg style={StyleSheet.absoluteFill}>
     <Defs>
       <Pattern id={patternId} patternUnits="userSpaceOnUse" width={4} height={4} patternTransform="rotate(45)">
-        <Line x1={0} y1={0} x2={0} y2={4} stroke={color} strokeWidth={1.5} strokeOpacity={0.35} />
+        <Line x1={0} y1={0} x2={0} y2={4} stroke={color} strokeWidth={1.5} strokeOpacity={0.55} />
       </Pattern>
     </Defs>
     <Rect width="100%" height="100%" fill={`url(#${patternId})`} />
@@ -704,7 +704,7 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
                 style={styles.deliverySegmentBarWrapper}
                 onPress={() => handleSegmentPress(status.key)}
               >
-                <View style={styles.deliverySegmentTrack}>
+                <View style={[styles.deliverySegmentTrack, { backgroundColor: segmentColors[index] + '40' }]}>
                   <SegmentStripes color={segmentColors[index]} patternId={`detail-stripe-${status.key}`} />
                   <View
                     style={[
@@ -3376,6 +3376,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     borderRadius: ms(2),
+    zIndex: 1,
   },
   deliverySegmentDividerDotted: {
     width: 0,

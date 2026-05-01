@@ -107,7 +107,7 @@ const SegmentStripes: React.FC<{ color: string; patternId: string }> = React.mem
         height={4}
         patternTransform="rotate(45)"
       >
-        <Line x1={0} y1={0} x2={0} y2={4} stroke={color} strokeWidth={1.5} strokeOpacity={0.35} />
+        <Line x1={0} y1={0} x2={0} y2={4} stroke={color} strokeWidth={1.5} strokeOpacity={0.55} />
       </Pattern>
     </Defs>
     <Rect width="100%" height="100%" fill={`url(#${patternId})`} />
@@ -608,8 +608,8 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
                           style={styles.segmentBarWrapper}
                           onPress={() => handleSegmentPress(status.key)}
                         >
-                          <View style={styles.segmentTrack}>
-                            <SegmentStripes color={segmentColors[index]} patternId={`stripe-${status.key}`} />
+                          <View style={[styles.segmentTrack, { backgroundColor: segmentColors[index] + '40' }]}>
+                            <SegmentStripes color={segmentColors[index]} patternId={`stripe-${order.id}-${status.key}`} />
                             <View
                               style={[
                                 styles.segmentFillOverlay,
@@ -961,6 +961,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     borderRadius: 0,
+    zIndex: 1,
   },
   segmentDivider: {
     width: ms(1),

@@ -490,7 +490,7 @@ const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({
       </View>
 
       <View style={styles.concreteEvapDescRow}>
-        <Text style={[styles.concreteEvapDesc, { color: WEATHER_COLORS.text.secondary }]} numberOfLines={1}>
+        <Text style={[styles.concreteEvapDesc, { color: WEATHER_COLORS.text.secondary, flex: 1, flexShrink: 1 }]} numberOfLines={1}>
           {hasData
             ? (level === 'Low' ? 'Minimal risk'
               : level === 'Moderate' ? 'Monitor conditions'
@@ -500,7 +500,7 @@ const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({
             : 'No Verifi Data'}
         </Text>
         {hasData && onMorePress && (
-          <TouchableOpacity onPress={onMorePress} activeOpacity={0.7}>
+          <TouchableOpacity onPress={onMorePress} activeOpacity={0.7} style={styles.concreteEvapMoreBtn}>
             <Text style={styles.concreteEvapMoreLink}>More</Text>
           </TouchableOpacity>
         )}
@@ -631,29 +631,49 @@ export const WeatherScreen: React.FC = () => {
 
   const handlePdfLink = useCallback(async (pdfPath: string, title: string) => {
     setLoadingLink(pdfPath);
+    const baseUrl = (axiosInstance.defaults.baseURL || '').replace(/\/api\/?$/, '');
+    const pdfUrl = `${baseUrl}${pdfPath}`;
+
+    // Close the BottomSheet first — on iOS, navigation behind a Modal is invisible
+    setEvapInfoVisible(false);
+
+    const navigateToWebView = () => {
+      navigation.navigate('WebView', { url: pdfUrl, title });
+      setLoadingLink(null);
+    };
+
     try {
-      const filename = pdfPath.split('/').pop() || 'document.pdf';
-      const localPath = `${ReactNativeBlobUtil.fs.dirs.CacheDir}/${filename}`;
-
-      // Check if already downloaded
-      const exists = await ReactNativeBlobUtil.fs.exists(localPath);
-      if (!exists) {
-        const baseUrl = (axiosInstance.defaults.baseURL || '').replace(/\/api\/?$/, '');
-        const pdfUrl = `${baseUrl}${pdfPath}`;
-        await ReactNativeBlobUtil.config({ path: localPath }).fetch('GET', pdfUrl);
-      }
-
       if (Platform.OS === 'ios') {
-        ReactNativeBlobUtil.ios.openDocument(localPath);
+        // iOS: close modal, wait for dismiss animation, then navigate
+        // WKWebView renders PDFs natively — no download needed
+        setTimeout(navigateToWebView, 350);
       } else {
+        // Android: download and open in native PDF viewer
+        const filename = pdfPath.split('/').pop() || 'document.pdf';
+        const localPath = `${ReactNativeBlobUtil.fs.dirs.CacheDir}/${filename}`;
+
+        let needsDownload = true;
+        const exists = await ReactNativeBlobUtil.fs.exists(localPath);
+        if (exists) {
+          const stat = await ReactNativeBlobUtil.fs.stat(localPath);
+          needsDownload = !stat.size || Number(stat.size) < 1024;
+        }
+
+        if (needsDownload) {
+          const resp = await ReactNativeBlobUtil.config({ path: localPath }).fetch('GET', pdfUrl);
+          const status = resp.info().status;
+          if (status < 200 || status >= 300) {
+            await ReactNativeBlobUtil.fs.unlink(localPath).catch(() => {});
+            throw new Error(`Download failed: ${status}`);
+          }
+        }
+
         ReactNativeBlobUtil.android.actionViewIntent(localPath, 'application/pdf');
+        setLoadingLink(null);
       }
     } catch {
-      // Fallback: open in WebView
-      const baseUrl = (axiosInstance.defaults.baseURL || '').replace(/\/api\/?$/, '');
-      navigation.navigate('WebView', { url: `${baseUrl}${pdfPath}`, title });
-    } finally {
-      setLoadingLink(null);
+      // Fallback: open in in-app WebView
+      navigateToWebView();
     }
   }, [navigation]);
 
@@ -1568,6 +1588,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: ms(6),
+  },
+  concreteEvapMoreBtn: {
+    flexShrink: 0,
+    paddingLeft: ms(4),
   },
   concreteEvapMoreLink: {
     fontFamily: fontFamily.semiBold,

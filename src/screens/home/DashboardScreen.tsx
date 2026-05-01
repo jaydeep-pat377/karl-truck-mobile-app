@@ -91,7 +91,7 @@ const SegmentStripes: React.FC<{ color: string; patternId: string }> = React.mem
         height={4}
         patternTransform="rotate(45)"
       >
-        <Line x1={0} y1={0} x2={0} y2={4} stroke={color} strokeWidth={1.5} strokeOpacity={0.35} />
+        <Line x1={0} y1={0} x2={0} y2={4} stroke={color} strokeWidth={1.5} strokeOpacity={0.55} />
       </Pattern>
     </Defs>
     <Rect width="100%" height="100%" fill={`url(#${patternId})`} />
@@ -710,7 +710,7 @@ const DashboardScreen: React.FC = () => {
                 {PROGRESS_STATUSES.map((status, index) => (
                   <React.Fragment key={`bar-${status.key}`}>
                     <View style={styles.deliverySegmentBarWrapper}>
-                      <View style={styles.deliverySegmentTrack}>
+                      <View style={[styles.deliverySegmentTrack, { backgroundColor: segmentColors[index] + '40' }]}>
                         <SegmentStripes color={segmentColors[index]} patternId={`dash-stripe-${status.key}`} />
                         <View
                           style={[
@@ -1367,6 +1367,7 @@ const createStyles = (
       top: 0,
       bottom: 0,
       borderRadius: ms(2),
+      zIndex: 1,
     },
     deliverySegmentDivider: {
       width: 0,

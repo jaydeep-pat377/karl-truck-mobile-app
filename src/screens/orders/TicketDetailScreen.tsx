@@ -2182,94 +2182,114 @@ export const TicketDetailScreen: React.FC = () => {
         statusBarTranslucent
         onRequestClose={closeQRCodeModal}
       >
-        <View style={styles.qrModalContainer}>
+        <View
+          style={styles.qrOverlay}
+          accessibilityRole="none"
+          accessibilityLabel="QR Code popup"
+        >
           <TouchableOpacity
-            style={styles.qrModalBackdrop}
+            style={styles.qrBackdrop}
             activeOpacity={1}
             onPress={closeQRCodeModal}
+            accessibilityLabel="Close QR code"
+            accessibilityRole="button"
           />
-          <View style={styles.qrModalContent}>
-            {/* ═══ GRADIENT HEADER ═══ */}
-            <LinearGradient
-              colors={['#7c3aed', '#9333ea', '#4338ca']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.qrGradientHeader}
-            >
-              {/* Close button - top right */}
-              <TouchableOpacity
-                style={styles.qrHeaderCloseBtn}
-                onPress={closeQRCodeModal}
-                activeOpacity={0.7}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Icon name="close" size={ms(16)} color={colors.common.white} />
-              </TouchableOpacity>
-
-              {/* Row 1: Icon + Title */}
-              <View style={styles.qrHeaderRow1}>
-                <View style={styles.qrHeaderIconBox}>
-                  <Icon name="qrcode" size={ms(18)} color={colors.common.white} />
+          {/* Shadow wrapper */}
+          <View style={styles.qrCardShadow}>
+            {/* ── Header: gradient as absolute background, content in a regular View ── */}
+            <View style={styles.qrHeaderWrap}>
+              <LinearGradient
+                colors={['#7c3aed', '#6d28d9', '#4338ca']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              {/* Title row + Close button */}
+              <View style={styles.qrTitleRow}>
+                <View style={styles.qrIconCircle}>
+                  <Icon name="qrcode" size={ms(16)} color={colors.common.white} />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <AppText style={styles.qrHeaderTitle}>Ticket QR Code</AppText>
-                  <AppText style={styles.qrHeaderSubtitle}>Scan to view ticket details</AppText>
+                <View style={styles.qrTitleText}>
+                  <AppText style={styles.qrTitle}>Ticket QR Code</AppText>
+                  <AppText style={styles.qrSubtitle}>Scan to view ticket details</AppText>
                 </View>
+                <TouchableOpacity
+                  style={styles.qrCloseBtn}
+                  onPress={closeQRCodeModal}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityLabel="Close"
+                  accessibilityRole="button"
+                >
+                  <Icon name="close" size={ms(14)} color={colors.common.white} />
+                </TouchableOpacity>
               </View>
 
-              {/* Row 2: Ticket Number */}
-              <View style={styles.qrHeaderTicketRow}>
-                <AppText style={styles.qrHeaderTicketLabel}>TICKET NUMBER</AppText>
-                <AppText style={styles.qrHeaderTicketCode}>{apiTicketCode || ticketCode || '---'}</AppText>
+              {/* Ticket number */}
+              <View style={styles.qrTicketRow}>
+                <AppText style={styles.qrTicketLabel}>TICKET</AppText>
+                <AppText
+                  style={styles.qrTicketCode}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                  accessibilityLabel={`Ticket number ${apiTicketCode || ticketCode || 'unavailable'}`}
+                >
+                  {apiTicketCode || ticketCode || '---'}
+                </AppText>
               </View>
 
-              {/* Row 3: Status pill + Live indicator */}
-              <View style={styles.qrHeaderStatusRow}>
-                <View style={[styles.qrStatusPill, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
+              {/* Status + Live */}
+              <View style={styles.qrPillRow}>
+                <View style={styles.qrStatusPill}>
                   <View style={[styles.qrStatusDot, { backgroundColor: getQrStatusColor(currentStatusDisplayText || '') }]} />
-                  <AppText style={[styles.qrStatusText, { color: getQrStatusColor(currentStatusDisplayText || '') }]}>
+                  <AppText
+                    style={[styles.qrStatusLabel, { color: getQrStatusColor(currentStatusDisplayText || '') }]}
+                    numberOfLines={1}
+                  >
                     {currentStatusDisplayText || 'Pending'}
                   </AppText>
                 </View>
                 <View style={styles.qrLivePill}>
                   <View style={styles.qrLiveDot} />
-                  <AppText style={styles.qrLiveText}>LIVE</AppText>
+                  <AppText style={styles.qrLiveLabel}>LIVE</AppText>
                 </View>
               </View>
-            </LinearGradient>
+            </View>
 
-            {/* ═══ BODY ═══ */}
-            <View style={[styles.qrBodySection, { backgroundColor: isDark ? themeColors.background : '#f8fafc' }]}>
-              {/* QR code frame with corner brackets */}
-              <View style={styles.qrFrameOuter}>
-                <View style={[styles.qrFrameInner, { backgroundColor: colors.common.white }]}>
-                  {/* Corner brackets */}
-                  <View style={[styles.qrCorner, styles.qrCornerTL]} />
-                  <View style={[styles.qrCorner, styles.qrCornerTR]} />
-                  <View style={[styles.qrCorner, styles.qrCornerBL]} />
-                  <View style={[styles.qrCorner, styles.qrCornerBR]} />
+            {/* ── Body ── */}
+            <View style={[styles.qrBody, { backgroundColor: isDark ? themeColors.background : '#f8fafc' }]}>
+              {/* QR frame */}
+              <View style={styles.qrFrameShadow}>
+                <View style={styles.qrFrame}>
+                  {/* Corner accents */}
+                  <View style={[styles.qrCorner, styles.qrTL]} />
+                  <View style={[styles.qrCorner, styles.qrTR]} />
+                  <View style={[styles.qrCorner, styles.qrBL]} />
+                  <View style={[styles.qrCorner, styles.qrBR]} />
 
                   {encryptedQr ? (
                     <QRCode
                       value={encryptedQr}
-                      size={ms(200)}
+                      size={ms(180)}
                       backgroundColor={colors.common.white}
                       color="#1e1b4b"
                       ecl="H"
                     />
                   ) : (
-                    <View style={{ width: ms(200), height: ms(200), justifyContent: 'center', alignItems: 'center' }}>
+                    <View style={styles.qrLoading}>
                       <ActivityIndicator size="large" color="#7c3aed" />
+                      <AppText style={styles.qrLoadingText}>Generating QR...</AppText>
                     </View>
                   )}
                 </View>
               </View>
 
-              {/* Scan hint */}
-              <View style={styles.qrScanHint}>
-                <Icon name="line-scan" size={ms(14)} color={isDark ? colors.grey[40] : colors.grey[50]} />
-                <AppText style={[styles.qrScanHintText, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>
-                  Point your phone camera at the code
+              {/* Hint */}
+              <View style={styles.qrHintRow}>
+                <Icon name="cellphone-screenshot" size={ms(14)} color={isDark ? colors.grey[40] : colors.grey[50]} />
+                <AppText style={[styles.qrHintText, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>
+                  Point your camera at the code to scan
                 </AppText>
               </View>
             </View>
@@ -3390,103 +3410,91 @@ const styles = StyleSheet.create({
     fontSize: ms(10),
     textAlign: 'center',
   },
-  qrModalContainer: {
+  // ═══ QR Modal — Unified (iOS + Android) ═══
+  qrOverlay: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  qrModalBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  qrModalContent: {
-    borderRadius: ms(16),
-    overflow: 'hidden',
-    marginHorizontal: GRID.lg,
-    maxWidth: ms(380),
-    width: '92%',
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.common.black,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 24,
-      },
-      android: {
-        elevation: 24,
-      },
-    }),
-  },
-  // ── Gradient Header ──
-  qrGradientHeader: {
     paddingHorizontal: ms(20),
-    paddingTop: ms(20),
-    paddingBottom: ms(16),
-    position: 'relative',
   },
-  qrHeaderCloseBtn: {
-    position: 'absolute',
-    top: ms(10),
-    right: ms(10),
-    zIndex: 20,
-    width: ms(28),
-    height: ms(28),
-    borderRadius: ms(8),
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+  qrBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  qrCardShadow: {
+    width: '100%',
+    maxWidth: ms(360),
+    borderRadius: ms(20),
+    backgroundColor: colors.common.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  // ── Header ──
+  qrHeaderWrap: {
+    paddingHorizontal: ms(18),
+    paddingTop: ms(16),
+    paddingBottom: ms(16),
+    borderTopLeftRadius: ms(20),
+    borderTopRightRadius: ms(20),
+    overflow: 'hidden',
+  },
+  qrCloseBtn: {
+    width: ms(30),
+    height: ms(30),
+    borderRadius: ms(15),
+    backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: ms(8),
   },
-  qrHeaderRow1: {
+  qrTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: ms(10),
-    paddingRight: ms(36),
   },
-  qrHeaderIconBox: {
-    width: ms(40),
-    height: ms(40),
-    borderRadius: ms(12),
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+  qrIconCircle: {
+    width: ms(36),
+    height: ms(36),
+    borderRadius: ms(18),
+    backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  qrHeaderTitle: {
-    fontFamily: fontFamily.bold,
-    fontSize: ms(15),
-    color: colors.common.white,
-    letterSpacing: -0.3,
+  qrTitleText: {
+    flex: 1,
   },
-  qrHeaderSubtitle: {
+  qrTitle: {
+    fontFamily: fontFamily.bold,
+    fontSize: ms(14),
+    color: colors.common.white,
+    letterSpacing: -0.2,
+  },
+  qrSubtitle: {
     fontFamily: fontFamily.regular,
     fontSize: ms(10),
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.75)',
     marginTop: ms(1),
   },
-  qrHeaderTicketRow: {
-    marginTop: ms(16),
+  qrTicketRow: {
+    marginTop: ms(14),
   },
-  qrHeaderTicketLabel: {
+  qrTicketLabel: {
     fontFamily: fontFamily.bold,
     fontSize: ms(8),
-    color: 'rgba(255,255,255,0.6)',
-    letterSpacing: 2,
+    color: 'rgba(255,255,255,0.55)',
+    letterSpacing: 1.5,
   },
-  qrHeaderTicketCode: {
+  qrTicketCode: {
     fontFamily: fontFamily.bold,
-    fontSize: ms(22),
+    fontSize: ms(20),
     color: colors.common.white,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
     marginTop: ms(2),
   },
-  qrHeaderStatusRow: {
+  qrPillRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: ms(8),
@@ -3500,13 +3508,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: ms(10),
     paddingVertical: ms(4),
     borderRadius: ms(20),
+    backgroundColor: 'rgba(255,255,255,0.92)',
   },
   qrStatusDot: {
     width: ms(6),
     height: ms(6),
     borderRadius: ms(3),
   },
-  qrStatusText: {
+  qrStatusLabel: {
     fontFamily: fontFamily.bold,
     fontSize: ms(9),
     textTransform: 'uppercase',
@@ -3515,13 +3524,13 @@ const styles = StyleSheet.create({
   qrLivePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: ms(5),
+    gap: ms(4),
     paddingHorizontal: ms(8),
     paddingVertical: ms(4),
     borderRadius: ms(20),
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(255,255,255,0.18)',
   },
   qrLiveDot: {
     width: ms(6),
@@ -3529,80 +3538,90 @@ const styles = StyleSheet.create({
     borderRadius: ms(3),
     backgroundColor: '#34d399',
   },
-  qrLiveText: {
+  qrLiveLabel: {
     fontFamily: fontFamily.bold,
     fontSize: ms(8),
     color: colors.common.white,
     letterSpacing: 1,
   },
   // ── Body ──
-  qrBodySection: {
+  qrBody: {
     alignItems: 'center',
     paddingHorizontal: ms(20),
-    paddingVertical: ms(20),
+    paddingTop: ms(20),
+    paddingBottom: ms(18),
     gap: ms(14),
+    borderBottomLeftRadius: ms(20),
+    borderBottomRightRadius: ms(20),
   },
-  qrFrameOuter: {
-    position: 'relative',
+  qrFrameShadow: {
+    borderRadius: ms(14),
+    backgroundColor: colors.common.white,
+    shadowColor: '#6d28d9',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 10,
+    elevation: 6,
   },
-  qrFrameInner: {
-    padding: ms(18),
-    borderRadius: ms(16),
+  qrFrame: {
+    padding: ms(16),
+    borderRadius: ms(14),
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    position: 'relative',
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.common.black,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
+    backgroundColor: colors.common.white,
   },
   qrCorner: {
     position: 'absolute',
-    width: ms(12),
-    height: ms(12),
+    width: ms(16),
+    height: ms(16),
     borderColor: '#7c3aed',
   },
-  qrCornerTL: {
-    top: ms(6),
-    left: ms(6),
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderTopLeftRadius: ms(2),
+  qrTL: {
+    top: ms(5),
+    left: ms(5),
+    borderTopWidth: 2.5,
+    borderLeftWidth: 2.5,
+    borderTopLeftRadius: ms(4),
   },
-  qrCornerTR: {
-    top: ms(6),
-    right: ms(6),
-    borderTopWidth: 2,
-    borderRightWidth: 2,
-    borderTopRightRadius: ms(2),
+  qrTR: {
+    top: ms(5),
+    right: ms(5),
+    borderTopWidth: 2.5,
+    borderRightWidth: 2.5,
+    borderTopRightRadius: ms(4),
   },
-  qrCornerBL: {
-    bottom: ms(6),
-    left: ms(6),
-    borderBottomWidth: 2,
-    borderLeftWidth: 2,
-    borderBottomLeftRadius: ms(2),
+  qrBL: {
+    bottom: ms(5),
+    left: ms(5),
+    borderBottomWidth: 2.5,
+    borderLeftWidth: 2.5,
+    borderBottomLeftRadius: ms(4),
   },
-  qrCornerBR: {
-    bottom: ms(6),
-    right: ms(6),
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomRightRadius: ms(2),
+  qrBR: {
+    bottom: ms(5),
+    right: ms(5),
+    borderBottomWidth: 2.5,
+    borderRightWidth: 2.5,
+    borderBottomRightRadius: ms(4),
   },
-  qrScanHint: {
+  qrLoading: {
+    width: ms(180),
+    height: ms(180),
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: ms(10),
+  },
+  qrLoadingText: {
+    fontFamily: fontFamily.medium,
+    fontSize: ms(11),
+    color: colors.grey[50],
+  },
+  qrHintRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: ms(6),
   },
-  qrScanHintText: {
+  qrHintText: {
     fontFamily: fontFamily.regular,
     fontSize: ms(11),
   },
