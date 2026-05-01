@@ -307,7 +307,7 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
             onPress={handleChangePassword}
             loading={isLoading}
             disabled={isLoading || !currentPassword || !newPassword || !confirmPassword}
-            size="large"
+            size="medium"
             style={styles.submitButton}
           />
 

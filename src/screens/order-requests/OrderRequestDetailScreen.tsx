@@ -879,6 +879,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
   const [verificationTime, setVerificationTime] = useState('');
   const [showVerifyDatePicker, setShowVerifyDatePicker] = useState(false);
   const [showVerifyTimePicker, setShowVerifyTimePicker] = useState(false);
+  const [tempVerifyTime, setTempVerifyTime] = useState<Date>(new Date());
   const [messageText, setMessageText] = useState('');
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
@@ -1283,7 +1284,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                       </Text>
                       <Icon name="clock-outline" size={ms(16)} color={secondaryTextColor} />
                     </TouchableOpacity>
-                    {showVerifyTimePicker && (
+                    {showVerifyTimePicker && Platform.OS === 'android' && (
                       <DateTimePicker
                         value={
                           verificationTime
@@ -1291,9 +1292,9 @@ export const OrderRequestDetailScreen: React.FC = () => {
                             : new Date()
                         }
                         mode="time"
-                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        display="default"
                         onChange={(_e: DateTimePickerEvent, d?: Date) => {
-                          setShowVerifyTimePicker(Platform.OS === 'ios');
+                          setShowVerifyTimePicker(false);
                           if (d) {
                             const h = String(d.getHours()).padStart(2, '0');
                             const m = String(d.getMinutes()).padStart(2, '0');
@@ -1625,6 +1626,60 @@ export const OrderRequestDetailScreen: React.FC = () => {
         }}
         isDark={isDark}
       />
+
+      {/* iOS Time Picker Modal */}
+      {showVerifyTimePicker && Platform.OS === 'ios' && (
+        <Modal
+          visible
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowVerifyTimePicker(false)}
+        >
+          <View style={styles.timePickerOverlay}>
+            <View style={[styles.timePickerSheet, { backgroundColor: isDark ? colors.dark.surface : colors.light.surface }]}>
+              <View style={[styles.timePickerHeader, { borderBottomColor: isDark ? colors.dark.border : colors.light.border }]}>
+                <TouchableOpacity onPress={() => setShowVerifyTimePicker(false)} activeOpacity={0.7}>
+                  <Text variant="body" style={{ color: colors.error.main, fontWeight: '600' }}>
+                    {t('common.cancel')}
+                  </Text>
+                </TouchableOpacity>
+                <Text variant="body" style={{ fontWeight: '600' }}>
+                  {t('orderRequest.selectTime')}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    const h = String(tempVerifyTime.getHours()).padStart(2, '0');
+                    const m = String(tempVerifyTime.getMinutes()).padStart(2, '0');
+                    setVerificationTime(`${h}:${m}`);
+                    setShowVerifyTimePicker(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text variant="body" style={{ color: colors.primary.main, fontWeight: '600' }}>
+                    {t('common.done')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.timePickerSpinner}>
+                <DateTimePicker
+                  value={
+                    verificationTime
+                      ? (() => { const [h, m] = verificationTime.split(':').map(Number); const d = new Date(); d.setHours(h, m); return d; })()
+                      : tempVerifyTime
+                  }
+                  mode="time"
+                  display="spinner"
+                  onChange={(_e: DateTimePickerEvent, d?: Date) => {
+                    if (d) setTempVerifyTime(d);
+                  }}
+                  themeVariant={isDark ? 'dark' : 'light'}
+                  textColor={isDark ? colors.dark.text.primary : colors.light.text.primary}
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </ScreenContainer>
   );
 };
@@ -1804,6 +1859,29 @@ const styles = StyleSheet.create({
     borderRadius: ms(20),
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  timePickerOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay.medium,
+    justifyContent: 'flex-end',
+  },
+  timePickerSheet: {
+    borderTopLeftRadius: ms(20),
+    borderTopRightRadius: ms(20),
+    paddingBottom: ms(34),
+  },
+  timePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  timePickerSpinner: {
+    height: ms(216),
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
 });
 
