@@ -34,6 +34,7 @@ import {
 import { OrderEntityCreateInput, ORDER_STATUS_LABELS, OrderType } from '../../types/orderRequest';
 import { orderRequestService } from '../../api/services/orderRequestService';
 import { useAuthStore } from '../../store/authStore';
+import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -59,35 +60,6 @@ interface DropdownOption {
 // Constants
 // ---------------------------------------------------------------------------
 
-const ORDER_TYPE_OPTIONS: { key: OrderType; label: string; icon: string }[] = [
-  { key: 'with_project', label: 'With Project', icon: 'clipboard-check' },
-  { key: 'without_project', label: 'W/O Project', icon: 'package-variant' },
-  {
-    key: 'without_project_with_product',
-    label: 'W/O Project + Product',
-    icon: 'clipboard-list',
-  },
-];
-
-const ORDER_STATUS_OPTIONS: DropdownOption[] = [
-  { value: '0', label: 'Normal' },
-  { value: '1', label: 'Will Call' },
-  { value: '2', label: 'Weather Permitting' },
-  { value: '3', label: 'Hold' },
-  { value: '4', label: 'Completed' },
-  { value: '5', label: 'Wait List' },
-];
-
-const SPACING_TYPE_OPTIONS: DropdownOption[] = [
-  { value: 'yards_per_hour', label: 'Yards / Hour' },
-  { value: 'minutes', label: 'Minutes' },
-];
-
-const AIR_OPTIONS: DropdownOption[] = [
-  { value: 'Interior(Non-Air)', label: 'Interior(Non-Air)' },
-  { value: 'Exterior(Air Entrained)', label: 'Exterior(Air Entrained)' },
-];
-
 const PSI_OPTIONS: DropdownOption[] = [
   { value: '3000', label: '3000' },
   { value: '3500', label: '3500' },
@@ -102,15 +74,6 @@ const ROCK_SIZE_OPTIONS: DropdownOption[] = [
   { value: '1"(#67 Stone)', label: '1"(#67 Stone)' },
 ];
 
-const FLY_ASH_OPTIONS: DropdownOption[] = [
-  { value: 'Yes', label: 'Yes' },
-  { value: 'No', label: 'No' },
-];
-
-const CALLBACK_OPTIONS: DropdownOption[] = [
-  { value: 'No', label: 'No' },
-  { value: 'Yes', label: 'Yes' },
-];
 
 const USAGE_OPTIONS: DropdownOption[] = [
   'APRONS', 'BALCONY', 'BASEMENT', 'BASEMENT SLAB', 'BASEMENT WALLS',
@@ -179,6 +142,7 @@ const SearchableDropdownModal: React.FC<SearchableDropdownModalProps> = ({
   selectedValues = [],
   onMultiSelect,
 }) => {
+  const { t } = useTranslation();
   const [localSelected, setLocalSelected] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const themeColors = isDark ? colors.dark : colors.light;
@@ -249,7 +213,7 @@ const SearchableDropdownModal: React.FC<SearchableDropdownModalProps> = ({
                   color: themeColors.text.primary,
                 },
               ]}
-              placeholder={searchPlaceholder || 'Search...'}
+              placeholder={searchPlaceholder || t('createOrderRequest.searchPlaceholder')}
               placeholderTextColor={themeColors.text.hint}
               value={search}
               onChangeText={handleSearchChange}
@@ -317,7 +281,7 @@ const SearchableDropdownModal: React.FC<SearchableDropdownModalProps> = ({
               <View style={styles.emptyList}>
                 <Text variant="body" color="hint">
                   {isServerSearch && search.length < 2
-                    ? 'Type at least 2 characters to search'
+                    ? t('createOrderRequest.typeToSearch')
                     : 'No results found'}
                 </Text>
               </View>
@@ -471,9 +435,46 @@ export const CreateOrderRequestScreen: React.FC = () => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
   const { showRegion } = useAuthStore();
+  const { t } = useTranslation();
 
   const { orderType: routeOrderType, editOrderId, prefillOrder } = route.params ?? {};
   const isEditMode = !!editOrderId;
+
+  // Translated static arrays
+  const ORDER_TYPE_OPTIONS = useMemo(() => [
+    { key: 'with_project' as OrderType, label: t('createOrderRequest.withProject'), icon: 'clipboard-check' },
+    { key: 'without_project' as OrderType, label: 'W/O Project', icon: 'package-variant' },
+    { key: 'without_project_with_product' as OrderType, label: 'W/O Project + Product', icon: 'clipboard-list' },
+  ], [t]);
+
+  const ORDER_STATUS_OPTIONS: DropdownOption[] = useMemo(() => [
+    { value: '0', label: t('orders.status.normal') },
+    { value: '1', label: t('orders.status.willCall') },
+    { value: '2', label: t('orders.status.weatherPermitting') },
+    { value: '3', label: t('orders.status.hold') },
+    { value: '4', label: t('orders.status.completed') },
+    { value: '5', label: t('orders.status.waitList') },
+  ], [t]);
+
+  const SPACING_TYPE_OPTIONS: DropdownOption[] = useMemo(() => [
+    { value: 'yards_per_hour', label: t('createOrderRequest.yardsPerHour') },
+    { value: 'minutes', label: t('createOrderRequest.minutes') },
+  ], [t]);
+
+  const AIR_OPTIONS: DropdownOption[] = useMemo(() => [
+    { value: 'Interior(Non-Air)', label: t('createOrderRequest.interiorNonAir') },
+    { value: 'Exterior(Air Entrained)', label: t('createOrderRequest.exteriorAir') },
+  ], [t]);
+
+  const FLY_ASH_OPTIONS: DropdownOption[] = useMemo(() => [
+    { value: 'Yes', label: t('common.yes') },
+    { value: 'No', label: t('common.no') },
+  ], [t]);
+
+  const CALLBACK_OPTIONS: DropdownOption[] = useMemo(() => [
+    { value: 'No', label: t('common.no') },
+    { value: 'Yes', label: t('common.yes') },
+  ], [t]);
 
   // Data hooks
   const { formData, isLoading: isFormDataLoading } = useOrderRequestFormData();
@@ -669,7 +670,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
 
   const spacingTypeLabel = useMemo(() => {
     return SPACING_TYPE_OPTIONS.find((o) => o.value === spacingType)?.label ?? '';
-  }, [spacingType]);
+  }, [spacingType, SPACING_TYPE_OPTIONS]);
 
   // ---------------------------------------------------------------------------
   // Populate form when editing
@@ -821,7 +822,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
   // Auto-compose Concrete Product text from PSI, Rock Size, Air/Non-air, Fly Ash (matches web)
   React.useEffect(() => {
     if (!knowMixCode && orderType === 'without_project') {
-      const parts = [psi, rockSize, airNonAir, flyAsh === 'Yes' ? 'Fly Ash' : ''].filter(Boolean);
+      const parts = [psi, rockSize, airNonAir, flyAsh === 'Yes' ? t('createOrderRequest.flyAshLabel') : ''].filter(Boolean);
       if (parts.length > 0) {
         setConcreteProductText(parts.join(','));
       }
@@ -942,14 +943,14 @@ export const CreateOrderRequestScreen: React.FC = () => {
       setThemedAlert({
         visible: true,
         type: 'warning',
-        title: 'Missing Required Fields',
+        title: t('createOrderRequest.missingFields'),
         message: `Please fill in the following fields:\n\n${missing.join('\n')}`,
       });
       return false;
     }
     return true;
   }, [companyId, regionCode, usageCode, onJobDate, onJobTime, jobAddress, jobCity, contactName, contactPhone,
-    slump, quantity, orderType, projectCode, concreteProductCode, knowMixCode, psi, rockSize, airNonAir, flyAsh]);
+    slump, quantity, orderType, projectCode, concreteProductCode, knowMixCode, psi, rockSize, airNonAir, flyAsh, t, showRegion, orderStatus]);
 
   const buildInput = useCallback((): OrderEntityCreateInput => {
     const input: OrderEntityCreateInput = {
@@ -1041,8 +1042,8 @@ export const CreateOrderRequestScreen: React.FC = () => {
         setThemedAlert({
           visible: true,
           type: 'success',
-          title: 'Success',
-          message: 'Order request updated successfully.',
+          title: t('createOrderRequest.success'),
+          message: t('createOrderRequest.updatedSuccess'),
           onDismiss: () => {
             // Go back to order request list (skip detail screen)
             if (navigation.canGoBack()) {
@@ -1058,8 +1059,8 @@ export const CreateOrderRequestScreen: React.FC = () => {
         setThemedAlert({
           visible: true,
           type: 'success',
-          title: 'Success',
-          message: 'Order request created successfully.',
+          title: t('createOrderRequest.success'),
+          message: t('createOrderRequest.createdSuccess'),
           onDismiss: () => navigation.goBack(),
         });
       }
@@ -1067,11 +1068,11 @@ export const CreateOrderRequestScreen: React.FC = () => {
       setThemedAlert({
         visible: true,
         type: 'error',
-        title: 'Error',
-        message: err?.message ?? 'Something went wrong. Please try again.',
+        title: t('common.error'),
+        message: err?.message ?? t('errors.generic'),
       });
     }
-  }, [validate, buildInput, isEditMode, editOrderId, updateMutation, createMutation, navigation]);
+  }, [validate, buildInput, isEditMode, editOrderId, updateMutation, createMutation, navigation, t]);
 
   const isMutating = createMutation.isPending || updateMutation.isPending;
 
@@ -1159,29 +1160,29 @@ export const CreateOrderRequestScreen: React.FC = () => {
       default:
         return [];
     }
-  }, [activeDropdown, customerOptions, regionOptions, projectOptions, productOptions, referencedOrderOptions, admixtureOptions, otherOptions]);
+  }, [activeDropdown, customerOptions, regionOptions, projectOptions, productOptions, referencedOrderOptions, admixtureOptions, otherOptions, ORDER_STATUS_OPTIONS, SPACING_TYPE_OPTIONS, AIR_OPTIONS, FLY_ASH_OPTIONS, CALLBACK_OPTIONS]);
 
   const getDropdownTitle = useCallback((): string => {
     switch (activeDropdown) {
-      case 'company': return 'Select Company';
-      case 'region': return 'Select Region';
-      case 'project': return 'Select Project';
-      case 'product': return 'Select Concrete Product';
-      case 'referencedOrder': return 'Select Referenced Order';
-      case 'usage': return 'Select Usage';
-      case 'orderStatus': return 'Select Order Status';
-      case 'spacingType': return 'Select Spacing Type';
-      case 'airNonAir': return 'Select Air / Non-Air';
-      case 'psi': return 'Select PSI';
-      case 'rockSize': return 'Select Rock Size';
-      case 'flyAsh': return 'Select Fly Ash';
-      case 'slump': return 'Select Slump';
-      case 'callBackLoad': return 'Select Call Back Load';
-      case 'admixtureProduct': return 'Select Admixture Product';
-      case 'otherProduct': return 'Select Other Product';
-      default: return 'Select';
+      case 'company': return t('createOrderRequest.selectCompany');
+      case 'region': return t('createOrderRequest.selectRegion');
+      case 'project': return t('createOrderRequest.selectProject');
+      case 'product': return t('createOrderRequest.selectProduct');
+      case 'referencedOrder': return t('createOrderRequest.selectReferencedOrder');
+      case 'usage': return t('createOrderRequest.selectUsage');
+      case 'orderStatus': return t('createOrderRequest.selectOrderStatus');
+      case 'spacingType': return t('createOrderRequest.selectSpacingType');
+      case 'airNonAir': return t('createOrderRequest.selectAirNonAir');
+      case 'psi': return t('createOrderRequest.selectPSI');
+      case 'rockSize': return t('createOrderRequest.selectRockSize');
+      case 'flyAsh': return t('createOrderRequest.selectFlyAsh');
+      case 'slump': return t('createOrderRequest.selectSlump');
+      case 'callBackLoad': return t('createOrderRequest.selectCallBackLoad');
+      case 'admixtureProduct': return t('createOrderRequest.selectAdmixtureProduct');
+      case 'otherProduct': return t('createOrderRequest.selectOtherProduct');
+      default: return t('createOrderRequest.select');
     }
-  }, [activeDropdown]);
+  }, [activeDropdown, t]);
 
   const getDropdownSelectedValue = useCallback((): string => {
     switch (activeDropdown) {
@@ -1396,10 +1397,10 @@ export const CreateOrderRequestScreen: React.FC = () => {
     return (
       <ScreenContainer edges={[]}>
         <ScreenHeader
-          title={isEditMode ? 'Edit Order Request' : 'Create Order Request'}
+          title={isEditMode ? t('createOrderRequest.editTitle') : t('createOrderRequest.title')}
         />
         <View style={styles.loadingContainer}>
-          <TruckLoader size={120} message="Loading form data..." color="dark" />
+          <TruckLoader size={120} message={t('createOrderRequest.loadingFormData')} color="dark" />
         </View>
       </ScreenContainer>
     );

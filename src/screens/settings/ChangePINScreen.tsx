@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, AlertModal } from '../../components/common';
 import { ms, vs, spacing } from '../../utils/responsive';
@@ -20,6 +21,7 @@ const PIN_LENGTH = 4;
 
 export const ChangePINScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { t } = useTranslation();
   const { theme, isDark } = useTheme();
   const { alertState, hideAlert, showSuccess } = useAlert();
 
@@ -94,7 +96,7 @@ export const ChangePINScreen: React.FC = () => {
       if (pin === '1234') {
         setStep('create');
       } else {
-        setError('Incorrect PIN. Please try again.');
+        setError(t('changePIN.incorrectPIN'));
         triggerShake();
         setTimeout(() => {
           setCurrentPIN('');
@@ -105,7 +107,7 @@ export const ChangePINScreen: React.FC = () => {
 
       const weakPINs = ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999', '1234', '4321'];
       if (weakPINs.includes(pin)) {
-        setError('This PIN is too easy to guess. Please choose a different PIN.');
+        setError(t('changePIN.tooEasy'));
         triggerShake();
         setTimeout(() => {
           setNewPIN('');
@@ -122,8 +124,8 @@ export const ChangePINScreen: React.FC = () => {
         setIsLoading(false);
 
         showSuccess(
-          'PIN Changed',
-          'Your PIN has been updated successfully.',
+          t('changePIN.pinChanged'),
+          t('changePIN.pinChangedMsg'),
           () => {
             if (navigation.canGoBack()) {
               navigation.goBack();
@@ -131,7 +133,7 @@ export const ChangePINScreen: React.FC = () => {
           }
         );
       } else {
-        setError('PINs do not match. Please try again.');
+        setError(t('changePIN.pinsDontMatch'));
         triggerShake();
         setTimeout(() => {
           setConfirmPIN('');
@@ -159,20 +161,20 @@ export const ChangePINScreen: React.FC = () => {
     switch (step) {
       case 'verify':
         return {
-          title: 'Enter Current PIN',
-          subtitle: 'Please enter your current PIN to continue',
+          title: t('changePIN.enterCurrentTitle'),
+          subtitle: t('changePIN.enterCurrentSubtitle'),
           icon: 'lock-outline',
         };
       case 'create':
         return {
-          title: 'Create New PIN',
-          subtitle: 'Enter a 4-digit PIN that you will remember',
+          title: t('changePIN.createNewTitle'),
+          subtitle: t('changePIN.createNewSubtitle'),
           icon: 'lock-plus-outline',
         };
       case 'confirm':
         return {
-          title: 'Confirm New PIN',
-          subtitle: 'Re-enter your new PIN to confirm',
+          title: t('changePIN.confirmNewTitle'),
+          subtitle: t('changePIN.confirmNewSubtitle'),
           icon: 'lock-check-outline',
         };
     }
@@ -335,15 +337,15 @@ export const ChangePINScreen: React.FC = () => {
         <TouchableOpacity
           onPress={() => {
             showSuccess(
-              'Forgot PIN?',
-              'Please contact your administrator to reset your PIN.'
+              t('changePIN.forgotPIN'),
+              t('changePIN.forgotPINMsg')
             );
           }}
           activeOpacity={0.7}
           style={styles.forgotLink}
         >
           <Text variant="body" style={{ color: theme.colors.primary.main }}>
-            Forgot PIN?
+            {t('changePIN.forgotPIN')}
           </Text>
         </TouchableOpacity>
       )}

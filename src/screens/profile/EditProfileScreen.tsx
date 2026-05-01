@@ -22,6 +22,7 @@ import { ms, vs, spacing } from '../../utils/responsive';
 import { useProfile } from '../../hooks/useProfile';
 import { useUpdateProfile } from '../../hooks/useUpdateProfile';
 import { useAlert } from '../../hooks';
+import { useTranslation } from 'react-i18next';
 
 interface EditProfileScreenProps {
   navigation?: any;
@@ -30,6 +31,7 @@ interface EditProfileScreenProps {
 export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
   navigation,
 }) => {
+  const { t } = useTranslation();
   const { theme, isDark } = useTheme();
   const { profile, isLoading: isProfileLoading, refetch, isRefetching } = useProfile();
   const { updateProfile, uploadAvatar, isLoading: isUpdating, error: updateError } = useUpdateProfile();
@@ -88,7 +90,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (!firstName.trim()) {
-      newErrors.firstName = 'First name is required';
+      newErrors.firstName = t('profile.firstNameRequired');
     }
 
     setErrors(newErrors);
@@ -118,7 +120,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
           if (uploadResponse.success) {
             newAvatarUrl = uploadResponse.data.avatarUrl;
           } else {
-            showError('Error', 'Failed to upload avatar. Please try again.');
+            showError(t('common.error'), t('profile.uploadFailed'));
             return;
           }
         } else {
@@ -148,16 +150,16 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
 
       if (response.success) {
         showSuccess(
-          'Profile Updated',
-          'Your profile has been updated successfully.',
+          t('profile.profileUpdated'),
+          t('profile.profileUpdatedMsg'),
           () => navigation?.goBack()
         );
       } else {
-        showError('Error', response.message || 'Failed to update profile. Please try again.');
+        showError(t('common.error'), response.message || t('profile.uploadFailed'));
       }
     } catch (error: any) {
-      const errorMsg = error?.response?.data?.message || 'Failed to update profile. Please try again.';
-      showError('Error', errorMsg);
+      const errorMsg = error?.response?.data?.message || t('profile.uploadFailed');
+      showError(t('common.error'), errorMsg);
     }
   };
 
@@ -211,7 +213,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
       }
     } catch (error: any) {
       if (error.code !== 'E_PICKER_CANCELLED') {
-        showError('Error', 'Failed to select image. Please try again.');
+        showError(t('common.error'), t('profile.uploadFailed'));
       }
     }
   };
@@ -225,18 +227,18 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
             activeOpacity={0.7}
             style={styles.headerButton}>
             <Text variant="body" style={{ color: theme.colors.primary.main }}>
-              Cancel
+              {t('common.cancel')}
             </Text>
           </TouchableOpacity>
           <Text variant="h4" color="primary">
-            Edit Profile
+            {t('profile.editProfile')}
           </Text>
           <View style={styles.headerButton} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary.main} />
           <Text variant="body" color="secondary" style={styles.loadingText}>
-            Loading profile...
+            {t('profile.loadingProfile')}
           </Text>
         </View>
       </SafeAreaView>
@@ -252,12 +254,12 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
           disabled={isUpdating}
           style={styles.headerButton}>
           <Text variant="body" style={{ color: isUpdating ? theme.colors.secondary.main : theme.colors.primary.main }}>
-            Cancel
+            {t('common.cancel')}
           </Text>
         </TouchableOpacity>
 
         <Text variant="h4" color="primary">
-          Edit Profile
+          {t('profile.editProfile')}
         </Text>
 
         <TouchableOpacity
@@ -276,7 +278,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
                   : theme.colors.secondary.main,
                 fontWeight: '600',
               }}>
-              Save
+              {t('common.save')}
             </Text>
           )}
         </TouchableOpacity>
@@ -324,7 +326,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
             </TouchableOpacity>
             <TouchableOpacity onPress={handleChangeAvatar} activeOpacity={0.7}>
               <Text variant="body" style={{ color: theme.colors.primary.main, marginTop: vs(12) }}>
-                Change Photo
+                {t('profile.changePhoto')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -333,10 +335,10 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
             <View style={styles.row}>
               <View style={styles.halfField}>
                 <Input
-                  label="First Name"
+                  label={t('profile.firstName')}
                   value={firstName}
                   onChangeText={(value) => handleFieldChange(setFirstName, value)}
-                  placeholder="First name"
+                  placeholder={t('profile.firstNamePlaceholder')}
                   error={errors.firstName}
                   autoCapitalize="words"
                   returnKeyType="next"
@@ -346,10 +348,10 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
               <View style={styles.halfField}>
                 <Input
                   ref={lastNameRef}
-                  label="Last Name"
+                  label={t('profile.lastName')}
                   value={lastName}
                   onChangeText={(value) => handleFieldChange(setLastName, value)}
-                  placeholder="Last name"
+                  placeholder={t('profile.lastNamePlaceholder')}
                   error={errors.lastName}
                   autoCapitalize="words"
                   returnKeyType="next"
@@ -360,10 +362,10 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
 
             <Input
               ref={emailRef}
-              label="Email Address"
+              label={t('profile.email')}
               value={email}
               onChangeText={(value) => handleFieldChange(setEmail, value)}
-              placeholder="Enter email"
+              placeholder={t('profile.emailPlaceholder')}
               leftIcon="email-outline"
               error={errors.email}
               keyboardType="email-address"
@@ -371,15 +373,15 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
               returnKeyType="next"
               onSubmitEditing={() => phoneRef.current?.focus()}
               editable={false}
-              hint="Email address cannot be changed"
+              hint={t('profile.emailCannotChange')}
             />
 
             <Input
               ref={phoneRef}
-              label="Phone Number"
+              label={t('profile.phoneNumber')}
               value={phone}
               onChangeText={(value) => handleFieldChange(setPhone, value)}
-              placeholder="Enter phone number"
+              placeholder={t('profile.phonePlaceholder')}
               leftIcon="phone-outline"
               error={errors.phone}
               keyboardType="phone-pad"
@@ -389,10 +391,10 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
 
             <Input
               ref={titleRef}
-              label="Title"
+              label={t('profile.titleLabel')}
               value={title}
               onChangeText={(value) => handleFieldChange(setTitle, value)}
-              placeholder="Enter your title"
+              placeholder={t('profile.titlePlaceholder')}
               leftIcon="briefcase-outline"
               autoCapitalize="words"
               returnKeyType="done"
@@ -417,7 +419,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
             onPress={() => { }}>
             <View style={styles.modalHeader}>
               <Text variant="h4" color="primary">
-                Change Profile Photo
+                {t('profile.changeProfilePhoto')}
               </Text>
               <TouchableOpacity
                 onPress={() => setShowPhotoModal(false)}
@@ -448,7 +450,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
                 />
               </View>
               <Text variant="body" color="primary" style={styles.modalOptionText}>
-                Take Photo
+                {t('profile.takePhoto')}
               </Text>
               <Icon
                 name="chevron-right"
@@ -473,7 +475,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
                 />
               </View>
               <Text variant="body" color="primary" style={styles.modalOptionText}>
-                Choose from Library
+                {t('profile.chooseFromLibrary')}
               </Text>
               <Icon
                 name="chevron-right"
@@ -499,7 +501,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
                   />
                 </View>
                 <Text variant="body" style={[styles.modalOptionText, { color: theme.colors.error.main }]}>
-                  Remove Photo
+                  {t('profile.removePhoto')}
                 </Text>
                 <Icon
                   name="chevron-right"
@@ -521,7 +523,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
               activeOpacity={0.7}
               onPress={() => setShowPhotoModal(false)}>
               <Text variant="body" style={{ color: isDark ? colors.modal.dark.cancelText : colors.modal.light.cancelText, fontWeight: '600' }}>
-                Cancel
+                {t('common.cancel')}
               </Text>
             </TouchableOpacity>
           </Pressable>
@@ -551,11 +553,11 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
             </View>
 
             <Text variant="h4" color="primary" style={styles.confirmModalTitle}>
-              Save Changes?
+              {t('profile.saveChanges')}
             </Text>
 
             <Text variant="body" color="secondary" style={styles.confirmModalMessage}>
-              Are you sure you want to update your profile information?
+              {t('profile.saveChangesConfirm')}
             </Text>
 
             <View style={styles.confirmModalButtons}>
@@ -572,7 +574,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
                 disabled={isUpdating}
                 onPress={() => setShowConfirmModal(false)}>
                 <Text variant="button" style={{ color: isDark ? colors.modal.dark.cancelText : colors.modal.light.cancelText }}>
-                  Cancel
+                  {t('common.cancel')}
                 </Text>
               </TouchableOpacity>
 
@@ -589,7 +591,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
                   <ActivityIndicator size="small" color={theme.colors.primary.contrast} />
                 ) : (
                   <Text variant="button" style={{ color: theme.colors.primary.contrast }}>
-                    Save
+                    {t('common.save')}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -621,11 +623,11 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
             </View>
 
             <Text variant="h4" color="primary" style={styles.confirmModalTitle}>
-              Discard Changes?
+              {t('profile.discardChanges')}
             </Text>
 
             <Text variant="body" color="secondary" style={styles.confirmModalMessage}>
-              You have unsaved changes. Are you sure you want to discard them?
+              {t('profile.discardChangesConfirm')}
             </Text>
 
             <View style={styles.confirmModalButtons}>
@@ -641,7 +643,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
                 activeOpacity={0.7}
                 onPress={() => setShowDiscardModal(false)}>
                 <Text variant="button" style={{ color: isDark ? colors.modal.dark.cancelText : colors.modal.light.cancelText }}>
-                  Keep Editing
+                  {t('profile.keepEditing')}
                 </Text>
               </TouchableOpacity>
 
@@ -654,7 +656,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
                 activeOpacity={0.7}
                 onPress={performDiscard}>
                 <Text variant="button" style={{ color: colors.common.white }}>
-                  Discard
+                  {t('profile.discard')}
                 </Text>
               </TouchableOpacity>
             </View>

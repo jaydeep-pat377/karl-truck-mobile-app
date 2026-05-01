@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon } from '../../components/common';
 import {
@@ -80,6 +81,7 @@ interface ProcessedMessage extends Message {
 }
 
 export const ChatRoomScreen: React.FC = () => {
+  const { t } = useTranslation();
   const route = useRoute<RouteParams>();
   const navigation = useNavigation();
   const { isDark } = useTheme();
@@ -260,10 +262,10 @@ export const ChatRoomScreen: React.FC = () => {
         <Icon name="chat-processing-outline" size={ms(48)} color={colors.primary.main} />
       </View>
       <Text variant="h3" style={[styles.emptyTitle, { color: themeColors.text.primary }]}>
-        Start the Conversation
+        {t('chat.startConversation')}
       </Text>
       <Text variant="body" color="secondary" style={styles.emptyText}>
-        Send a message to begin chatting{'\n'}about this order
+        {t('chat.sendToBegin')}{'\n'}about this order
       </Text>
     </View>
   );
@@ -273,7 +275,7 @@ export const ChatRoomScreen: React.FC = () => {
       {processedMessages.length > 0 && (
         <View style={styles.loadMoreContainer}>
           <Text variant="caption" color="hint">
-            Pull down to load older messages
+            {t('chat.pullToLoad')}
           </Text>
         </View>
       )}
@@ -294,7 +296,7 @@ export const ChatRoomScreen: React.FC = () => {
         />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary.main} />
-          <Text variant="body" color="hint" style={styles.loadingText}>Loading messages...</Text>
+          <Text variant="body" color="hint" style={styles.loadingText}>{t('chat.loadingMessages')}</Text>
         </View>
       </View>
     );

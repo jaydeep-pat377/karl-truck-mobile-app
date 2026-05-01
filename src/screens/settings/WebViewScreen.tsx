@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Status
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebView from 'react-native-webview';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon } from '../../components/common';
 import { colors } from '../../theme/colors';
@@ -12,6 +13,7 @@ import { RootStackParamList } from '../../navigation/types';
 type WebViewScreenRouteProp = RouteProp<RootStackParamList, 'WebView'>;
 
 export const WebViewScreen: React.FC = () => {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const navigation = useNavigation();
   const route = useRoute<WebViewScreenRouteProp>();
@@ -140,7 +142,7 @@ export const WebViewScreen: React.FC = () => {
           <View style={[styles.loadingOverlay, { backgroundColor: isDark ? colors.semiTransparent.black80 : colors.semiTransparent.white80 }]}>
             <ActivityIndicator size="large" color={colors.primary.main} />
             <Text variant="caption" color="secondary" style={styles.loadingText}>
-              Loading...
+              {t('common.loading')}
             </Text>
           </View>
         )}

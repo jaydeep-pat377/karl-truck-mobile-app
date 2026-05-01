@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import Pdf from 'react-native-pdf';
 import { Text, Icon } from '../../components/common';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -12,6 +13,7 @@ import { SettingsStackParamList } from '../../navigation/SettingsNavigator';
 type RouteProps = RouteProp<SettingsStackParamList, 'PdfViewer'>;
 
 export const PdfViewerScreen: React.FC = () => {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
   const route = useRoute<RouteProps>();
@@ -32,7 +34,7 @@ export const PdfViewerScreen: React.FC = () => {
           <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
         </TouchableOpacity>
         <Text variant="h2" numberOfLines={1} style={{ flex: 1, textAlign: 'center' }}>
-          {title || 'PDF Viewer'}
+          {title || t('pdfViewer.title')}
         </Text>
         <View style={styles.headerButton} />
       </View>

@@ -75,9 +75,9 @@ export const TicketScanHistoryScreen: React.FC = () => {
         visible: true,
         icon: 'delete-outline',
         iconBg: colors.error.main,
-        title: 'Delete Scan',
-        message: 'Are you sure you want to delete this scan? This action cannot be undone.',
-        confirmText: 'Delete',
+        title: t('scanHistory.deleteScan'),
+        message: t('scanHistory.deleteConfirmFull'),
+        confirmText: t('common.delete'),
         confirmStyle: 'destructive',
         onConfirm: async () => {
           hideModal();
@@ -136,9 +136,9 @@ export const TicketScanHistoryScreen: React.FC = () => {
       visible: true,
       icon: 'delete-sweep-outline',
       iconBg: colors.error.main,
-      title: 'Clear All History',
-      message: 'This will permanently delete all scan records. This action cannot be undone.',
-      confirmText: 'Clear All',
+      title: t('scanHistory.clearAllHistory'),
+      message: t('scanHistory.clearAllConfirm'),
+      confirmText: t('scanHistory.clearAll'),
       confirmStyle: 'destructive',
       onConfirm: async () => {
         hideModal();
@@ -157,10 +157,10 @@ export const TicketScanHistoryScreen: React.FC = () => {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return t('scanHistory.justNow');
+    if (diffMins < 60) return t('scanHistory.minutesAgo', { count: diffMins });
+    if (diffHours < 24) return t('scanHistory.hoursAgo', { count: diffHours });
+    if (diffDays < 7) return t('scanHistory.daysAgo', { count: diffDays });
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -442,7 +442,7 @@ export const TicketScanHistoryScreen: React.FC = () => {
                   variant="body"
                   style={[styles.modalBtnText, { color: themeColors.text.primary }]}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Text>
               </TouchableOpacity>
 

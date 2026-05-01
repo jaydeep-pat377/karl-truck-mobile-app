@@ -9,6 +9,7 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Input, Button, Card, Icon, AlertModal } from '../../components/common';
 import { ms, vs, spacing } from '../../utils/responsive';
@@ -21,6 +22,7 @@ interface ChangePasswordScreenProps {
 export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
   navigation,
 }) => {
+  const { t } = useTranslation();
   const { theme, isDark } = useTheme();
   const { alertState, hideAlert, showSuccess, showError, showConfirm } = useAlert();
   const { changePassword, isLoading } = useChangePassword();
@@ -42,19 +44,19 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
     requirements: { met: boolean; text: string }[];
   } => {
     const requirements = [
-      { met: pwd.length >= 8, text: 'At least 8 characters' },
-      { met: /[a-z]/.test(pwd), text: 'One lowercase letter' },
-      { met: /[A-Z]/.test(pwd), text: 'One uppercase letter' },
-      { met: /\d/.test(pwd), text: 'One number' },
-      { met: /[!@#$%^&*(),.?":{}|<>]/.test(pwd), text: 'One special character' },
+      { met: pwd.length >= 8, text: t('changePassword.req8Chars') },
+      { met: /[a-z]/.test(pwd), text: t('changePassword.reqLowercase') },
+      { met: /[A-Z]/.test(pwd), text: t('changePassword.reqUppercase') },
+      { met: /\d/.test(pwd), text: t('changePassword.reqNumber') },
+      { met: /[!@#$%^&*(),.?":{}|<>]/.test(pwd), text: t('changePassword.reqSpecial') },
     ];
 
     const metCount = requirements.filter(r => r.met).length;
 
-    if (metCount <= 2) return { level: 1, label: 'Weak', color: theme.colors.error.main, requirements };
-    if (metCount === 3) return { level: 2, label: 'Fair', color: theme.colors.warning.main, requirements };
-    if (metCount === 4) return { level: 3, label: 'Good', color: theme.colors.info.main, requirements };
-    return { level: 4, label: 'Strong', color: theme.colors.success.main, requirements };
+    if (metCount <= 2) return { level: 1, label: t('changePassword.weak'), color: theme.colors.error.main, requirements };
+    if (metCount === 3) return { level: 2, label: t('changePassword.fair'), color: theme.colors.warning.main, requirements };
+    if (metCount === 4) return { level: 3, label: t('changePassword.good'), color: theme.colors.info.main, requirements };
+    return { level: 4, label: t('changePassword.strong'), color: theme.colors.success.main, requirements };
   };
 
   const passwordStrength = getPasswordStrength(newPassword);
@@ -63,23 +65,23 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (!currentPassword) {
-      newErrors.currentPassword = 'Current password is required';
+      newErrors.currentPassword = t('changePassword.currentRequired');
     }
 
     if (!newPassword) {
-      newErrors.newPassword = 'New password is required';
+      newErrors.newPassword = t('changePassword.newRequired');
     } else if (newPassword.length < 8) {
-      newErrors.newPassword = 'Password must be at least 8 characters';
+      newErrors.newPassword = t('changePassword.minLength');
     } else if (passwordStrength.level < 3) {
-      newErrors.newPassword = 'Please create a stronger password';
+      newErrors.newPassword = t('changePassword.createStronger');
     }
 
     if (newPassword === currentPassword) {
-      newErrors.newPassword = 'New password must be different from current password';
+      newErrors.newPassword = t('changePassword.mustBeDifferent');
     }
 
     if (newPassword !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = t('changePassword.passwordsDontMatch');
     }
 
     setErrors(newErrors);
@@ -90,12 +92,12 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
     if (!validateForm()) return;
 
     showConfirm(
-      'Change Password',
-      'Are you sure you want to change your password? You will need to use your new password for future sign-ins.',
+      t('changePassword.title'),
+      t('changePassword.changeConfirm'),
       handleConfirmChangePassword,
       undefined,
-      'Yes, Change',
-      'Cancel'
+      t('changePassword.yesChange'),
+      t('common.cancel')
     );
   };
 
@@ -109,14 +111,14 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
 
       if (response.success) {
         showSuccess(
-          'Password Changed',
-          response.message || 'Your password has been updated successfully. Please use your new password next time you sign in.',
+          t('changePassword.passwordChanged'),
+          response.message || t('changePassword.passwordChangedMsg'),
           () => navigation?.goBack()
         );
       }
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || 'Failed to change password';
-      showError('Error', errorMessage);
+      showError(t('common.error'), errorMessage);
     }
   };
 
@@ -134,7 +136,7 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
           <Icon name="arrow-left" size={ms(24)} color={theme.colors.text} />
         </TouchableOpacity>
         <Text variant="h4" color="primary">
-          Change Password
+          {t('changePassword.title')}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -157,10 +159,10 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
               </View>
               <View style={styles.noticeText}>
                 <Text variant="bodySmall" color="primary" style={{ fontWeight: '600' }}>
-                  Keep your account secure
+                  {t('changePassword.keepSecure')}
                 </Text>
                 <Text variant="caption" color="secondary" style={styles.noticeDescription}>
-                  Choose a strong password that you don't use for other accounts.
+                  {t('changePassword.secureHint')}
                 </Text>
               </View>
             </View>
@@ -168,13 +170,13 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
 
           <View style={styles.form}>
             <Input
-              label="Current Password"
+              label={t('changePassword.currentPassword')}
               value={currentPassword}
               onChangeText={(text) => {
                 setCurrentPassword(text);
                 if (errors.currentPassword) setErrors({ ...errors, currentPassword: '' });
               }}
-              placeholder="Enter current password"
+              placeholder={t('changePassword.currentPasswordPlaceholder')}
               leftIcon="lock-outline"
               rightIcon={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
               onRightIconPress={() => setShowCurrentPassword(!showCurrentPassword)}
@@ -188,13 +190,13 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
 
             <Input
               ref={newPasswordRef}
-              label="New Password"
+              label={t('changePassword.newPassword')}
               value={newPassword}
               onChangeText={(text) => {
                 setNewPassword(text);
                 if (errors.newPassword) setErrors({ ...errors, newPassword: '' });
               }}
-              placeholder="Create new password"
+              placeholder={t('changePassword.newPasswordPlaceholder')}
               leftIcon="lock-plus-outline"
               rightIcon={showNewPassword ? 'eye-off-outline' : 'eye-outline'}
               onRightIconPress={() => setShowNewPassword(!showNewPassword)}
@@ -208,7 +210,7 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
               <View style={styles.strengthSection}>
                 <View style={styles.strengthHeader}>
                   <Text variant="caption" color="secondary">
-                    Password Strength:
+                    {t('changePassword.strengthLabel')}
                   </Text>
                   <Text
                     variant="caption"
@@ -259,13 +261,13 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
 
             <Input
               ref={confirmPasswordRef}
-              label="Confirm New Password"
+              label={t('changePassword.confirmNewPassword')}
               value={confirmPassword}
               onChangeText={(text) => {
                 setConfirmPassword(text);
                 if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
               }}
-              placeholder="Confirm new password"
+              placeholder={t('changePassword.confirmPasswordPlaceholder')}
               leftIcon="lock-check-outline"
               rightIcon={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
               onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -294,14 +296,14 @@ export const ChangePasswordScreen: React.FC<ChangePasswordScreenProps> = ({
                         : theme.colors.error.main,
                     marginLeft: ms(6),
                   }}>
-                  {newPassword === confirmPassword ? 'Passwords match' : 'Passwords do not match'}
+                  {newPassword === confirmPassword ? t('changePassword.passwordsMatch') : t('changePassword.passwordsDontMatch')}
                 </Text>
               </View>
             )}
           </View>
 
           <Button
-            title="Update Password"
+            title={t('changePassword.updatePassword')}
             onPress={handleChangePassword}
             loading={isLoading}
             disabled={isLoading || !currentPassword || !newPassword || !confirmPassword}

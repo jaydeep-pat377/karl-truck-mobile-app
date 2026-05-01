@@ -133,25 +133,13 @@ class NotificationService {
   setupListeners(): void {
     this.unsubscribeOnMessage = messaging().onMessage(
       async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
+        // Only add to store — do NOT display via notifee here.
+        // The Supabase realtime subscription (NotificationProvider) already
+        // displays a local notification for the same event, so calling
+        // displayNotification() here would cause duplicates on iOS.
         const notification = this.parseRemoteMessage(remoteMessage);
-
         if (notification) {
           useNotificationStore.getState().addNotification(notification);
-
-          await this.displayNotification(
-            notification.title,
-            notification.body,
-            remoteMessage.data as Record<string, string>,
-          );
-        } else {
-          const { data }: any = remoteMessage;
-          if (data?.title && data?.body) {
-            await this.displayNotification(
-              data.title,
-              data.body,
-              data as Record<string, string>,
-            );
-          }
         }
       },
     );

@@ -374,49 +374,49 @@ export const ScanDetailsScreen: React.FC = () => {
           {isTruck && (
             <>
               <View style={st.card}>
-                <Text style={st.sectionTitle}>TRUCK INFORMATION</Text>
-                <Row label="Truck Code" value={apiTruck?.code || (tkData as any).truckCode} />
-                {apiTruck?.description && (<><Div /><Row label="Description" value={apiTruck.description} /></>)}
-                {apiTruck?.owner_name && (<><Div /><Row label="Owner" value={apiTruck.owner_name} /></>)}
-                {apiTruck?.ticket_status && (<><Div /><Row label="Status" value={apiTruck.ticket_status} /></>)}
-                {apiTruck?.is_active_delivery !== undefined && (<><Div /><Row label="Active Delivery" value={apiTruck.is_active_delivery ? 'Yes' : 'No'} /></>)}
+                <Text style={st.sectionTitle}>{t('scanDetails.truckInformation')}</Text>
+                <Row label={t('scanDetails.truckCode')} value={apiTruck?.code || (tkData as any).truckCode} />
+                {apiTruck?.description && (<><Div /><Row label={t('scanDetails.description')} value={apiTruck.description} /></>)}
+                {apiTruck?.owner_name && (<><Div /><Row label={t('scanDetails.owner')} value={apiTruck.owner_name} /></>)}
+                {apiTruck?.ticket_status && (<><Div /><Row label={t('scanDetails.status')} value={apiTruck.ticket_status} /></>)}
+                {apiTruck?.is_active_delivery !== undefined && (<><Div /><Row label={t('scanDetails.activeDelivery')} value={apiTruck.is_active_delivery ? t('common.yes') : t('common.no')} /></>)}
               </View>
 
               {(apiTruck?.current_plant_name || apiTruck?.current_plant_code) && (
                 <View style={st.card}>
-                  <Text style={st.sectionTitle}>CURRENT PLANT</Text>
-                  {apiTruck.current_plant_name && <Row label="Plant Name" value={apiTruck.current_plant_name} />}
-                  {apiTruck.current_plant_code && (<>{apiTruck.current_plant_name && <Div />}<Row label="Plant Code" value={apiTruck.current_plant_code} /></>)}
+                  <Text style={st.sectionTitle}>{t('scanDetails.currentPlant')}</Text>
+                  {apiTruck.current_plant_name && <Row label={t('scanDetails.plantName')} value={apiTruck.current_plant_name} />}
+                  {apiTruck.current_plant_code && (<>{apiTruck.current_plant_name && <Div />}<Row label={t('scanDetails.plantCode')} value={apiTruck.current_plant_code} /></>)}
                 </View>
               )}
 
               {(apiTruck?.current_driver_name || apiTruck?.driver_code || apiTruck?.driver_phone) && (
                 <View style={st.card}>
-                  <Text style={st.sectionTitle}>DRIVER</Text>
-                  {apiTruck.current_driver_name && <Row label="Driver Name" value={apiTruck.current_driver_name} />}
-                  {apiTruck.driver_code && (<>{apiTruck.current_driver_name && <Div />}<Row label="Driver Code" value={apiTruck.driver_code} /></>)}
-                  {apiTruck.driver_phone && (<><Div /><Row label="Driver Phone" value={apiTruck.driver_phone} /></>)}
+                  <Text style={st.sectionTitle}>{t('scanDetails.driver')}</Text>
+                  {apiTruck.current_driver_name && <Row label={t('scanDetails.driverName')} value={apiTruck.current_driver_name} />}
+                  {apiTruck.driver_code && (<>{apiTruck.current_driver_name && <Div />}<Row label={t('scanDetails.driverCode')} value={apiTruck.driver_code} /></>)}
+                  {apiTruck.driver_phone && (<><Div /><Row label={t('scanDetails.driverPhone')} value={apiTruck.driver_phone} /></>)}
                 </View>
               )}
 
               {(apiTruck?.ticket_code || apiTruck?.order_code || apiTruck?.customer_name || apiTruck?.delivery_address || apiTruck?.product_code || apiTruck?.plant_name) && (
                 <View style={st.card}>
-                  <Text style={st.sectionTitle}>DELIVERY DETAILS</Text>
-                  {apiTruck.ticket_code && <Row label="Ticket" value={apiTruck.ticket_code} />}
-                  {apiTruck.order_code && (<>{apiTruck.ticket_code && <Div />}<Row label="Order" value={apiTruck.order_code} /></>)}
-                  {apiTruck.customer_name && (<><Div /><Row label="Customer" value={apiTruck.customer_name} /></>)}
-                  {apiTruck.delivery_address && (<><Div /><Row label="Delivery Address" value={apiTruck.delivery_address} /></>)}
-                  {apiTruck.product_code && (<><Div /><Row label="Product" value={apiTruck.product_code} /></>)}
-                  {apiTruck.truck_qty != null && (<><Div /><Row label="Quantity" value={String(apiTruck.truck_qty)} /></>)}
-                  {apiTruck.plant_name && (<><Div /><Row label="Plant" value={apiTruck.plant_name} /></>)}
-                  {apiTruck.plant_phone && (<><Div /><Row label="Plant Phone" value={apiTruck.plant_phone} /></>)}
+                  <Text style={st.sectionTitle}>{t('scanDetails.deliveryDetails')}</Text>
+                  {apiTruck.ticket_code && <Row label={t('scanDetails.ticket')} value={apiTruck.ticket_code} />}
+                  {apiTruck.order_code && (<>{apiTruck.ticket_code && <Div />}<Row label={t('scanDetails.order')} value={apiTruck.order_code} /></>)}
+                  {apiTruck.customer_name && (<><Div /><Row label={t('scanDetails.customer')} value={apiTruck.customer_name} /></>)}
+                  {apiTruck.delivery_address && (<><Div /><Row label={t('scanDetails.deliveryAddress')} value={apiTruck.delivery_address} /></>)}
+                  {apiTruck.product_code && (<><Div /><Row label={t('scanDetails.product')} value={apiTruck.product_code} /></>)}
+                  {apiTruck.truck_qty != null && (<><Div /><Row label={t('scanDetails.quantity')} value={String(apiTruck.truck_qty)} /></>)}
+                  {apiTruck.plant_name && (<><Div /><Row label={t('scanDetails.plant')} value={apiTruck.plant_name} /></>)}
+                  {apiTruck.plant_phone && (<><Div /><Row label={t('scanDetails.plantPhone')} value={apiTruck.plant_phone} /></>)}
                 </View>
               )}
 
               <View style={st.card}>
-                <Text style={st.sectionTitle}>SCAN INFORMATION</Text>
-                <Row label="Scanned At" value={formatTs(scan.timestamp)} />
-                <Div /><Row label="QR Issued At" value={formatIat(tkData.iat)} />
+                <Text style={st.sectionTitle}>{t('scanDetails.scanInformation')}</Text>
+                <Row label={t('scanDetails.scannedAt')} value={formatTs(scan.timestamp)} />
+                <Div /><Row label={t('scanDetails.qrIssuedAt')} value={formatIat(tkData.iat)} />
               </View>
             </>
           )}

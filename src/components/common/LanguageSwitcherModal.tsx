@@ -7,8 +7,8 @@ import {
   TouchableWithoutFeedback,
   Animated,
   Easing,
+  Platform,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import { Icon } from './Icon';
 import { Text } from './Text';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -28,6 +28,8 @@ interface LanguageSwitcherModalProps {
   onLanguageChanged?: (language: SupportedLanguage) => void;
 }
 
+const BORDER_RADIUS = ms(20);
+
 export const LanguageSwitcherModal: React.FC<LanguageSwitcherModalProps> = ({
   visible,
   onClose,
@@ -36,7 +38,7 @@ export const LanguageSwitcherModal: React.FC<LanguageSwitcherModalProps> = ({
   const { isDark } = useTheme();
   const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
-  const gradientColors = isDark ? colors.gradients.dark.primary : colors.gradients.light.primary;
+  const headerBg = isDark ? colors.primary.dark : colors.primary.main;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
@@ -102,158 +104,153 @@ export const LanguageSwitcherModal: React.FC<LanguageSwitcherModalProps> = ({
       <TouchableWithoutFeedback onPress={onClose}>
         <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
           <TouchableWithoutFeedback>
+            {/* Outer view for shadow (iOS clips shadow with overflow:hidden) */}
             <Animated.View
               style={[
-                styles.container,
-                {
-                  backgroundColor: themeColors.card,
-                  transform: [{ scale: scaleAnim }],
-                  shadowColor: colors.common.black,
-                },
+                styles.shadowWrap,
+                { transform: [{ scale: scaleAnim }] },
               ]}
             >
-              <LinearGradient
-                colors={gradientColors as unknown as string[]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.header}
-              >
-                <View style={styles.headerIconWrap}>
-                  <Icon name="translate" size={ms(22)} color={colors.common.white} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text variant="h4" style={{ color: colors.common.white, fontWeight: '700' }}>
-                    {t('settings.language')}
-                  </Text>
-                  <Text
-                    variant="caption"
-                    style={{ color: colors.headerOverlay.textBrightest, marginTop: ms(2) }}
-                  >
-                    {t('settings.chooseLanguage')}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  onPress={onClose}
-                  activeOpacity={0.7}
-                  style={styles.closeBtn}
-                >
-                  <Icon name="close" size={ms(18)} color={colors.common.white} />
-                </TouchableOpacity>
-              </LinearGradient>
-
-              <View style={styles.list}>
-                {languages.map((lang, idx) => {
-                  const isActive = activeLang === lang.code;
-                  const isPending = pendingLang === lang.code;
-                  return (
-                    <TouchableOpacity
-                      key={lang.code}
-                      onPress={() => handleSelect(lang.code)}
-                      activeOpacity={0.7}
-                      disabled={!!pendingLang}
-                      style={[
-                        styles.row,
-                        idx !== languages.length - 1 && {
-                          borderBottomColor: themeColors.border,
-                          borderBottomWidth: StyleSheet.hairlineWidth,
-                        },
-                        isActive && {
-                          backgroundColor: isDark
-                            ? colors.semiTransparent.green10
-                            : colors.semiTransparent.green08,
-                        },
-                      ]}
+              {/* Inner view for border radius clipping */}
+              <View style={[styles.container, { backgroundColor: themeColors.card }]}>
+                <View style={[styles.header, { backgroundColor: headerBg }]}>
+                  <View style={styles.headerIconWrap}>
+                    <Icon name="translate" size={ms(22)} color={colors.common.white} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text variant="h4" style={{ color: colors.common.white, fontWeight: '700' }}>
+                      {t('settings.language')}
+                    </Text>
+                    <Text
+                      variant="caption"
+                      style={{ color: colors.headerOverlay.textBrightest, marginTop: ms(2) }}
                     >
-                      <View
+                      {t('settings.chooseLanguage')}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={onClose}
+                    activeOpacity={0.7}
+                    style={styles.closeBtn}
+                  >
+                    <Icon name="close" size={ms(18)} color={colors.common.white} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.list}>
+                  {languages.map((lang, idx) => {
+                    const isActive = activeLang === lang.code;
+                    const isPending = pendingLang === lang.code;
+                    return (
+                      <TouchableOpacity
+                        key={lang.code}
+                        onPress={() => handleSelect(lang.code)}
+                        activeOpacity={0.7}
+                        disabled={!!pendingLang}
                         style={[
-                          styles.flagBox,
-                          {
-                            backgroundColor: isActive
-                              ? colors.primary.main
-                              : isDark
-                                ? colors.semiTransparent.white08
-                                : colors.semiTransparent.black04,
+                          styles.row,
+                          idx !== languages.length - 1 && {
+                            borderBottomColor: themeColors.border,
+                            borderBottomWidth: StyleSheet.hairlineWidth,
+                          },
+                          isActive && {
+                            backgroundColor: isDark
+                              ? colors.semiTransparent.green10
+                              : colors.semiTransparent.green08,
                           },
                         ]}
                       >
-                        <Text
-                          variant="body"
-                          style={{ fontSize: ms(20), lineHeight: ms(24) }}
-                        >
-                          {lang.flag}
-                        </Text>
-                      </View>
-
-                      <View style={styles.rowText}>
-                        <Text
-                          variant="bodySmall"
-                          style={{
-                            fontWeight: '600',
-                            color: isActive
-                              ? colors.primary.main
-                              : themeColors.text.primary,
-                          }}
-                        >
-                          {lang.nativeName}
-                        </Text>
-                        <Text
-                          variant="caption"
-                          color="secondary"
-                          style={{ marginTop: ms(2) }}
-                        >
-                          {lang.name}
-                        </Text>
-                      </View>
-
-                      {isPending ? (
-                        <Animated.View style={styles.checkBox}>
-                          <Icon
-                            name="loading"
-                            size={ms(18)}
-                            color={colors.primary.main}
-                          />
-                        </Animated.View>
-                      ) : isActive ? (
                         <View
                           style={[
-                            styles.checkBox,
-                            { backgroundColor: colors.primary.main },
+                            styles.flagBox,
+                            {
+                              backgroundColor: isActive
+                                ? colors.primary.main
+                                : isDark
+                                  ? colors.semiTransparent.white08
+                                  : colors.semiTransparent.black04,
+                            },
                           ]}
                         >
-                          <Icon name="check" size={ms(14)} color={colors.common.white} />
+                          <Text
+                            variant="body"
+                            style={{ fontSize: ms(20), lineHeight: ms(24) }}
+                          >
+                            {lang.flag}
+                          </Text>
                         </View>
-                      ) : (
-                        <View
-                          style={[
-                            styles.checkBox,
-                            styles.checkBoxEmpty,
-                            { borderColor: themeColors.border },
-                          ]}
-                        />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
 
-              <View
-                style={[
-                  styles.footer,
-                  { borderTopColor: themeColors.border },
-                ]}
-              >
-                <Icon
-                  name="information-outline"
-                  size={ms(14)}
-                  color={themeColors.text.hint}
-                />
-                <Text
-                  variant="captionSmall"
-                  color="hint"
-                  style={{ marginLeft: ms(6), flex: 1 }}
+                        <View style={styles.rowText}>
+                          <Text
+                            variant="bodySmall"
+                            style={{
+                              fontWeight: '600',
+                              color: isActive
+                                ? colors.primary.main
+                                : themeColors.text.primary,
+                            }}
+                          >
+                            {lang.nativeName}
+                          </Text>
+                          <Text
+                            variant="caption"
+                            color="secondary"
+                            style={{ marginTop: ms(2) }}
+                          >
+                            {lang.name}
+                          </Text>
+                        </View>
+
+                        {isPending ? (
+                          <Animated.View style={styles.checkBox}>
+                            <Icon
+                              name="loading"
+                              size={ms(18)}
+                              color={colors.primary.main}
+                            />
+                          </Animated.View>
+                        ) : isActive ? (
+                          <View
+                            style={[
+                              styles.checkBox,
+                              { backgroundColor: colors.primary.main },
+                            ]}
+                          >
+                            <Icon name="check" size={ms(14)} color={colors.common.white} />
+                          </View>
+                        ) : (
+                          <View
+                            style={[
+                              styles.checkBox,
+                              styles.checkBoxEmpty,
+                              { borderColor: themeColors.border },
+                            ]}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <View
+                  style={[
+                    styles.footer,
+                    { borderTopColor: themeColors.border },
+                  ]}
                 >
-                  {t('settings.languageHint')}
-                </Text>
+                  <Icon
+                    name="information-outline"
+                    size={ms(14)}
+                    color={themeColors.text.hint}
+                  />
+                  <Text
+                    variant="captionSmall"
+                    color="hint"
+                    style={{ marginLeft: ms(6), flex: 1 }}
+                  >
+                    {t('settings.languageHint')}
+                  </Text>
+                </View>
               </View>
             </Animated.View>
           </TouchableWithoutFeedback>
@@ -271,15 +268,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
   },
-  container: {
+  shadowWrap: {
     width: '100%',
     maxWidth: ms(360),
-    borderRadius: ms(20),
+    borderRadius: BORDER_RADIUS,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.common.black,
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.25,
+        shadowRadius: 24,
+      },
+      android: {
+        elevation: 16,
+      },
+    }),
+  },
+  container: {
+    borderRadius: BORDER_RADIUS,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    elevation: 16,
   },
   header: {
     flexDirection: 'row',

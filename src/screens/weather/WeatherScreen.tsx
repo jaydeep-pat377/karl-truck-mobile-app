@@ -124,6 +124,7 @@ interface PressureCardProps {
 }
 
 const PressureCard: React.FC<PressureCardProps> = ({ value, unit }) => {
+  const { t } = useTranslation();
   const svgWidth = responsive(ms(130), ms(160));
   const svgHeight = responsive(ms(95), ms(115));
   const radius = responsive(ms(45), ms(55));
@@ -159,7 +160,7 @@ const PressureCard: React.FC<PressureCardProps> = ({ value, unit }) => {
   const progressArc = `M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${progressEndX} ${progressEndY}`;
 
   return (
-    <WeatherMetricCard title="PRESSURE" titleIcon="arrow-up-down">
+    <WeatherMetricCard title={t('weather.pressure').toUpperCase()} titleIcon="arrow-up-down">
       <View style={styles.pressureContent}>
         <Svg width={svgWidth} height={svgHeight}>
 
@@ -299,8 +300,9 @@ const WindCard: React.FC<WindCardProps> = ({ direction, speed, unit }) => {
     { x: offset, y: center + 3 },
   ];
 
+  const { t } = useTranslation();
   return (
-    <WeatherMetricCard title="WIND" titleIcon="weather-windy">
+    <WeatherMetricCard title={t('weather.wind').toUpperCase()} titleIcon="weather-windy">
       <View style={styles.windContent}>
         <Svg width={size} height={size}>
           <Circle
@@ -366,9 +368,10 @@ interface DewPointCardProps {
 }
 
 const DewPointCard: React.FC<DewPointCardProps> = ({ value, description }) => {
+  const { t } = useTranslation();
   return (
     <WeatherMetricCard
-      title="DEW POINT"
+      title={t('weather.dewPoint').toUpperCase()}
       titleIcon="thermometer-low"
       description={description}
     >
@@ -391,9 +394,10 @@ interface HumidityCardProps {
 }
 
 const HumidityCard: React.FC<HumidityCardProps> = ({ value, description }) => {
+  const { t } = useTranslation();
   return (
     <WeatherMetricCard
-      title="HUMIDITY"
+      title={t('weather.humidity').toUpperCase()}
       titleIcon="water-percent"
       description={description}
     >
@@ -467,12 +471,12 @@ const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({
           <Icon name="water-outline" size={ms(14)} color={WEATHER_COLORS.text.hint} />
         </View>
         <Text style={[styles.metricCardTitle, { color: WEATHER_COLORS.text.hint }]}>
-          CONCRETE EVAP
+          {t('weather.concreteEvap').toUpperCase()}
         </Text>
       </View>
 
       <Text style={[styles.concreteEvapValue, { color: WEATHER_COLORS.text.primary }]}>
-        {hasData ? rate.toFixed(4) : 'N/A'}
+        {hasData ? rate.toFixed(4) : t('common.notAvailable')}
       </Text>
 
       {hasData ? (
@@ -482,7 +486,7 @@ const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({
             {level}
           </Text>
           <Text style={[styles.concreteEvapUnitText, { color: WEATHER_COLORS.text.secondary }]}>
-            kg/m²/hr
+            {t('units.kgm2hr')}
           </Text>
         </View>
       ) : null}
@@ -494,30 +498,30 @@ const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({
       <View style={styles.concreteEvapDescRow}>
         <Text style={[styles.concreteEvapDesc, { color: WEATHER_COLORS.text.secondary, flex: 1, flexShrink: 1 }]} numberOfLines={1}>
           {hasData
-            ? (level === 'Low' ? 'Minimal risk'
-              : level === 'Moderate' ? 'Monitor conditions'
-              : level === 'High' ? 'Take precautions'
-              : level === 'Critical' ? 'Immediate action required'
-              : 'Based on ACI 305R formula')
-            : 'No Verifi Data'}
+            ? (level === 'Low' ? t('weather.minimalRisk')
+              : level === 'Moderate' ? t('weather.monitorConditions')
+              : level === 'High' ? t('weather.takePrecautions')
+              : level === 'Critical' ? t('weather.immediateAction')
+              : t('weather.basedOnACI'))
+            : t('weather.noVerifiData')}
         </Text>
         {hasData && onMorePress && (
           <TouchableOpacity onPress={onMorePress} activeOpacity={0.7} style={styles.concreteEvapMoreBtn}>
-            <Text style={styles.concreteEvapMoreLink}>More</Text>
+            <Text style={styles.concreteEvapMoreLink}>{t('common.more')}</Text>
           </TouchableOpacity>
         )}
       </View>
       {!hasData && (
         <Text style={[styles.concreteEvapDesc, { color: WEATHER_COLORS.text.hint, fontSize: ms(8), marginTop: vs(2) }]} numberOfLines={2}>
-          Requires concrete discharge temperature from Verifi
+          {t('weather.requiresVerifi')}
         </Text>
       )}
       {showPlantConfig && (
         <View style={styles.concreteEvapPlantConfig}>
           <Text style={[styles.concreteEvapPlantConfigText, { color: WEATHER_COLORS.text.hint }]} numberOfLines={2}>
-            Def. {plantDefaultTemperature != null ? `${plantDefaultTemperature}°F` : 'N/A'},
-            {' '}Concrete {plantConcreteTemperature != null ? `${plantConcreteTemperature}°F` : 'N/A'},
-            {' '}Status: {plantStatusType === 0 ? 'Normal' : plantStatusType === 1 ? 'High Risk' : 'N/A'}
+            Def. {plantDefaultTemperature != null ? `${plantDefaultTemperature}°F` : t('common.notAvailable')},
+            {' '}Concrete {plantConcreteTemperature != null ? `${plantConcreteTemperature}°F` : t('common.notAvailable')},
+            {' '}Status: {plantStatusType === 0 ? t('weather.normal') : plantStatusType === 1 ? t('weather.highRisk') : t('common.notAvailable')}
           </Text>
         </View>
       )}
@@ -526,11 +530,12 @@ const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({
 };
 
 const CloudsCard: React.FC<{ value: number }> = ({ value }) => {
+  const { t } = useTranslation();
   return (
     <WeatherMetricCard
-      title="CLOUD COVER"
+      title={t('weather.cloudCoverage').toUpperCase()}
       titleIcon="cloud-outline"
-      description="Cloud coverage"
+      description={t('weather.cloudCoverage')}
     >
       <View style={styles.simpleContent}>
         <View style={styles.simpleValueContainer}>
@@ -538,7 +543,7 @@ const CloudsCard: React.FC<{ value: number }> = ({ value }) => {
             {value}
           </Text>
           <Text style={[styles.simpleUnit, { color: WEATHER_COLORS.text.primary }]}>
-            %
+            {t('units.percent')}
           </Text>
         </View>
       </View>
@@ -547,12 +552,13 @@ const CloudsCard: React.FC<{ value: number }> = ({ value }) => {
 };
 
 const VisibilityCard: React.FC<{ value: number | null }> = ({ value }) => {
+  const { t } = useTranslation();
   const displayValue = value != null ? (value / 1000).toFixed(1) : '--';
   return (
     <WeatherMetricCard
-      title="VISIBILITY"
+      title={t('weather.visibility').toUpperCase()}
       titleIcon="eye-outline"
-      description={value != null ? 'Visibility distance' : 'No data available'}
+      description={value != null ? t('weather.visibilityDistance') : t('common.noData')}
     >
       <View style={styles.simpleContent}>
         <View style={styles.simpleValueContainer}>
@@ -560,7 +566,7 @@ const VisibilityCard: React.FC<{ value: number | null }> = ({ value }) => {
             {displayValue}
           </Text>
           <Text style={[styles.simpleUnit, { color: WEATHER_COLORS.text.primary }]}>
-            km
+            {t('units.kilometers')}
           </Text>
         </View>
       </View>
@@ -569,9 +575,10 @@ const VisibilityCard: React.FC<{ value: number | null }> = ({ value }) => {
 };
 
 const ConcreteTemperatureCard: React.FC<{ value: number | null; source?: string | null }> = ({ value, source }) => {
+  const { t } = useTranslation();
   return (
     <WeatherMetricCard
-      title="CONCRETE TEMP"
+      title={t('weather.concreteTemp').toUpperCase()}
       titleIcon="thermometer"
     >
       <View style={styles.simpleContent}>
@@ -594,9 +601,10 @@ const ConcreteTemperatureCard: React.FC<{ value: number | null; source?: string 
 };
 
 const WindGustCard: React.FC<{ value: number | null }> = ({ value }) => {
+  const { t } = useTranslation();
   return (
     <WeatherMetricCard
-      title="WIND GUST"
+      title={t('weather.windGust').toUpperCase()}
       titleIcon="weather-windy"
     >
       <View style={styles.simpleContent}>
@@ -717,12 +725,12 @@ export const WeatherScreen: React.FC = () => {
     const dewPointF = weatherData.dew_point_fahrenheit ?? 0;
 
     return {
-      location: 'Weather Location',
+      location: t('weather.weatherLocation'),
       orderNo: orderCode,
       orderDate: orderDate,
       temperature: tempF,
       temperatureUnit: 'F',
-      condition: weatherData.weather_condition ?? 'Unknown',
+      condition: weatherData.weather_condition ?? t('weather.unknown'),
       iconCode: weatherData.weather_icon,
       maxTemp: weatherData.temperature_max_fahrenheit,
       minTemp: weatherData.temperature_min_fahrenheit,
@@ -743,17 +751,17 @@ export const WeatherScreen: React.FC = () => {
       },
       dewPoint: {
         value: dewPointF,
-        description: 'Dew point temperature',
+        description: t('weather.dewPointTemp'),
       },
       humidity: {
         value: weatherData.humidity ?? 0,
-        description: dewPointF ? `The dew point is ${Math.round(dewPointF)}° right now.` : '',
+        description: dewPointF ? t('weather.dewPointNote', { value: Math.round(dewPointF) }) : '',
       },
       cloudsPercentage: weatherData.clouds_percentage ?? 0,
       visibilityMeters: weatherData.visibility_meters ?? null,
       windGust: weatherData.wind_gust ?? null,
     };
-  }, [weatherData, orderCode, orderDate]);
+  }, [weatherData, orderCode, orderDate, t]);
 
   const onRefresh = useCallback(() => {
     if (!hasFreshWeather) {
@@ -800,7 +808,7 @@ export const WeatherScreen: React.FC = () => {
     try {
       await Share.share({
         message: `Weather Update for ${weather.location}\nTemperature: ${weather.temperature}°${weather.temperatureUnit}\nCondition: ${weather.condition}\nMax: ${weather.maxTemp}° | Min: ${weather.minTemp}°`,
-        title: 'Weather Update',
+        title: t('weather.title'),
       });
     } catch (error) {
       console.log('Error sharing:', error);
@@ -809,7 +817,7 @@ export const WeatherScreen: React.FC = () => {
 
   const handleViewForecast = useCallback(() => {
     setMenuVisible(false);
-    showInfo('7-Day Forecast', 'Extended forecast feature coming soon!');
+    showInfo(t('weather.sevenDayForecast'), t('weather.forecastComingSoon'));
   }, [showInfo]);
 
   const handleSettings = useCallback(() => {
@@ -818,9 +826,9 @@ export const WeatherScreen: React.FC = () => {
   }, [navigation]);
 
   const menuItems = [
-    { id: '1', icon: 'share-variant', label: 'Share Weather', onPress: handleShare },
-    { id: '2', icon: 'calendar-week', label: 'View 7-Day Forecast', onPress: handleViewForecast },
-    { id: '3', icon: 'cog-outline', label: 'Settings', onPress: handleSettings },
+    { id: '1', icon: 'share-variant', label: t('weather.shareWeather'), onPress: handleShare },
+    { id: '2', icon: 'calendar-week', label: t('weather.viewForecast'), onPress: handleViewForecast },
+    { id: '3', icon: 'cog-outline', label: t('settings.title'), onPress: handleSettings },
   ];
 
   if (isLoading) {
@@ -844,7 +852,7 @@ export const WeatherScreen: React.FC = () => {
           </View>
         </View>
         <View style={styles.loadingContainer} pointerEvents="box-none">
-          <TruckLoader size={120} message="Loading weather..." color="light" />
+          <TruckLoader size={120} message={t('weather.loadingWeather')} color="light" />
         </View>
       </View>
     );
@@ -940,8 +948,8 @@ export const WeatherScreen: React.FC = () => {
             </View>
 
             <View style={styles.orderInfoContainer}>
-              <Text style={styles.orderInfoText}>Order No: {weather.orderNo}</Text>
-              <Text style={styles.orderInfoText}>Date: {weather.orderDate}</Text>
+              <Text style={styles.orderInfoText}>{t('weather.orderNo', { code: weather.orderNo })}</Text>
+              <Text style={styles.orderInfoText}>{t('weather.dateLabel', { date: weather.orderDate })}</Text>
             </View>
           </View>
           <View style={styles.weatherDisplay}>
@@ -955,7 +963,7 @@ export const WeatherScreen: React.FC = () => {
               </Text>
               <Text style={styles.conditionText}>{weather.condition}</Text>
               <Text style={styles.minMaxText}>
-                Max: {Math.round(weather.maxTemp ?? 0)}°  Min: {Math.round(weather.minTemp ?? 0)}°
+                {t('weather.maxValue', { value: Math.round(weather.maxTemp ?? 0) + '°' })}  {t('weather.minValue', { value: Math.round(weather.minTemp ?? 0) + '°' })}
               </Text>
             </View>
           </View>
@@ -1110,24 +1118,24 @@ export const WeatherScreen: React.FC = () => {
       <BottomSheet
         visible={evapInfoVisible}
         onClose={() => setEvapInfoVisible(false)}
-        title="High Evaporation Rate Information"
+        title={t('weather.highEvapTitle')}
         headerIcon="alert-circle-outline"
         headerIconColor="#F97316"
         height="auto"
       >
         <View style={styles.evapInfoContent}>
           <Text style={[styles.evapInfoParagraph, { color: themeColors.text.secondary }]}>
-            High evaporation rates create a condition in which special precautions need to be taken to ensure proper handling, placing, finishing and curing of concrete. Hot weather problems are most frequently encountered in the summer, but the associated climatic factors of high winds and dry air can occur at any time of the year, contributing to high evaporation rates.
+            {t('weather.highEvapParagraph')}
           </Text>
 
           <Text style={[styles.evapInfoSectionTitle, { color: themeColors.text.primary }]}>
-            Three Most Common Effects of High Evaporation Rates
+            {t('weather.threeEffectsTitle')}
           </Text>
 
           <View style={styles.evapInfoItem}>
             <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>{t('weather.crazing')}</Text>
             <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary }]}>
-              A pattern of fine cracks that do not penetrate much below the surface and are usually a cosmetic problem only.
+              {t('weather.crazingDesc')}
             </Text>
             <TouchableOpacity
               onPress={() => handlePdfLink('/pdfs/nrmca-cip-3-crazing.pdf', 'NRMCA CIP #3: Crazing Concrete Surfaces')}
@@ -1135,7 +1143,7 @@ export const WeatherScreen: React.FC = () => {
               disabled={loadingLink === '/pdfs/nrmca-cip-3-crazing.pdf'}
             >
               <View style={styles.evapInfoReferenceRow}>
-                <Text style={styles.evapInfoReference}>NRMCA Concrete in Practice #3: Crazing Concrete Surfaces</Text>
+                <Text style={styles.evapInfoReference}>{t('weather.crazingRef')}</Text>
                 {loadingLink === '/pdfs/nrmca-cip-3-crazing.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
               </View>
             </TouchableOpacity>
@@ -1144,7 +1152,7 @@ export const WeatherScreen: React.FC = () => {
           <View style={styles.evapInfoItem}>
             <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>{t('weather.plasticShrinkage')}</Text>
             <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary }]}>
-              Can occur when water evaporates from the surface of freshly placed concrete faster than it is replaced by bleed water.
+              {t('weather.plasticShrinkageDesc')}
             </Text>
             <TouchableOpacity
               onPress={() => handlePdfLink('/pdfs/nrmca-cip-5-plastic-shrinkage.pdf', 'NRMCA CIP #5: Plastic Shrinkage Cracking')}
@@ -1152,7 +1160,7 @@ export const WeatherScreen: React.FC = () => {
               disabled={loadingLink === '/pdfs/nrmca-cip-5-plastic-shrinkage.pdf'}
             >
               <View style={styles.evapInfoReferenceRow}>
-                <Text style={styles.evapInfoReference}>NRMCA Concrete in Practice #5: Plastic Shrinkage Cracking</Text>
+                <Text style={styles.evapInfoReference}>{t('weather.plasticShrinkageRef')}</Text>
                 {loadingLink === '/pdfs/nrmca-cip-5-plastic-shrinkage.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
               </View>
             </TouchableOpacity>
@@ -1161,7 +1169,7 @@ export const WeatherScreen: React.FC = () => {
           <View style={styles.evapInfoItem}>
             <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>{t('weather.dryingShrinkage')}</Text>
             <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary }]}>
-              The most common cause of concrete cracking. Because almost all concrete is mixed with more water than is needed to hydrate the cement, much of the remaining water evaporates, causing the concrete to shrink.
+              {t('weather.dryingShrinkageDesc')}
             </Text>
             <TouchableOpacity
               onPress={() => handlePdfLink('/pdfs/nrmca-cip-4-drying-shrinkage.pdf', 'NRMCA CIP #4: Cracking Concrete Surfaces')}
@@ -1169,7 +1177,7 @@ export const WeatherScreen: React.FC = () => {
               disabled={loadingLink === '/pdfs/nrmca-cip-4-drying-shrinkage.pdf'}
             >
               <View style={styles.evapInfoReferenceRow}>
-                <Text style={styles.evapInfoReference}>NRMCA Concrete in Practice #4: Cracking Concrete Surfaces</Text>
+                <Text style={styles.evapInfoReference}>{t('weather.dryingShrinkageRef')}</Text>
                 {loadingLink === '/pdfs/nrmca-cip-4-drying-shrinkage.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
               </View>
             </TouchableOpacity>
@@ -1177,20 +1185,20 @@ export const WeatherScreen: React.FC = () => {
 
           <View style={[styles.evapInfoRecommendedSection, { borderTopColor: themeColors.border }]}>
             <Text style={[styles.evapInfoRecommendedTitle, { color: '#DC2626' }]}>
-              Dolese Bros. Co. Recommended Practices
+              {t('weather.recommendedTitle')}
             </Text>
             <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary, marginBottom: vs(8) }]}>
-              To reduce the effects of adverse weather on concrete:
+              {t('weather.recommendedIntro')}
             </Text>
             {[
-              'Pour during cooler temperatures, such as early morning or at night.',
-              "Don't get too spread out - Have enough manpower to quickly place, finish and cure the concrete.",
-              'Moisten the subgrade and form work prior to concrete placement.',
-              'Limit the effect of wind and sun by using windbreaks and sunshades.',
-              'Use a superplasticizer, if needed, for a concrete consistency that allows rapid placement. Try not to add water - more water = more potential for cracking.',
-              'Prevent loss of surface moisture from the plastic concrete through use of evaporation retarders.',
-              'Ask our Dispatch Department or your local Dolese Bros. Co. Sales Representative about using synthetic fibers to help control plastic shrinkage cracks.',
-              'Provide the recommended curing methods as soon as possible after the concrete finishing.',
+              t('weather.practice1'),
+              t('weather.practice2'),
+              t('weather.practice3'),
+              t('weather.practice4'),
+              t('weather.practice5'),
+              t('weather.practice6'),
+              t('weather.practice7'),
+              t('weather.practice8'),
             ].map((item, index) => (
               <View key={index} style={styles.evapInfoBulletRow}>
                 <Text style={[styles.evapInfoBullet, { color: themeColors.text.secondary }]}>{'\u2022'}</Text>

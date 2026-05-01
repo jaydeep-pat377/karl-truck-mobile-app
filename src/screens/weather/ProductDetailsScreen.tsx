@@ -1,5 +1,5 @@
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,6 +12,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Path, Line, Text as SvgText } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
 import { Text, Icon } from '../../components/common';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
@@ -40,98 +41,6 @@ const RADIUS = {
 
 const THEME_COLORS = colors.weatherTheme;
 
-const cardConfig: Record<WeatherCardType, {
-  title: string;
-  icon: string;
-  color: string;
-  infoTitle: string;
-  infoItems: { label: string; description: string }[];
-}> = {
-  concrete: {
-    title: 'Concrete Temperature',
-    icon: 'cube-outline',
-    color: colors.weatherParams.temperature,
-    infoTitle: 'About Concrete Temperature',
-    infoItems: [
-      { label: 'Optimal Range', description: '50°F - 90°F (10°C - 32°C) for best curing results' },
-      { label: 'Cold Weather', description: 'Below 40°F may require heating or insulation' },
-      { label: 'Hot Weather', description: 'Above 90°F requires special precautions' },
-      { label: 'Curing Impact', description: 'Temperature affects hydration rate and final strength' },
-    ],
-  },
-  wind: {
-    title: 'Wind Conditions',
-    icon: 'weather-windy',
-    color: colors.weatherParams.wind,
-    infoTitle: 'About Wind Speed',
-    infoItems: [
-      { label: 'Light Breeze', description: '0-10 mph - Ideal for concrete work' },
-      { label: 'Moderate Wind', description: '10-20 mph - May increase evaporation' },
-      { label: 'Strong Wind', description: '20+ mph - Consider windbreaks or delays' },
-      { label: 'Evaporation Risk', description: 'Wind accelerates moisture loss from fresh concrete' },
-    ],
-  },
-  pressure: {
-    title: 'Atmospheric Pressure',
-    icon: 'gauge',
-    color: colors.weatherParams.pressure,
-    infoTitle: 'About Pressure',
-    infoItems: [
-      { label: 'Normal Range', description: '29.8 - 30.2 inches of mercury (inHg)' },
-      { label: 'High Pressure', description: 'Generally indicates fair weather' },
-      { label: 'Low Pressure', description: 'May indicate incoming storms or rain' },
-      { label: 'Concrete Impact', description: 'Pressure changes can affect air entrainment' },
-    ],
-  },
-  dewpoint: {
-    title: 'Dew Point',
-    icon: 'thermometer-low',
-    color: colors.weatherParams.dewPoint,
-    infoTitle: 'About Dew Point',
-    infoItems: [
-      { label: 'Definition', description: 'Temperature at which air becomes saturated' },
-      { label: 'Comfort Level', description: 'Below 60°F feels comfortable, above 70°F feels humid' },
-      { label: 'Condensation Risk', description: 'Concrete below dew point may get moisture' },
-      { label: 'Curing Impact', description: 'High dew point can slow surface drying' },
-    ],
-  },
-  humidity: {
-    title: 'Relative Humidity',
-    icon: 'water-percent',
-    color: colors.weatherParams.humidity,
-    infoTitle: 'About Humidity',
-    infoItems: [
-      { label: 'Ideal Range', description: '40-60% for optimal concrete curing' },
-      { label: 'Low Humidity', description: 'Below 40% - Increased evaporation risk' },
-      { label: 'High Humidity', description: 'Above 80% - Slower surface drying' },
-      { label: 'Curing Impact', description: 'Affects moisture loss rate from concrete' },
-    ],
-  },
-  evaporation: {
-    title: 'Evaporation Rate',
-    icon: 'water-outline',
-    color: colors.weatherParams.evaporation,
-    infoTitle: 'About Evaporation',
-    infoItems: [
-      { label: 'Critical Threshold', description: '0.25 lb/ft²/hr - Above requires action' },
-      { label: 'Contributing Factors', description: 'Temperature, humidity, wind, concrete temp' },
-      { label: 'Prevention', description: 'Fog spraying, windbreaks, evaporation retarders' },
-      { label: 'Risk', description: 'High rates cause plastic shrinkage cracking' },
-    ],
-  },
-  products: {
-    title: 'Product Recommendations',
-    icon: 'package-variant',
-    color: colors.secondary.main,
-    infoTitle: 'Weather-Based Products',
-    infoItems: [
-      { label: 'Accelerators', description: 'For cold weather conditions' },
-      { label: 'Retarders', description: 'For hot weather conditions' },
-      { label: 'Evaporation Control', description: 'For high evaporation risk' },
-      { label: 'Curing Compounds', description: 'For optimal hydration' },
-    ],
-  },
-};
 
 interface CircularGaugeProps {
   value: number;
@@ -221,8 +130,102 @@ export const ProductDetailsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ProductDetailsRouteProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const { cardType = 'products', cardValue = 0, cardUnit = '', cardDescription = '', weatherData } = route.params || {};
+
+  const cardConfig: Record<WeatherCardType, {
+    title: string;
+    icon: string;
+    color: string;
+    infoTitle: string;
+    infoItems: { label: string; description: string }[];
+  }> = useMemo(() => ({
+    concrete: {
+      title: t('productDetails.concreteTemp'),
+      icon: 'cube-outline',
+      color: colors.weatherParams.temperature,
+      infoTitle: t('productDetails.aboutConcreteTemp'),
+      infoItems: [
+        { label: t('productDetails.optimalRange'), description: t('productDetails.optimalRangeDesc') },
+        { label: t('productDetails.coldWeather'), description: t('productDetails.coldWeatherDesc') },
+        { label: t('productDetails.hotWeather'), description: t('productDetails.hotWeatherDesc') },
+        { label: t('productDetails.curingImpact'), description: t('productDetails.curingImpactTempDesc') },
+      ],
+    },
+    wind: {
+      title: t('productDetails.windConditions'),
+      icon: 'weather-windy',
+      color: colors.weatherParams.wind,
+      infoTitle: t('productDetails.aboutWindSpeed'),
+      infoItems: [
+        { label: t('productDetails.lightBreeze'), description: t('productDetails.lightBreezeDesc') },
+        { label: t('productDetails.moderateWind'), description: t('productDetails.moderateWindDesc') },
+        { label: t('productDetails.strongWind'), description: t('productDetails.strongWindDesc') },
+        { label: t('productDetails.evapRisk'), description: t('productDetails.evapRiskWindDesc') },
+      ],
+    },
+    pressure: {
+      title: t('productDetails.atmosPressure'),
+      icon: 'gauge',
+      color: colors.weatherParams.pressure,
+      infoTitle: t('productDetails.aboutPressure'),
+      infoItems: [
+        { label: t('productDetails.normalRange'), description: t('productDetails.normalRangeDesc') },
+        { label: t('productDetails.highPressure'), description: t('productDetails.highPressureDesc') },
+        { label: t('productDetails.lowPressure'), description: t('productDetails.lowPressureDesc') },
+        { label: t('productDetails.concreteImpact'), description: t('productDetails.concreteImpactPressureDesc') },
+      ],
+    },
+    dewpoint: {
+      title: t('productDetails.dewPointTitle'),
+      icon: 'thermometer-low',
+      color: colors.weatherParams.dewPoint,
+      infoTitle: t('productDetails.aboutDewPoint'),
+      infoItems: [
+        { label: t('productDetails.definition'), description: t('productDetails.definitionDesc') },
+        { label: t('productDetails.comfortLevel'), description: t('productDetails.comfortLevelDesc') },
+        { label: t('productDetails.condensationRisk'), description: t('productDetails.condensationRiskDesc') },
+        { label: t('productDetails.curingImpact'), description: t('productDetails.curingImpactDewDesc') },
+      ],
+    },
+    humidity: {
+      title: t('productDetails.relativeHumidity'),
+      icon: 'water-percent',
+      color: colors.weatherParams.humidity,
+      infoTitle: t('productDetails.aboutHumidity'),
+      infoItems: [
+        { label: t('productDetails.idealRange'), description: t('productDetails.idealRangeDesc') },
+        { label: t('productDetails.lowHumidity'), description: t('productDetails.lowHumidityDesc') },
+        { label: t('productDetails.highHumidity'), description: t('productDetails.highHumidityDesc') },
+        { label: t('productDetails.curingImpact'), description: t('productDetails.curingImpactHumidityDesc') },
+      ],
+    },
+    evaporation: {
+      title: t('productDetails.evaporationRate'),
+      icon: 'water-outline',
+      color: colors.weatherParams.evaporation,
+      infoTitle: t('productDetails.aboutEvaporation'),
+      infoItems: [
+        { label: t('productDetails.criticalThreshold'), description: t('productDetails.criticalThresholdDesc') },
+        { label: t('productDetails.contributingFactors'), description: t('productDetails.contributingFactorsDesc') },
+        { label: t('productDetails.prevention'), description: t('productDetails.preventionDesc') },
+        { label: t('productDetails.risk'), description: t('productDetails.riskDesc') },
+      ],
+    },
+    products: {
+      title: t('productDetails.productRecommendations'),
+      icon: 'package-variant',
+      color: colors.secondary.main,
+      infoTitle: t('productDetails.weatherBasedProducts'),
+      infoItems: [
+        { label: t('productDetails.accelerators'), description: t('productDetails.acceleratorsDesc') },
+        { label: t('productDetails.retarders'), description: t('productDetails.retardersDesc') },
+        { label: t('productDetails.evaporationControl'), description: t('productDetails.evaporationControlDesc') },
+        { label: t('productDetails.curingCompounds'), description: t('productDetails.curingCompoundsDesc') },
+      ],
+    },
+  }), [t]);
 
   const config = cardConfig[cardType];
 
@@ -288,7 +291,7 @@ export const ProductDetailsScreen: React.FC = () => {
               </View>
               <View style={styles.mainCardTitleContainer}>
                 <Text style={[styles.mainCardTitle, { color: THEME_COLORS.text.primary }]}>
-                  Current Reading
+                  {t('productDetails.currentReading')}
                 </Text>
                 <Text style={[styles.mainCardSubtitle, { color: THEME_COLORS.text.secondary }]}>
                   {cardDescription}
@@ -332,26 +335,26 @@ export const ProductDetailsScreen: React.FC = () => {
             <View style={styles.tipsHeader}>
               <Icon name="lightbulb-outline" size={ms(20)} color={colors.warning.main} />
               <Text style={[styles.tipsTitle, { color: THEME_COLORS.text.primary }]}>
-                Pro Tips
+                {t('productDetails.proTips')}
               </Text>
             </View>
             <View style={styles.tipsList}>
               <View style={styles.tipItem}>
                 <Icon name="check-circle" size={ms(16)} color={colors.success.main} />
                 <Text style={[styles.tipText, { color: THEME_COLORS.text.secondary }]}>
-                  Monitor conditions regularly throughout the pour
+                  {t('productDetails.tipMonitor')}
                 </Text>
               </View>
               <View style={styles.tipItem}>
                 <Icon name="check-circle" size={ms(16)} color={colors.success.main} />
                 <Text style={[styles.tipText, { color: THEME_COLORS.text.secondary }]}>
-                  Adjust mix design based on weather conditions
+                  {t('productDetails.tipAdjust')}
                 </Text>
               </View>
               <View style={styles.tipItem}>
                 <Icon name="check-circle" size={ms(16)} color={colors.success.main} />
                 <Text style={[styles.tipText, { color: THEME_COLORS.text.secondary }]}>
-                  Document readings for quality control records
+                  {t('productDetails.tipDocument')}
                 </Text>
               </View>
             </View>
