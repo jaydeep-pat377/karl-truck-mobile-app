@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { SettingsStackParamList } from '../../navigation/SettingsNavigator';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text, Card, LogoutModal, Icon } from '../../components/common';
+import { Text, Card, LogoutModal, LanguageSwitcherModal, Icon } from '../../components/common';
+import { getCurrentLanguage, getSupportedLanguages, SupportedLanguage } from '../../locales';
 import { Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../theme/colors';
@@ -122,7 +123,9 @@ export const SettingsScreen: React.FC = () => {
   const { user } = useAuthStore();
   const isContractor = (user as any)?.userType === 'contractor';
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentLang, setCurrentLang] = useState<SupportedLanguage>(getCurrentLanguage());
 
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -197,6 +200,8 @@ export const SettingsScreen: React.FC = () => {
     setShowLogoutModal(false);
   };
 
+  const currentLangInfo = getSupportedLanguages().find(l => l.code === currentLang);
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: themeColors.background }]}
@@ -259,7 +264,7 @@ export const SettingsScreen: React.FC = () => {
                         <View style={[styles.activeBadge, { backgroundColor: colors.success.main + '20' }]}>
                           <View style={[styles.activeDot, { backgroundColor: colors.success.main }]} />
                           <Text variant="captionSmall" style={{ color: colors.success.main }}>
-                            Active
+                            {t('common.active')}
                           </Text>
                         </View>
                       )}
@@ -330,6 +335,20 @@ export const SettingsScreen: React.FC = () => {
           </Text>
           <Card padding="none">
             <ThemeToggleItem onToggle={toggleTheme} />
+            <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+            <SettingsItem
+              icon="translate"
+              title={t('settings.language')}
+              subtitle={currentLangInfo?.nativeName}
+              onPress={() => setShowLanguageModal(true)}
+              rightElement={
+                <View style={styles.languagePill}>
+                  <Text variant="caption" style={{ color: colors.primary.main, fontWeight: '600' }}>
+                    {currentLang.toUpperCase()}
+                  </Text>
+                </View>
+              }
+            />
           </Card>
         </View>
 
@@ -341,7 +360,7 @@ export const SettingsScreen: React.FC = () => {
             <SettingsItem
               icon="bell-outline"
               title={t('settings.notifications')}
-              subtitle="Manage notification preferences"
+              subtitle={t('settings.manageNotifications')}
               onPress={handleNavigateToNotifications}
             />
           </Card>
@@ -363,13 +382,13 @@ export const SettingsScreen: React.FC = () => {
         {!isContractor && (
           <View style={styles.section}>
             <Text variant="label" color="secondary" style={styles.sectionTitle}>
-              Configuration
+              {t('settings.configuration')}
             </Text>
             <Card padding="none">
               <SettingsItem
                 icon="email-edit-outline"
-                title="Email Templates"
-                subtitle="Customize email templates sent by the system"
+                title={t('settings.emailTemplates')}
+                subtitle={t('settings.emailTemplatesSubtitle')}
                 onPress={handleNavigateToEmailTemplates}
               />
             </Card>
@@ -425,6 +444,12 @@ export const SettingsScreen: React.FC = () => {
         onClose={() => setShowLogoutModal(false)}
         onConfirm={performLogout}
         isLoading={isLoggingOut}
+      />
+
+      <LanguageSwitcherModal
+        visible={showLanguageModal}
+        onClose={() => setShowLanguageModal(false)}
+        onLanguageChanged={(code) => setCurrentLang(code)}
       />
     </SafeAreaView>
   );
@@ -596,6 +621,12 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: TAB_BAR_HEIGHT,
+  },
+  languagePill: {
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(4),
+    borderRadius: ms(10),
+    backgroundColor: colors.primary.main + '15',
   },
 });
 

@@ -1,6 +1,7 @@
 import React, { useRef, useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Modal, Animated, Pressable, Dimensions } from 'react-native';
 import { Calendar } from 'react-native-calendars';
+import { useTranslation } from 'react-i18next';
 import { Text, Icon } from '../common';
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
@@ -40,14 +41,6 @@ const formatSelectedDateShort = (date: Date): string => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-const filterOptions: { key: DateFilter; label: string }[] = [
-  { key: 'today', label: 'Today' },
-  { key: 'yesterday', label: 'Yesterday' },
-  { key: 'tomorrow', label: 'Tomorrow' },
-  { key: 'next_week', label: 'Next Week' },
-  { key: 'last_week', label: 'Last Week' },
-];
-
 export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
   selectedFilter,
   onFilterChange,
@@ -58,6 +51,14 @@ export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
   onCloseDatePicker,
   dateRange,
 }) => {
+  const { t } = useTranslation();
+  const filterOptions: { key: DateFilter; label: string }[] = [
+    { key: 'today', label: t('dateFilters.today') },
+    { key: 'yesterday', label: t('dateFilters.yesterday') },
+    { key: 'tomorrow', label: t('dateFilters.tomorrow') },
+    { key: 'next_week', label: t('dateFilters.nextWeek') },
+    { key: 'last_week', label: t('dateFilters.lastWeek') },
+  ];
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
@@ -172,8 +173,8 @@ export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
     const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const year = date.getFullYear();
 
-    if (isToday) return `Today, ${weekday} - ${monthDay}, ${year}`;
-    if (isTomorrow) return `Tomorrow, ${weekday} - ${monthDay}, ${year}`;
+    if (isToday) return `${t('dateFilters.today')}, ${weekday} - ${monthDay}, ${year}`;
+    if (isTomorrow) return `${t('dateFilters.tomorrow')}, ${weekday} - ${monthDay}, ${year}`;
     return `${weekday} - ${monthDay}, ${year}`;
   };
 
@@ -328,10 +329,10 @@ export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
                   </View>
                   <View>
                     <Text style={[styles.modalTitle, { color: themeColors.text.primary }]}>
-                      Select Date
+                      {t('dateFilters.selectDate')}
                     </Text>
                     <Text style={[styles.modalSubtitle, { color: themeColors.text.secondary }]}>
-                      Pick a date to filter dashboard
+                      {t('dateFilters.pickDateDashboard')}
                     </Text>
                   </View>
                 </View>
@@ -393,14 +394,14 @@ export const DateFilterChips: React.FC<DateFilterChipsProps> = ({
                   onPress={handleCancel}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.cancelButtonText, { color: themeColors.text.primary }]}>Cancel</Text>
+                  <Text style={[styles.cancelButtonText, { color: themeColors.text.primary }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.actionButton, styles.confirmButton, { backgroundColor: colors.primary.main }]}
                   onPress={handleConfirm}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.confirmButtonText}>Confirm</Text>
+                  <Text style={styles.confirmButtonText}>{t('common.confirm')}</Text>
                 </TouchableOpacity>
               </View>
             </Animated.View>

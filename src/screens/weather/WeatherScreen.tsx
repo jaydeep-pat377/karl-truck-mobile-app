@@ -27,6 +27,7 @@ import { RootStackParamList } from '../../navigation/types';
 import { useWeather, useAlert } from '../../hooks';
 import { WeatherIcon as SharedWeatherIcon } from '../../utils/weatherIcon';
 import ReactNativeBlobUtil from 'react-native-blob-util';
+import { useTranslation } from 'react-i18next';
 import { axiosInstance } from '../../api/axiosInstance';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -452,6 +453,7 @@ const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({
   plantDefaultTemperature, plantConcreteTemperature, plantStatusType,
   onMorePress,
 }) => {
+  const { t } = useTranslation();
   const hasData = rate != null && level;
   const levelColor = hasData ? (CONCRETE_EVAP_COLORS[level] || CONCRETE_EVAP_COLORS.Low) : WEATHER_COLORS.text.hint;
   const progress = hasData ? (level === 'Low' ? 25 : level === 'Moderate' ? 50 : level === 'High' ? 75 : 100) : 0;
@@ -618,6 +620,7 @@ export const WeatherScreen: React.FC = () => {
   const route = useRoute<WeatherScreenRouteProp>();
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
   const { alertState, hideAlert, showInfo } = useAlert();
 
@@ -834,7 +837,7 @@ export const WeatherScreen: React.FC = () => {
             <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
               <Icon name="chevron-left" size={24} color={colors.common.white} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Weather Update</Text>
+            <Text style={styles.headerTitle}>{t('weather.title')}</Text>
             <View style={styles.headerActions}>
               <View style={styles.headerActionBtn} />
             </View>
@@ -860,9 +863,9 @@ export const WeatherScreen: React.FC = () => {
           <TouchableOpacity style={styles.headerBackBtn} onPress={handleBack} activeOpacity={0.7}>
             <Icon name="chevron-left" size={24} color={colors.common.white} />
           </TouchableOpacity>
-          <Text style={styles.errorText}>Unable to load weather data</Text>
+          <Text style={styles.errorText}>{t('weather.unableToLoad')}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -886,7 +889,7 @@ export const WeatherScreen: React.FC = () => {
             <Icon name="chevron-left" size={24} color={colors.common.white} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Weather Update</Text>
+          <Text style={styles.headerTitle}>{t('weather.title')}</Text>
 
           <View style={styles.headerActions}>
             {ticketCode ? (
@@ -1064,7 +1067,7 @@ export const WeatherScreen: React.FC = () => {
         <Pressable style={styles.modalOverlay} onPress={handleMenuToggle}>
           <View style={styles.menuContainer}>
             <View style={styles.menuHeader}>
-              <Text style={[styles.menuTitle, { color: WEATHER_COLORS.text.primary }]}>Menu</Text>
+              <Text style={[styles.menuTitle, { color: WEATHER_COLORS.text.primary }]}>{t('common.menu')}</Text>
               <TouchableOpacity
                 style={styles.menuCloseBtn}
                 onPress={handleMenuToggle}
@@ -1122,7 +1125,7 @@ export const WeatherScreen: React.FC = () => {
           </Text>
 
           <View style={styles.evapInfoItem}>
-            <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>Crazing</Text>
+            <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>{t('weather.crazing')}</Text>
             <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary }]}>
               A pattern of fine cracks that do not penetrate much below the surface and are usually a cosmetic problem only.
             </Text>
@@ -1139,7 +1142,7 @@ export const WeatherScreen: React.FC = () => {
           </View>
 
           <View style={styles.evapInfoItem}>
-            <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>Plastic Shrinkage Cracking</Text>
+            <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>{t('weather.plasticShrinkage')}</Text>
             <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary }]}>
               Can occur when water evaporates from the surface of freshly placed concrete faster than it is replaced by bleed water.
             </Text>
@@ -1156,7 +1159,7 @@ export const WeatherScreen: React.FC = () => {
           </View>
 
           <View style={styles.evapInfoItem}>
-            <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>Drying Shrinkage Cracking</Text>
+            <Text style={[styles.evapInfoItemTitle, { color: themeColors.text.primary }]}>{t('weather.dryingShrinkage')}</Text>
             <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary }]}>
               The most common cause of concrete cracking. Because almost all concrete is mixed with more water than is needed to hydrate the cement, much of the remaining water evaporates, causing the concrete to shrink.
             </Text>

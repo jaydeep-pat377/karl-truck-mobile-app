@@ -20,6 +20,7 @@ import Mapbox from '@rnmapbox/maps';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../navigation/types';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { Text, Icon, TruckLoader } from '../../components/common';
 import { CementMixerPin } from '../../components/map/CementMixerPin';
 import { colors } from '../../theme/colors';
@@ -235,6 +236,7 @@ type OrderTrackingRouteProp = RouteProp<RootStackParamList, 'Tracking'>;
 
 export const OrderTrackingScreen: React.FC = () => {
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const route = useRoute<OrderTrackingRouteProp>();
   const insets = useSafeAreaInsets();
@@ -650,7 +652,7 @@ export const OrderTrackingScreen: React.FC = () => {
           </Text>
           <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
             <Icon name="refresh" size={ms(16)} color={colors.common.white} />
-            <Text style={styles.retryText}>Retry</Text>
+            <Text style={styles.retryText}>{t('common.retry')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -814,7 +816,7 @@ export const OrderTrackingScreen: React.FC = () => {
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(4) }}>
                   <Icon name="information-outline" size={ms(12)} color={themeColors.text.primary} />
-                  <Text style={{ fontSize: ms(10), fontFamily: fontFamily.bold, color: themeColors.text.primary }}>Status</Text>
+                  <Text style={{ fontSize: ms(10), fontFamily: fontFamily.bold, color: themeColors.text.primary }}>{t('orders.statusLabel')}</Text>
                   <Icon name={isLegendExpanded ? 'chevron-up' : 'chevron-down'} size={ms(12)} color={themeColors.text.primary} />
                 </View>
                 {isLegendExpanded && legendItems.map((row, i) => (
@@ -865,7 +867,7 @@ export const OrderTrackingScreen: React.FC = () => {
             </Text>
             <View style={styles.liveBadgeSmall}>
               <View style={styles.liveDotSmall} />
-              <Text style={styles.liveTextSmall}>LIVE</Text>
+              <Text style={styles.liveTextSmall}>{t('dailyIntelligence.live').toUpperCase()}</Text>
             </View>
           </View>
           <Text style={[styles.orderInfoCustomer, { color: themeColors.text.primary }]} numberOfLines={1}>
@@ -903,21 +905,21 @@ export const OrderTrackingScreen: React.FC = () => {
           <View style={styles.progressTop}>
             <View style={styles.progressStats}>
               <View style={styles.progressStat}>
-                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Ordered</Text>
+                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>{t('dashboard.ordered')}</Text>
                 <Text style={[styles.statValue, { color: themeColors.text.primary }]}>
                   {fmtQty(trackingData?.ordered_qty || 0)}
                 </Text>
               </View>
               <View style={[styles.statDivider, { backgroundColor: themeColors.border }]} />
               <View style={styles.progressStat}>
-                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Delivered</Text>
+                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>{t('dashboard.delivered')}</Text>
                 <Text style={[styles.statValue, { color: colors.success.main }]}>
                   {fmtQty(trackingData?.delivered_qty || 0)}
                 </Text>
               </View>
               <View style={[styles.statDivider, { backgroundColor: themeColors.border }]} />
               <View style={styles.progressStat}>
-                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Remaining</Text>
+                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>{t('dashboard.remaining')}</Text>
                 <Text style={[styles.statValue, { color: colors.warning.main }]}>
                   {trackingData?.remaining_display || '0'}
                 </Text>

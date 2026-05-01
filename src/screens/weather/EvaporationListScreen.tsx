@@ -18,6 +18,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { Text, Icon } from '../../components/common';
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
@@ -220,6 +221,7 @@ export const EvaporationListScreen: React.FC = () => {
   const route = useRoute<EvaporationListRouteProp>();
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
   const { locationName, date, orderCode, currentEvaporation, weatherData } = route.params;
   const [refreshing, setRefreshing] = useState(false);
@@ -305,7 +307,7 @@ export const EvaporationListScreen: React.FC = () => {
           </TouchableOpacity>
 
           <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>Evaporation Details</Text>
+            <Text style={styles.headerTitle}>{t('weather.evaporationDetails')}</Text>
           </View>
 
           <View style={styles.headerActions}>
@@ -385,7 +387,7 @@ export const EvaporationListScreen: React.FC = () => {
         <Pressable style={styles.modalOverlay} onPress={handleMenuToggle}>
           <View style={styles.menuContainer}>
             <View style={styles.menuHeader}>
-              <Text style={styles.menuTitle}>Menu</Text>
+              <Text style={styles.menuTitle}>{t('common.menu')}</Text>
               <TouchableOpacity
                 style={styles.menuCloseBtn}
                 onPress={handleMenuToggle}

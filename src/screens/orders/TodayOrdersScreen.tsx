@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, TruckLoader } from '../../components/common';
 import { OrderCard } from '../../components/orders';
@@ -130,6 +131,7 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
 };
 
 export const TodayOrdersScreen: React.FC = () => {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
@@ -297,11 +299,11 @@ export const TodayOrdersScreen: React.FC = () => {
         setFavoriteOverrides(prev => ({ ...prev, [orderId]: currentFavorite }));
         showAlert({
           type: 'error',
-          title: 'Error',
-          message: 'Failed to update favorite status',
+          title: t('common.error'),
+          message: t('orders.errors.toggleFavoriteFailed'),
         });
       });
-  }, [apiOrders, favoriteOverrides, showAlert]);
+  }, [apiOrders, favoriteOverrides, showAlert, t]);
 
   const handleChat = useCallback(async (order: Order) => {
     setChatLoadingOrderId(order.id);
@@ -325,17 +327,17 @@ export const TodayOrdersScreen: React.FC = () => {
       });
     } catch (err) {
       console.error('Failed to open chat:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to open chat';
+      const errorMessage = err instanceof Error ? err.message : t('chat.errors.openChatFailed');
       showAlert({
         type: 'error',
-        title: 'Chat Error',
+        title: t('chat.errors.chatErrorTitle'),
         message: errorMessage,
         duration: 4000,
       });
     } finally {
       setChatLoadingOrderId(null);
     }
-  }, [getOrCreateRoom, navigation, showAlert]);
+  }, [getOrCreateRoom, navigation, showAlert, t]);
 
   const renderOrderCard = useCallback(
     ({ item }: { item: Order }) => (
@@ -366,28 +368,28 @@ export const TodayOrdersScreen: React.FC = () => {
               <Text style={[styles.summaryStatValue, { color: colors.secondary.main }]}>
                 {fmtQty(summaryStats.totalOrdered)}
               </Text>
-              <Text style={[styles.summaryStatLabel, { color: colors.secondary.main }]}>Ordered</Text>
+              <Text style={[styles.summaryStatLabel, { color: colors.secondary.main }]}>{t('dashboard.ordered')}</Text>
             </View>
             <View style={[styles.summaryStatDivider, { backgroundColor: themeColors.border }]} />
             <View style={styles.summaryStatItem}>
               <Text style={[styles.summaryStatValue, { color: colors.success.main }]}>
                 {fmtQty(summaryStats.totalDelivered)}
               </Text>
-              <Text style={[styles.summaryStatLabel, { color: colors.success.main }]}>Delivered</Text>
+              <Text style={[styles.summaryStatLabel, { color: colors.success.main }]}>{t('dashboard.delivered')}</Text>
             </View>
             <View style={[styles.summaryStatDivider, { backgroundColor: themeColors.border }]} />
             <View style={styles.summaryStatItem}>
               <Text style={[styles.summaryStatValue, { color: colors.warning.main }]}>
                 {fmtQty(summaryStats.totalRemaining)}
               </Text>
-              <Text style={[styles.summaryStatLabel, { color: colors.warning.main }]}>Left</Text>
+              <Text style={[styles.summaryStatLabel, { color: colors.warning.main }]}>{t('todayOrders.left')}</Text>
             </View>
             <View style={[styles.summaryStatDivider, { backgroundColor: themeColors.border }]} />
             <View style={styles.summaryStatItem}>
               <Text style={[styles.summaryStatValue, { color: colors.primary.main }]}>
                 {summaryStats.avgProgress}%
               </Text>
-              <Text style={[styles.summaryStatLabel, { color: colors.primary.main }]}>Progress</Text>
+              <Text style={[styles.summaryStatLabel, { color: colors.primary.main }]}>{t('dashboard.progress')}</Text>
             </View>
           </View>
 
@@ -406,8 +408,8 @@ export const TodayOrdersScreen: React.FC = () => {
         <View style={[styles.emptyIcon, { backgroundColor: isDark ? colors.semiTransparent.green10 : colors.semiTransparent.green08 }]}>
           <Icon name="clipboard-check-outline" size={ms(40)} color={colors.primary.main} />
         </View>
-        <Text style={[styles.emptyTitle, { color: themeColors.text.primary }]}>No Active Orders</Text>
-        <Text style={[styles.emptySub, { color: themeColors.text.secondary }]}>No in-progress orders for today.</Text>
+        <Text style={[styles.emptyTitle, { color: themeColors.text.primary }]}>{t('todayOrders.noActiveOrders')}</Text>
+        <Text style={[styles.emptySub, { color: themeColors.text.secondary }]}>{t('todayOrders.noInProgress')}</Text>
       </View>
     );
   };
@@ -424,7 +426,7 @@ export const TodayOrdersScreen: React.FC = () => {
           >
             <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
           </TouchableOpacity>
-          <Text variant="h2">Today's In Progress</Text>
+          <Text variant="h2">{t('todayOrders.title')}</Text>
           <TouchableOpacity
             style={[styles.headerIcon, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black04 }]}
             onPress={handleRefresh}
@@ -435,8 +437,8 @@ export const TodayOrdersScreen: React.FC = () => {
         </View>
         <View style={styles.errorWrap}>
           <Icon name="alert-circle-outline" size={ms(40)} color={colors.error.main} />
-          <Text style={[styles.errorTxt, { color: themeColors.text.primary }]}>{error || 'Failed to load orders'}</Text>
-          <Text style={[styles.retryTxt, { color: colors.primary.main }]} onPress={handleRefresh}>Tap to retry</Text>
+          <Text style={[styles.errorTxt, { color: themeColors.text.primary }]}>{error || t('orders.errors.loadFailed')}</Text>
+          <Text style={[styles.retryTxt, { color: colors.primary.main }]} onPress={handleRefresh}>{t('common.tapToRetry')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -478,7 +480,7 @@ export const TodayOrdersScreen: React.FC = () => {
             ]}>
             <TextInput
               style={[styles.searchInput, { color: themeColors.text.primary }]}
-              placeholder="Search by Order Code, Customer, Address..."
+              placeholder={t('orders.searchPlaceholder')}
               placeholderTextColor={themeColors.text.hint}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -508,13 +510,13 @@ export const TodayOrdersScreen: React.FC = () => {
 
       {isLoading ? (
         <View style={[styles.loadingWrap, { backgroundColor: themeColors.background }]}>
-          <TruckLoader size={120} message="Loading orders..." color={isDark ? 'light' : 'dark'} />
+          <TruckLoader size={120} message={t('orders.loadingOrders')} color={isDark ? 'light' : 'dark'} />
         </View>
       ) : (
         <>
           <View style={styles.staticOrdersCountRow}>
             <Text style={[styles.ordersCountText, { color: themeColors.text.secondary }]}>
-              {filteredOrders.length} out of {pagination?.total ?? filteredOrders.length} orders displaying
+              {t('orders.ordersDisplaying', { count: filteredOrders.length, total: pagination?.total ?? filteredOrders.length })}
             </Text>
           </View>
           <FlatList

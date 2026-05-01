@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, ScreenContainer, ScreenHeader, TruckLoader } from '../../components/common';
 import { EmptyView } from '../../components/common/EmptyView';
@@ -145,6 +146,7 @@ export const OrderRequestListScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
   // Web has no role checks on the list page — list and create button are always visible
 
@@ -251,7 +253,7 @@ export const OrderRequestListScreen: React.FC = () => {
                 },
               ]}
             >
-              {tab.label}
+              {t(`orderRequestList.tabs.${tab.key}`, { defaultValue: tab.label })}
             </RNText>
             <View
               style={[
@@ -301,7 +303,7 @@ export const OrderRequestListScreen: React.FC = () => {
       >
         <TextInput
           style={[styles.searchInput, { color: themeColors.text.primary }]}
-          placeholder="Search by Job, Company, Address..."
+          placeholder={t('orderRequestList.searchPlaceholder')}
           placeholderTextColor={themeColors.text.hint}
           value={searchText}
           onChangeText={setSearchText}
@@ -340,20 +342,22 @@ export const OrderRequestListScreen: React.FC = () => {
     ({ item }: { item: OrderEntity }) => {
       const orderTypeColor =
         ORDER_TYPE_COLORS[item.order_type] ?? ORDER_TYPE_COLORS.without_project;
-      const orderTypeLabel =
-        ORDER_TYPE_LABELS[item.order_type] ?? 'Unknown';
+      const orderTypeLabel = item.order_type
+        ? t(`orderRequestList.orderTypes.${item.order_type}`, { defaultValue: ORDER_TYPE_LABELS[item.order_type] ?? t('scanDetails.unknown') })
+        : t('scanDetails.unknown');
       const orderTypeIcon =
         ORDER_TYPE_ICONS[item.order_type] ?? 'clipboard-list';
       const statusColor =
         STATUS_COLORS[item.status] ?? colors.orderRequest.status.fallback;
-      const statusLabel =
-        STATUS_DISPLAY_LABELS[item.status] ?? item.status.charAt(0).toUpperCase() + item.status.slice(1);
+      const statusLabel = t(`orderRequest.statusDisplay.${item.status}`, {
+        defaultValue: STATUS_DISPLAY_LABELS[item.status] ?? item.status.charAt(0).toUpperCase() + item.status.slice(1),
+      });
       const orderStatusLabel =
         item.order_status != null
           ? ORDER_STATUS_LABELS[item.order_status] ?? ''
           : '';
       const displayName =
-        item.job_name || item.job_address || 'Untitled Order';
+        item.job_name || item.job_address || t('orderRequestList.untitled');
 
       return (
         <TouchableOpacity
@@ -557,18 +561,18 @@ export const OrderRequestListScreen: React.FC = () => {
     if (isLoading || isFilterLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <TruckLoader size={100} color="dark" message="Loading..." fontSize={ms(14)} />
+          <TruckLoader size={100} color="dark" message={t('common.loading')} fontSize={ms(14)} />
         </View>
       );
     }
     return (
       <EmptyView
         icon="clipboard-text-outline"
-        title="No Order Requests"
+        title={t('orderRequestList.empty')}
         subtitle={
           searchText
-            ? 'No results match your search. Try adjusting your criteria.'
-            : 'There are no order requests to display.'
+            ? t('orderRequestList.emptySearch')
+            : t('orderRequestList.emptyMessage')
         }
       />
     );
@@ -583,7 +587,7 @@ export const OrderRequestListScreen: React.FC = () => {
     <ScreenContainer edges={[]} usePlainView={false}>
       {/* Header */}
       <ScreenHeader
-        title="Order Requests"
+        title={t('orderRequestList.title')}
         showBackButton
         showRefreshButton
         onRefresh={handleRefresh}
@@ -592,7 +596,7 @@ export const OrderRequestListScreen: React.FC = () => {
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <TruckLoader size={100} color="dark" message="Loading..." fontSize={ms(14)} />
+          <TruckLoader size={100} color="dark" message={t('common.loading')} fontSize={ms(14)} />
         </View>
       ) : (
         <>
@@ -624,10 +628,10 @@ export const OrderRequestListScreen: React.FC = () => {
                 </View>
                 <View style={styles.createButtonContent}>
                   <Text variant="body" style={styles.createButtonTitle}>
-                    Create New Order Request
+                    {t('orderRequestList.createNew')}
                   </Text>
                   <Text variant="captionSmall" style={styles.createButtonSubtitle}>
-                    Tap to submit a new order
+                    {t('orderRequestList.tapToSubmit')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -649,7 +653,7 @@ export const OrderRequestListScreen: React.FC = () => {
                     marginLeft: ms(6),
                   }}
                 >
-                  Overview of all order activity and status
+                  {t('orderRequestList.overview')}
                 </Text>
               </View>
               <View
@@ -671,7 +675,7 @@ export const OrderRequestListScreen: React.FC = () => {
                     fontFamily: fontFamily.semiBold,
                   }}
                 >
-                  {counts.total} Total
+                  {counts.total} {t('common.total')}
                 </Text>
               </View>
             </View>

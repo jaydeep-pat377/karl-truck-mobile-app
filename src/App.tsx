@@ -14,7 +14,7 @@ import { SplashScreen } from './components/common';
 
 import { initializeSupabaseAuth } from './services/supabase/supabaseClient';
 
-import './locales';
+import { i18nReady } from './locales';
 
 import { RootNavigator } from './navigation';
 import { navigationRef } from './services/navigationService';
@@ -199,8 +199,10 @@ const AppContentWithSplash: React.FC<AppContentProps> = ({ onReady }) => {
 
 const App: React.FC = () => {
   const [isAppReady, setIsAppReady] = useState(false);
+  const [isI18nReady, setIsI18nReady] = useState(false);
 
   useEffect(() => {
+    i18nReady.then(() => setIsI18nReady(true));
     initializeSupabaseAuth().then((session) => {
       if (session) {
         console.log('@@@@@@ Supabase auth initialized successfully');
@@ -212,6 +214,14 @@ const App: React.FC = () => {
 
     setIsAppReady(true);
   }, []);
+
+  if (!isI18nReady) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SplashScreen message="Loading..." />
+      </GestureHandlerRootView>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

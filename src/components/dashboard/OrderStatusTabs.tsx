@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Animated } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text } from '../common';
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
@@ -24,14 +25,14 @@ interface OrderStatusTabsProps {
   counts?: Partial<OrderStatusCount>;
 }
 
-const statusOptions: { key: OrderStatusFilter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'saved', label: 'Saved' },
-  { key: 'scheduled', label: 'Scheduled' },
-  { key: 'active', label: 'Active' },
-  { key: 'completed', label: 'Completed' },
-  { key: 'cancelled', label: 'Cancelled' },
-  { key: 'requested', label: 'Requested' },
+const statusOptions: { key: OrderStatusFilter; labelKey: string }[] = [
+  { key: 'all', labelKey: 'orderTabs.all' },
+  { key: 'saved', labelKey: 'orderTabs.saved' },
+  { key: 'scheduled', labelKey: 'orderTabs.scheduled' },
+  { key: 'active', labelKey: 'orderTabs.active' },
+  { key: 'completed', labelKey: 'orderTabs.completed' },
+  { key: 'cancelled', labelKey: 'orderTabs.cancelled' },
+  { key: 'requested', labelKey: 'orderTabs.requested' },
 ];
 
 const defaultCounts: OrderStatusCount = {
@@ -50,6 +51,7 @@ export const OrderStatusTabs: React.FC<OrderStatusTabsProps> = ({
   counts = {},
 }) => {
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
   const scrollViewRef = useRef<ScrollView>(null);
   const tabPositions = useRef<Record<string, { x: number; width: number }>>({});
@@ -143,7 +145,7 @@ export const OrderStatusTabs: React.FC<OrderStatusTabsProps> = ({
                   },
                 ]}
               >
-                {option.label} ({count})
+                {t(option.labelKey)} ({count})
               </Text>
             </TouchableOpacity>
           );

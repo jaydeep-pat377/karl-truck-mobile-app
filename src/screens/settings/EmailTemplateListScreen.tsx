@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { SettingsStackParamList } from '../../navigation/SettingsNavigator';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card, Icon } from '../../components/common';
@@ -29,6 +30,7 @@ interface Section {
 }
 
 export const EmailTemplateListScreen: React.FC = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp<SettingsStackParamList>>();
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -65,11 +67,11 @@ export const EmailTemplateListScreen: React.FC = () => {
   const getStatusBadge = (item: TemplateRow) => {
     if (item.customTemplate) {
       if (item.customTemplate.is_active) {
-        return { label: 'Customized', bgColor: colors.primary.main + '18', textColor: colors.primary.main };
+        return { label: t('emailTemplates.customized'), bgColor: colors.primary.main + '18', textColor: colors.primary.main };
       }
-      return { label: 'Inactive', bgColor: themeColors.border + '60', textColor: themeColors.text.hint };
+      return { label: t('common.inactive'), bgColor: themeColors.border + '60', textColor: themeColors.text.hint };
     }
-    return { label: 'Default', bgColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', textColor: themeColors.text.secondary };
+    return { label: t('emailTemplates.default'), bgColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', textColor: themeColors.text.secondary };
   };
 
   const renderSectionHeader = ({ section }: { section: Section }) => (
@@ -106,7 +108,7 @@ export const EmailTemplateListScreen: React.FC = () => {
         {/* Subject */}
         <View style={styles.cardSection}>
           <Text variant="caption" color="hint" style={styles.cardSectionLabel}>
-            Subject
+            {t('emailTemplates.subject')}
           </Text>
           <Text variant="bodySmall" numberOfLines={1} style={styles.subjectText}>
             {item.customTemplate?.subject || item.templateDefault.default_subject}
@@ -117,10 +119,10 @@ export const EmailTemplateListScreen: React.FC = () => {
         {isCustomized && item.customTemplate && (
           <View style={styles.fontInfoRow}>
             <Text variant="caption" color="hint">
-              Font: {(item.customTemplate.font_family || 'Arial').split(',')[0]}
+              {t('emailTemplates.font')}: {(item.customTemplate.font_family || 'Arial').split(',')[0]}
             </Text>
             <Text variant="caption" color="hint" style={styles.fontInfoSize}>
-              Size: {item.customTemplate.font_size || '14px'}
+              {t('emailTemplates.size')}: {item.customTemplate.font_size || '14px'}
             </Text>
           </View>
         )}
@@ -128,7 +130,7 @@ export const EmailTemplateListScreen: React.FC = () => {
         {/* Variables */}
         <View style={styles.cardSection}>
           <Text variant="caption" color="hint" style={styles.cardSectionLabel}>
-            Variables
+            {t('emailTemplates.variables')}
           </Text>
           <View style={styles.variablesRow}>
             {item.templateDefault.variables.map((v) => (
@@ -151,7 +153,7 @@ export const EmailTemplateListScreen: React.FC = () => {
                 activeOpacity={0.7}>
                 <Icon name="pencil-outline" size={ms(16)} color={themeColors.text.primary} />
                 <Text variant="caption" style={styles.editBtnText}>
-                  Edit
+                  {t('common.edit')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -162,7 +164,7 @@ export const EmailTemplateListScreen: React.FC = () => {
               activeOpacity={0.7}>
               <Icon name="plus" size={ms(20)} color={colors.common.white} />
               <Text variant="h4" style={styles.customizeBtnText}>
-                Customize
+                {t('emailTemplates.customize')}
               </Text>
             </TouchableOpacity>
           )}
@@ -177,7 +179,7 @@ export const EmailTemplateListScreen: React.FC = () => {
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary.main} />
           <Text variant="bodySmall" color="secondary" style={styles.emptyText}>
-            Loading templates...
+            {t('emailTemplates.loading')}
           </Text>
         </View>
       );
@@ -186,7 +188,7 @@ export const EmailTemplateListScreen: React.FC = () => {
       <View style={styles.centered}>
         <Icon name="email-off-outline" size={ms(48)} color={themeColors.text.hint} />
         <Text variant="bodySmall" color="secondary" style={styles.emptyText}>
-          No email templates found
+          {t('emailTemplates.empty')}
         </Text>
       </View>
     );
@@ -205,9 +207,9 @@ export const EmailTemplateListScreen: React.FC = () => {
           <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Text variant="h2">Email Templates</Text>
+          <Text variant="h2">{t('settings.emailTemplates')}</Text>
           <Text variant="caption" color="secondary" style={styles.headerSubtitle}>
-            Customize email templates sent by the system
+            {t('settings.emailTemplatesSubtitle')}
           </Text>
         </View>
       </View>

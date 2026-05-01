@@ -17,6 +17,7 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import RNShare from 'react-native-share';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '../../components/common';
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
@@ -163,6 +164,7 @@ const ThemedModal: React.FC<ThemedModalProps & { themed: ReturnType<typeof creat
 };
 
 export const ScanDetailsScreen: React.FC = () => {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const themed = useMemo(() => createThemedStyles(isDark), [isDark]);
   const st = themed.styles;
@@ -199,7 +201,7 @@ export const ScanDetailsScreen: React.FC = () => {
     return 'text';
   }, [scan.data]);
 
-  const dataTypeLabel = useMemo(() => ({ url: 'Website URL', email: 'Email Link', email_plain: 'Email Address', phone: 'Phone Link', phone_plain: 'Phone Number', text: 'Plain Text' }[dataType] || 'Data'), [dataType]);
+  const dataTypeLabel = useMemo(() => ({ url: t('scanDetails.websiteUrl'), email: t('scanDetails.emailLink'), email_plain: t('scanDetails.emailAddress'), phone: t('scanDetails.phoneLink'), phone_plain: t('scanDetails.phoneNumber'), text: t('scanDetails.plainText') } as Record<string, string>)[dataType] || t('scanDetails.data'), [dataType, t]);
   const dataTypeIcon = useMemo(() => ({ url: 'globe-outline', email: 'mail-outline', email_plain: 'mail-outline', phone: 'phone-outline', phone_plain: 'phone-outline', text: 'text-box-outline' }[dataType] || 'file-document-outline'), [dataType]);
 
   const formatTs = (ts: number) => new Date(ts).toLocaleString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -210,18 +212,18 @@ export const ScanDetailsScreen: React.FC = () => {
     Animated.sequence([Animated.timing(toastAnim, { toValue: 1, duration: 200, useNativeDriver: true }), Animated.delay(1500), Animated.timing(toastAnim, { toValue: 0, duration: 200, useNativeDriver: true })]).start(() => setToastVisible(false));
   }, [toastAnim]);
 
-  const handleCopy = useCallback(() => { Clipboard.setString(scan.data); showToast('Copied to clipboard'); }, [scan.data, showToast]);
+  const handleCopy = useCallback(() => { Clipboard.setString(scan.data); showToast(t('scanDetails.copiedToClipboard')); }, [scan.data, showToast, t]);
   const handleShare = useCallback(async () => { try { await Share.share({ message: scan.data }); } catch {} }, [scan.data]);
   const handleOpenLink = useCallback(() => {
     let url = scan.data;
     if (dataType === 'email_plain') url = `mailto:${scan.data}`;
     else if (dataType === 'phone_plain') url = `tel:${scan.data}`;
-    Linking.canOpenURL(url).then(ok => { if (ok) Linking.openURL(url); else showConfirm({ icon: 'link-off', iconBg: colors.warning.main, title: 'Cannot Open Link', message: 'This link type is not supported.', buttons: [{ text: 'OK', onPress: hideConfirm }] }); });
-  }, [scan.data, dataType, showConfirm, hideConfirm]);
+    Linking.canOpenURL(url).then(ok => { if (ok) Linking.openURL(url); else showConfirm({ icon: 'link-off', iconBg: colors.warning.main, title: t('scanDetails.cannotOpenLink'), message: t('scanDetails.linkNotSupported'), buttons: [{ text: t('common.ok'), onPress: hideConfirm }] }); });
+  }, [scan.data, dataType, showConfirm, hideConfirm, t]);
 
   const handleDelete = useCallback(() => {
-    showConfirm({ icon: 'delete-outline', iconBg: colors.error.main, title: 'Delete Scan', message: 'Are you sure you want to delete this scan?', buttons: [{ text: 'Cancel', style: 'cancel', onPress: hideConfirm }, { text: 'Delete', style: 'destructive', onPress: async () => { hideConfirm(); await deleteScanRecord(scan.id); navigation.goBack(); } }] });
-  }, [scan.id, navigation, showConfirm, hideConfirm]);
+    showConfirm({ icon: 'delete-outline', iconBg: colors.error.main, title: t('scanHistory.deleteScan'), message: t('scanHistory.deleteScanConfirm'), buttons: [{ text: t('common.cancel'), style: 'cancel', onPress: hideConfirm }, { text: t('common.delete'), style: 'destructive', onPress: async () => { hideConfirm(); await deleteScanRecord(scan.id); navigation.goBack(); } }] });
+  }, [scan.id, navigation, showConfirm, hideConfirm, t]);
 
   const handleViewPdf = useCallback(async () => {
     if (!scan.tkData) return;
@@ -231,9 +233,9 @@ export const ScanDetailsScreen: React.FC = () => {
       const ticketCode = (scan.tkData as TKTicketData).ticketCode || 'ticket';
       navigation.navigate('PdfViewer', { filePath, title: `Ticket ${ticketCode}` });
     } catch (err) {
-      showConfirm({ icon: 'alert-circle-outline', iconBg: colors.warning.main, title: 'Error', message: err instanceof Error ? err.message : 'Could not generate PDF', buttons: [{ text: 'OK', onPress: hideConfirm }] });
+      showConfirm({ icon: 'alert-circle-outline', iconBg: colors.warning.main, title: t('common.error'), message: err instanceof Error ? err.message : t('scanDetails.pdfGenerateFailed'), buttons: [{ text: t('common.ok'), onPress: hideConfirm }] });
     } finally { setDownloading(false); }
-  }, [scan, navigation, showConfirm, hideConfirm]);
+  }, [scan, navigation, showConfirm, hideConfirm, t]);
 
   const handleSharePdf = useCallback(async () => {
     if (!scan.tkData) return;
@@ -256,13 +258,13 @@ export const ScanDetailsScreen: React.FC = () => {
   const apiData = scan.apiData;
   const apiTicket = isTicket ? (apiData as APITicketDetails | undefined) : undefined;
   const apiTruck = isTruck ? (apiData as APITruckDetails | undefined) : undefined;
-  const headerTitle = isTicket ? `Ticket ${apiTicket?.ticket_code || (tkData as TKTicketData)?.ticketCode || ''}` : isTruck ? `Truck ${apiTruck?.code || (tkData as any)?.truckCode || ''}` : 'Scan Details';
+  const headerTitle = isTicket ? `${t('scanDetails.ticket')} ${apiTicket?.ticket_code || (tkData as TKTicketData)?.ticketCode || ''}` : isTruck ? `${t('scanDetails.truck')} ${apiTruck?.code || (tkData as any)?.truckCode || ''}` : t('scanDetails.title');
 
   const toastTY = toastAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] });
 
   const badgeStyle = verified === 'verified' ? st.badgeVerified : verified === 'offline' ? st.badgeOffline : st.badgeUnverified;
   const badgeTextStyle = verified === 'verified' ? st.badgeTextVerified : verified === 'offline' ? st.badgeTextOffline : st.badgeTextUnverified;
-  const badgeLabel = verified === 'verified' ? 'Verified' : verified === 'offline' ? 'Offline \u2014 Local Data' : 'Unverified';
+  const badgeLabel = verified === 'verified' ? t('scanDetails.verified') : verified === 'offline' ? t('scanDetails.offlineLocalData') : t('scanDetails.unverified');
 
   const Row = ({ label, value }: { label: string; value: string }) => (
     <View style={st.infoRow}>
@@ -299,15 +301,15 @@ export const ScanDetailsScreen: React.FC = () => {
             <View style={isTicket ? st.heroCircleTicket : st.heroCircleTruck}>
               <Icon name={isTicket ? 'ticket-confirmation-outline' : 'truck-outline'} size={40} color={colors.primary.main} />
             </View>
-            <Text style={st.heroLabel}>{isTicket ? 'Ticket' : 'Truck'}</Text>
+            <Text style={st.heroLabel}>{isTicket ? t('scanDetails.ticket') : t('scanDetails.truck')}</Text>
             <View style={badgeStyle}><Text style={badgeTextStyle}>{badgeLabel}</Text></View>
           </View>
 
           <View style={st.contentCard}>
             <View style={st.accentStripSuccess} />
             <View style={st.contentCardInner}>
-              <Text style={st.cardLabel}>TENANT</Text>
-              <Text style={st.tenantName}>{tkData.tenantName || 'Unknown'}</Text>
+              <Text style={st.cardLabel}>{t('scanDetails.tenant')}</Text>
+              <Text style={st.tenantName}>{tkData.tenantName || t('scanDetails.unknown')}</Text>
               <Text style={st.tenantSub}>{tkData.tenantSubdomain}</Text>
             </View>
           </View>
@@ -315,56 +317,56 @@ export const ScanDetailsScreen: React.FC = () => {
           {isTicket && (
             <>
               <View style={st.card}>
-                <Text style={st.sectionTitle}>TICKET INFORMATION</Text>
-                <Row label="Order" value={apiTicket?.order_code || ticketLocal.orderCode} />
-                {apiTicket?.order_date && (<><Div /><Row label="Order Date" value={apiTicket.order_date} /></>)}
-                <Div /><Row label="Truck" value={apiTicket?.truck?.truck_code || ticketLocal.truckCode} />
-                {apiTicket?.truck?.truck_description && (<><Div /><Row label="Truck Description" value={apiTicket.truck.truck_description} /></>)}
-                {apiTicket?.driver_name && (<><Div /><Row label="Driver" value={apiTicket.driver_name} /></>)}
-                {apiTicket?.plant_name && (<><Div /><Row label="Plant" value={apiTicket.plant_name} /></>)}
-                {apiTicket?.status_display && (<><Div /><Row label="Status" value={apiTicket.status_display} /></>)}
-                {apiTicket?.load && (<><Div /><Row label="Load" value={apiTicket.load} /></>)}
+                <Text style={st.sectionTitle}>{t('scanDetails.ticketInformation')}</Text>
+                <Row label={t('scanDetails.order')} value={apiTicket?.order_code || ticketLocal.orderCode} />
+                {apiTicket?.order_date && (<><Div /><Row label={t('scanDetails.orderDate')} value={apiTicket.order_date} /></>)}
+                <Div /><Row label={t('scanDetails.truck')} value={apiTicket?.truck?.truck_code || ticketLocal.truckCode} />
+                {apiTicket?.truck?.truck_description && (<><Div /><Row label={t('scanDetails.truckDescription')} value={apiTicket.truck.truck_description} /></>)}
+                {apiTicket?.driver_name && (<><Div /><Row label={t('scanDetails.driver')} value={apiTicket.driver_name} /></>)}
+                {apiTicket?.plant_name && (<><Div /><Row label={t('scanDetails.plant')} value={apiTicket.plant_name} /></>)}
+                {apiTicket?.status_display && (<><Div /><Row label={t('scanDetails.status')} value={apiTicket.status_display} /></>)}
+                {apiTicket?.load && (<><Div /><Row label={t('scanDetails.load')} value={apiTicket.load} /></>)}
               </View>
 
               {(apiTicket?.product || apiTicket?.load_qty || apiTicket?.progress_display) && (
                 <View style={st.card}>
-                  <Text style={st.sectionTitle}>PRODUCT & QUANTITY</Text>
-                  {apiTicket?.product && <Row label="Product" value={apiTicket.product} />}
-                  {apiTicket?.load_qty && (<>{apiTicket?.product && <Div />}<Row label="Load Qty" value={apiTicket.load_qty} /></>)}
-                  {apiTicket?.run_qty_ord_qty && (<><Div /><Row label="Running / Ordered" value={apiTicket.run_qty_ord_qty} /></>)}
-                  {apiTicket?.progress_display && (<><Div /><Row label="Progress" value={apiTicket.progress_display} /></>)}
+                  <Text style={st.sectionTitle}>{t('scanDetails.productQuantity')}</Text>
+                  {apiTicket?.product && <Row label={t('scanDetails.product')} value={apiTicket.product} />}
+                  {apiTicket?.load_qty && (<>{apiTicket?.product && <Div />}<Row label={t('scanDetails.loadQty')} value={apiTicket.load_qty} /></>)}
+                  {apiTicket?.run_qty_ord_qty && (<><Div /><Row label={t('scanDetails.runningOrdered')} value={apiTicket.run_qty_ord_qty} /></>)}
+                  {apiTicket?.progress_display && (<><Div /><Row label={t('scanDetails.progress')} value={apiTicket.progress_display} /></>)}
                 </View>
               )}
 
               {(apiTicket?.customer_name || apiTicket?.delivery_address) && (
                 <View style={st.card}>
-                  <Text style={st.sectionTitle}>CUSTOMER & DELIVERY</Text>
-                  {apiTicket?.customer_name && <Row label="Customer" value={apiTicket.customer_name} />}
-                  {apiTicket?.project_name && (<>{apiTicket?.customer_name && <Div />}<Row label="Project" value={apiTicket.project_name} /></>)}
-                  {apiTicket?.delivery_address && (<><Div /><Row label="Delivery Address" value={apiTicket.delivery_address} /></>)}
+                  <Text style={st.sectionTitle}>{t('scanDetails.customerDelivery')}</Text>
+                  {apiTicket?.customer_name && <Row label={t('scanDetails.customer')} value={apiTicket.customer_name} />}
+                  {apiTicket?.project_name && (<>{apiTicket?.customer_name && <Div />}<Row label={t('scanDetails.project')} value={apiTicket.project_name} /></>)}
+                  {apiTicket?.delivery_address && (<><Div /><Row label={t('scanDetails.deliveryAddress')} value={apiTicket.delivery_address} /></>)}
                 </View>
               )}
 
               {apiTicket?.timestamps && (
                 <View style={st.card}>
-                  <Text style={st.sectionTitle}>TIMELINE</Text>
-                  {apiTicket.timestamps.ticketed && <Row label="Ticketed" value={apiTicket.timestamps.ticketed} />}
-                  {apiTicket.timestamps.loading && (<><Div /><Row label="Loading" value={apiTicket.timestamps.loading} /></>)}
-                  {apiTicket.timestamps.loaded && (<><Div /><Row label="Loaded" value={apiTicket.timestamps.loaded} /></>)}
-                  {apiTicket.timestamps.to_job && (<><Div /><Row label="To Job" value={apiTicket.timestamps.to_job} /></>)}
-                  {apiTicket.timestamps.eta_at_job && (<><Div /><Row label="ETA At Job" value={apiTicket.timestamps.eta_at_job} /></>)}
-                  {apiTicket.timestamps.at_job && (<><Div /><Row label="At Job" value={apiTicket.timestamps.at_job} /></>)}
-                  {apiTicket.timestamps.pouring && (<><Div /><Row label="Pouring" value={apiTicket.timestamps.pouring} /></>)}
-                  {apiTicket.timestamps.washing && (<><Div /><Row label="Washing" value={apiTicket.timestamps.washing} /></>)}
-                  {apiTicket.timestamps.to_plant && (<><Div /><Row label="To Plant" value={apiTicket.timestamps.to_plant} /></>)}
-                  {apiTicket.timestamps.at_plant && (<><Div /><Row label="At Plant" value={apiTicket.timestamps.at_plant} /></>)}
+                  <Text style={st.sectionTitle}>{t('scanDetails.timeline')}</Text>
+                  {apiTicket.timestamps.ticketed && <Row label={t('tracking.statuses.ticketed')} value={apiTicket.timestamps.ticketed} />}
+                  {apiTicket.timestamps.loading && (<><Div /><Row label={t('tracking.statuses.loading')} value={apiTicket.timestamps.loading} /></>)}
+                  {apiTicket.timestamps.loaded && (<><Div /><Row label={t('tracking.statuses.loaded')} value={apiTicket.timestamps.loaded} /></>)}
+                  {apiTicket.timestamps.to_job && (<><Div /><Row label={t('tracking.statuses.toJob')} value={apiTicket.timestamps.to_job} /></>)}
+                  {apiTicket.timestamps.eta_at_job && (<><Div /><Row label={t('scanDetails.etaAtJob')} value={apiTicket.timestamps.eta_at_job} /></>)}
+                  {apiTicket.timestamps.at_job && (<><Div /><Row label={t('tracking.statuses.atJob')} value={apiTicket.timestamps.at_job} /></>)}
+                  {apiTicket.timestamps.pouring && (<><Div /><Row label={t('tracking.statuses.pouring')} value={apiTicket.timestamps.pouring} /></>)}
+                  {apiTicket.timestamps.washing && (<><Div /><Row label={t('tracking.statuses.washing')} value={apiTicket.timestamps.washing} /></>)}
+                  {apiTicket.timestamps.to_plant && (<><Div /><Row label={t('tracking.statuses.toPlant')} value={apiTicket.timestamps.to_plant} /></>)}
+                  {apiTicket.timestamps.at_plant && (<><Div /><Row label={t('tracking.statuses.atPlant')} value={apiTicket.timestamps.at_plant} /></>)}
                 </View>
               )}
 
               <View style={st.card}>
-                <Text style={st.sectionTitle}>SCAN INFORMATION</Text>
-                <Row label="Scanned At" value={formatTs(scan.timestamp)} />
-                <Div /><Row label="QR Issued At" value={formatIat(tkData.iat)} />
+                <Text style={st.sectionTitle}>{t('scanDetails.scanInformation')}</Text>
+                <Row label={t('scanDetails.scannedAt')} value={formatTs(scan.timestamp)} />
+                <Div /><Row label={t('scanDetails.qrIssuedAt')} value={formatIat(tkData.iat)} />
               </View>
             </>
           )}
@@ -423,18 +425,18 @@ export const ScanDetailsScreen: React.FC = () => {
             {isTicket && (
               <TouchableOpacity style={[st.actionBtn, st.primaryAction]} onPress={handleViewPdf} disabled={downloading} activeOpacity={0.8}>
                 {downloading ? <ActivityIndicator size="small" color={colors.primary.contrast} style={st.actionIcon} /> : <Icon name="eye-outline" size={18} color={colors.primary.contrast} style={st.actionIcon} />}
-                <Text style={st.actionTextPrimary}>{downloading ? 'Loading...' : 'View Ticket'}</Text>
+                <Text style={st.actionTextPrimary}>{downloading ? t('common.loading') : t('scanDetails.viewTicket')}</Text>
               </TouchableOpacity>
             )}
             {isTicket && (
               <TouchableOpacity style={[st.actionBtn, st.secondaryAction]} onPress={handleSharePdf} disabled={sharing} activeOpacity={0.8}>
                 {sharing ? <ActivityIndicator size="small" color={themed.tc.text.primary} style={st.actionIcon} /> : <Icon name="share-variant-outline" size={18} color={themed.tc.text.primary} style={st.actionIcon} />}
-                <Text style={st.actionTextSecondary}>{sharing ? 'Sharing...' : 'Share'}</Text>
+                <Text style={st.actionTextSecondary}>{sharing ? t('scanDetails.sharing') : t('scanDetails.share')}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={[st.actionBtn, st.dangerAction]} onPress={handleDelete} activeOpacity={0.8}>
               <Icon name="delete-outline" size={18} color={colors.error.main} style={st.actionIcon} />
-              <Text style={st.actionTextDanger}>Delete Scan</Text>
+              <Text style={st.actionTextDanger}>{t('scanHistory.deleteScan')}</Text>
             </TouchableOpacity>
           </View>
         </Animated.ScrollView>
@@ -454,14 +456,14 @@ export const ScanDetailsScreen: React.FC = () => {
             <Icon name={dataTypeIcon} size={40} color={colors.primary.main} />
           </View>
           <Text style={st.heroLabel}>{dataTypeLabel}</Text>
-          <View style={st.badgeGeneric}><Text style={st.badgeTextGeneric}>QR Code</Text></View>
+          <View style={st.badgeGeneric}><Text style={st.badgeTextGeneric}>{t('scanHistory.qrCode')}</Text></View>
         </View>
 
         <View style={st.contentCard}>
           <View style={st.accentStripPrimary} />
           <View style={st.contentCardInner}>
             <View style={st.contentCardHeader}>
-              <Text style={st.cardLabel}>SCANNED CONTENT</Text>
+              <Text style={st.cardLabel}>{t('scanDetails.scannedContent')}</Text>
               <TouchableOpacity onPress={handleCopy} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Icon name="content-copy" size={16} color={themed.tc.text.secondary} />
               </TouchableOpacity>
@@ -471,32 +473,32 @@ export const ScanDetailsScreen: React.FC = () => {
         </View>
 
         <View style={st.card}>
-          <Row label="Format" value="QR Code" />
-          <Div /><Row label="Scanned At" value={formatTs(scan.timestamp)} />
-          <Div /><Row label="Content Type" value={dataTypeLabel} />
-          <Div /><Row label="Characters" value={String(scan.data.length)} />
+          <Row label={t('scanDetails.format')} value={t('scanHistory.qrCode')} />
+          <Div /><Row label={t('scanDetails.scannedAt')} value={formatTs(scan.timestamp)} />
+          <Div /><Row label={t('scanDetails.contentType')} value={dataTypeLabel} />
+          <Div /><Row label={t('scanDetails.characters')} value={String(scan.data.length)} />
         </View>
 
         <View style={st.actions}>
           {canOpenLink && (
             <TouchableOpacity style={[st.actionBtn, st.primaryAction]} onPress={handleOpenLink} activeOpacity={0.8}>
               <Icon name={dataType === 'url' ? 'web' : dataType.includes('email') ? 'email-outline' : 'phone-outline'} size={18} color={colors.primary.contrast} style={st.actionIcon} />
-              <Text style={st.actionTextPrimary}>{dataType === 'url' ? 'Open URL' : dataType.includes('email') ? 'Send Email' : 'Call Number'}</Text>
+              <Text style={st.actionTextPrimary}>{dataType === 'url' ? t('scanDetails.openUrl') : dataType.includes('email') ? t('scanDetails.sendEmail') : t('scanDetails.callNumber')}</Text>
             </TouchableOpacity>
           )}
           <View style={st.actionRow}>
             <TouchableOpacity style={[st.actionBtn, st.secondaryAction, st.flex1]} onPress={handleCopy} activeOpacity={0.8}>
               <Icon name="content-copy" size={18} color={themed.tc.text.primary} style={st.actionIcon} />
-              <Text style={st.actionTextSecondary}>Copy</Text>
+              <Text style={st.actionTextSecondary}>{t('scanDetails.copy')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[st.actionBtn, st.secondaryAction, st.flex1]} onPress={handleShare} activeOpacity={0.8}>
               <Icon name="share-variant-outline" size={18} color={themed.tc.text.primary} style={st.actionIcon} />
-              <Text style={st.actionTextSecondary}>Share</Text>
+              <Text style={st.actionTextSecondary}>{t('scanDetails.share')}</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={[st.actionBtn, st.dangerAction]} onPress={handleDelete} activeOpacity={0.8}>
             <Icon name="delete-outline" size={18} color={colors.error.main} style={st.actionIcon} />
-            <Text style={st.actionTextDanger}>Delete Scan</Text>
+            <Text style={st.actionTextDanger}>{t('scanHistory.deleteScan')}</Text>
           </TouchableOpacity>
         </View>
       </Animated.ScrollView>

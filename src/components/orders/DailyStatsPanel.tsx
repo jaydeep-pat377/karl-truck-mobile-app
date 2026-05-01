@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text, Icon } from '../common';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useRealtimeDailyIntelligence } from '../../hooks/useRealtimeDailyIntelligence';
@@ -56,72 +57,74 @@ const extractOrderCodes = (
 };
 
 // ---------------------------------------------------------------------------
-// KPI card definitions
+// KPI card definitions (built inside component to support i18n)
 // ---------------------------------------------------------------------------
 
-const kpiCards: KpiCardConfig[] = [
+const buildKpiCards = (
+  t: (key: string, options?: any) => string,
+): KpiCardConfig[] => [
   {
     key: 'late_orders',
-    label: 'Late Orders',
+    label: t('dailyIntelligence.lateOrders'),
     icon: 'clock-alert-outline',
     getValue: (d) => d.late_orders_total,
-    getSubLabel: (d) => `${d.late_not_started} not started`,
+    getSubLabel: (d) => t('dailyIntelligence.notStarted', { count: d.late_not_started }),
     getHighlightColor: (d) => (d.late_orders_total > 0 ? colors.error.main : null),
     isClickable: true,
     getOrderCodes: (d) => extractOrderCodes(d.late_orders_details),
   },
   {
     key: 'trucks_waiting',
-    label: 'Trucks Waiting',
+    label: t('dailyIntelligence.trucksWaiting'),
     icon: 'timer-sand',
     getValue: (d) => d.stuck_at_job_total,
-    getSubLabel: () => 'idle > 30min',
+    getSubLabel: () => t('dailyIntelligence.idleOver30'),
     getHighlightColor: (d) => (d.stuck_at_job_total > 0 ? colors.warning.main : null),
     isClickable: true,
     getOrderCodes: (d) => extractOrderCodes(d.stuck_at_job_details),
   },
   {
     key: 'slow_plants',
-    label: 'Slow Plants',
+    label: t('dailyIntelligence.slowPlants'),
     icon: 'factory',
     getValue: (d) => d.slow_plants_total,
-    getSubLabel: () => 'below avg output',
+    getSubLabel: () => t('dailyIntelligence.belowAvgOutput'),
     getHighlightColor: (d) => (d.slow_plants_total > 0 ? colors.info.main : null),
     isClickable: true,
     getOrderCodes: (d) => extractOrderCodes(d.slow_plants_details),
   },
   {
     key: 'congested_sites',
-    label: 'Congested Sites',
+    label: t('dailyIntelligence.congestedSites'),
     icon: 'alert-octagon-outline',
     getValue: (d) => d.congested_sites_total,
-    getSubLabel: (d) => `${d.congested_sites_total} sites`,
+    getSubLabel: (d) => t('dailyIntelligence.sitesCount', { count: d.congested_sites_total }),
     getHighlightColor: (d) => (d.congested_sites_total > 0 ? colors.error.main : null),
     isClickable: true,
     getOrderCodes: (d) => extractOrderCodes(d.congested_sites_details),
   },
   {
     key: 'avg_round_trip',
-    label: 'Avg Round Trip',
+    label: t('dailyIntelligence.avgRoundTrip'),
     icon: 'clock-outline',
     getValue: (d) => d.avg_round_trip_display || '--',
-    getSubLabel: (d) => `${d.round_trip_sample_count} trips`,
+    getSubLabel: (d) => t('dailyIntelligence.tripsCount', { count: d.round_trip_sample_count }),
     getHighlightColor: () => null,
     isClickable: false,
     getOrderCodes: () => [],
   },
   {
     key: 'weather_risk',
-    label: 'Weather Risk',
+    label: t('dailyIntelligence.weatherRisk'),
     icon: 'weather-lightning-rainy',
     getValue: (d) => d.weather_risk_total,
     getSubLabel: (d) => {
       const parts: string[] = [];
-      if (d.weather_risk_severe > 0) parts.push(`${d.weather_risk_severe} sev`);
-      if (d.weather_risk_very_high > 0) parts.push(`${d.weather_risk_very_high} v.high`);
-      if (d.weather_risk_high > 0) parts.push(`${d.weather_risk_high} high`);
-      if (d.weather_risk_moderate > 0) parts.push(`${d.weather_risk_moderate} mod`);
-      return parts.length > 0 ? parts.join(', ') : 'no risks';
+      if (d.weather_risk_severe > 0) parts.push(`${d.weather_risk_severe} ${t('dailyIntelligence.sev')}`);
+      if (d.weather_risk_very_high > 0) parts.push(`${d.weather_risk_very_high} ${t('dailyIntelligence.vHigh')}`);
+      if (d.weather_risk_high > 0) parts.push(`${d.weather_risk_high} ${t('dailyIntelligence.high')}`);
+      if (d.weather_risk_moderate > 0) parts.push(`${d.weather_risk_moderate} ${t('dailyIntelligence.mod')}`);
+      return parts.length > 0 ? parts.join(', ') : t('dailyIntelligence.noRisks');
     },
     getHighlightColor: (d) => {
       if (d.weather_risk_severe > 0) return colors.error.main;
@@ -267,10 +270,12 @@ export const DailyStatsPanel: React.FC<DailyStatsPanelProps> = ({
   onKpiFilter,
   onKpiFilterClear,
 }) => {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
   const [activeKpi, setActiveKpi] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const kpiCards = useMemo(() => buildKpiCards(t), [t]);
 
   const { data, isLoading } = useRealtimeDailyIntelligence({
     reportDate,
@@ -310,10 +315,10 @@ export const DailyStatsPanel: React.FC<DailyStatsPanelProps> = ({
         activeOpacity={0.7}>
         <View style={styles.headerLeft}>
           <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>
-            DAILY INTELLIGENCE
+            {t('dailyIntelligence.title')}
           </Text>
           <View style={styles.liveIndicator}>
-            <Text style={[styles.liveText, { color: themeColors.text.secondary }]}>Live</Text>
+            <Text style={[styles.liveText, { color: themeColors.text.secondary }]}>{t('dailyIntelligence.live')}</Text>
             <View style={styles.liveDot} />
           </View>
         </View>
@@ -350,19 +355,19 @@ export const DailyStatsPanel: React.FC<DailyStatsPanelProps> = ({
 
           {/* Status — 2x2 grid with label on top */}
           <View style={styles.statusContainer}>
-            <Text style={[styles.statusLabel, { color: themeColors.text.secondary }]}>Status:</Text>
+            <Text style={[styles.statusLabel, { color: themeColors.text.secondary }]}>{t('dailyIntelligence.status')}:</Text>
             <View style={styles.statusGrid}>
               <View style={styles.statusGridItem}>
-                <StatusPill label="Pre-Pour" count={data.status_pre_pour} color={colors.status.prePour} isDark={isDark} />
+                <StatusPill label={t('orders.prePour')} count={data.status_pre_pour} color={colors.status.prePour} isDark={isDark} />
               </View>
               <View style={styles.statusGridItem}>
-                <StatusPill label="In Process" count={data.status_in_process} color={colors.status.inProcess} isDark={isDark} />
+                <StatusPill label={t('orders.inProcess')} count={data.status_in_process} color={colors.status.inProcess} isDark={isDark} />
               </View>
               <View style={styles.statusGridItem}>
-                <StatusPill label="Completed" count={data.status_completed} color={colors.status.completed} isDark={isDark} />
+                <StatusPill label={t('orders.completed')} count={data.status_completed} color={colors.status.completed} isDark={isDark} />
               </View>
               <View style={styles.statusGridItem}>
-                <StatusPill label="Cancelled" count={data.status_canceled} color={colors.status.cancelled} isDark={isDark} />
+                <StatusPill label={t('orders.cancelled')} count={data.status_canceled} color={colors.status.cancelled} isDark={isDark} />
               </View>
             </View>
           </View>
@@ -370,7 +375,7 @@ export const DailyStatsPanel: React.FC<DailyStatsPanelProps> = ({
           {/* Top Products */}
           {data.top_products && data.top_products.length > 0 && (
             <View style={styles.topProductsRow}>
-              <Text style={[styles.topProductsLabel, { color: themeColors.text.secondary }]}>Top Products:</Text>
+              <Text style={[styles.topProductsLabel, { color: themeColors.text.secondary }]}>{t('dailyIntelligence.topProducts')}:</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.topProductsScroll}>
                 {data.top_products.map((product, index) => (
                   <View

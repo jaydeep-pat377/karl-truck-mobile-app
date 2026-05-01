@@ -1,5 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, BottomSheet } from '../common';
 import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
@@ -27,22 +28,24 @@ export interface ScheduledLoadItem {
   actual_at_plant_time?: string | null;
 }
 
-const LOAD_STATUS_CONFIG: Record<string, { color: string; icon: string; label: string }> = {
-  pending: { color: colors.grey[50], icon: 'clock-outline', label: 'Pending' },
-  ticketed: { color: colors.trackingStatus.ticketed, icon: 'ticket-outline', label: 'Ticketed' },
-  loading: { color: colors.trackingStatus.loading, icon: 'package-variant', label: 'Loading' },
-  loaded: { color: colors.trackingStatus.loaded, icon: 'package-variant-closed', label: 'Loaded' },
-  to_job: { color: colors.trackingStatus.toJob, icon: 'truck-fast', label: 'To Job' },
-  at_job: { color: colors.trackingStatus.atJob, icon: 'map-marker-check', label: 'At Job' },
-  pouring: { color: colors.trackingStatus.pouring, icon: 'water', label: 'Pouring' },
-  begin_pour: { color: colors.trackingStatus.pouring, icon: 'water', label: 'Begin Pour' },
-  poured: { color: colors.trackingStatus.poured, icon: 'water-check', label: 'Poured' },
-  washing: { color: colors.trackingStatus.washing, icon: 'water-pump', label: 'Washing' },
-  to_plant: { color: colors.trackingStatus.toPlant, icon: 'arrow-u-left-top', label: 'To Plant' },
-  at_plant: { color: colors.trackingStatus.atPlant, icon: 'home-circle', label: 'At Plant' },
-  cancelled: { color: colors.error.main, icon: 'close-circle', label: 'Cancelled' },
-  voided: { color: colors.error.main, icon: 'close-circle', label: 'Voided' },
-};
+const buildLoadStatusConfig = (
+  t: (key: string) => string,
+): Record<string, { color: string; icon: string; label: string }> => ({
+  pending: { color: colors.grey[50], icon: 'clock-outline', label: t('tracking.statuses.pending') },
+  ticketed: { color: colors.trackingStatus.ticketed, icon: 'ticket-outline', label: t('tracking.statuses.ticketed') },
+  loading: { color: colors.trackingStatus.loading, icon: 'package-variant', label: t('tracking.statuses.loading') },
+  loaded: { color: colors.trackingStatus.loaded, icon: 'package-variant-closed', label: t('tracking.statuses.loaded') },
+  to_job: { color: colors.trackingStatus.toJob, icon: 'truck-fast', label: t('tracking.statuses.toJob') },
+  at_job: { color: colors.trackingStatus.atJob, icon: 'map-marker-check', label: t('tracking.statuses.atJob') },
+  pouring: { color: colors.trackingStatus.pouring, icon: 'water', label: t('tracking.statuses.pouring') },
+  begin_pour: { color: colors.trackingStatus.pouring, icon: 'water', label: t('scheduledLoads.beginPour') },
+  poured: { color: colors.trackingStatus.poured, icon: 'water-check', label: t('tracking.statuses.poured') },
+  washing: { color: colors.trackingStatus.washing, icon: 'water-pump', label: t('tracking.statuses.washing') },
+  to_plant: { color: colors.trackingStatus.toPlant, icon: 'arrow-u-left-top', label: t('tracking.statuses.toPlant') },
+  at_plant: { color: colors.trackingStatus.atPlant, icon: 'home-circle', label: t('tracking.statuses.atPlant') },
+  cancelled: { color: colors.error.main, icon: 'close-circle', label: t('tracking.statuses.cancelled') },
+  voided: { color: colors.error.main, icon: 'close-circle', label: t('tracking.statuses.voided') },
+});
 
 interface ScheduledLoadsBottomSheetProps {
   visible: boolean;
@@ -93,14 +96,16 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
   isFetchingNextPage,
   onLoadMore,
 }) => {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
+  const LOAD_STATUS_CONFIG = useMemo(() => buildLoadStatusConfig(t), [t]);
 
   // Use API summary counts if provided, otherwise calculate from loaded items
   const displayTotal = totalLoads || loads.length;
   const completedLoads = completedCount !== undefined ? completedCount : loads.filter(l => !!l.actual_time).length;
   const pendingLoads = displayTotal - completedLoads - (cancelledCount || 0);
-  const subtitle = `${completedLoads} of ${displayTotal} completed`;
+  const subtitle = t('scheduledLoads.completedOfTotal', { completed: completedLoads, total: displayTotal });
 
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage && onLoadMore) {
@@ -177,7 +182,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
           backgroundColor: isDark ? colors.semiTransparent.white03 : colors.common.transparent
         }]}>
           <View style={styles.loadTimeBlock}>
-            <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>Scheduled</Text>
+            <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>{t('scheduledLoads.scheduled')}</Text>
             <Text style={[styles.loadTimeBlockValue, { color: themeColors.text.primary }]}>
               {load.scheduled_time || '--:--'}
             </Text>
@@ -188,7 +193,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
           </View>
 
           <View style={styles.loadTimeBlock}>
-            <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>At Job</Text>
+            <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>{t('tracking.statuses.atJob')}</Text>
             <Text style={[styles.loadTimeBlockValue, { color: themeColors.text.primary }]}>
               {load.actual_on_job_time || load.scheduled_on_job_time || '--:--'}
             </Text>
@@ -199,7 +204,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
           </View>
 
           <View style={styles.loadTimeBlock}>
-            <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>Unload</Text>
+            <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>{t('scheduledLoads.unload')}</Text>
             <Text style={[styles.loadTimeBlockValue, { color: themeColors.text.primary }]}>
               {load.actual_unload_time || load.scheduled_fin_pour_time || '--:--'}
             </Text>
@@ -210,7 +215,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
           <View style={[styles.loadInfoRow, { borderTopColor: isDark ? themeColors.border : colors.grey[10] }]}>
             {load.actual_wash_time && (
               <View style={styles.loadInfoItem}>
-                <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>Wash</Text>
+                <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>{t('scheduledLoads.wash')}</Text>
                 <View style={[styles.loadInfoTag, {
                   backgroundColor: isDark ? colors.grey[80] : colors.grey[8],
                   borderWidth: 1,
@@ -223,7 +228,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
             )}
             {load.actual_at_plant_time && (
               <View style={styles.loadInfoItem}>
-                <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>Return</Text>
+                <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[50] }]}>{t('scheduledLoads.return')}</Text>
                 <View style={[styles.loadInfoTag, {
                   backgroundColor: isDark ? colors.grey[80] : colors.grey[8],
                   borderWidth: 1,
@@ -246,28 +251,28 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
       <View style={styles.footerLoader}>
         <ActivityIndicator size="small" color={colors.primary.main} />
         <Text style={[styles.footerLoaderText, { color: themeColors.text.secondary }]}>
-          Loading more...
+          {t('common.loadingMore')}
         </Text>
       </View>
     );
-  }, [isFetchingNextPage, themeColors]);
+  }, [isFetchingNextPage, themeColors, t]);
 
   const renderHeader = useCallback(() => (
     <View style={styles.summaryRow}>
       <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[5] }]}>
         <Text style={[styles.summaryValue, { color: themeColors.text.primary }]}>{displayTotal}</Text>
-        <Text style={[styles.summaryLabel, { color: isDark ? colors.grey[25] : themeColors.text.secondary }]}>Total</Text>
+        <Text style={[styles.summaryLabel, { color: isDark ? colors.grey[25] : themeColors.text.secondary }]}>{t('dashboard.total')}</Text>
       </View>
       <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[5] }]}>
         <Text style={[styles.summaryValue, { color: themeColors.text.primary }]}>{completedLoads}</Text>
-        <Text style={[styles.summaryLabel, { color: isDark ? colors.grey[25] : themeColors.text.secondary }]}>Completed</Text>
+        <Text style={[styles.summaryLabel, { color: isDark ? colors.grey[25] : themeColors.text.secondary }]}>{t('orders.completed')}</Text>
       </View>
       <View style={[styles.summaryCard, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[5] }]}>
         <Text style={[styles.summaryValue, { color: themeColors.text.primary }]}>{pendingLoads}</Text>
-        <Text style={[styles.summaryLabel, { color: isDark ? colors.grey[25] : themeColors.text.secondary }]}>Pending</Text>
+        <Text style={[styles.summaryLabel, { color: isDark ? colors.grey[25] : themeColors.text.secondary }]}>{t('tracking.statuses.pending')}</Text>
       </View>
     </View>
-  ), [isDark, themeColors, displayTotal, completedLoads, pendingLoads]);
+  ), [isDark, themeColors, displayTotal, completedLoads, pendingLoads, t]);
 
   const renderEmpty = useCallback(() => {
     if (isLoading) {
@@ -275,7 +280,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
         <View style={styles.emptyState}>
           <ActivityIndicator size="large" color={colors.primary.main} />
           <Text style={[styles.emptyText, { color: themeColors.text.secondary }]}>
-            Loading scheduled loads...
+            {t('scheduledLoads.loading')}
           </Text>
         </View>
       );
@@ -284,17 +289,17 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
       <View style={styles.emptyState}>
         <Icon name="calendar-blank-outline" size={ms(48)} color={themeColors.text.hint} />
         <Text style={[styles.emptyText, { color: themeColors.text.secondary }]}>
-          No scheduled loads available
+          {t('scheduledLoads.empty')}
         </Text>
       </View>
     );
-  }, [isLoading, themeColors]);
+  }, [isLoading, themeColors, t]);
 
   return (
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title="Scheduled Loads"
+      title={t('scheduledLoads.title')}
       subtitle={subtitle}
       headerIcon="format-list-numbered"
       headerIconColor={colors.secondary.main}

@@ -10,6 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { Text, Card, StatusBadge, Icon } from '../common';
 import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { colors } from '../../theme/colors';
@@ -216,25 +217,25 @@ const getOrderStatusCategory = (order: {
   return 'PRE_POUR';
 };
 
-// Same label mapping as web's getCardStatus
-const getStatusLabel = (order: any): string => {
+// Same label mapping as web's getCardStatus — returns i18n key
+const getStatusLabelKey = (order: any): string => {
   const category = getOrderStatusCategory(order);
   switch (category) {
-    case 'CANCELED': return 'Canceled';
-    case 'COMPLETED': return 'Completed';
-    case 'IN_PROCESS': return 'In-Process';
+    case 'CANCELED': return 'orders.status.canceled';
+    case 'COMPLETED': return 'orders.status.completed';
+    case 'IN_PROCESS': return 'orders.status.inProcess';
     case 'PRE_POUR': {
       const cs = order.currentStatus ?? 0;
       switch (cs) {
-        case 0: return 'Pre-Pour - Normal';
-        case 1: return 'Pre-Pour - Will Call';
-        case 2: return 'Pre-Pour - Weather Permitting';
-        case 3: return 'Pre-Pour - Hold';
-        case 5: return 'Pre-Pour - Wait List';
-        default: return 'Normal';
+        case 0: return 'orders.status.prePourNormal';
+        case 1: return 'orders.status.prePourWillCall';
+        case 2: return 'orders.status.prePourWeatherPermitting';
+        case 3: return 'orders.status.prePourHold';
+        case 5: return 'orders.status.prePourWaitList';
+        default: return 'orders.status.normal';
       }
     }
-    default: return 'Normal';
+    default: return 'orders.status.normal';
   }
 };
 
@@ -357,6 +358,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   chatUnreadCount = 0,
 }) => {
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
 
   const progress = order.progress || 0;
@@ -380,7 +382,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   const cardTierColor = getCompletionColor(deliveredPercent);
 
   // Status label — same logic as web's getCardStatus → getOrderStatusCategory
-  const statusLabel = getStatusLabel(order);
+  const statusLabel = t(getStatusLabelKey(order));
 
   // Use progress_bar_colors from API (system-level config), fall back to static defaults
   const segmentColors = PROGRESS_STATUSES.map(status => {
@@ -466,11 +468,11 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
 
   const getEvaporationText = (rate: number | null) => {
     if (rate === null || rate === undefined) return '';
-    if (rate < 0.10) return 'Low';
-    if (rate < 0.20) return 'Moderate';
-    if (rate < 0.30) return 'High';
-    if (rate < 0.40) return 'Very High';
-    return 'Severe';
+    if (rate < 0.10) return t('evaporation.low');
+    if (rate < 0.20) return t('evaporation.moderate');
+    if (rate < 0.30) return t('evaporation.high');
+    if (rate < 0.40) return t('evaporation.veryHigh');
+    return t('evaporation.severe');
   };
 
 
@@ -667,10 +669,10 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
                       ) : (
                         <>
                           <Text style={[styles.tooltipText, { color: themeColors.text.primary }]}>
-                            {PROGRESS_STATUSES.find(s => s.key === tooltipKey)?.label}: {order.completedLoads || 0}/{order.totalLoads || 0} Loads
+                            {PROGRESS_STATUSES.find(s => s.key === tooltipKey)?.label}: {order.completedLoads || 0}/{order.totalLoads || 0} {t('orderCard.loads')}
                           </Text>
                           <Text style={[styles.tooltipTextSub, { color: themeColors.text.secondary }]}>
-                            Remaining: {Math.max(0, (order.totalLoads || 0) - (order.completedLoads || 0))}/{order.totalLoads || 0}
+                            {t('dashboard.remaining')}: {Math.max(0, (order.totalLoads || 0) - (order.completedLoads || 0))}/{order.totalLoads || 0}
                           </Text>
                         </>
                       )}
@@ -680,14 +682,14 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
 
                 <View style={styles.completionRow}>
                   <Text style={[styles.completionText, { color: getCompletionColor(deliveredPercent) }]}>
-                    {completionPercent}% Completed
+                    {completionPercent}% {t('orderCard.completed')}
                   </Text>
                 </View>
 
                 <View style={styles.loadsCountRow}>
                   <ConcreteTruck width={ms(14)} height={ms(10)} color={themeColors.text.secondary} />
                   <Text style={[styles.loadsCountText, { color: themeColors.text.secondary }]}>
-                    {order.completedLoads || 0}/{order.totalLoads || 0} Loads
+                    {order.completedLoads || 0}/{order.totalLoads || 0} {t('orderCard.loads')}
                   </Text>
                 </View>
               </View>
@@ -724,7 +726,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
             {showDetails && (
               <ActionButton
                 icon="clipboard-text-outline"
-                label="Details"
+                label={t('orderCard.details')}
                 onPress={onOrderDetails}
                 disabled={orderDetailsDisabled}
                 isLoading={isLoading}
@@ -736,7 +738,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
             {showTicket && (
               <ActionButton
                 icon="ticket-outline"
-                label="Ticket"
+                label={t('orderCard.ticket')}
                 onPress={onTicket}
                 disabled={ticketDisabled}
               />
@@ -747,7 +749,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
             {showRequest && (
               <ActionButton
                 icon="file-plus-outline"
-                label="Request"
+                label={t('orderCard.request')}
                 onPress={onOrderRequest}
               />
             )}
@@ -757,7 +759,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
             {showMap && (
               <ActionButton
                 icon="map-marker-radius-outline"
-                label="Map"
+                label={t('orderCard.map')}
                 onPress={onMap}
                 disabled={mapDisabled}
                 isLoading={isMapLoading}
@@ -769,7 +771,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
             {showChat && (
               <ActionButton
                 icon="chat-outline"
-                label="Chat"
+                label={t('orderCard.chat')}
                 onPress={onChat}
                 disabled={chatDisabled}
                 isLoading={isChatLoading}

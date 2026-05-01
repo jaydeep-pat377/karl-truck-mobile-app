@@ -7,6 +7,7 @@ import {
   Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../theme/colors';
 import { Text, Icon } from './common';
 import { ms, spacing } from '../utils/responsive';
@@ -21,6 +22,7 @@ const TRUCK_WIDTH = 120;
 const TRUCK_HEIGHT = (TRUCK_WIDTH * 86) / 157;
 
 export const LockScreen: React.FC = () => {
+  const { t } = useTranslation();
   const { isLocked, unlock } = useAppLock();
   const { getBiometryTypeName, biometryType } = useBiometrics();
   const { isAuthenticated } = useAuthStore();
@@ -37,11 +39,11 @@ export const LockScreen: React.FC = () => {
         setError(result.error);
       }
     } catch (err) {
-      setError('Authentication failed');
+      setError(t('lockScreen.authFailed'));
     } finally {
       setIsUnlocking(false);
     }
-  }, [unlock]);
+  }, [unlock, t]);
 
 
   useEffect(() => {
@@ -91,9 +93,9 @@ export const LockScreen: React.FC = () => {
             <Icon name="lock" size={ms(32)} color={colors.common.white} />
           </View>
 
-          <Text style={styles.lockedText}>App Locked</Text>
+          <Text style={styles.lockedText}>{t('lockScreen.appLocked')}</Text>
           <Text style={styles.subtitleText}>
-            Use {getBiometryTypeName()} to unlock
+            {t('lockScreen.useToUnlock', { method: getBiometryTypeName() })}
           </Text>
 
           {error && (
@@ -114,14 +116,14 @@ export const LockScreen: React.FC = () => {
               <>
                 <Icon name={getBiometricIcon()} size={ms(24)} color={colors.primary.main} />
                 <Text style={styles.unlockButtonText}>
-                  Unlock with {getBiometryTypeName()}
+                  {t('lockScreen.unlockWith', { method: getBiometryTypeName() })}
                 </Text>
               </>
             )}
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.footer}>Powered by Truckast AI </Text>
+        <Text style={styles.footer}>{t('lockScreen.poweredBy')}</Text>
       </LinearGradient>
     </View>
   );

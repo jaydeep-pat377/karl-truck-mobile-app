@@ -1,45 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity, FlatList, Modal, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text, Icon } from '../common';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { ms, spacing } from '../../utils/responsive';
 import { DelayDetailItem } from '../../types/ticket';
-
-const CALCULATION_INFO = [
-  {
-    label: 'Producer Delay',
-    description: 'Actual Arrived - Scheduled On Job (minutes). Positive = late, 0 = on time.',
-  },
-  {
-    label: 'Contractor Delay',
-    description: 'Waiting to Pour + Pour Minutes Over. Waiting = Begin Pour - MAX(Scheduled, Arrived). Pour Over = (End Pour - Begin Pour) - Spacing.',
-  },
-  {
-    label: 'Waiting to Pour',
-    description: 'Begin Pour - MAX(Scheduled On Job, Actual Arrived) (minutes)',
-  },
-  {
-    label: 'Pour Out',
-    description: 'End Pour - Begin Pour (minutes). Time taken to pour out the concrete load. Shows "--" if pour is not yet complete.',
-  },
-  {
-    label: 'Pour Performance',
-    description: 'Actual Pour Duration - Scheduled Spacing (minutes). Negative = faster than scheduled, Positive = slower than scheduled.',
-  },
-  {
-    label: 'Pour Duration',
-    description: 'End Pour - Begin Pour (minutes)',
-  },
-  {
-    label: 'Pour Min Over',
-    description: 'Actual Pour Duration - Scheduled Spacing (minutes). Negative = faster than scheduled.',
-  },
-  {
-    label: 'Spacing',
-    description: 'Scheduled spacing between loads (Load Qty / Delivery Rate)',
-  },
-];
 
 interface DelayDetailsTableProps {
   isDark?: boolean;
@@ -106,8 +72,23 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
   data = [],
   onTicketPress,
 }) => {
+  const { t } = useTranslation();
   const [showAll, setShowAll] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
+
+  const CALCULATION_INFO = useMemo(
+    () => [
+      { label: t('delayDetails.producerDelay'), description: t('delayDetails.producerDelayDesc') },
+      { label: t('delayDetails.contractorDelay'), description: t('delayDetails.contractorDelayDesc') },
+      { label: t('delayDetails.waitingToPour'), description: t('delayDetails.waitingToPourDesc') },
+      { label: t('delayDetails.pourOut'), description: t('delayDetails.pourOutDesc') },
+      { label: t('delayDetails.pourPerformance'), description: t('delayDetails.pourPerformanceDesc') },
+      { label: t('delayDetails.pourDuration'), description: t('delayDetails.pourDurationDesc') },
+      { label: t('delayDetails.pourMinOver'), description: t('delayDetails.pourMinOverDesc') },
+      { label: t('delayDetails.spacing'), description: t('delayDetails.spacingDesc') },
+    ],
+    [t],
+  );
 
   const themeColors = {
     card: isDark ? colors.dark.card : colors.common.white,
@@ -145,7 +126,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
             activeOpacity={0.7}
           >
             <Icon name="ticket-outline" size={ms(14)} color={colors.info.main} />
-            <Text style={[styles.ticketTopLabel, { color: colors.info.main }]}>Ticket</Text>
+            <Text style={[styles.ticketTopLabel, { color: colors.info.main }]}>{t('delayDetails.ticket')}</Text>
             <Text style={[styles.ticketTopValue, { color: colors.info.main }]}>#{item.ticket}</Text>
           </TouchableOpacity>
         )}
@@ -153,21 +134,21 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
 
         <View style={styles.cardInfoRow}>
           <View style={[styles.infoBadge, { backgroundColor: colors.primary.main + '15' }]}>
-            <Text style={[styles.infoLabel, { color: colors.primary.main }]} numberOfLines={1}>Load</Text>
+            <Text style={[styles.infoLabel, { color: colors.primary.main }]} numberOfLines={1}>{t('delayDetails.load')}</Text>
             <Text style={[styles.infoValue, { color: colors.primary.main }]} numberOfLines={1}>{item.load_order}</Text>
           </View>
           {item.load_qty && (
             <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[60] : colors.grey[10] }]}>
-              <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]} numberOfLines={1}>Qty</Text>
+              <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]} numberOfLines={1}>{t('delayDetails.qty')}</Text>
               <Text style={[styles.infoValue, { color: themeColors.text }]} numberOfLines={1}>{item.load_qty}</Text>
             </View>
           )}
           <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[60] : colors.grey[10] }]}>
-            <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]} numberOfLines={1}>Spacing</Text>
+            <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]} numberOfLines={1}>{t('delayDetails.spacing')}</Text>
             <Text style={[styles.infoValue, { color: themeColors.text }]} numberOfLines={1}>{item.spacing} min</Text>
           </View>
           <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[60] : colors.grey[10] }]}>
-            <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{"Pour\nDuration"}</Text>
+            <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{t('delayDetails.pourDurationLabel')}</Text>
             <Text style={[styles.infoValue, { color: themeColors.text }]} numberOfLines={1}>{item.pour_duration !== null ? `${item.pour_duration}` : '--'}</Text>
           </View>
         </View>
@@ -176,19 +157,19 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
         <View style={[styles.timeSection, { borderColor: themeColors.border }]}>
           <View style={styles.timeRow}>
             <View style={styles.timeItem}>
-              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{"Scheduled\nTime"}</Text>
+              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{t('delayDetails.scheduledTimeLabel')}</Text>
               <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.planned_on_job)}</Text>
             </View>
             <View style={styles.timeItem}>
-              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{"Arrived\nTime"}</Text>
+              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{t('delayDetails.arrivedTimeLabel')}</Text>
               <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.actual_on_job)}</Text>
             </View>
             <View style={styles.timeItem}>
-              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{"Begin\nPour"}</Text>
+              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{t('delayDetails.beginPourLabel')}</Text>
               <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.begin_pour)}</Text>
             </View>
             <View style={styles.timeItem}>
-              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{"End\nPour"}</Text>
+              <Text style={[styles.timeLabel, { color: themeColors.textHint }]}>{t('delayDetails.endPourLabel')}</Text>
               <Text style={[styles.timeValue, { color: themeColors.text }]}>{formatTime(item.end_pour)}</Text>
             </View>
           </View>
@@ -197,31 +178,31 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
 
         <View style={styles.metricsRow}>
           <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.producer_delay, isDark) }]}>
-            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{"Producer\nDelay"}</Text>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{t('delayDetails.producerDelayLabel')}</Text>
             <Text style={[styles.metricValue, { color: getDelayColor(item.producer_delay) }]}>
               {item.producer_delay > 0 ? '+' : ''}{item.producer_delay}
             </Text>
           </View>
           <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.contractor_delay, isDark) }]}>
-            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{"Contractor\nDelay"}</Text>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{t('delayDetails.contractorDelayLabel')}</Text>
             <Text style={[styles.metricValue, { color: getDelayColor(item.contractor_delay) }]}>
               {item.contractor_delay > 0 ? '+' : ''}{item.contractor_delay}
             </Text>
           </View>
           <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.waiting_to_pour, isDark) }]}>
-            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{"Waiting\n "}</Text>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{t('delayDetails.waitingLabel')}</Text>
             <Text style={[styles.metricValue, { color: getDelayColor(item.waiting_to_pour) }]}>
               {item.waiting_to_pour}
             </Text>
           </View>
           <View style={[styles.metricItem, { backgroundColor: item.pour_out_minutes !== null && item.pour_out_minutes !== undefined ? getDelayBgColor(item.pour_out_minutes, isDark) : (isDark ? colors.grey[80] : colors.grey[10]) }]}>
-            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{"Pour\nOut"}</Text>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{t('delayDetails.pourOutLabel')}</Text>
             <Text style={[styles.metricValue, { color: item.pour_out_minutes !== null && item.pour_out_minutes !== undefined ? getDelayColor(item.pour_out_minutes) : themeColors.textHint }]}>
               {item.pour_out_minutes !== null && item.pour_out_minutes !== undefined ? item.pour_out_minutes : '--'}
             </Text>
           </View>
           <View style={[styles.metricItem, { backgroundColor: getDelayBgColor(item.pour_min_over, isDark) }]}>
-            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{"Pour\nPerf"}</Text>
+            <Text style={[styles.metricLabel, { color: themeColors.textSecondary }]} numberOfLines={2}>{t('delayDetails.pourPerfLabel')}</Text>
             <Text style={[styles.metricValue, { color: getDelayColor(item.pour_min_over) }]}>
               {item.pour_min_over > 0 ? '+' : ''}{item.pour_min_over}
             </Text>
@@ -237,7 +218,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
           <Icon name="clock-alert-outline" size={ms(20)} color={colors.primary.main} />
-          <Text style={[styles.title, { color: themeColors.text }]}>Order Performance</Text>
+          <Text style={[styles.title, { color: themeColors.text }]}>{t('delayDetails.orderPerformance')}</Text>
           <TouchableOpacity
             style={styles.infoIconButton}
             onPress={() => setShowInfoModal(true)}
@@ -267,7 +248,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
         >
           <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Calculation Details</Text>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>{t('delayDetails.calculationDetails')}</Text>
               <TouchableOpacity onPress={() => setShowInfoModal(false)}>
                 <Icon name="close" size={ms(22)} color={themeColors.textSecondary} />
               </TouchableOpacity>
@@ -301,7 +282,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
           activeOpacity={0.7}
         >
           <Text style={[styles.seeMoreText, { color: colors.primary.main }]}>
-            {showAll ? 'See Less' : `See More (${data.length - 1} more)`}
+            {showAll ? t('delayDetails.seeLess') : t('delayDetails.seeMore', { count: data.length - 1 })}
           </Text>
           <Icon
             name={showAll ? 'chevron-up' : 'chevron-down'}

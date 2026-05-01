@@ -16,6 +16,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect, NavigationProp } from '@react-navigation/native';
 import { Camera, CameraType } from 'react-native-camera-kit';
+import { useTranslation } from 'react-i18next';
 import { Text, Icon } from '../../components/common';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuthStore } from '../../store/authStore';
@@ -34,6 +35,7 @@ const CORNER_THICKNESS = 3;
 const CORNER_RADIUS = ms(14);
 
 export const TicketScanScreen: React.FC = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp<SettingsStackParamList>>();
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
@@ -227,7 +229,7 @@ export const TicketScanScreen: React.FC = () => {
           const result = await verifyQRPayload(data, (user as any)?.userRole);
 
           if (result.status === 'unauthorized') {
-            showErrorSheet('Not Authorized', result.message || 'You are not authorized as a QR user.', 'lock-outline', false);
+            showErrorSheet(t('ticketScan.notAuthorizedTitle'), result.message || t('ticketScan.notAuthorizedMsg'), 'lock-outline', false);
             logoutTimerRef.current = setTimeout(() => {
               logoutTimerRef.current = null;
               useAuthStore.getState().logout();
@@ -236,17 +238,17 @@ export const TicketScanScreen: React.FC = () => {
           }
 
           if (result.status === 'not_found') {
-            showErrorSheet('Ticket Not Found', result.message || 'Ticket not found', 'magnify');
+            showErrorSheet(t('ticketScan.notFoundTitle'), result.message || t('ticketScan.notFoundMsg'), 'magnify');
             return;
           }
 
           if (result.status === 'error') {
-            showErrorSheet('Unable to Scan', result.message || 'Verification failed', 'alert-circle-outline');
+            showErrorSheet(t('ticketScan.unableToScan'), result.message || t('ticketScan.verificationFailed'), 'alert-circle-outline');
             return;
           }
 
           if (result.status === 'offline') {
-            showErrorSheet('No Connection', result.message || 'Network error', 'cloud-off-outline');
+            showErrorSheet(t('ticketScan.noConnection'), result.message || t('errors.network'), 'cloud-off-outline');
             return;
           }
 
@@ -277,10 +279,10 @@ export const TicketScanScreen: React.FC = () => {
           navigation.navigate('ScanDetails', { scan: scanRecord });
         }, 650);
       } catch (err) {
-        showErrorSheet('Something Went Wrong', 'Please try scanning again.', 'alert-circle-outline');
+        showErrorSheet(t('ticketScan.somethingWentWrong'), t('ticketScan.tryScanAgain'), 'alert-circle-outline');
       }
     },
-    [navigation, showFeedback, showErrorSheet, user],
+    [navigation, showFeedback, showErrorSheet, user, t],
   );
 
   const handleBarCodeRead = useCallback((event: any) => {
@@ -415,7 +417,7 @@ export const TicketScanScreen: React.FC = () => {
             {feedbackState === 'processing' && (
               <View style={styles.feedbackCenter}>
                 <ActivityIndicator size="large" color={colors.common.white} />
-                <Text variant="caption" style={styles.feedbackLabel}>Verifying...</Text>
+                <Text variant="caption" style={styles.feedbackLabel}>{t('ticketScan.verifying')}</Text>
               </View>
             )}
 
@@ -433,7 +435,7 @@ export const TicketScanScreen: React.FC = () => {
                 <View style={styles.successCircle}>
                   <Icon name="check" size={ms(30)} color={colors.common.white} />
                 </View>
-                <Text variant="caption" style={styles.feedbackLabel}>Scanned!</Text>
+                <Text variant="caption" style={styles.feedbackLabel}>{t('ticketScan.scanned')}</Text>
               </Animated.View>
             )}
           </View>
@@ -456,7 +458,7 @@ export const TicketScanScreen: React.FC = () => {
               variant="caption"
               style={[styles.flashBtnLabel, flashOn && styles.flashBtnLabelActive]}
             >
-              {flashOn ? 'On' : 'Flash'}
+              {flashOn ? t('ticketScan.flashOn') : t('ticketScan.flash')}
             </Text>
           </TouchableOpacity>
 

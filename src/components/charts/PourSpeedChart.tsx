@@ -24,6 +24,7 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 import { moderateScale as ms } from 'react-native-size-matters';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 
@@ -95,6 +96,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   scrollable = true,
   minPointSpacing = 120,
 }) => {
+  const { t } = useTranslation();
 
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(
     new Set(['ordered', 'delivered', 'poured'])
@@ -195,7 +197,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     {
       key: 'delivered',
       color: isDark ? colors.chart.delivered.dark : colors.chart.delivered.light,
-      label: 'Delivered',
+      label: t('charts.delivered'),
       data: deliveredData,
       marker: 'filledCircle',
       lineType: 'smooth',
@@ -203,7 +205,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     {
       key: 'poured',
       color: colors.chart.poured,
-      label: 'Poured',
+      label: t('charts.poured'),
       data: pouredData,
       marker: 'diamond',
       lineType: 'smooth',
@@ -211,12 +213,12 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     {
       key: 'ordered',
       color: colors.chart.ordered,
-      label: 'Ordered',
+      label: t('charts.ordered'),
       data: orderedData,
       marker: 'filledSquare',
       lineType: 'linear',
     },
-  ], [orderedData, deliveredData, pouredData, isDark]);
+  ], [orderedData, deliveredData, pouredData, isDark, t]);
 
   const seriesWithData = allSeriesConfig.filter(s => s.data.length > 0);
 
@@ -409,7 +411,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Text style={[styles.title, { color: themeColors.text.primary }]}>
-            Pour Speed (CY/HR)
+            {t('charts.pourSpeedTitle')}
           </Text>
           <View style={styles.zoomControls}>
             <TouchableOpacity
@@ -441,14 +443,14 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
           <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
             <Icon name="clock-outline" size={ms(14)} color={colors.info.main} />
             <View style={styles.statTextContainer}>
-              <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Spacing</Text>
+              <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>{t('charts.spacing')}</Text>
               <Text style={[styles.statValue, { color: colors.info.main }]}>{truckSpace} min</Text>
             </View>
           </View>
           <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
             <Icon name="speedometer" size={ms(14)} color={colors.info.main} />
             <View style={styles.statTextContainer}>
-              <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Rate</Text>
+              <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>{t('charts.rate')}</Text>
               <Text style={[styles.statValue, { color: colors.info.main }]}>{scheduleRate} CY/HR</Text>
             </View>
           </View>
@@ -456,7 +458,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
             <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
               <Icon name="calendar-check" size={ms(14)} color={colors.info.main} />
               <View style={styles.statTextContainer}>
-                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Scheduled</Text>
+                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>{t('charts.scheduled')}</Text>
                 <Text style={[styles.statValue, { color: colors.info.main }]}>{scheduledQty.toFixed(2)} CY</Text>
               </View>
             </View>
@@ -646,13 +648,13 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                       </View>
                       {tooltip.loadQty != null && (
                         <View style={[styles.tooltipRow, { marginLeft: ms(12) }]}>
-                          <Text style={styles.tooltipLabel}>Load Qty</Text>
+                          <Text style={styles.tooltipLabel}>{t('charts.loadQty')}</Text>
                           <Text style={styles.tooltipValue}>{tooltip.loadQty.toFixed(2)} CY</Text>
                         </View>
                       )}
                       {tooltip.actualSpacing != null && (
                         <View style={[styles.tooltipRow, { marginLeft: ms(12) }]}>
-                          <Text style={styles.tooltipLabel}>Actual Spacing</Text>
+                          <Text style={styles.tooltipLabel}>{t('charts.actualSpacing')}</Text>
                           <Text style={styles.tooltipValue}>{Math.round(tooltip.actualSpacing)} min</Text>
                         </View>
                       )}
@@ -669,7 +671,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
       {zoomLevel > 1 && (
         <View style={styles.swipeIndicator}>
           <Icon name="gesture-swipe-horizontal" size={ms(16)} color={themeColors.text.hint} />
-          <Text style={[styles.swipeText, { color: themeColors.text.hint }]}>Swipe right to view more</Text>
+          <Text style={[styles.swipeText, { color: themeColors.text.hint }]}>{t('charts.swipeToViewMore')}</Text>
         </View>
       )}
 

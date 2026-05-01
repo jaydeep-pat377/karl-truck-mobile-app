@@ -16,6 +16,7 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CalendarPickerModal from '../../components/common/CalendarPickerModal';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, ScreenContainer, ScreenHeader, Button } from '../../components/common';
 import { colors } from '../../theme/colors';
@@ -162,14 +163,17 @@ const formatDateTime = (dateStr: string | null | undefined): string => {
 
 
 
-const formatDateSeparator = (dateStr: string): string => {
+const formatDateSeparator = (
+  dateStr: string,
+  t: (key: string) => string,
+): string => {
   const d = new Date(dateStr);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today.getTime() - 86400000);
   const messageDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  if (messageDate.getTime() === today.getTime()) return 'Today';
-  if (messageDate.getTime() === yesterday.getTime()) return 'Yesterday';
+  if (messageDate.getTime() === today.getTime()) return t('chat.today');
+  if (messageDate.getTime() === yesterday.getTime()) return t('chat.yesterday');
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 };
 
@@ -370,6 +374,7 @@ interface ProductRowProps {
 }
 
 const ProductRow: React.FC<ProductRowProps> = ({ label, code, name, quantity, slump, notes, isDark }) => {
+  const { t } = useTranslation();
   const textColor = isDark ? colors.dark.text.primary : colors.light.text.primary;
   const secondaryColor = isDark ? colors.dark.text.secondary : colors.light.text.secondary;
   const borderColor = isDark ? colors.orderRequestDetail.product.dark.borderColor : colors.orderRequestDetail.product.light.borderColor;
@@ -394,18 +399,18 @@ const ProductRow: React.FC<ProductRowProps> = ({ label, code, name, quantity, sl
             )}
             {slump ? (
               <Text variant="caption" style={{ color: secondaryColor }}>
-                Slump: {slump} IN
+                {t('orderRequest.slump')}: {slump} IN
               </Text>
             ) : null}
           </View>
           {notes ? (
             <Text variant="caption" style={{ color: secondaryColor, marginTop: ms(4) }} numberOfLines={3}>
-              <Text variant="caption" style={{ fontWeight: '600', color: textColor }}>Note</Text> - {notes}
+              <Text variant="caption" style={{ fontWeight: '600', color: textColor }}>{t('orderRequest.note')}</Text> - {notes}
             </Text>
           ) : null}
         </>
       ) : (
-        <Text variant="bodySmall" style={{ color: secondaryColor }}>Not ordered</Text>
+        <Text variant="bodySmall" style={{ color: secondaryColor }}>{t('orderRequest.notOrdered')}</Text>
       )}
     </View>
   );
@@ -474,6 +479,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
   dateSeparatorText,
   isDark,
 }) => {
+  const { t } = useTranslation();
   const chatColors = colors.orderRequestDetail.chat;
   const chatLight = chatColors.light;
   const ownBubbleBg = chatColors.ownBubbleBg;
@@ -505,7 +511,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
               {message.sender_name}
             </Text>
             <Text variant="captionSmall" style={{ color: roleColor, fontSize: ms(9), marginLeft: ms(4) }}>
-              {ROLE_LABELS[message.sender_role] || message.sender_role}
+              {t(`orderRequest.roles.${message.sender_role}`, { defaultValue: ROLE_LABELS[message.sender_role] || message.sender_role })}
             </Text>
           </View>
           {/* Bubble */}
@@ -595,6 +601,7 @@ interface ConfirmationModalProps {
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ state, onConfirm, onClose, isDark }) => {
+  const { t } = useTranslation();
   const cardBg = isDark ? colors.dark.card : colors.orderRequestDetail.confirmModal.light.cardBg;
   const textColor = isDark ? colors.dark.text.primary : colors.light.text.primary;
   const secondaryColor = isDark ? colors.dark.text.secondary : colors.light.text.secondary;
@@ -636,7 +643,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ state, onConfirm,
               onPress={onClose}
               activeOpacity={0.7}
             >
-              <Text variant="buttonSmall" style={{ color: colors.common.white, fontWeight: '700' }}>OK</Text>
+              <Text variant="buttonSmall" style={{ color: colors.common.white, fontWeight: '700' }}>{t('common.ok')}</Text>
             </TouchableOpacity>
           ) : (
             <View style={confirmStyles.btnRow}>
@@ -646,7 +653,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ state, onConfirm,
                 activeOpacity={0.7}
                 disabled={state.isLoading}
               >
-                <Text variant="buttonSmall" style={{ color: secondaryColor, fontWeight: '600' }}>Cancel</Text>
+                <Text variant="buttonSmall" style={{ color: secondaryColor, fontWeight: '600' }}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[confirmStyles.btn, { backgroundColor: accentColor, flex: 1 }]}
@@ -658,7 +665,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ state, onConfirm,
                   <ActivityIndicator size="small" color="#FFF" />
                 ) : (
                   <Text variant="buttonSmall" style={{ color: colors.common.white, fontWeight: '700' }}>
-                    {state.type === 'accept' ? 'Accept' : 'Reject'}
+                    {state.type === 'accept' ? t('orderRequest.accept') : t('orderRequest.reject')}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -743,6 +750,7 @@ interface OrderStatusDropdownProps {
 }
 
 const OrderStatusDropdown: React.FC<OrderStatusDropdownProps> = ({ value, onChange, isDark }) => {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const inputBg = isDark ? colors.orderRequestDetail.input.dark.bg : colors.orderRequestDetail.input.light.bg;
   const inputBorder = isDark ? colors.orderRequestDetail.input.dark.border : colors.orderRequestDetail.input.light.border;
@@ -751,8 +759,8 @@ const OrderStatusDropdown: React.FC<OrderStatusDropdownProps> = ({ value, onChan
   const modalBorder = isDark ? colors.dark.border : colors.light.border;
 
   const selectedLabel = value !== null && value !== undefined
-    ? ORDER_STATUS_LABELS[value] ?? 'Select'
-    : 'Select';
+    ? ORDER_STATUS_LABELS[value] ?? t('orderRequest.select')
+    : t('orderRequest.select');
 
   return (
     <>
@@ -772,7 +780,7 @@ const OrderStatusDropdown: React.FC<OrderStatusDropdownProps> = ({ value, onChan
         <View style={dropdownStyles.modalOverlay}>
           <View style={[dropdownStyles.modalContainer, { backgroundColor: modalBg }]}>
             <View style={[dropdownStyles.modalHeader, { borderBottomColor: modalBorder }]}>
-              <Text variant="h3" style={{ flex: 1 }}>Select Order Status</Text>
+              <Text variant="h3" style={{ flex: 1 }}>{t('orderRequest.selectOrderStatus')}</Text>
               <TouchableOpacity onPress={() => setVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Icon name="close" size={ms(24)} color={textColor} />
               </TouchableOpacity>
@@ -849,6 +857,7 @@ const dropdownStyles = StyleSheet.create({
 // ===========================================================================
 
 export const OrderRequestDetailScreen: React.FC = () => {
+  const { t } = useTranslation();
   const route = useRoute<OrderRequestDetailRouteProp>();
   const navigation = useNavigation();
   const { isDark } = useTheme();
@@ -926,16 +935,16 @@ export const OrderRequestDetailScreen: React.FC = () => {
   const handleAcceptPress = useCallback(() => {
     if (!order) return;
     if (!orderNumber.trim()) {
-      setConfirmModal({ visible: true, type: 'error', title: 'Validation Error', message: 'Order Number is required to accept this order request.' });
+      setConfirmModal({ visible: true, type: 'error', title: t('orderRequest.validationError'), message: t('orderRequest.orderNumberRequired') });
       return;
     }
     setConfirmModal({
       visible: true,
       type: 'accept',
-      title: 'Accept Order Request',
-      message: 'Are you sure you want to accept this order request?',
+      title: t('orderRequest.acceptTitle'),
+      message: t('orderRequest.acceptConfirm'),
     });
-  }, [order, orderNumber]);
+  }, [order, orderNumber, t]);
 
   const handleAcceptConfirm = useCallback(async () => {
     if (!order) return;
@@ -948,15 +957,15 @@ export const OrderRequestDetailScreen: React.FC = () => {
         on_job_time: verificationTime || undefined,
       });
       await updateStatusMutation.mutateAsync({ id: order.id, status: 'approved' });
-      setConfirmModal({ visible: true, type: 'success', title: 'Accepted', message: 'Order request has been accepted successfully.' });
+      setConfirmModal({ visible: true, type: 'success', title: t('orderRequest.accepted'), message: t('orderRequest.acceptedSuccess') });
       setTimeout(() => {
         setConfirmModal(CONFIRM_INITIAL);
         navigation.goBack();
       }, 3000);
     } catch (err: any) {
-      setConfirmModal({ visible: true, type: 'error', title: 'Error', message: err?.message || 'Failed to accept order request.' });
+      setConfirmModal({ visible: true, type: 'error', title: t('common.error'), message: err?.message || t('orderRequest.acceptFailed') });
     }
-  }, [order, orderNumber, selectedOrderStatus, verificationDate, verificationTime, updateStatusMutation]);
+  }, [order, orderNumber, selectedOrderStatus, verificationDate, verificationTime, updateStatusMutation, t]);
 
   // Reject: show confirmation modal first
   const handleRejectPress = useCallback(() => {
@@ -964,25 +973,25 @@ export const OrderRequestDetailScreen: React.FC = () => {
     setConfirmModal({
       visible: true,
       type: 'reject',
-      title: 'Reject Order Request',
-      message: 'Are you sure you want to reject this order request? This action cannot be undone.',
+      title: t('orderRequest.rejectTitle'),
+      message: t('orderRequest.rejectConfirm'),
     });
-  }, [order]);
+  }, [order, t]);
 
   const handleRejectConfirm = useCallback(async () => {
     if (!order) return;
     setConfirmModal((prev) => ({ ...prev, isLoading: true }));
     try {
       await updateStatusMutation.mutateAsync({ id: order.id, status: 'rejected' });
-      setConfirmModal({ visible: true, type: 'success', title: 'Rejected', message: 'Order request has been rejected.' });
+      setConfirmModal({ visible: true, type: 'success', title: t('orderRequest.rejected'), message: t('orderRequest.rejectedSuccess') });
       setTimeout(() => {
         setConfirmModal(CONFIRM_INITIAL);
         navigation.goBack();
       }, 2000);
     } catch (err: any) {
-      setConfirmModal({ visible: true, type: 'error', title: 'Error', message: err?.message || 'Failed to reject order request.' });
+      setConfirmModal({ visible: true, type: 'error', title: t('common.error'), message: err?.message || t('orderRequest.rejectFailed') });
     }
-  }, [order, updateStatusMutation]);
+  }, [order, updateStatusMutation, t]);
 
   const handleConfirmModalAction = useCallback(() => {
     if (confirmModal.type === 'accept') handleAcceptConfirm();
@@ -1002,20 +1011,20 @@ export const OrderRequestDetailScreen: React.FC = () => {
       });
       setMessageText('');
     } catch (err: any) {
-      setConfirmModal({ visible: true, type: 'error', title: 'Error', message: err?.message || 'Failed to send message.' });
+      setConfirmModal({ visible: true, type: 'error', title: t('common.error'), message: err?.message || t('orderRequest.sendMessageFailed') });
     }
-  }, [messageText, order, user, sendMessageMutation]);
+  }, [messageText, order, user, sendMessageMutation, t]);
 
   // ----- Loading / Error States -----
 
   if (isLoading) {
     return (
       <ScreenContainer edges={[]} usePlainView={false}>
-        <ScreenHeader title="Order Request" showBackButton />
+        <ScreenHeader title={t('orderRequest.title')} showBackButton />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary.main} />
           <Text variant="body" color="secondary" style={{ marginTop: ms(12) }}>
-            Loading order request...
+            {t('orderRequest.loading')}
           </Text>
         </View>
       </ScreenContainer>
@@ -1025,13 +1034,13 @@ export const OrderRequestDetailScreen: React.FC = () => {
   if (isError || !order) {
     return (
       <ScreenContainer edges={[]} usePlainView={false}>
-        <ScreenHeader title="Order Request" showBackButton />
+        <ScreenHeader title={t('orderRequest.title')} showBackButton />
         <View style={styles.centered}>
           <Icon name="alert-circle-outline" size={ms(48)} color={colors.error.main} />
           <Text variant="body" color="secondary" style={{ marginTop: ms(12) }}>
-            Failed to load order request.
+            {t('orderRequest.loadFailed')}
           </Text>
-          <Button title="Retry" variant="primary" onPress={() => refetch()} style={{ marginTop: ms(16) }} />
+          <Button title={t('common.retry')} variant="primary" onPress={() => refetch()} style={{ marginTop: ms(16) }} />
         </View>
       </ScreenContainer>
     );
@@ -1054,7 +1063,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
     return {
       ...msg,
       showDateSeparator: showDateSep,
-      dateSeparatorText: showDateSep ? formatDateSeparator(msg.created_at) : '',
+      dateSeparatorText: showDateSep ? formatDateSeparator(msg.created_at, t) : '',
     };
   });
 
@@ -1062,7 +1071,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
 
   return (
     <ScreenContainer edges={[]} usePlainView={false}>
-      <ScreenHeader title={'Order Request'} showBackButton showRefreshButton isRefreshing={isFetching && !isLoading} onRefresh={() => { refetch(); refetchMessages(); }} />
+      <ScreenHeader title={t('orderRequest.title')} showBackButton showRefreshButton isRefreshing={isFetching && !isLoading} onRefresh={() => { refetch(); refetchMessages(); }} />
 
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
@@ -1082,7 +1091,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                   {orderCode}
                 </Text>
                 <Text variant="caption" style={{ color: secondaryTextColor, marginTop: ms(2) }}>
-                  Created {formatDateTime(order.created_at)}
+                  {t('orderRequest.created')} {formatDateTime(order.created_at)}
                 </Text>
               </View>
               <View
@@ -1095,7 +1104,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                   variant="captionSmall"
                   style={{ color: statusColor, fontWeight: '700' }}
                 >
-                  {STATUS_DISPLAY_LABELS[status] ?? status}
+                  {t(`orderRequest.statusDisplay.${status}`, { defaultValue: STATUS_DISPLAY_LABELS[status] ?? status })}
                 </Text>
               </View>
             </View>
@@ -1121,7 +1130,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                   ) : (
                     <>
                       <Icon name="check-circle" size={ms(18)} color="#FFF" />
-                      <Text variant="buttonSmall" style={styles.actionBtnText}>Accept</Text>
+                      <Text variant="buttonSmall" style={styles.actionBtnText}>{t('orderRequest.accept')}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -1148,7 +1157,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                         variant="buttonSmall"
                         style={[styles.actionBtnText, { color: colors.error.main }]}
                       >
-                        Reject
+                        {t('orderRequest.reject')}
                       </Text>
                     </>
                   )}
@@ -1168,21 +1177,21 @@ export const OrderRequestDetailScreen: React.FC = () => {
                   activeOpacity={0.7}
                 >
                   <Icon name="pencil" size={ms(18)} color="#FFF" />
-                  <Text variant="buttonSmall" style={styles.actionBtnText}>Update</Text>
+                  <Text variant="buttonSmall" style={styles.actionBtnText}>{t('orderRequest.update')}</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Verification Fields — web shows these with the action section */}
               <View style={styles.verificationSection}>
                 <Text variant="bodySmall" style={{ color: secondaryTextColor, fontWeight: '600', marginBottom: ms(10) }}>
-                  Verification Details
+                  {t('orderRequest.verificationDetails')}
                 </Text>
 
                 {/* Row 1: Order Number + Order Status */}
                 <View style={styles.verificationRow}>
                   <View style={[styles.verificationField, { flex: 1, marginRight: ms(8) }]}>
                     <Text variant="captionSmall" style={{ color: secondaryTextColor, marginBottom: ms(4) }}>
-                      Order Number *
+                      {t('orderRequest.orderNumberLabel')}
                     </Text>
                     <TextInput
                       style={[
@@ -1195,13 +1204,13 @@ export const OrderRequestDetailScreen: React.FC = () => {
                       ]}
                       value={orderNumber}
                       onChangeText={setOrderNumber}
-                      placeholder="Enter order #"
+                      placeholder={t('orderRequest.orderNumberPlaceholder')}
                       placeholderTextColor={isDark ? colors.dark.text.hint : colors.light.text.hint}
                     />
                   </View>
                   <View style={[styles.verificationField, { flex: 1 }]}>
                     <Text variant="captionSmall" style={{ color: secondaryTextColor, marginBottom: ms(4) }}>
-                      Verify Order Status
+                      {t('orderRequest.verifyOrderStatus')}
                     </Text>
                     <OrderStatusDropdown
                       value={selectedOrderStatus}
@@ -1215,7 +1224,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                 <View style={[styles.verificationRow, { marginTop: ms(10) }]}>
                   <View style={[styles.verificationField, { flex: 1, marginRight: ms(8) }]}>
                     <Text variant="captionSmall" style={{ color: secondaryTextColor, marginBottom: ms(4) }}>
-                      Verify Order Date
+                      {t('orderRequest.verifyOrderDate')}
                     </Text>
                     <TouchableOpacity
                       style={[
@@ -1235,7 +1244,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                         variant="bodySmall"
                         style={{ color: verificationDate ? textColor : (isDark ? colors.dark.text.hint : colors.light.text.hint) }}
                       >
-                        {verificationDate ? formatDateLocal(verificationDate) : 'Select date'}
+                        {verificationDate ? formatDateLocal(verificationDate) : t('orderRequest.selectDate')}
                       </Text>
                       <Icon name="calendar" size={ms(16)} color={secondaryTextColor} />
                     </TouchableOpacity>
@@ -1245,12 +1254,12 @@ export const OrderRequestDetailScreen: React.FC = () => {
                       onSelect={(date) => setVerificationDate(date)}
                       onClose={() => setShowVerifyDatePicker(false)}
                       isDark={isDark}
-                      title="Verify Order Date"
+                      title={t('orderRequest.verifyOrderDate')}
                     />
                   </View>
                   <View style={[styles.verificationField, { flex: 1 }]}>
                     <Text variant="captionSmall" style={{ color: secondaryTextColor, marginBottom: ms(4) }}>
-                      Verify Arrival Time
+                      {t('orderRequest.verifyArrivalTime')}
                     </Text>
                     <TouchableOpacity
                       style={[
@@ -1270,7 +1279,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                         variant="bodySmall"
                         style={{ color: verificationTime ? textColor : (isDark ? colors.dark.text.hint : colors.light.text.hint) }}
                       >
-                        {verificationTime ? (() => { const [h, m] = verificationTime.split(':').map(Number); const period = h >= 12 ? 'PM' : 'AM'; const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h; return `${h12}:${String(m).padStart(2, '0')} ${period}`; })() : 'Select time'}
+                        {verificationTime ? (() => { const [h, m] = verificationTime.split(':').map(Number); const period = h >= 12 ? 'PM' : 'AM'; const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h; return `${h12}:${String(m).padStart(2, '0')} ${period}`; })() : t('orderRequest.selectTime')}
                       </Text>
                       <Icon name="clock-outline" size={ms(16)} color={secondaryTextColor} />
                     </TouchableOpacity>
@@ -1304,7 +1313,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
             <View style={styles.statsRow}>
               <QuickStatCard
                 icon="clipboard-text-outline"
-                label="Order Status"
+                label={t('orderRequest.orderStatus')}
                 value={
                   order.order_status !== null && order.order_status !== undefined
                     ? ORDER_STATUS_LABELS[order.order_status] || '-'
@@ -1316,7 +1325,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
               <View style={{ width: ms(12) }} />
               <QuickStatCard
                 icon="calendar-month-outline"
-                label="On Job Date"
+                label={t('orderRequest.onJobDate')}
                 value={formatDate(order.on_job_date)}
                 sub={order.on_job_time ? formatTime(order.on_job_time) : undefined}
                 bgColor="#0EA5E9"
@@ -1326,16 +1335,16 @@ export const OrderRequestDetailScreen: React.FC = () => {
             <View style={[styles.statsRow, { marginTop: ms(12) }]}>
               <QuickStatCard
                 icon="truck-outline"
-                label="Truck Rate"
+                label={t('orderRequest.truckRate')}
                 value={truckRate}
-                sub={order.truck_spacing ? `${order.truck_spacing} min spacing` : undefined}
+                sub={order.truck_spacing ? t('orderRequest.minSpacing', { count: order.truck_spacing }) : undefined}
                 bgColor="#14B8A6"
                 isDark={isDark}
               />
               <View style={{ width: ms(12) }} />
               <QuickStatCard
                 icon="package-variant"
-                label="Quantity"
+                label={t('product.quantity')}
                 value={order.quantity ? `${Number(order.quantity).toFixed(2)} CY` : '0.00 CY'}
                 bgColor="#F59E0B"
                 isDark={isDark}
@@ -1345,27 +1354,27 @@ export const OrderRequestDetailScreen: React.FC = () => {
 
           {/* ========== JOB DETAILS ========== */}
           <SectionCard
-            title="Job Details"
+            title={t('orderRequest.jobDetails')}
             icon="briefcase-outline"
             headerColor={colors.secondary.main}
             isDark={isDark}
           >
-            <InfoRow label="Company" value={order.company_name} isDark={isDark} />
-            <InfoRow label="Job Name" value={order.job_name} isDark={isDark} />
-            <InfoRow label="Usage" value={order.usage_name || order.usage_code} isDark={isDark} />
-            <InfoRow label="P.O. #" value={order.po_number} isDark={isDark} />
+            <InfoRow label={t('dashboard.company')} value={order.company_name} isDark={isDark} />
+            <InfoRow label={t('orderRequest.jobName')} value={order.job_name} isDark={isDark} />
+            <InfoRow label={t('orderRequest.usage')} value={order.usage_name || order.usage_code} isDark={isDark} />
+            <InfoRow label={t('orderRequest.poNumber')} value={order.po_number} isDark={isDark} />
           </SectionCard>
 
           {/* ========== JOB LOCATION ========== */}
           <SectionCard
-            title="Job Location"
+            title={t('orderRequest.jobLocation')}
             icon="map-marker-outline"
             headerColor="#14B8A6"
             isDark={isDark}
           >
-            <InfoRow label="Address" value={order.job_address} isDark={isDark} />
+            <InfoRow label={t('orderRequest.address')} value={order.job_address} isDark={isDark} />
             <InfoRow
-              label="City / State / Zip"
+              label={t('orderRequest.cityStateZip')}
               value={
                 [order.job_city, order.job_state, order.job_zip_code]
                   .filter(Boolean)
@@ -1373,29 +1382,29 @@ export const OrderRequestDetailScreen: React.FC = () => {
               }
               isDark={isDark}
             />
-            <InfoRow label="Job Name" value={order.job_name} isDark={isDark} />
+            <InfoRow label={t('orderRequest.jobName')} value={order.job_name} isDark={isDark} />
           </SectionCard>
 
           {/* ========== JOBSITE CONTACT ========== */}
           <SectionCard
-            title="Jobsite Contact"
+            title={t('orderRequest.jobsiteContact')}
             icon="account-outline"
             headerColor="#8B5CF6"
             isDark={isDark}
           >
-            <InfoRow label="Name" value={order.job_contact_name} isDark={isDark} />
-            <InfoRow label="Phone" value={order.job_contact_phone} isDark={isDark} />
+            <InfoRow label={t('orderRequest.name')} value={order.job_contact_name} isDark={isDark} />
+            <InfoRow label={t('profile.phone')} value={order.job_contact_phone} isDark={isDark} />
           </SectionCard>
 
           {/* ========== PRODUCTS ========== */}
           <SectionCard
-            title="Products"
+            title={t('orderRequest.products')}
             icon="cube-outline"
             headerColor="#F59E0B"
             isDark={isDark}
           >
             <ProductRow
-              label="Concrete"
+              label={t('orderRequest.concrete')}
               code={order.concrete_product_code}
               name={order.concrete_product_name}
               quantity={order.quantity}
@@ -1404,14 +1413,14 @@ export const OrderRequestDetailScreen: React.FC = () => {
               isDark={isDark}
             />
             <ProductRow
-              label="Admixture"
+              label={t('orderRequest.admixture')}
               code={order.admixture_product_code}
               name={order.admixture_product_name}
               notes={order.admixture_notes}
               isDark={isDark}
             />
             <ProductRow
-              label="Other"
+              label={t('orderRequest.other')}
               code={order.other_product_code}
               name={order.other_product_name}
               notes={order.other_notes}
@@ -1426,28 +1435,28 @@ export const OrderRequestDetailScreen: React.FC = () => {
               !order.other_product_code &&
               !order.other_product_name && (
                 <Text variant="bodySmall" color="hint" style={{ textAlign: 'center', paddingVertical: ms(12) }}>
-                  No product information provided.
+                  {t('orderRequest.noProducts')}
                 </Text>
               )}
           </SectionCard>
 
           {/* ========== ORDER SUMMARY ========== */}
           <SectionCard
-            title="Order Summary"
+            title={t('orderRequest.orderSummary')}
             icon="text-box-outline"
             headerColor="#6366F1"
             isDark={isDark}
           >
             <View style={[styles.summaryAlert, isDark && styles.summaryAlertDark]}>
               <Text variant="bodySmall" style={{ color: isDark ? colors.orderRequestDetail.summaryAlert.dark.text : colors.orderRequestDetail.summaryAlert.light.text }}>
-                <Text variant="bodySmall" style={{ fontWeight: '700', color: isDark ? colors.orderRequestDetail.summaryAlert.dark.textBold : colors.orderRequestDetail.summaryAlert.light.textBold }}>{creatorName || 'User'}</Text>
-                {' '}placed an Order Request for{' '}
+                <Text variant="bodySmall" style={{ fontWeight: '700', color: isDark ? colors.orderRequestDetail.summaryAlert.dark.textBold : colors.orderRequestDetail.summaryAlert.light.textBold }}>{creatorName || t('orderRequest.user')}</Text>
+                {' '}{t('orderRequest.placedRequestFor')}{' '}
                 <Text variant="bodySmall" style={{ fontWeight: '700', color: isDark ? colors.orderRequestDetail.summaryAlert.dark.textBold : colors.orderRequestDetail.summaryAlert.light.textBold }}>{order.company_name || '—'}</Text>
               </Text>
             </View>
-            <InfoRow label="Request #" value={orderCode} isDark={isDark} />
+            <InfoRow label={t('orderRequest.requestNumber')} value={orderCode} isDark={isDark} />
             <InfoRow
-              label="Order Status"
+              label={t('orderRequest.orderStatus')}
               value={
                 order.order_status !== null && order.order_status !== undefined
                   ? ORDER_STATUS_LABELS[order.order_status] || '-'
@@ -1456,15 +1465,15 @@ export const OrderRequestDetailScreen: React.FC = () => {
               isDark={isDark}
             />
             <InfoRow
-              label="Scheduled"
+              label={t('orderRequest.scheduled')}
               value={
                 `${formatDate(order.on_job_date)} ${order.on_job_time ? formatTime(order.on_job_time) : ''}`.trim() || '-'
               }
               isDark={isDark}
             />
-            <InfoRow label="Job" value={order.job_name} isDark={isDark} />
+            <InfoRow label={t('orderRequest.job')} value={order.job_name} isDark={isDark} />
             <InfoRow
-              label="Address"
+              label={t('orderRequest.address')}
               value={
                 [order.job_address, order.job_city, order.job_state, order.job_zip_code]
                   .filter(Boolean)
@@ -1473,7 +1482,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
               isDark={isDark}
             />
             <InfoRow
-              label="Spacing"
+              label={t('orderRequest.spacing')}
               value={
                 order.truck_spacing
                   ? `${order.truck_spacing} min / ${truckRate}`
@@ -1482,7 +1491,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
               isDark={isDark}
             />
             {order.driver_instructions ? (
-              <InfoRow label="Driver Instructions" value={order.driver_instructions} isDark={isDark} />
+              <InfoRow label={t('orderRequest.driverInstructions')} value={order.driver_instructions} isDark={isDark} />
             ) : null}
           </SectionCard>
 
@@ -1491,7 +1500,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
             <View style={[styles.statusBanner, { backgroundColor: colors.success.main + '15', borderColor: colors.success.main }]}>
               <Icon name="check-circle" size={ms(20)} color={colors.success.main} />
               <Text variant="body" style={{ color: colors.success.main, marginLeft: ms(8), fontWeight: '600', flex: 1 }}>
-                This order request has been accepted
+                {t('orderRequest.bannerAccepted')}
               </Text>
             </View>
           )}
@@ -1499,7 +1508,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
             <View style={[styles.statusBanner, { backgroundColor: colors.error.main + '15', borderColor: colors.error.main }]}>
               <Icon name="close-circle" size={ms(20)} color={colors.error.main} />
               <Text variant="body" style={{ color: colors.error.main, marginLeft: ms(8), fontWeight: '600', flex: 1 }}>
-                This order request has been rejected
+                {t('orderRequest.bannerRejected')}
               </Text>
             </View>
           )}
@@ -1507,7 +1516,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
             <View style={[styles.statusBanner, { backgroundColor: colors.error.main + '15', borderColor: colors.error.main }]}>
               <Icon name="cancel" size={ms(20)} color={colors.error.main} />
               <Text variant="body" style={{ color: colors.error.main, marginLeft: ms(8), fontWeight: '600', flex: 1 }}>
-                This order request has been canceled
+                {t('orderRequest.bannerCanceled')}
               </Text>
             </View>
           )}
@@ -1517,7 +1526,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
             <View style={styles.chatHeader}>
               <Icon name="message-text-outline" size={ms(20)} color={colors.primary.main} />
               <Text variant="bodySmall" style={{ color: textColor, fontWeight: '700', marginLeft: ms(8) }}>
-                Messages
+                {t('chat.title')}
               </Text>
               <Text variant="captionSmall" style={{ color: secondaryTextColor, marginLeft: ms(6) }}>
                 ({messages.length})
@@ -1541,7 +1550,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                 <View style={styles.chatEmpty}>
                   <Icon name="message-outline" size={ms(32)} color={secondaryTextColor} />
                   <Text variant="bodySmall" color="hint" style={{ marginTop: ms(8), textAlign: 'center' }}>
-                    No messages yet. Start the conversation!
+                    {t('orderRequest.noMessagesYet')}
                   </Text>
                 </View>
               ) : (
@@ -1570,7 +1579,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                 ]}
                 value={messageText}
                 onChangeText={setMessageText}
-                placeholder="Type a message..."
+                placeholder={t('chat.messagePlaceholder')}
                 placeholderTextColor={isDark ? colors.dark.text.hint : colors.light.text.hint}
                 multiline
                 maxLength={1000}

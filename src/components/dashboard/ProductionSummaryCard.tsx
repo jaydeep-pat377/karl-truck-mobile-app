@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text, Icon } from '../common';
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
@@ -87,6 +88,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
   onTabChange,
   showRegion = true,
 }) => {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -101,9 +103,9 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
   const [selectedTab, setSelectedTab] = useState<SummaryTabType>(getDefaultTab());
 
   const tabs: { key: SummaryTabType; label: string; count: number }[] = [
-    { key: 'company', label: 'Company', count: companies.length },
-    ...(showRegion ? [{ key: 'region' as SummaryTabType, label: 'Region', count: regions.length }] : []),
-    { key: 'plant', label: 'Plant', count: plants.length },
+    { key: 'company', label: t('dashboard.company'), count: companies.length },
+    ...(showRegion ? [{ key: 'region' as SummaryTabType, label: t('dashboard.region'), count: regions.length }] : []),
+    { key: 'plant', label: t('dashboard.plant'), count: plants.length },
   ];
 
   const handleTabPress = (tab: SummaryTabType) => {
@@ -158,7 +160,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
           </View>
           <View style={[styles.typeLabel, { backgroundColor: getBadgeColor() }]}>
             <Text style={styles.typeLabelText}>
-              {type.charAt(0).toUpperCase() + type.slice(1)}
+              {type === 'company' ? t('dashboard.company') : type === 'region' ? t('dashboard.region') : t('dashboard.plant')}
             </Text>
           </View>
         </View>
@@ -170,7 +172,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
               <Icon name="package-variant" size={ms(16)} color={colors.dashboard.statBlue} />
             </View>
             <View style={styles.statContent}>
-              <Text style={[styles.statLabel, { color: themeColors.text.secondary }]} numberOfLines={1}>Total</Text>
+              <Text style={[styles.statLabel, { color: themeColors.text.secondary }]} numberOfLines={1}>{t('dashboard.total')}</Text>
               <Text style={[styles.statValue, { color: themeColors.text.primary }]} numberOfLines={1}>{item.totalOrders}</Text>
             </View>
           </View>
@@ -180,7 +182,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
               <Icon name="check-circle" size={ms(16)} color={colors.dashboard.statGreen} />
             </View>
             <View style={styles.statContent}>
-              <Text style={[styles.statLabel, { color: themeColors.text.secondary }]} numberOfLines={1}>Active</Text>
+              <Text style={[styles.statLabel, { color: themeColors.text.secondary }]} numberOfLines={1}>{t('common.active')}</Text>
               <Text style={[styles.statValue, { color: themeColors.text.primary }]} numberOfLines={1}>{item.activeOrders}</Text>
             </View>
           </View>
@@ -190,7 +192,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
               <Icon name="close-circle" size={ms(16)} color={colors.dashboard.statRed} />
             </View>
             <View style={styles.statContent}>
-              <Text style={[styles.statLabel, { color: themeColors.text.secondary }]} numberOfLines={1}>Cancelled</Text>
+              <Text style={[styles.statLabel, { color: themeColors.text.secondary }]} numberOfLines={1}>{t('orders.cancelled')}</Text>
               <Text style={[styles.statValue, { color: themeColors.text.primary }]} numberOfLines={1}>{item.cancelledOrders}</Text>
             </View>
           </View>
@@ -199,9 +201,9 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
 
         <View style={styles.productionSection}>
           <View style={styles.productionHeader}>
-            <Text style={[styles.productionTitle, { color: themeColors.text.primary }]}>Production & Delivery</Text>
+            <Text style={[styles.productionTitle, { color: themeColors.text.primary }]}>{t('dashboard.production')}</Text>
             <Text style={[styles.productionQty, { color: themeColors.text.secondary }]} numberOfLines={1}>
-              {formatQty(item.deliveredQty)} OF {formatQty(item.totalQty)} CY
+              {formatQty(item.deliveredQty)} {t('dashboard.of')} {formatQty(item.totalQty)} CY
             </Text>
           </View>
 
@@ -221,7 +223,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
             <View style={styles.deliveredRow}>
               <View style={[styles.deliveredDot, { backgroundColor: colors.dashboard.statGreen }]} />
               <Text style={[styles.deliveredText, { color: themeColors.text.secondary }]}>
-                Delivered: {formatQty(item.deliveredQty)} CY
+                {t('dashboard.delivered')}: {formatQty(item.deliveredQty)} CY
               </Text>
             </View>
             <Text style={[styles.percentText, { color: themeColors.text.primary }]}>{itemProgressPercent}%</Text>

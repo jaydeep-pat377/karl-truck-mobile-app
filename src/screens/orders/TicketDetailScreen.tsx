@@ -18,6 +18,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, TruckLoader, AlertModal } from '../../components/common';
 import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
@@ -414,7 +415,19 @@ interface VerticalTimelineProps {
 }
 
 const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, durations, currentStatus, isDark }) => {
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
+  const stepLabelMap: Record<string, string> = {
+    ticketed: t('tracking.statuses.ticketed'),
+    loading: t('tracking.statuses.loading'),
+    loaded: t('tracking.statuses.loaded'),
+    to_job: t('tracking.statuses.toJob'),
+    at_job: t('tracking.statuses.atJob'),
+    pouring: t('tracking.statuses.pouring'),
+    washing: t('tracking.statuses.washing'),
+    to_plant: t('tracking.statuses.toPlant'),
+    at_plant: t('tracking.statuses.atPlant'),
+  };
   const completedColor = isDark ? colors.primary.light : colors.primary.main;
   const activeColor = isDark ? colors.secondary.light : colors.secondary.main;
   const completedTextColor = isDark ? colors.common.white : colors.grey[80];
@@ -528,7 +541,7 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, duratio
                     { color: isCompleted ? completedTextColor : pendingTextColor },
                     isActive && { fontFamily: fontFamily.semiBold, color: activeColor },
                   ]}>
-                  {step.label}
+                  {stepLabelMap[step.key] || step.label}
                 </Text>
                 {stepTime && (
                   <Text style={[styles.timelineTime, { color: timeTextColor }]}>
@@ -539,7 +552,7 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, duratio
               {isActive && (
                 <View style={styles.activeIndicator}>
                   <View style={[styles.activeDot, { backgroundColor: activeColor }]} />
-                  <Text style={[styles.activeText, { color: activeColor }]}>Current Status</Text>
+                  <Text style={[styles.activeText, { color: activeColor }]}>{t('orders.currentStatus')}</Text>
                 </View>
               )}
               {nextDuration !== null && isCompleted && (
@@ -615,12 +628,13 @@ const DeliveryMetricsCard: React.FC<DeliveryMetricsCardProps> = ({
   idleMinutes,
   isDark,
 }) => {
+  const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
 
   const parseMinutes = (value: string | null): string => {
     if (!value || value === '--') return '--';
     const match = value.match(/(-?\d+)/);
-    return match ? `${match[1]} min` : value;
+    return match ? `${match[1]} ${t('orders.min')}` : value;
   };
 
   const getNumericValue = (value: string | null): number | null => {
@@ -660,31 +674,31 @@ const DeliveryMetricsCard: React.FC<DeliveryMetricsCardProps> = ({
     {
       icon: 'clock-fast',
       value: parseMinutes(spacingMinutes),
-      label: 'Spacing',
+      label: t('orders.spacing'),
       color: isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light,
     },
     {
       icon: 'timer-sand',
       value: parseMinutes(waitingMinutes),
-      label: 'Waiting',
+      label: t('orders.waiting'),
       color: isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light,
     },
     {
       icon: 'speedometer',
       value: parseMinutes(performanceMinutes),
-      label: 'Performance',
+      label: t('orders.performance'),
       color: isDark ? colors.infoIcons.purple.dark : colors.infoIcons.purple.light,
     },
     {
       icon: 'water',
       value: parseMinutes(pourMinutes),
-      label: 'Pour Out',
+      label: t('orders.pourOut'),
       color: isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light,
     },
     {
       icon: 'timer-off',
       value: parseMinutes(idleMinutes),
-      label: 'Idle',
+      label: t('orders.idle'),
       color: isDark ? colors.grey[40] : colors.grey[60],
       valueColor: getIdleColor(),
     },
@@ -711,7 +725,7 @@ const DeliveryMetricsCard: React.FC<DeliveryMetricsCardProps> = ({
         <View style={[styles.deliveryMetricsIconBox, { backgroundColor: `${iconColor}15` }]}>
           <Icon name="chart-timeline-variant" size={ms(18)} color={iconColor} />
         </View>
-        <Text style={[styles.deliveryMetricsTitle, { color: titleColor }]}>Delivery Metrics</Text>
+        <Text style={[styles.deliveryMetricsTitle, { color: titleColor }]}>{t('orders.deliveryMetrics')}</Text>
       </View>
 
       <View style={styles.deliveryMetricsRow}>
@@ -814,6 +828,7 @@ interface VerifiSectionData {
 }
 
 const VerifiDataCard: React.FC<VerifiDataCardProps> = ({ verifiJson, isDark }) => {
+  const { t } = useTranslation();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['summary']));
   const themeColors = isDark ? colors.dark : colors.light;
   const titleColor = isDark ? colors.common.white : colors.grey[80];
@@ -824,11 +839,11 @@ const VerifiDataCard: React.FC<VerifiDataCardProps> = ({ verifiJson, isDark }) =
   const accentColor = isDark ? colors.primary.light : colors.primary.main;
 
   const sections: VerifiSectionData[] = [
-    { key: 'timing', title: 'Timing Events', icon: 'clock-outline', color: isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light },
-    { key: 'slump', title: 'Slump & Age', icon: 'waves', color: isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light },
-    { key: 'temp', title: 'Temperature', icon: 'thermometer', color: isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light },
-    { key: 'mix', title: 'Mix & Water', icon: 'beaker-outline', color: isDark ? colors.infoIcons.purple.dark : colors.infoIcons.purple.light },
-    { key: 'revs', title: 'Drum Revolutions', icon: 'rotate-3d-variant', color: isDark ? colors.success.light : colors.success.main },
+    { key: 'timing', title: t('orders.timingEvents'), icon: 'clock-outline', color: isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light },
+    { key: 'slump', title: t('orders.slumpAndAge'), icon: 'waves', color: isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light },
+    { key: 'temp', title: t('orders.temperature'), icon: 'thermometer', color: isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light },
+    { key: 'mix', title: t('orders.mixAndWater'), icon: 'beaker-outline', color: isDark ? colors.infoIcons.purple.dark : colors.infoIcons.purple.light },
+    { key: 'revs', title: t('orders.drumRevolutions'), icon: 'rotate-3d-variant', color: isDark ? colors.success.light : colors.success.main },
   ];
 
   const toggleSection = (key: string) => {
@@ -934,9 +949,9 @@ const VerifiDataCard: React.FC<VerifiDataCardProps> = ({ verifiJson, isDark }) =
             <Icon name="chart-bar" size={ms(20)} color={accentColor} />
           </View>
           <View style={styles.vfHeaderText}>
-            <Text style={[styles.vfHeaderTitle, { color: titleColor }]}>Verifi Data</Text>
+            <Text style={[styles.vfHeaderTitle, { color: titleColor }]}>{t('orders.verifiData')}</Text>
             <Text style={[styles.vfHeaderSubtitle, { color: labelColor }]}>
-              {verifiJson.ticketNumber || 'Ticket'} • {verifiJson.ticketDate || ''}
+              {verifiJson.ticketNumber || t('orders.ticket')} • {verifiJson.ticketDate || ''}
             </Text>
           </View>
           {verifiJson.truckMode && (
@@ -951,25 +966,25 @@ const VerifiDataCard: React.FC<VerifiDataCardProps> = ({ verifiJson, isDark }) =
           <MetricCard
             icon="package-variant"
             value={formatLoadSize(verifiJson.loadSize)}
-            label="Load Size"
+            label={t('orders.loadSize')}
             color={isDark ? colors.success.light : colors.success.main}
           />
           <MetricCard
             icon="beaker"
             value={verifiJson.mixCodeName || '--'}
-            label="Mix Code"
+            label={t('orders.mixCode')}
             color={isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light}
           />
           <MetricCard
             icon="timer-outline"
             value={verifiJson.startToEndTotalMinutes || '--'}
-            label="Duration"
+            label={t('orders.duration')}
             color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light}
           />
           <MetricCard
             icon="thermometer"
             value={formatTemperature(verifiJson.temperatureAtDischarge)}
-            label="Temp @Discharge"
+            label={t('orders.tempAtDischarge')}
             color={isDark ? colors.error.light : colors.error.main}
           />
         </View>
@@ -990,37 +1005,37 @@ const VerifiDataCard: React.FC<VerifiDataCardProps> = ({ verifiJson, isDark }) =
       {/* Collapsible Sections */}
       <CollapsibleSection section={sections[0]}>
         <View style={styles.vfTimelineContainer}>
-          <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Plant</Text>
-          <StageIndicator label="Ticket Received" value={verifiJson.ticketReceived || '--'} color={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light} />
-          <StageIndicator label="Loading" value={verifiJson.loading || '--'} color={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light} />
-          <StageIndicator label="Loaded" value={verifiJson.loaded || '--'} color={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light} />
-          <StageIndicator label="Leave Plant" value={verifiJson.leavePlant || '--'} color={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light} isLast />
+          <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>{t('orders.plant')}</Text>
+          <StageIndicator label={t('orders.ticketReceived')} value={verifiJson.ticketReceived || '--'} color={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light} />
+          <StageIndicator label={t('orders.loading')} value={verifiJson.loading || '--'} color={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light} />
+          <StageIndicator label={t('orders.loaded')} value={verifiJson.loaded || '--'} color={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light} />
+          <StageIndicator label={t('orders.leavePlant')} value={verifiJson.leavePlant || '--'} color={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light} isLast />
         </View>
         <View style={[styles.vfDivider, { backgroundColor: borderColor }]} />
         <View style={styles.vfTimelineContainer}>
-          <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Job Site</Text>
-          <StageIndicator label="Arrive Site" value={verifiJson.arriveSite || verifiJson.calculatedArriveSite || '--'} color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light} />
-          <StageIndicator label="Begin Pour" value={verifiJson.beginPour || '--'} color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light} />
-          <StageIndicator label="End Pour" value={verifiJson.endPour || '--'} color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light} />
-          <StageIndicator label="Leave Site" value={verifiJson.leaveSite || '--'} color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light} isLast />
+          <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>{t('orders.jobSite')}</Text>
+          <StageIndicator label={t('orders.arriveSite')} value={verifiJson.arriveSite || verifiJson.calculatedArriveSite || '--'} color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light} />
+          <StageIndicator label={t('orders.beginPour')} value={verifiJson.beginPour || '--'} color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light} />
+          <StageIndicator label={t('orders.endPour')} value={verifiJson.endPour || '--'} color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light} />
+          <StageIndicator label={t('orders.leaveSite')} value={verifiJson.leaveSite || '--'} color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light} isLast />
         </View>
         <View style={[styles.vfDivider, { backgroundColor: borderColor }]} />
         <View style={styles.vfTimelineContainer}>
-          <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Return</Text>
-          <StageIndicator label="Return Plant" value={verifiJson.returnPlant || '--'} color={isDark ? colors.success.light : colors.success.main} isLast />
+          <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>{t('orders.return')}</Text>
+          <StageIndicator label={t('orders.returnPlant')} value={verifiJson.returnPlant || '--'} color={isDark ? colors.success.light : colors.success.main} isLast />
         </View>
       </CollapsibleSection>
 
       <CollapsibleSection section={sections[1]}>
-        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Slump Readings</Text>
-        <DataRow label="Target (From Ticket)" value={formatSlump(verifiJson.slumpFromTicket)} highlight />
-        <DataRow label="At Leave Plant" value={formatSlump(verifiJson.slumpAtLeavePlant)} />
-        <DataRow label="At Arrival" value={formatSlump(verifiJson.slumpAtArrival)} />
-        <DataRow label="At Discharge" value={formatSlump(verifiJson.slumpAtDischarge)} />
+        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>{t('orders.slumpReadings')}</Text>
+        <DataRow label={t('orders.targetFromTicket')} value={formatSlump(verifiJson.slumpFromTicket)} highlight />
+        <DataRow label={t('orders.atLeavePlant')} value={formatSlump(verifiJson.slumpAtLeavePlant)} />
+        <DataRow label={t('orders.atArrival')} value={formatSlump(verifiJson.slumpAtArrival)} />
+        <DataRow label={t('orders.atDischarge')} value={formatSlump(verifiJson.slumpAtDischarge)} />
         <View style={[styles.vfDivider, { backgroundColor: borderColor }]} />
-        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Concrete Age</Text>
-        <DataRow label="At Leave Plant" value={formatAge(verifiJson.ageAtLeavePlantMinutes)} />
-        <DataRow label="At Discharge" value={formatAge(verifiJson.ageAtDischargeMinutes)} />
+        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>{t('orders.concreteAge')}</Text>
+        <DataRow label={t('orders.atLeavePlant')} value={formatAge(verifiJson.ageAtLeavePlantMinutes)} />
+        <DataRow label={t('orders.atDischarge')} value={formatAge(verifiJson.ageAtDischargeMinutes)} />
       </CollapsibleSection>
 
       <CollapsibleSection section={sections[2]}>
@@ -1028,37 +1043,37 @@ const VerifiDataCard: React.FC<VerifiDataCardProps> = ({ verifiJson, isDark }) =
           <View style={[styles.vfTempCard, { backgroundColor: cardBgColor }]}>
             <Icon name="factory" size={ms(22)} color={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light} />
             <Text style={[styles.vfTempCardValue, { color: valueColor }]}>{formatTemperature(verifiJson.temperatureAtLeavePlant)}</Text>
-            <Text style={[styles.vfTempCardLabel, { color: labelColor }]}>Leave Plant</Text>
+            <Text style={[styles.vfTempCardLabel, { color: labelColor }]}>{t('orders.leavePlant')}</Text>
           </View>
           <Icon name="chevron-right" size={ms(24)} color={borderColor} />
           <View style={[styles.vfTempCard, { backgroundColor: cardBgColor }]}>
             <Icon name="map-marker-radius" size={ms(22)} color={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light} />
             <Text style={[styles.vfTempCardValue, { color: valueColor }]}>{formatTemperature(verifiJson.temperatureAtArrival)}</Text>
-            <Text style={[styles.vfTempCardLabel, { color: labelColor }]}>Arrival</Text>
+            <Text style={[styles.vfTempCardLabel, { color: labelColor }]}>{t('orders.arrival')}</Text>
           </View>
           <Icon name="chevron-right" size={ms(24)} color={borderColor} />
           <View style={[styles.vfTempCard, { backgroundColor: cardBgColor }]}>
             <Icon name="water" size={ms(22)} color={isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light} />
             <Text style={[styles.vfTempCardValue, { color: valueColor }]}>{formatTemperature(verifiJson.temperatureAtDischarge)}</Text>
-            <Text style={[styles.vfTempCardLabel, { color: labelColor }]}>Discharge</Text>
+            <Text style={[styles.vfTempCardLabel, { color: labelColor }]}>{t('orders.discharge')}</Text>
           </View>
         </View>
       </CollapsibleSection>
 
       <CollapsibleSection section={sections[3]}>
-        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Mix Information</Text>
-        <DataRow label="Mix Code" value={verifiJson.mixCodeName || '--'} highlight />
-        <DataRow label="Instruction" value={verifiJson.instructionName || '--'} />
+        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>{t('orders.mixInformation')}</Text>
+        <DataRow label={t('orders.mixCode')} value={verifiJson.mixCodeName || '--'} highlight />
+        <DataRow label={t('orders.instruction')} value={verifiJson.instructionName || '--'} />
         <View style={[styles.vfDivider, { backgroundColor: borderColor }]} />
-        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Water Additions</Text>
-        <DataRow label="Total Water" value={formatVolume(verifiJson.verifiWaterTotal)} />
-        <DataRow label="At Leave Plant" value={formatVolume(verifiJson.verifiWaterAtLeavePlant)} />
-        <DataRow label="At Arrival" value={formatVolume(verifiJson.verifiWaterAtArrival)} />
-        <DataRow label="At Discharge" value={formatVolume(verifiJson.verifiWaterAtDischarge)} />
+        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>{t('orders.waterAdditions')}</Text>
+        <DataRow label={t('orders.totalWater')} value={formatVolume(verifiJson.verifiWaterTotal)} />
+        <DataRow label={t('orders.atLeavePlant')} value={formatVolume(verifiJson.verifiWaterAtLeavePlant)} />
+        <DataRow label={t('orders.atArrival')} value={formatVolume(verifiJson.verifiWaterAtArrival)} />
+        <DataRow label={t('orders.atDischarge')} value={formatVolume(verifiJson.verifiWaterAtDischarge)} />
         <View style={[styles.vfDivider, { backgroundColor: borderColor }]} />
-        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Admix Volumes</Text>
-        <DataRow label="Total" value={formatVolume(verifiJson.admixTotal)} />
-        <DataRow label="At Discharge" value={formatVolume(verifiJson.admixAtDischarge)} />
+        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>{t('orders.admixVolumes')}</Text>
+        <DataRow label={t('orders.total')} value={formatVolume(verifiJson.admixTotal)} />
+        <DataRow label={t('orders.atDischarge')} value={formatVolume(verifiJson.admixAtDischarge)} />
       </CollapsibleSection>
 
       <CollapsibleSection section={sections[4]}>
@@ -1067,32 +1082,33 @@ const VerifiDataCard: React.FC<VerifiDataCardProps> = ({ verifiJson, isDark }) =
             <View style={[styles.vfRevsCircle, { borderColor: isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light }]}>
               <Text style={[styles.vfRevsNumber, { color: valueColor }]}>{verifiJson.totalRevsAtLeavePlant || '0'}</Text>
             </View>
-            <Text style={[styles.vfRevsLabel, { color: labelColor }]}>Leave Plant</Text>
+            <Text style={[styles.vfRevsLabel, { color: labelColor }]}>{t('orders.leavePlant')}</Text>
           </View>
           <View style={[styles.vfRevsCard, { backgroundColor: cardBgColor }]}>
             <View style={[styles.vfRevsCircle, { borderColor: isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light }]}>
               <Text style={[styles.vfRevsNumber, { color: valueColor }]}>{verifiJson.totalRevsAtArrival || '0'}</Text>
             </View>
-            <Text style={[styles.vfRevsLabel, { color: labelColor }]}>Arrival</Text>
+            <Text style={[styles.vfRevsLabel, { color: labelColor }]}>{t('orders.arrival')}</Text>
           </View>
           <View style={[styles.vfRevsCard, { backgroundColor: cardBgColor }]}>
             <View style={[styles.vfRevsCircle, { borderColor: isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light }]}>
               <Text style={[styles.vfRevsNumber, { color: valueColor }]}>{verifiJson.totalRevsAtDischarge || '0'}</Text>
             </View>
-            <Text style={[styles.vfRevsLabel, { color: labelColor }]}>Discharge</Text>
+            <Text style={[styles.vfRevsLabel, { color: labelColor }]}>{t('orders.discharge')}</Text>
           </View>
         </View>
         <View style={[styles.vfDivider, { backgroundColor: borderColor }]} />
-        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>Since Loaded</Text>
-        <DataRow label="At Leave Plant" value={verifiJson.totalRevsSinceLoadedAtLeavePlant || '--'} />
-        <DataRow label="At Arrival" value={verifiJson.totalRevsSinceLoadedAtArrival || '--'} />
-        <DataRow label="At Discharge" value={verifiJson.totalRevsSinceLoadedAtDischarge || '--'} />
+        <Text style={[styles.vfSubsectionTitle, { color: titleColor }]}>{t('orders.sinceLoaded')}</Text>
+        <DataRow label={t('orders.atLeavePlant')} value={verifiJson.totalRevsSinceLoadedAtLeavePlant || '--'} />
+        <DataRow label={t('orders.atArrival')} value={verifiJson.totalRevsSinceLoadedAtArrival || '--'} />
+        <DataRow label={t('orders.atDischarge')} value={verifiJson.totalRevsSinceLoadedAtDischarge || '--'} />
       </CollapsibleSection>
     </View>
   );
 };
 
 export const TicketDetailScreen: React.FC = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<TicketDetailRouteProp>();
   const { isDark } = useTheme();
@@ -1246,6 +1262,24 @@ export const TicketDetailScreen: React.FC = () => {
 
   const resolvedStatusColor = passedStatusColor || statusConfigMap[currentStatus]?.color || getHeaderBadgeColors(currentStatus, isDark).textColor;
   const currentStatusColor = resolvedStatusColor;
+  const translatedStatusLabel = (key: ApiTicketStatus): string => {
+    const labelMap: Record<ApiTicketStatus, string> = {
+      pending: t('tracking.statuses.pending'),
+      ticketed: t('tracking.statuses.ticketed'),
+      loading: t('tracking.statuses.loading'),
+      loaded: t('tracking.statuses.loaded'),
+      to_job: t('tracking.statuses.toJob'),
+      at_job: t('tracking.statuses.atJob'),
+      pouring: t('tracking.statuses.pouring'),
+      poured: t('tracking.statuses.poured'),
+      washing: t('tracking.statuses.washing'),
+      to_plant: t('tracking.statuses.toPlant'),
+      at_plant: t('tracking.statuses.atPlant'),
+      cancelled: t('tracking.statuses.cancelled'),
+      voided: t('tracking.statuses.voided'),
+    };
+    return (labelMap[key] || statusInfo.label).toUpperCase();
+  };
   const headerBadgeColors = {
     bgColor: `${resolvedStatusColor}${isDark ? '20' : '15'}`,
     textColor: resolvedStatusColor,
@@ -1278,9 +1312,9 @@ export const TicketDetailScreen: React.FC = () => {
     if (driverPhone) {
       Linking.openURL(`tel:${driverPhone}`);
     } else {
-      showWarning('Phone Not Available', 'Driver phone number is not available for this ticket.');
+      showWarning(t('orders.errors.phoneNotAvailableTitle'), t('orders.errors.driverPhoneNotAvailable'));
     }
-  }, [driverPhone, showWarning]);
+  }, [driverPhone, showWarning, t]);
 
   const handleTrackTruck = useCallback(() => {
     if (orderId) {
@@ -1290,22 +1324,22 @@ export const TicketDetailScreen: React.FC = () => {
       });
     } else {
       showWarning(
-        'Order Unavailable',
-        'Order information is not available at the moment. Please try again later.'
+        t('orders.errors.orderUnavailableTitle'),
+        t('orders.errors.orderUnavailableMessage')
       );
     }
-  }, [orderId, apiTicketCode, navigation, showWarning]);
+  }, [orderId, apiTicketCode, navigation, showWarning, t]);
 
   const handleGetDirections = useCallback(() => {
     if (truckLatitude && truckLongitude) {
       setShowDirectionsMenu(true);
     } else {
       showWarning(
-        'Location Unavailable',
-        'Truck location coordinates are not available at the moment. The truck may not have GPS data or the location service is temporarily unavailable. Please try again later.'
+        t('orders.errors.locationUnavailableTitle'),
+        t('orders.errors.truckLocationUnavailable')
       );
     }
-  }, [truckLatitude, truckLongitude, showWarning]);
+  }, [truckLatitude, truckLongitude, showWarning, t]);
 
   const handleShowQRCode = useCallback(() => {
     setShowQRCodeModal(true);
@@ -1435,13 +1469,13 @@ export const TicketDetailScreen: React.FC = () => {
               <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
             </TouchableOpacity>
             <View style={styles.headerTitleSection}>
-              <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>Ticket</Text>
+              <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>{t('orders.ticket')}</Text>
             </View>
             <View style={styles.headerBtnPlaceholder} />
           </View>
         </View>
         <View style={styles.loadingContainer} pointerEvents="box-none">
-          <TruckLoader size={120} message="Loading ticket details..." color={isDark ? 'light' : 'dark'} />
+          <TruckLoader size={120} message={t('orders.loadingTicketDetails')} color={isDark ? 'light' : 'dark'} />
         </View>
       </View>
     );
@@ -1453,10 +1487,10 @@ export const TicketDetailScreen: React.FC = () => {
     const iconColor = isNoData
       ? (isDark ? colors.grey[40] : colors.grey[50])
       : (isDark ? colors.error.light : colors.error.main);
-    const title = isNoData ? 'No Ticket Data' : 'Something Went Wrong';
+    const title = isNoData ? t('orders.errors.noTicketDataTitle') : t('orders.errors.somethingWentWrong');
     const message = isNoData
-      ? 'The ticket information is not available at the moment. Please try again later.'
-      : (error || 'Failed to load ticket details');
+      ? t('orders.errors.ticketInfoUnavailable')
+      : (error || t('orders.errors.loadTicketFailed'));
 
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -1472,7 +1506,7 @@ export const TicketDetailScreen: React.FC = () => {
               <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
             </TouchableOpacity>
             <View style={styles.headerTitleSection}>
-              <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>Ticket</Text>
+              <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>{t('orders.ticket')}</Text>
             </View>
             <View style={styles.headerBtnPlaceholder} />
           </View>
@@ -1501,7 +1535,7 @@ export const TicketDetailScreen: React.FC = () => {
               onPress={() => refetch()}
               activeOpacity={0.8}>
               <Icon name="refresh" size={ms(18)} color={colors.common.white} />
-              <Text style={styles.retryBtnText}>Try Again</Text>
+              <Text style={styles.retryBtnText}>{t('orders.tryAgain')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -1516,7 +1550,7 @@ export const TicketDetailScreen: React.FC = () => {
               activeOpacity={0.8}>
               <Icon name="arrow-left" size={ms(18)} color={isDark ? colors.common.white : colors.grey[60]} />
               <Text style={[styles.goBackBtnText, { color: isDark ? colors.common.white : colors.grey[60] }]}>
-                Go Back
+                {t('common.back')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1540,7 +1574,7 @@ export const TicketDetailScreen: React.FC = () => {
             <Icon name="arrow-left" size={ms(22)} color={themeColors.text.primary} />
           </TouchableOpacity>
           <View style={styles.headerTitleSection}>
-            <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>Ticket</Text>
+            <Text style={[styles.headerTitle, { color: themeColors.text.primary }]}>{t('orders.ticket')}</Text>
           </View>
           <View style={styles.headerIconRight}>
             <ConcreteTruck width={ms(40)} height={ms(40)} color={themeColors.text.primary} />
@@ -1558,7 +1592,7 @@ export const TicketDetailScreen: React.FC = () => {
           <View style={styles.headerCardOrderInfo}>
             {apiOrderCode && (
               <Text style={[styles.headerCardOrderCode, { color: themeColors.text.secondary }]}>
-                Order {apiOrderCode}
+                {t('orders.order')} {apiOrderCode}
               </Text>
             )}
             {(customerName || projectName) && (
@@ -1582,7 +1616,7 @@ export const TicketDetailScreen: React.FC = () => {
             <AppText
               numberOfLines={1}
               style={[styles.headerCardStatusText, { color: headerBadgeColors.textColor }]}>
-              {statusInfo.label}
+              {translatedStatusLabel(currentStatus)}
             </AppText>
           </View>
         </View>
@@ -1592,7 +1626,7 @@ export const TicketDetailScreen: React.FC = () => {
           <View style={styles.headerCardInfoRow}>
             {isCancelled && removeReasonCode && (
               <Text style={[styles.headerCardInfoText, { color: themeColors.text.secondary }]}>
-                Code: {removeReasonCode}
+                {t('orders.code')}: {removeReasonCode}
               </Text>
             )}
             {isAtPlant && timestamps.atPlant && (
@@ -1770,7 +1804,7 @@ export const TicketDetailScreen: React.FC = () => {
                 <Text
                   style={[styles.headerCardWeatherDescText, { color: themeColors.text.secondary }]}
                   numberOfLines={1}>
-                  {weatherData.weather_description || 'Partly cloudy'}
+                  {weatherData.weather_description || t('weather.conditions.partlyCloudy')}
                 </Text>
                 {weatherData.temperature_fahrenheit != null && (
                   <>
@@ -1784,7 +1818,7 @@ export const TicketDetailScreen: React.FC = () => {
                   <>
                     <View style={[styles.headerCardWeatherDot, { backgroundColor: themeColors.text.hint }]} />
                     <Text style={[styles.headerCardWeatherInfoText, { color: themeColors.text.secondary }]}>
-                      {weatherData.wind_speed_mph ?? weatherData.wind_speed} mph
+                      {weatherData.wind_speed_mph ?? weatherData.wind_speed} {t('units.mph')}
                     </Text>
                   </>
                 )}
@@ -1792,7 +1826,7 @@ export const TicketDetailScreen: React.FC = () => {
                   <>
                     <View style={[styles.headerCardWeatherDot, { backgroundColor: themeColors.text.hint }]} />
                     <Text style={[styles.headerCardWeatherInfoText, { color: themeColors.text.secondary }]}>
-                      {weatherData.humidity}% RH
+                      {weatherData.humidity}% {t('orders.relativeHumidity')}
                     </Text>
                   </>
                 )}
@@ -1837,7 +1871,7 @@ export const TicketDetailScreen: React.FC = () => {
               <>
                 <Icon name="weather-cloudy" size={ms(16)} color={themeColors.text.hint} />
                 <Text style={[styles.headerCardWeatherDescText, { color: isDark ? '#60A5FA' : '#2563EB' }]}>
-                  {weatherLoading ? 'Fetching...' : 'Evaporate'}
+                  {weatherLoading ? t('orders.fetching') : t('orders.evaporate')}
                 </Text>
                 {weatherLoading && <ActivityIndicator size="small" color={isDark ? '#60A5FA' : '#2563EB'} />}
               </>
@@ -1851,7 +1885,7 @@ export const TicketDetailScreen: React.FC = () => {
       <View style={[styles.quickActionsRow, styles.quickActionsFixed, { backgroundColor: themeColors.background }]}>
         <QuickAction
           icon="map-marker-radius"
-          label="Track"
+          label={t('orders.track')}
           color={accentColor}
           onPress={handleTrackTruck}
           isDark={isDark}
@@ -1859,14 +1893,14 @@ export const TicketDetailScreen: React.FC = () => {
         />
         <QuickAction
           icon="qrcode"
-          label="QR Code"
+          label={t('orders.qrCode')}
           color={isDark ? colors.success.light : colors.success.main}
           onPress={handleShowQRCode}
           isDark={isDark}
         />
         <QuickAction
           icon="refresh"
-          label="Refresh"
+          label={t('orders.refresh')}
           color={isDark ? colors.secondary.light : colors.secondary.main}
           onPress={() => refetch()}
           isDark={isDark}
@@ -1906,7 +1940,7 @@ export const TicketDetailScreen: React.FC = () => {
               <View style={styles.progressTitleRow}>
                 <Icon name="package-variant" size={ms(18)} color={accentColor} />
                 <Text style={[styles.progressCardTitle, { color: isDark ? colors.common.white : colors.grey[80] }]}>
-                  Load Details
+                  {t('orders.loadDetails')}
                 </Text>
               </View>
               <View style={[styles.progressBadge, { backgroundColor: `${currentStatusColor}20` }]}>
@@ -1920,7 +1954,7 @@ export const TicketDetailScreen: React.FC = () => {
                   {runningQty.toFixed(2)}
                 </Text>
                 <Text style={[styles.loadStatLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
-                  Running (CY)
+                  {t('orders.runningCy')}
                 </Text>
               </View>
               <View style={[styles.loadStatDivider, { backgroundColor: isDark ? themeColors.border : colors.grey[15] }]} />
@@ -1929,7 +1963,7 @@ export const TicketDetailScreen: React.FC = () => {
                   {orderedQty}
                 </Text>
                 <Text style={[styles.loadStatLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
-                  Ordered (CY)
+                  {t('orders.orderedCy')}
                 </Text>
               </View>
               <View style={[styles.loadStatDivider, { backgroundColor: isDark ? themeColors.border : colors.grey[15] }]} />
@@ -1938,7 +1972,7 @@ export const TicketDetailScreen: React.FC = () => {
                   {Math.max(orderedQty - runningQty, 0).toFixed(2)}
                 </Text>
                 <Text style={[styles.loadStatLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
-                  Remaining (CY)
+                  {t('orders.remainingCy')}
                 </Text>
               </View>
             </View>
@@ -1952,7 +1986,7 @@ export const TicketDetailScreen: React.FC = () => {
             <View style={[styles.loadInfoRow, { borderTopColor: isDark ? themeColors.border : colors.grey[15] }]}>
               <View style={[styles.loadInfoItem, { flex: 1 }]}>
                 <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
-                  Load
+                  {t('orders.load')}
                 </Text>
                 <Text style={[styles.loadInfoValue, { color: isDark ? colors.common.white : colors.grey[85] }]}>
                   {loadNumber || '-'}
@@ -1960,7 +1994,7 @@ export const TicketDetailScreen: React.FC = () => {
               </View>
               <View style={[styles.loadInfoItem, { flex: 1 }]}>
                 <Text style={[styles.loadInfoLabel, { color: isDark ? colors.grey[40] : colors.grey[60] }]}>
-                  Amount
+                  {t('orders.amount')}
                 </Text>
                 <Text
                   style={[styles.loadInfoValue, { color: isDark ? colors.common.white : colors.grey[85] }]}
@@ -1973,26 +2007,26 @@ export const TicketDetailScreen: React.FC = () => {
 
           {productInfo && (
             <SectionCard
-              title="Product Information"
+              title={t('orders.productInformation')}
               icon="beaker-outline"
               iconColor={isDark ? colors.infoIcons.cyan.dark : colors.infoIcons.cyan.light}
               isDark={isDark}>
-              <DetailRow label="Item Code" value={productInfo.code} isDark={isDark} />
-              <DetailRow label="Description" value={productInfo.name} isDark={isDark} />
-              <DetailRow label="Type" value={productInfo.isMix ? 'Mix Design' : 'Product'} isDark={isDark} isLast={!loadQty} />
+              <DetailRow label={t('orders.itemCode')} value={productInfo.code} isDark={isDark} />
+              <DetailRow label={t('orders.description')} value={productInfo.name} isDark={isDark} />
+              <DetailRow label={t('orders.type')} value={productInfo.isMix ? t('orders.mixDesign') : t('orders.product')} isDark={isDark} isLast={!loadQty} />
               {loadQty !== undefined && loadQty !== null && (
-                <DetailRow label="Load Amount" value={`${loadQty} CY`} isDark={isDark} isLast />
+                <DetailRow label={t('orders.loadAmount')} value={`${loadQty} CY`} isDark={isDark} isLast />
               )}
             </SectionCard>
           )}
 
           <SectionCard
-            title="Delivery Location"
+            title={t('orders.deliveryLocation')}
             icon="map-marker"
             iconColor={isDark ? colors.error.light : colors.error.main}
             isDark={isDark}>
-            <DetailRow label="Address" value={deliveryAddress} isDark={isDark} />
-            <DetailRow label="Customer" value={customerName} isDark={isDark} isLast />
+            <DetailRow label={t('orders.address')} value={deliveryAddress} isDark={isDark} />
+            <DetailRow label={t('orders.customer')} value={customerName} isDark={isDark} isLast />
 
             <View
               style={[
@@ -2013,25 +2047,25 @@ export const TicketDetailScreen: React.FC = () => {
           </SectionCard>
 
           <SectionCard
-            title="Truck & Driver"
+            title={t('orders.truckAndDriver')}
             icon="truck"
             iconColor={isDark ? colors.infoIcons.orange.dark : colors.infoIcons.orange.light}
             isDark={isDark}>
-            <DetailRow label="Truck Code" value={truckCode} isDark={isDark} />
-            <DetailRow label="Description" value={truckDescription} isDark={isDark} />
-            <DetailRow label="Driver Code" value={driverCode} isDark={isDark} />
-            <DetailRow label="Driver Phone" value={driverPhone} isDark={isDark} isLast />
+            <DetailRow label={t('orders.truckCode')} value={truckCode} isDark={isDark} />
+            <DetailRow label={t('orders.description')} value={truckDescription} isDark={isDark} />
+            <DetailRow label={t('orders.driverCode')} value={driverCode} isDark={isDark} />
+            <DetailRow label={t('orders.driverPhone')} value={driverPhone} isDark={isDark} isLast />
           </SectionCard>
 
           <SectionCard
-            title="Plant Information"
+            title={t('orders.plantInformation')}
             icon="domain"
             iconColor={isDark ? colors.infoIcons.purple.dark : colors.infoIcons.purple.light}
             isDark={isDark}>
-            <DetailRow label="Plant" value={plantName} isDark={isDark} />
-            <DetailRow label="Code" value={plantCode} isDark={isDark} />
-            <DetailRow label="Address" value={plantAddress} isDark={isDark} />
-            <DetailRow label="Phone" value={plantPhone} isDark={isDark} isLast />
+            <DetailRow label={t('orders.plant')} value={plantName} isDark={isDark} />
+            <DetailRow label={t('orders.code')} value={plantCode} isDark={isDark} />
+            <DetailRow label={t('orders.address')} value={plantAddress} isDark={isDark} />
+            <DetailRow label={t('orders.phone')} value={plantPhone} isDark={isDark} isLast />
           </SectionCard>
 
           <DeliveryMetricsCard
@@ -2048,7 +2082,7 @@ export const TicketDetailScreen: React.FC = () => {
           )}
 
           <SectionCard
-            title="Delivery Timeline"
+            title={t('orders.deliveryTimeline')}
             icon="timeline-clock"
             iconColor={isDark ? colors.infoIcons.blue.dark : colors.infoIcons.blue.light}
             isDark={isDark}>
@@ -2091,7 +2125,7 @@ export const TicketDetailScreen: React.FC = () => {
             </View>
 
             <Text style={[styles.directionsMenuTitle, { color: themeColors.text.primary }]}>
-              Open Location In
+              {t('orders.openLocationIn')}
             </Text>
 
             <View style={styles.directionsMenuOptions}>
@@ -2105,10 +2139,10 @@ export const TicketDetailScreen: React.FC = () => {
                 </View>
                 <View style={styles.directionsMenuItemText}>
                   <Text style={[styles.directionsMenuItemTitle, { color: themeColors.text.primary }]}>
-                    Track in App
+                    {t('orders.trackInApp')}
                   </Text>
                   <Text style={[styles.directionsMenuItemSubtitle, { color: themeColors.text.secondary }]}>
-                    View truck location in the app
+                    {t('orders.viewTruckLocationInApp')}
                   </Text>
                 </View>
                 <Icon name="chevron-right" size={ms(20)} color={themeColors.text.hint} />
@@ -2124,12 +2158,12 @@ export const TicketDetailScreen: React.FC = () => {
                 </View>
                 <View style={styles.directionsMenuItemText}>
                   <Text style={[styles.directionsMenuItemTitle, { color: themeColors.text.primary }]}>
-                    Google Maps
+                    {t('orders.googleMaps')}
                   </Text>
                   <Text style={[styles.directionsMenuItemSubtitle, { color: themeColors.text.secondary }]}>
                     {orderLocationLatitude && orderLocationLongitude
-                      ? 'Get directions to job site'
-                      : 'View truck location'}
+                      ? t('orders.getDirectionsToJobSite')
+                      : t('orders.viewTruckLocation')}
                   </Text>
                 </View>
                 <Icon name="chevron-right" size={ms(20)} color={themeColors.text.hint} />
@@ -2146,12 +2180,12 @@ export const TicketDetailScreen: React.FC = () => {
                   </View>
                   <View style={styles.directionsMenuItemText}>
                     <Text style={[styles.directionsMenuItemTitle, { color: themeColors.text.primary }]}>
-                      Apple Maps
+                      {t('orders.appleMaps')}
                     </Text>
                     <Text style={[styles.directionsMenuItemSubtitle, { color: themeColors.text.secondary }]}>
                       {orderLocationLatitude && orderLocationLongitude
-                        ? 'Get directions to job site'
-                        : 'View truck location'}
+                        ? t('orders.getDirectionsToJobSite')
+                        : t('orders.viewTruckLocation')}
                     </Text>
                   </View>
                   <Icon name="chevron-right" size={ms(20)} color={themeColors.text.hint} />
@@ -2165,7 +2199,7 @@ export const TicketDetailScreen: React.FC = () => {
               activeOpacity={0.7}
             >
               <Text style={[styles.directionsMenuCancelText, { color: colors.error.main }]}>
-                Cancel
+                {t('common.cancel')}
               </Text>
             </TouchableOpacity>
 
