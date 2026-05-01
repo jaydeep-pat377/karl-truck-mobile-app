@@ -143,6 +143,7 @@ const SearchableDropdownModal: React.FC<SearchableDropdownModalProps> = ({
   onMultiSelect,
 }) => {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [localSelected, setLocalSelected] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const themeColors = isDark ? colors.dark : colors.light;
@@ -217,7 +218,8 @@ const SearchableDropdownModal: React.FC<SearchableDropdownModalProps> = ({
               placeholderTextColor={themeColors.text.hint}
               value={search}
               onChangeText={handleSearchChange}
-              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={() => Keyboard.dismiss()}
             />
           </View>
 
@@ -287,11 +289,13 @@ const SearchableDropdownModal: React.FC<SearchableDropdownModalProps> = ({
               </View>
             }
             style={{ maxHeight: Dimensions.get('window').height * 0.5 }}
+            contentContainerStyle={{ paddingBottom: Platform.OS === 'android' ? ms(35) + (insets.bottom || 0) : 0 }}
           />
 
           {/* Done button for multi-select */}
           {multiSelect && (
-            <View style={{ padding: ms(12), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: themeColors.border }}>
+            <View style={{ padding: ms(12), 
+            paddingBottom: Platform.OS === 'android' ? ms(35) + (insets.bottom || 0) : ms(12), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: themeColors.border }}>
               <TouchableOpacity
                 style={{ backgroundColor: colors.primary.main, borderRadius: ms(10), paddingVertical: ms(12), alignItems: 'center' }}
                 onPress={() => {
@@ -1349,6 +1353,8 @@ export const CreateOrderRequestScreen: React.FC = () => {
       numberOfLines={options?.multiline ? 4 : 1}
       textAlignVertical={options?.multiline ? 'top' : 'center'}
       keyboardType={options?.keyboardType}
+      returnKeyType={options?.multiline ? 'default' : 'done'}
+      onSubmitEditing={options?.multiline ? undefined : () => Keyboard.dismiss()}
     />
   );
 
@@ -2139,7 +2145,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: ms(20),
     borderTopRightRadius: ms(20),
     maxHeight: '85%',
-    paddingBottom: TAB_BAR_HEIGHT,
   },
   modalHeader: {
     flexDirection: 'row',
