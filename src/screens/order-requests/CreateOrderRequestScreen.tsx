@@ -806,18 +806,36 @@ export const CreateOrderRequestScreen: React.FC = () => {
     [formData],
   );
 
+  // Temp date for iOS time picker (committed on Done)
+  const [tempTime, setTempTime] = useState<Date>(new Date());
+
   // Time picker handler
   const handleTimeChange = useCallback(
     (_event: DateTimePickerEvent, selectedDate?: Date) => {
-      setShowTimePicker(Platform.OS === 'ios');
-      if (selectedDate) {
-        const hours = String(selectedDate.getHours()).padStart(2, '0');
-        const minutes = String(selectedDate.getMinutes()).padStart(2, '0');
-        setOnJobTime(`${hours}:${minutes}`);
+      if (Platform.OS === 'android') {
+        setShowTimePicker(false);
+        if (selectedDate) {
+          const hours = String(selectedDate.getHours()).padStart(2, '0');
+          const minutes = String(selectedDate.getMinutes()).padStart(2, '0');
+          setOnJobTime(`${hours}:${minutes}`);
+        }
+      } else if (selectedDate) {
+        setTempTime(selectedDate);
       }
     },
     [],
   );
+
+  const handleTimePickerDone = useCallback(() => {
+    const hours = String(tempTime.getHours()).padStart(2, '0');
+    const minutes = String(tempTime.getMinutes()).padStart(2, '0');
+    setOnJobTime(`${hours}:${minutes}`);
+    setShowTimePicker(false);
+  }, [tempTime]);
+
+  const handleTimePickerCancel = useCallback(() => {
+    setShowTimePicker(false);
+  }, []);
 
   // Auto-compose Concrete Product text from PSI, Rock Size, Air/Non-air, Fly Ash (matches web)
   React.useEffect(() => {
@@ -1592,7 +1610,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
                 </Text>
                 <Icon name="clock-outline" size={ms(20)} color={themeColors.text.hint} />
               </TouchableOpacity>
-              {showTimePicker && (
+              {showTimePicker && Platform.OS === 'android' && (
                 <DateTimePicker
                   value={
                     onJobTime
@@ -1600,7 +1618,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
                       : new Date()
                   }
                   mode="time"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  display="default"
                   onChange={handleTimeChange}
                 />
               )}
@@ -1923,6 +1941,50 @@ export const CreateOrderRequestScreen: React.FC = () => {
         onClose={() => setThemedAlert(ALERT_INITIAL)}
         isDark={isDark}
       />
+
+      {/* iOS Time Picker Modal */}
+      {showTimePicker && Platform.OS === 'ios' && (
+        <Modal
+          visible
+          transparent
+          animationType="slide"
+          onRequestClose={handleTimePickerCancel}
+        >
+          <View style={styles.timePickerOverlay}>
+            <View style={[styles.timePickerSheet, { backgroundColor: themeColors.surface }]}>
+              <View style={[styles.timePickerHeader, { borderBottomColor: themeColors.border }]}>
+                <TouchableOpacity onPress={handleTimePickerCancel} activeOpacity={0.7}>
+                  <Text variant="body" style={{ color: colors.error.main, fontWeight: '600' }}>
+                    {t('common.cancel')}
+                  </Text>
+                </TouchableOpacity>
+                <Text variant="body" style={{ fontWeight: '600' }}>
+                  {t('orderRequest.selectTime')}
+                </Text>
+                <TouchableOpacity onPress={handleTimePickerDone} activeOpacity={0.7}>
+                  <Text variant="body" style={{ color: colors.primary.main, fontWeight: '600' }}>
+                    {t('common.done')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.timePickerSpinner}>
+                <DateTimePicker
+                  value={
+                    onJobTime
+                      ? (() => { const [h, m] = onJobTime.split(':'); const d = new Date(); d.setHours(parseInt(h, 10), parseInt(m, 10)); return d; })()
+                      : tempTime
+                  }
+                  mode="time"
+                  display="spinner"
+                  onChange={handleTimeChange}
+                  themeVariant={isDark ? 'dark' : 'light'}
+                  textColor={isDark ? colors.dark.text.primary : colors.light.text.primary}
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </ScreenContainer>
   );
 };
@@ -2108,6 +2170,29 @@ const styles = StyleSheet.create({
   emptyList: {
     paddingVertical: spacing.xxl,
     alignItems: 'center',
+  },
+  timePickerOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay.medium,
+    justifyContent: 'flex-end',
+  },
+  timePickerSheet: {
+    borderTopLeftRadius: ms(20),
+    borderTopRightRadius: ms(20),
+    paddingBottom: ms(34),
+  },
+  timePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  timePickerSpinner: {
+    height: ms(216),
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
 });
 
