@@ -4,11 +4,12 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Animated,
+  Modal,
+  Pressable,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useNavigation, useFocusEffect, NavigationProp } from '@react-navigation/native';
 import { Text, Card, Icon } from '../../components/common';
@@ -21,18 +22,45 @@ import { SettingsStackParamList } from '../../navigation/SettingsNavigator';
 
 const PAGE_SIZE = 20;
 
+// ── Themed Confirm Modal ──
+interface ConfirmModalState {
+  visible: boolean;
+  icon: string;
+  iconBg: string;
+  title: string;
+  message: string;
+  confirmText: string;
+  confirmStyle: 'destructive' | 'default';
+  onConfirm: () => void;
+}
+
+const INITIAL_MODAL: ConfirmModalState = {
+  visible: false,
+  icon: '',
+  iconBg: '',
+  title: '',
+  message: '',
+  confirmText: '',
+  confirmStyle: 'default',
+  onConfirm: () => {},
+};
+
 export const TicketScanHistoryScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<SettingsStackParamList>>();
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
+  const insets = useSafeAreaInsets();
 
   const [history, setHistory] = useState<ScanRecord[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [modal, setModal] = useState<ConfirmModalState>(INITIAL_MODAL);
   const currentPage = useRef(1);
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
+
+  const hideModal = useCallback(() => setModal(prev => ({ ...prev, visible: false })), []);
 
   const closeSwipeable = useCallback((id: string) => {
     swipeableRefs.current.get(id)?.close();
@@ -41,22 +69,25 @@ export const TicketScanHistoryScreen: React.FC = () => {
   const handleDeleteItem = useCallback(
     (item: ScanRecord) => {
       closeSwipeable(item.id);
-      Alert.alert('Delete Scan', 'Are you sure you want to delete this scan?', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteScanRecord(item.id);
-            setHistory(prev => prev.filter(h => h.id !== item.id));
-            if (pagination) {
-              setPagination(p => p ? { ...p, total: p.total - 1 } : null);
-            }
-          },
+      setModal({
+        visible: true,
+        icon: 'delete-outline',
+        iconBg: colors.error.main,
+        title: 'Delete Scan',
+        message: 'Are you sure you want to delete this scan? This action cannot be undone.',
+        confirmText: 'Delete',
+        confirmStyle: 'destructive',
+        onConfirm: async () => {
+          hideModal();
+          await deleteScanRecord(item.id);
+          setHistory(prev => prev.filter(h => h.id !== item.id));
+          if (pagination) {
+            setPagination(p => p ? { ...p, total: p.total - 1 } : null);
+          }
         },
-      ]);
+      });
     },
-    [closeSwipeable, pagination],
+    [closeSwipeable, pagination, hideModal],
   );
 
   const loadHistory = useCallback(
@@ -99,19 +130,22 @@ export const TicketScanHistoryScreen: React.FC = () => {
   }, [loadHistory, loadingMore, pagination]);
 
   const handleClearHistory = useCallback(() => {
-    Alert.alert('Clear History', 'Are you sure you want to delete all scan history?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear All',
-        style: 'destructive',
-        onPress: async () => {
-          await clearScanHistory();
-          setHistory([]);
-          setPagination(null);
-        },
+    setModal({
+      visible: true,
+      icon: 'delete-sweep-outline',
+      iconBg: colors.error.main,
+      title: 'Clear All History',
+      message: 'This will permanently delete all scan records. This action cannot be undone.',
+      confirmText: 'Clear All',
+      confirmStyle: 'destructive',
+      onConfirm: async () => {
+        hideModal();
+        await clearScanHistory();
+        setHistory([]);
+        setPagination(null);
       },
-    ]);
-  }, []);
+    });
+  }, [hideModal]);
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -350,6 +384,90 @@ export const TicketScanHistoryScreen: React.FC = () => {
         onEndReachedThreshold={0.3}
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Themed Confirm Modal */}
+      <Modal
+        visible={modal.visible}
+        transparent
+        animationType="slide"
+        onRequestClose={hideModal}
+      >
+        <Pressable style={styles.modalOverlay} onPress={hideModal}>
+          <Pressable
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: themeColors.surface,
+                paddingBottom: Math.max(insets.bottom, ms(24)),
+              },
+            ]}
+            onPress={() => {}}
+          >
+            <View style={[styles.modalHandle, { backgroundColor: themeColors.border }]} />
+
+            <View style={[styles.modalIconCircle, { backgroundColor: modal.iconBg || colors.error.main }]}>
+              <Icon name={modal.icon} size={ms(28)} color={colors.common.white} />
+            </View>
+
+            <Text
+              variant="h3"
+              style={[styles.modalTitle, { color: themeColors.text.primary }]}
+            >
+              {modal.title}
+            </Text>
+
+            <Text
+              variant="body"
+              style={[styles.modalMessage, { color: themeColors.text.secondary }]}
+            >
+              {modal.message}
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.modalBtn,
+                  {
+                    backgroundColor: themeColors.background,
+                    borderWidth: 1,
+                    borderColor: themeColors.border,
+                  },
+                ]}
+                onPress={hideModal}
+                activeOpacity={0.8}
+              >
+                <Text
+                  variant="body"
+                  style={[styles.modalBtnText, { color: themeColors.text.primary }]}
+                >
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.modalBtn,
+                  {
+                    backgroundColor:
+                      modal.confirmStyle === 'destructive'
+                        ? colors.error.main
+                        : colors.primary.main,
+                  },
+                ]}
+                onPress={modal.onConfirm}
+                activeOpacity={0.8}
+              >
+                <Text
+                  variant="body"
+                  style={[styles.modalBtnText, { color: colors.common.white }]}
+                >
+                  {modal.confirmText}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -459,6 +577,65 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay.medium,
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    borderTopLeftRadius: ms(24),
+    borderTopRightRadius: ms(24),
+    paddingTop: spacing.md,
+    paddingHorizontal: spacing.xl,
+    alignItems: 'center',
+  },
+  modalHandle: {
+    width: ms(40),
+    height: ms(4),
+    borderRadius: ms(2),
+    marginBottom: spacing.xl,
+  },
+  modalIconCircle: {
+    width: ms(60),
+    height: ms(60),
+    borderRadius: ms(30),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalTitle: {
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  modalMessage: {
+    textAlign: 'center',
+    lineHeight: ms(22),
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.md,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: ms(12),
+    width: '100%',
+  },
+  modalBtn: {
+    flex: 1,
+    height: ms(48),
+    borderRadius: ms(16),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBtnText: {
+    fontSize: ms(16),
+    fontWeight: '600',
   },
 });
 

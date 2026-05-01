@@ -348,13 +348,13 @@ export const SettingsScreen: React.FC = () => {
         </View>
         <View style={styles.section}>
           <Text variant="label" color="secondary" style={styles.sectionTitle}>
-            Ticket Scanner
+            QR Scanner
           </Text>
           <Card padding="none">
             <SettingsItem
               icon="qrcode-scan"
-              title="Scan Ticket QR"
-              subtitle="Scan QR codes on tickets"
+              title="Scan QR"
+              subtitle="Scan QR codes on tickets and trucks"
               onPress={handleNavigateToTicketScan}
             />
           </Card>

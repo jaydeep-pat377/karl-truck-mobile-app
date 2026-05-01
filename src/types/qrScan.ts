@@ -156,6 +156,9 @@ export interface APITruckDetails {
   description: string;
   latitude: string | null;
   longitude: string | null;
+  owner_name: string | null;
+  current_plant_code: string | null;
+  current_plant_name: string | null;
   current_driver_name: string | null;
   driver_code: string | null;
   driver_phone: string | null;

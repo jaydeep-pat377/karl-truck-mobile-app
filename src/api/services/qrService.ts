@@ -1,6 +1,9 @@
 import { axiosInstance } from '../axiosInstance';
 import type {
   TKQRData,
+  TKTicketData,
+  TKTruckData,
+  FullTicket,
   APITicketDetails,
   APIDetails,
   VerificationStatus,
@@ -8,8 +11,29 @@ import type {
   Pagination,
 } from '../../types/qrScan';
 
-// ── QR Verification ──
-// Backend only has POST /api/qr/verify — handles both decryption and verification.
+// ── Response types ──
+
+interface QrDecryptResponse {
+  ok: boolean;
+  kind?: string;
+  ticket?: FullTicket;
+  orderCode?: string;
+  tenant?: {
+    id: string | null;
+    uuid: string | null;
+    subdomain: string | null;
+    status: string | null;
+    name: string | null;
+  };
+  meta?: {
+    orderId: string | number;
+    truckCode: string;
+    truckId: string | number;
+    issuedAt: number;
+  };
+  truck?: { code: string };
+  error?: string;
+}
 
 interface QrVerifyResponse {
   success: boolean;
@@ -64,7 +88,27 @@ export type VerifyResult = {
   message?: string;
 };
 
+// ── QR Verification ──
+
 export async function verifyQRPayload(
+  rawPayload: string,
+  userRole?: string,
+): Promise<VerifyResult> {
+  // Try verify endpoint first (auth required, returns richer data)
+  const verifyResult = await tryVerifyEndpoint(rawPayload, userRole);
+  if (verifyResult.status !== 'error' && verifyResult.status !== 'not_found') {
+    return verifyResult;
+  }
+
+  // Fall back to decrypt endpoint (no auth, handles truck QR on supported backends)
+  const decryptResult = await tryDecryptEndpoint(rawPayload);
+  if (decryptResult) return decryptResult;
+
+  // Return the original verify result if decrypt also failed
+  return verifyResult;
+}
+
+async function tryVerifyEndpoint(
   rawPayload: string,
   userRole?: string,
 ): Promise<VerifyResult> {
@@ -91,11 +135,19 @@ export async function verifyQRPayload(
 
       if (security_mode?.mode === 'time_bound') {
         const scannableStatuses = security_mode.scannable_statuses || [];
-        const statusDisplay = details?.ticket?.status_display || '';
-        if (!scannableStatuses.some(s => s.toLowerCase() === statusDisplay.toLowerCase())) {
+        let statusToCheck = '';
+
+        if (kind === 'ticket') {
+          statusToCheck = details?.ticket?.status_display || '';
+        } else if (kind === 'truck') {
+          statusToCheck = (details?.truck as any)?.ticket_status || '';
+        }
+
+        if (statusToCheck && !scannableStatuses.some(s => s.toLowerCase() === statusToCheck.toLowerCase())) {
+          const label = kind === 'ticket' ? 'ticket' : 'truck';
           return {
             status: 'error',
-            message: 'This ticket status does not allow viewing details.',
+            message: `This ${label} status (${statusToCheck}) does not allow viewing details.`,
           };
         }
       }
@@ -149,6 +201,120 @@ export async function verifyQRPayload(
       return { status: 'error', message: err?.response?.data?.message || 'Invalid QR code' };
     }
     return { status: 'error', message: 'Verification failed' };
+  }
+}
+
+async function tryDecryptEndpoint(
+  rawPayload: string,
+): Promise<VerifyResult | null> {
+  try {
+    const response = await axiosInstance.post<QrDecryptResponse>(
+      '/qr/decrypt',
+      { payload: rawPayload },
+      { _silentError: true } as any,
+    );
+    const data = response.data;
+
+    if (!data.ok) return null;
+
+    if (data.kind === 'truck' && data.truck) {
+      const qrData: TKTruckData = {
+        kind: 'truck',
+        truckCode: data.truck.code,
+        tenantId: String(data.tenant?.id || ''),
+        tenantUuid: data.tenant?.uuid || '',
+        tenantSubdomain: data.tenant?.subdomain || '',
+        tenantStatus: data.tenant?.status || 'active',
+        tenantName: data.tenant?.name || '',
+        sig: '',
+        iat: data.meta?.issuedAt || Date.now(),
+      };
+      return { status: 'verified', qrData };
+    }
+
+    if (data.kind === 'ticket' && data.ticket) {
+      const ticket = data.ticket;
+      const qrData: TKTicketData = {
+        kind: 'ticket',
+        orderCode: data.orderCode || ticket.order_code || '',
+        orderId: String(data.meta?.orderId || ''),
+        ticketCode: ticket.ticket_code,
+        ticketId: String(ticket.ticket_id),
+        truckCode: ticket.truck_code || String(data.meta?.truckCode || ''),
+        truckId: String(data.meta?.truckId || ''),
+        tenantId: String(data.tenant?.id || ''),
+        tenantUuid: data.tenant?.uuid || '',
+        tenantSubdomain: data.tenant?.subdomain || '',
+        tenantStatus: data.tenant?.status || 'active',
+        tenantName: data.tenant?.name || '',
+        sig: '',
+        iat: data.meta?.issuedAt || Date.now(),
+      };
+
+      const mix = (ticket.ticket_products || []).find(x => x.is_mix) || (ticket.ticket_products || [])[0];
+      const deliveryAddr = [ticket.delivery_addr1, ticket.delivery_addr2, ticket.delivery_addr3]
+        .filter(p => p && p.trim())
+        .join(', ');
+
+      const apiData: APITicketDetails = {
+        load: '',
+        ticket_code: ticket.ticket_code,
+        truck: ticket.truck_code ? {
+          truck_code: ticket.truck_code,
+          truck_description: '',
+          latitude: null,
+          longitude: null,
+        } : null,
+        plant_location: { latitude: null, longitude: null },
+        order_location: { latitude: null, longitude: null },
+        load_qty: mix?.load_qty != null ? String(mix.load_qty) : null,
+        run_qty_ord_qty: null,
+        running_qty: 0,
+        ordered_qty: mix?.order_qty ?? 0,
+        status: ticket.current_status || '',
+        status_display: ticket.current_status || '',
+        remove_reason_code: ticket.remove_reason_code,
+        product: mix?.description ?? null,
+        timestamps: {
+          eta_at_job: null,
+          ticketed: ticket.printed_time,
+          loading: ticket.load_time,
+          loaded: ticket.loaded_time,
+          to_job: ticket.to_job_time,
+          at_job: ticket.on_job_time,
+          pouring: ticket.unload_time,
+          washing: ticket.wash_time,
+          to_plant: ticket.to_plant_time,
+          at_plant: ticket.at_plant_time,
+        },
+        order_code: ticket.order_code,
+        order_date: ticket.order_date ?? undefined,
+        customer_name: ticket.customer_name,
+        project_name: ticket.project_name ?? undefined,
+        delivery_address: deliveryAddr || undefined,
+        driver_name: ticket.driver_name ?? undefined,
+        plant_name: ticket.plant_name ?? undefined,
+        ordered_by_name: ticket.ordered_by_name ?? undefined,
+        ordered_by_phone: ticket.ordered_by_phone ?? undefined,
+        purchase_order: ticket.purchase_order ?? undefined,
+        customer_job: ticket.customer_job ?? undefined,
+        ticket_products: ticket.ticket_products ?? undefined,
+        slump: ticket.slump ?? undefined,
+        plant_address: ticket.plant_address ?? undefined,
+      };
+
+      return {
+        status: 'verified',
+        qrData,
+        apiData,
+        orderCode: data.orderCode,
+      };
+    }
+
+    return null;
+  } catch {
+    // Silently fail — decrypt endpoint may not exist on all backends
+    return null;
   }
 }
 

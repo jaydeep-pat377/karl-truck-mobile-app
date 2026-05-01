@@ -370,17 +370,53 @@ export const ScanDetailsScreen: React.FC = () => {
           )}
 
           {isTruck && (
-            <View style={st.card}>
-              <Row label="Truck" value={apiTruck?.code || tkData.truckCode} />
-              {apiTruck?.description && (<><Div /><Row label="Description" value={apiTruck.description} /></>)}
-              {apiTruck?.current_driver_name && (<><Div /><Row label="Driver" value={apiTruck.current_driver_name} /></>)}
-              {apiTruck?.ticket_status && (<><Div /><Row label="Status" value={apiTruck.ticket_status} /></>)}
-              {apiTruck?.order_code && (<><Div /><Row label="Current Order" value={apiTruck.order_code} /></>)}
-              {apiTruck?.customer_name && (<><Div /><Row label="Customer" value={apiTruck.customer_name} /></>)}
-              {apiTruck?.delivery_address && (<><Div /><Row label="Delivery" value={apiTruck.delivery_address} /></>)}
-              {apiTruck?.plant_name && (<><Div /><Row label="Plant" value={apiTruck.plant_name} /></>)}
-              <Div /><Row label="Issued At" value={formatIat(tkData.iat)} />
-            </View>
+            <>
+              <View style={st.card}>
+                <Text style={st.sectionTitle}>TRUCK INFORMATION</Text>
+                <Row label="Truck Code" value={apiTruck?.code || (tkData as any).truckCode} />
+                {apiTruck?.description && (<><Div /><Row label="Description" value={apiTruck.description} /></>)}
+                {apiTruck?.owner_name && (<><Div /><Row label="Owner" value={apiTruck.owner_name} /></>)}
+                {apiTruck?.ticket_status && (<><Div /><Row label="Status" value={apiTruck.ticket_status} /></>)}
+                {apiTruck?.is_active_delivery !== undefined && (<><Div /><Row label="Active Delivery" value={apiTruck.is_active_delivery ? 'Yes' : 'No'} /></>)}
+              </View>
+
+              {(apiTruck?.current_plant_name || apiTruck?.current_plant_code) && (
+                <View style={st.card}>
+                  <Text style={st.sectionTitle}>CURRENT PLANT</Text>
+                  {apiTruck.current_plant_name && <Row label="Plant Name" value={apiTruck.current_plant_name} />}
+                  {apiTruck.current_plant_code && (<>{apiTruck.current_plant_name && <Div />}<Row label="Plant Code" value={apiTruck.current_plant_code} /></>)}
+                </View>
+              )}
+
+              {(apiTruck?.current_driver_name || apiTruck?.driver_code || apiTruck?.driver_phone) && (
+                <View style={st.card}>
+                  <Text style={st.sectionTitle}>DRIVER</Text>
+                  {apiTruck.current_driver_name && <Row label="Driver Name" value={apiTruck.current_driver_name} />}
+                  {apiTruck.driver_code && (<>{apiTruck.current_driver_name && <Div />}<Row label="Driver Code" value={apiTruck.driver_code} /></>)}
+                  {apiTruck.driver_phone && (<><Div /><Row label="Driver Phone" value={apiTruck.driver_phone} /></>)}
+                </View>
+              )}
+
+              {(apiTruck?.ticket_code || apiTruck?.order_code || apiTruck?.customer_name || apiTruck?.delivery_address || apiTruck?.product_code || apiTruck?.plant_name) && (
+                <View style={st.card}>
+                  <Text style={st.sectionTitle}>DELIVERY DETAILS</Text>
+                  {apiTruck.ticket_code && <Row label="Ticket" value={apiTruck.ticket_code} />}
+                  {apiTruck.order_code && (<>{apiTruck.ticket_code && <Div />}<Row label="Order" value={apiTruck.order_code} /></>)}
+                  {apiTruck.customer_name && (<><Div /><Row label="Customer" value={apiTruck.customer_name} /></>)}
+                  {apiTruck.delivery_address && (<><Div /><Row label="Delivery Address" value={apiTruck.delivery_address} /></>)}
+                  {apiTruck.product_code && (<><Div /><Row label="Product" value={apiTruck.product_code} /></>)}
+                  {apiTruck.truck_qty != null && (<><Div /><Row label="Quantity" value={String(apiTruck.truck_qty)} /></>)}
+                  {apiTruck.plant_name && (<><Div /><Row label="Plant" value={apiTruck.plant_name} /></>)}
+                  {apiTruck.plant_phone && (<><Div /><Row label="Plant Phone" value={apiTruck.plant_phone} /></>)}
+                </View>
+              )}
+
+              <View style={st.card}>
+                <Text style={st.sectionTitle}>SCAN INFORMATION</Text>
+                <Row label="Scanned At" value={formatTs(scan.timestamp)} />
+                <Div /><Row label="QR Issued At" value={formatIat(tkData.iat)} />
+              </View>
+            </>
           )}
 
           <View style={st.actions}>

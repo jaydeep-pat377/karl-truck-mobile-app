@@ -353,7 +353,7 @@ export const TicketScanScreen: React.FC = () => {
             </TouchableOpacity>
 
             <Text variant="body" style={styles.brandName}>
-              Scan Ticket QR
+              Scan QR
             </Text>
 
             <View style={styles.topBarSpacer} />
@@ -381,9 +381,9 @@ export const TicketScanScreen: React.FC = () => {
 
           {/* Instructions */}
           <View style={styles.instructionArea}>
-            <Text variant="h2" style={styles.headerTitle}>Scan your ticket</Text>
+            <Text variant="h2" style={styles.headerTitle}>Scan QR Code</Text>
             <Text variant="caption" style={styles.headerSubtitle}>
-              Position your ticket within the frame
+              Position the QR code within the frame
             </Text>
           </View>
         </View>
@@ -461,7 +461,7 @@ export const TicketScanScreen: React.FC = () => {
           </TouchableOpacity>
 
           <Text variant="captionSmall" style={styles.authHint}>
-            Authorized ticket scanning only
+            Authorized scanning only
           </Text>
         </View>
       </View>
