@@ -308,6 +308,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
     >
       <View style={styles.container}>
         <FlatList
+          style={styles.flatList}
           data={loads}
           renderItem={renderLoadCard}
           keyExtractor={(item, index) => `${item.load_number}-${index}`}
@@ -327,6 +328,9 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  flatList: {
     flex: 1,
   },
   listContent: {

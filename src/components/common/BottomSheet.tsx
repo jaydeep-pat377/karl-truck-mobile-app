@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   Animated,
-  Dimensions,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -17,8 +17,6 @@ import { Text } from './Text';
 import { Icon } from './Icon';
 import { ms, spacing } from '../../utils/responsive';
 import { colors } from '../../theme/colors';
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export interface BottomSheetProps {
   visible: boolean;
@@ -52,14 +50,15 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
   const insets = useSafeAreaInsets();
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const { height: screenHeight } = useWindowDimensions();
+  const slideAnim = useRef(new Animated.Value(screenHeight)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const isClosing = useRef(false);
 
   const sheetHeight: number = height === 'full'
-    ? SCREEN_HEIGHT - insets.top - ms(20)
+    ? screenHeight - insets.top - ms(20)
     : height === 'auto'
-      ? SCREEN_HEIGHT * 0.85
+      ? screenHeight * 0.85
       : (height as number);
 
   const openSheet = useCallback(() => {
@@ -85,7 +84,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
     Animated.parallel([
       Animated.timing(slideAnim, {
-        toValue: SCREEN_HEIGHT,
+        toValue: screenHeight,
         duration: 250,
         useNativeDriver: true,
       }),
@@ -97,16 +96,16 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
     ]).start(() => {
       onClose();
     });
-  }, [slideAnim, backdropAnim, onClose]);
+  }, [slideAnim, backdropAnim, onClose, screenHeight]);
 
   useEffect(() => {
     if (visible) {
 
-      slideAnim.setValue(SCREEN_HEIGHT);
+      slideAnim.setValue(screenHeight);
       backdropAnim.setValue(0);
       openSheet();
     }
-  }, [visible, openSheet, slideAnim, backdropAnim]);
+  }, [visible, openSheet, slideAnim, backdropAnim, screenHeight]);
 
   const handleBackdropPress = () => {
     if (closeOnBackdrop) {
