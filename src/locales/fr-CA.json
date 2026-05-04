@@ -41,7 +41,24 @@
     "emailAddress": "Adresse courriel",
     "password": "Mot de passe",
     "confirmPassword": "Confirmer le mot de passe",
-    "forgotPassword": "Mot de passe oublié?",
+    "forgotPassword": {
+      "title": "Mot de passe oublié?",
+      "subtitle": "Pas de souci! Entrez votre courriel et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+      "emailPlaceholder": "Entrez votre courriel enregistré",
+      "sendResetLink": "Envoyer le lien",
+      "backToSignIn": "Retour à la connexion",
+      "checkEmail": "Vérifiez votre courriel",
+      "sentResetLink": "Nous avons envoyé un lien de réinitialisation à",
+      "instruction1": "Ouvrez le courriel sur cet appareil",
+      "instruction2": "Cliquez sur le lien ou entrez le code OTP",
+      "instruction3": "Créez votre nouveau mot de passe",
+      "enterOtpCode": "Entrer le code OTP",
+      "didntReceiveEmail": "Vous n'avez pas reçu le courriel?",
+      "resend": "Renvoyer",
+      "emailRequired": "Le courriel est requis",
+      "invalidEmail": "Veuillez entrer un courriel valide",
+      "sendFailed": "Échec de l'envoi du lien. Veuillez réessayer."
+    },
     "forgotPass": "Forgot Password?",
     "signIn": "Se connecter",
     "signUp": "S'inscrire",
@@ -89,24 +106,6 @@
         "good": "Bon",
         "strong": "Fort"
       }
-    },
-    "forgotPassword": {
-      "title": "Mot de passe oublié?",
-      "subtitle": "Pas de souci! Entrez votre courriel et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
-      "emailPlaceholder": "Entrez votre courriel enregistré",
-      "sendResetLink": "Envoyer le lien",
-      "backToSignIn": "Retour à la connexion",
-      "checkEmail": "Vérifiez votre courriel",
-      "sentResetLink": "Nous avons envoyé un lien de réinitialisation à",
-      "instruction1": "Ouvrez le courriel sur cet appareil",
-      "instruction2": "Cliquez sur le lien ou entrez le code OTP",
-      "instruction3": "Créez votre nouveau mot de passe",
-      "enterOtpCode": "Entrer le code OTP",
-      "didntReceiveEmail": "Vous n'avez pas reçu le courriel?",
-      "resend": "Renvoyer",
-      "emailRequired": "Le courriel est requis",
-      "invalidEmail": "Veuillez entrer un courriel valide",
-      "sendFailed": "Échec de l'envoi du lien. Veuillez réessayer."
     },
     "otp": {
       "verifyEmail": "Vérifiez votre courriel",
@@ -1050,7 +1049,12 @@
     "emailTemplatesSubtitle": "Personnalisez les modèles envoyés par le système",
     "qrScanner": "Scanneur QR",
     "scanQR": "Scanner QR",
-    "scanQRSubtitle": "Scannez les codes QR sur les billets et les camions"
+    "scanQRSubtitle": "Scannez les codes QR sur les billets et les camions",
+    "timezone": "Fuseau horaire",
+    "selectTimezone": "Sélectionner le fuseau horaire",
+    "currentTime": "Heure actuelle",
+    "timezoneUpdated": "Fuseau horaire mis à jour",
+    "timezoneHint": "Le fuseau horaire affecte l'affichage des heures dans toute l'application"
   },
   "profile": {
     "title": "Profil",

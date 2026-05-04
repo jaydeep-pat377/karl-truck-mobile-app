@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { useTimezoneStore } from '../../store/timezoneStore';
 import {
   View,
   StyleSheet,
@@ -81,12 +82,12 @@ const formatOrderCode = (id: string): string => {
   return `OE-${short}`;
 };
 
-const TIMEZONE = 'America/Chicago';
+const getTimezone = () => useTimezoneStore.getState().timezone.iana_code;
 
 // Get timezone-aware date/time parts from a Date object
 const getPartsInTimezone = (d: Date): { month: string; day: string; year: string; hours: string; minutes: string; period: string; tzAbbr: string } => {
   const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: TIMEZONE,
+    timeZone: getTimezone(),
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

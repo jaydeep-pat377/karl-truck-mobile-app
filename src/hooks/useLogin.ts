@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { useWorkspaceStore } from '../store/workspaceStore';
+import { useTimezoneStore } from '../store/timezoneStore';
 import { authService } from '../api/services/authService';
 import { setDynamicBaseUrl, normalizeBackendUrl } from '../api/axiosInstance';
 import { STORAGE_KEYS } from '../utils/storage';
@@ -71,6 +72,11 @@ export const useLogin = () => {
     },
     onSuccess: async (response) => {
       if (response.success && response.data) {
+        // Save timezone from API response (user preference or tenant default)
+        if (response.data.timezone) {
+          await useTimezoneStore.getState().setTimezoneFromApi(response.data.timezone);
+        }
+
         await setAuth(
           response.data.user,
           response.data.accessToken,

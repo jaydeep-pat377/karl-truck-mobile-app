@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { SettingsStackParamList } from '../../navigation/SettingsNavigator';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text, Card, LogoutModal, LanguageSwitcherModal, Icon } from '../../components/common';
+import { Text, Card, LogoutModal, LanguageSwitcherModal, TimezoneSwitcherModal, Icon } from '../../components/common';
 import { getCurrentLanguage, getSupportedLanguages, SupportedLanguage } from '../../locales';
 import { Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +16,8 @@ import { useProfile } from '../../hooks/useProfile';
 import { useAuthStore } from '../../store/authStore';
 import { MainTabParamList } from '../../navigation/types';
 import { BiometricToggleItem } from '../../components/settings/BiometricToggleItem';
+import { useTimezoneStore } from '../../store/timezoneStore';
+import { getTzAbbreviation } from '../../utils/timezone';
 
 interface SettingsItemProps {
   icon: string;
@@ -124,8 +126,10 @@ export const SettingsScreen: React.FC = () => {
   const isContractor = (user as any)?.userType === 'contractor';
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showTimezoneModal, setShowTimezoneModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentLang, setCurrentLang] = useState<SupportedLanguage>(getCurrentLanguage());
+  const { timezone } = useTimezoneStore();
 
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -349,6 +353,20 @@ export const SettingsScreen: React.FC = () => {
                 </View>
               }
             />
+            <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+            <SettingsItem
+              icon="clock-outline"
+              title={t('settings.timezone')}
+              subtitle={timezone.display_name}
+              onPress={() => setShowTimezoneModal(true)}
+              rightElement={
+                <View style={styles.languagePill}>
+                  <Text variant="caption" style={{ color: colors.primary.main, fontWeight: '600' }}>
+                    {getTzAbbreviation(timezone.iana_code)}
+                  </Text>
+                </View>
+              }
+            />
           </Card>
         </View>
 
@@ -450,6 +468,11 @@ export const SettingsScreen: React.FC = () => {
         visible={showLanguageModal}
         onClose={() => setShowLanguageModal(false)}
         onLanguageChanged={(code) => setCurrentLang(code)}
+      />
+
+      <TimezoneSwitcherModal
+        visible={showTimezoneModal}
+        onClose={() => setShowTimezoneModal(false)}
       />
     </SafeAreaView>
   );

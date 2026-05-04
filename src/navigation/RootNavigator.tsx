@@ -14,6 +14,7 @@ import { OrderTrackingScreen } from '../screens/tracking/OrderTrackingScreen';
 import { ChatRoomScreen } from '../screens/chat/ChatRoomScreen';
 import { WebViewScreen } from '../screens/settings/WebViewScreen';
 import { useAuthStore } from '../store/authStore';
+import { useTimezoneStore } from '../store/timezoneStore';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { useGlobalChatListener } from '../hooks/useGlobalChatListener';
 
@@ -28,7 +29,14 @@ export const RootNavigator: React.FC = () => {
 
   useEffect(() => {
     initialize();
+    useTimezoneStore.getState().loadTimezone();
   }, [initialize]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      useTimezoneStore.getState().syncFromDb();
+    }
+  }, [isAuthenticated]);
 
   if (!isInitialized || isLoading) {
     return (

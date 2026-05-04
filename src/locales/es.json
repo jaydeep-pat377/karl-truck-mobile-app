@@ -41,7 +41,24 @@
     "emailAddress": "Dirección de Correo",
     "password": "Contraseña",
     "confirmPassword": "Confirmar Contraseña",
-    "forgotPassword": "¿Olvidaste tu Contraseña?",
+    "forgotPassword": {
+      "title": "¿Olvidaste tu Contraseña?",
+      "subtitle": "¡No te preocupes! Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.",
+      "emailPlaceholder": "Ingresa tu correo registrado",
+      "sendResetLink": "Enviar Enlace",
+      "backToSignIn": "Volver a Iniciar Sesión",
+      "checkEmail": "Revisa tu Correo",
+      "sentResetLink": "Hemos enviado un enlace para restablecer tu contraseña a",
+      "instruction1": "Abre el correo en este dispositivo",
+      "instruction2": "Haz clic en el enlace o ingresa el código OTP",
+      "instruction3": "Crea tu nueva contraseña",
+      "enterOtpCode": "Ingresar Código OTP",
+      "didntReceiveEmail": "¿No recibiste el correo?",
+      "resend": "Reenviar",
+      "emailRequired": "El correo es requerido",
+      "invalidEmail": "Por favor ingresa un correo válido",
+      "sendFailed": "Error al enviar el enlace. Por favor intenta de nuevo."
+    },
     "forgotPass": "Forgot Password?",
     "signIn": "Ingresar",
     "signUp": "Registrarse",
@@ -89,24 +106,6 @@
         "good": "Buena",
         "strong": "Fuerte"
       }
-    },
-    "forgotPassword": {
-      "title": "¿Olvidaste tu Contraseña?",
-      "subtitle": "¡No te preocupes! Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.",
-      "emailPlaceholder": "Ingresa tu correo registrado",
-      "sendResetLink": "Enviar Enlace",
-      "backToSignIn": "Volver a Iniciar Sesión",
-      "checkEmail": "Revisa tu Correo",
-      "sentResetLink": "Hemos enviado un enlace para restablecer tu contraseña a",
-      "instruction1": "Abre el correo en este dispositivo",
-      "instruction2": "Haz clic en el enlace o ingresa el código OTP",
-      "instruction3": "Crea tu nueva contraseña",
-      "enterOtpCode": "Ingresar Código OTP",
-      "didntReceiveEmail": "¿No recibiste el correo?",
-      "resend": "Reenviar",
-      "emailRequired": "El correo es requerido",
-      "invalidEmail": "Por favor ingresa un correo válido",
-      "sendFailed": "Error al enviar el enlace. Por favor intenta de nuevo."
     },
     "otp": {
       "verifyEmail": "Verifica tu Correo",
@@ -1050,7 +1049,12 @@
     "emailTemplatesSubtitle": "Personaliza las plantillas enviadas por el sistema",
     "qrScanner": "Escáner QR",
     "scanQR": "Escanear QR",
-    "scanQRSubtitle": "Escanea códigos QR en boletos y camiones"
+    "scanQRSubtitle": "Escanea códigos QR en boletos y camiones",
+    "timezone": "Zona horaria",
+    "selectTimezone": "Seleccionar zona horaria",
+    "currentTime": "Hora actual",
+    "timezoneUpdated": "Zona horaria actualizada",
+    "timezoneHint": "La zona horaria afecta la visualización de horas en toda la aplicación"
   },
   "profile": {
     "title": "Perfil",

@@ -13,6 +13,7 @@ export const STORAGE_KEYS = {
   BACKEND_URL: 'backendUrl',
   TICKET_SCAN_HISTORY: 'ticketScanHistory',
   CURRENT_TENANT: 'currentTenant',
+  TIMEZONE: 'timezone',
 } as const;
 
 export const storageUtils = {

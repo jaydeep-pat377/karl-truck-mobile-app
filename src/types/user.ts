@@ -128,6 +128,14 @@ export interface ExchangeCodeRequest {
 
 export interface LoginResponseData {
   user: User;
+  timezone?: {
+    id: number;
+    iana_code: string;
+    display_name: string;
+    abbreviation: string;
+    utc_offset: string;
+    dst_offset: string | null;
+  };
   accessToken: string;
   refreshToken: string;
 }

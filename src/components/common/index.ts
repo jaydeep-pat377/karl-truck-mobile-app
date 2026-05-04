@@ -22,6 +22,7 @@ export { TopGradientBackground, SimpleTopGradient } from './TopGradientBackgroun
 export type { TopGradientBackgroundProps, SimpleTopGradientProps } from './TopGradientBackground';
 export { LogoutModal } from './LogoutModal';
 export { LanguageSwitcherModal } from './LanguageSwitcherModal';
+export { TimezoneSwitcherModal } from './TimezoneSwitcherModal';
 export { AlertModal } from './AlertModal';
 export type { AlertModalProps, AlertButton, AlertType } from './AlertModal';
 export { ListFooterLoader } from './ListFooterLoader';

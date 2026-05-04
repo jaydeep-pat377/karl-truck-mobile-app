@@ -73,4 +73,11 @@ export const API_ENDPOINTS = {
   SHORT_URLS: {
     RESOLVE: '/short-urls/resolve',
   },
+  TIMEZONES: {
+    LIST: '/timezones',
+  },
+  USER_PREFERENCES: {
+    GET: '/user-preferences',
+    SET: '/user-preferences',
+  },
 } as const;

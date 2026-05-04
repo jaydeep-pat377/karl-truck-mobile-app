@@ -96,6 +96,17 @@ axiosInstance.interceptors.request.use(
       }
     }
 
+    // Attach timezone header for server-side formatting
+    try {
+      const tzJson = await AsyncStorage.getItem(STORAGE_KEYS.TIMEZONE);
+      if (tzJson) {
+        const tz = JSON.parse(tzJson);
+        if (tz?.iana_code) {
+          (config.headers as any)['X-Timezone'] = tz.iana_code;
+        }
+      }
+    } catch {}
+
     console.log(`[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     if (config.params && Object.keys(config.params).length > 0) {
       console.log('[API Request] Query Params:', JSON.stringify(config.params, null, 2));

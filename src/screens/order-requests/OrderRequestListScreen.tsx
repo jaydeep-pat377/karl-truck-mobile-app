@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { useTimezoneStore } from '../../store/timezoneStore';
 import {
   View,
   StyleSheet,
@@ -98,14 +99,13 @@ const FILTER_TABS: {
 const getOrderCode = (order: OrderEntity): string =>
   `OE-${order.id.slice(0, 6).toUpperCase()}`;
 
-const formatDate = (dateStr: string): string => {
+const formatDate = (dateStr: string, ianaCode?: string): string => {
   if (!dateStr) return '';
   try {
-    // Match the web: parse as UTC then format in America/Chicago timezone
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
     const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/Chicago',
+      timeZone: ianaCode || 'America/Chicago',
       month: '2-digit',
       day: '2-digit',
       year: 'numeric',
@@ -148,6 +148,7 @@ export const OrderRequestListScreen: React.FC = () => {
   const { isDark } = useTheme();
   const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
+  const { timezone } = useTimezoneStore();
   // Web has no role checks on the list page — list and create button are always visible
 
   const [activeFilter, setActiveFilter] = useState<OrderRequestStatusFilter>('all');
@@ -484,7 +485,7 @@ export const OrderRequestListScreen: React.FC = () => {
                   }}
                   numberOfLines={1}
                 >
-                  {formatDate(item.on_job_date)}
+                  {formatDate(item.on_job_date, timezone.iana_code)}
                 </Text>
               </View>
               {item.quantity != null && (

@@ -41,7 +41,24 @@
     "emailAddress": "Email Address",
     "password": "Password",
     "confirmPassword": "Confirm Password",
-    "forgotPassword": "Forgot Password?",
+    "forgotPassword": {
+      "title": "Forgot Password?",
+      "subtitle": "No worries! Enter your email address and we'll send you a link to reset your password.",
+      "emailPlaceholder": "Enter your registered email",
+      "sendResetLink": "Send Reset Link",
+      "backToSignIn": "Back to Sign In",
+      "checkEmail": "Check Your Email",
+      "sentResetLink": "We've sent a password reset link to",
+      "instruction1": "Open the email on this device",
+      "instruction2": "Click the reset link or enter OTP",
+      "instruction3": "Create your new password",
+      "enterOtpCode": "Enter OTP Code",
+      "didntReceiveEmail": "Didn't receive email?",
+      "resend": "Resend",
+      "emailRequired": "Email is required",
+      "invalidEmail": "Please enter a valid email address",
+      "sendFailed": "Failed to send reset link. Please try again."
+    },
     "forgotPass": "Forgot Password?",
     "signIn": "Sign In",
     "signUp": "Sign Up",
@@ -61,7 +78,6 @@
     "emailPlaceholder": "email@company.com",
     "passwordPlaceholder": "Enter your password",
     "or": "OR",
-
     "signup": {
       "title": "Create Account",
       "subtitle": "Join Dolese ReadyMix to get started",
@@ -91,26 +107,6 @@
         "strong": "Strong"
       }
     },
-
-    "forgotPassword": {
-      "title": "Forgot Password?",
-      "subtitle": "No worries! Enter your email address and we'll send you a link to reset your password.",
-      "emailPlaceholder": "Enter your registered email",
-      "sendResetLink": "Send Reset Link",
-      "backToSignIn": "Back to Sign In",
-      "checkEmail": "Check Your Email",
-      "sentResetLink": "We've sent a password reset link to",
-      "instruction1": "Open the email on this device",
-      "instruction2": "Click the reset link or enter OTP",
-      "instruction3": "Create your new password",
-      "enterOtpCode": "Enter OTP Code",
-      "didntReceiveEmail": "Didn't receive email?",
-      "resend": "Resend",
-      "emailRequired": "Email is required",
-      "invalidEmail": "Please enter a valid email address",
-      "sendFailed": "Failed to send reset link. Please try again."
-    },
-
     "otp": {
       "verifyEmail": "Verify Your Email",
       "verifyIdentity": "Verify Your Identity",
@@ -335,7 +331,7 @@
     "map": "Map",
     "miles": "Miles",
     "mix": "Mix",
-    "mphWind": "mph wind",
+    "mphWind": "{{speed}} mph wind",
     "order": "Order",
     "orderActivity": "Order Activity",
     "orderCreated": "Order Created",
@@ -493,10 +489,8 @@
     "totalTickets": "Total Tickets:",
     "orderLabel": "Order:",
     "ticketsLabel": "Tickets",
-    "deliveryStatus": "Delivery Status",
     "cyDelivered": "{{delivered}} of {{total}} CY delivered",
     "partlyCloudy": "Partly cloudy",
-    "mphWind": "{{speed}} mph wind",
     "rhLabel": "{{value}}% RH"
   },
   "tracking": {
@@ -1055,7 +1049,12 @@
     "emailTemplatesSubtitle": "Customize email templates sent by the system",
     "qrScanner": "QR Scanner",
     "scanQR": "Scan QR",
-    "scanQRSubtitle": "Scan QR codes on tickets and trucks"
+    "scanQRSubtitle": "Scan QR codes on tickets and trucks",
+    "timezone": "Timezone",
+    "selectTimezone": "Select Timezone",
+    "currentTime": "Current Time",
+    "timezoneUpdated": "Timezone updated",
+    "timezoneHint": "Timezone affects how times are displayed across the app and in API responses"
   },
   "profile": {
     "title": "Profile",
