@@ -1,6 +1,7 @@
 import { AppState, AppStateStatus } from 'react-native';
 import { create } from 'zustand';
-import AudioRecorderPlayer from 'react-native-audio-recorder-player';
+// TEMP: pointed at local no-op stub while Nitro autolink is broken — see _stubs/audioRecorderPlayer.ts
+import AudioRecorderPlayer from '../_stubs/audioRecorderPlayer';
 
 const player = AudioRecorderPlayer;
 

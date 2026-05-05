@@ -9,6 +9,7 @@ import App from './App';
 import { name as appName } from './app.json';
 
 const CHANNEL_ID = 'truckast_heads_up';
+const CHAT_CHANNEL_ID = 'chat';
 
 async function createNotificationChannel() {
   if (Platform.OS === 'android') {
@@ -22,6 +23,18 @@ async function createNotificationChannel() {
         sound: 'default',
         vibration: true,
         lights: true,
+        badge: true,
+      });
+      // Also create the chat channel up-front so killed-state pushes
+      // referencing channelId='chat' render with HIGH importance.
+      await notifee.createChannel({
+        id: CHAT_CHANNEL_ID,
+        name: 'Chat messages',
+        description: 'New messages in order chats',
+        importance: AndroidImportance.HIGH,
+        visibility: AndroidVisibility.PUBLIC,
+        sound: 'default',
+        vibration: true,
         badge: true,
       });
       return channelId;

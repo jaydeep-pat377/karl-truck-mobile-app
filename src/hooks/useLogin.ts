@@ -12,7 +12,7 @@ import { AxiosError } from 'axios';
 import { APP_ENV } from '@env';
 
 // TODO: Remove after testing — forces mobile app to use local backend instead of production
-const DEV_LOCAL_BACKEND_URL = 'http://192.168.1.20:5000/api';
+const DEV_LOCAL_BACKEND_URL = 'http://192.168.1.61:5000/api';
 
 interface LoginParams {
   email: string;

@@ -100,11 +100,18 @@ export function navigateFromNotification(data: Record<string, string | unknown>)
 
   if (eventCode.includes('CHAT') || eventCode.includes('MESSAGE')) {
     if (roomId && chatId) {
+      const customerName = (data.customer_name || data.customerName) as string;
+      const projectName = (data.project_name || data.projectName) as string;
+      const deliveryAddress = (data.delivery_address || data.deliveryAddress) as string;
       navigate('ChatRoom', {
         roomId,
         roomName: ((data.room_name || data.roomName) as string) || 'Chat',
         chatId: parseInt(chatId, 10),
         orderId: parseInt(effectiveOrderId || '0', 10),
+        orderDate: orderDate || undefined,
+        customerName: customerName || undefined,
+        projectName: projectName || undefined,
+        deliveryAddress: deliveryAddress || undefined,
       });
     } else {
       navigateToTab('Orders');

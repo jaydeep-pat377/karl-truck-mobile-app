@@ -8,12 +8,14 @@ import { ensureCorrectTenant } from './deepLinkService';
 import { alertService } from './alertService';
 
 const CHANNEL_ID = 'truckast_heads_up';
+const CHAT_CHANNEL_ID = 'chat';
 
 class NotificationService {
   private unsubscribeOnMessage: (() => void) | null = null;
   private unsubscribeOnTokenRefresh: (() => void) | null = null;
   private unsubscribeOnNotificationOpened: (() => void) | null = null;
   private channelCreated = false;
+  private chatChannelCreated = false;
 
   async createNotificationChannel(): Promise<void> {
     if (Platform.OS === 'android' && !this.channelCreated) {
@@ -30,6 +32,57 @@ class NotificationService {
       } catch (error) {
         console.error('[Notifications] Error creating channel:', error);
       }
+    }
+  }
+
+  async createChatChannel(): Promise<void> {
+    if (Platform.OS === 'android' && !this.chatChannelCreated) {
+      try {
+        await notifee.createChannel({
+          id: CHAT_CHANNEL_ID,
+          name: 'Chat messages',
+          description: 'New messages in order chats',
+          importance: AndroidImportance.HIGH,
+          sound: 'default',
+          vibration: true,
+        });
+        this.chatChannelCreated = true;
+      } catch (error) {
+        console.error('[Notifications] Error creating chat channel:', error);
+      }
+    }
+  }
+
+  async displayChatNotification(
+    title: string,
+    body: string,
+    data: Record<string, string>,
+  ): Promise<void> {
+    try {
+      await this.createChatChannel();
+      await notifee.displayNotification({
+        title,
+        body,
+        data,
+        android: {
+          channelId: CHAT_CHANNEL_ID,
+          importance: AndroidImportance.HIGH,
+          pressAction: { id: 'default' },
+          smallIcon: 'ic_launcher',
+          sound: 'default',
+        },
+        ios: {
+          sound: 'default',
+          foregroundPresentationOptions: {
+            badge: true,
+            sound: true,
+            banner: true,
+            list: true,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('[Notifications] Error displaying chat notification:', error);
     }
   }
 
@@ -133,13 +186,33 @@ class NotificationService {
   setupListeners(): void {
     this.unsubscribeOnMessage = messaging().onMessage(
       async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
-        // Only add to store — do NOT display via notifee here.
-        // The Supabase realtime subscription (NotificationProvider) already
-        // displays a local notification for the same event, so calling
-        // displayNotification() here would cause duplicates on iOS.
         const notification = this.parseRemoteMessage(remoteMessage);
         if (notification) {
           useNotificationStore.getState().addNotification(notification);
+        }
+
+        // Chat messages do not flow through the Supabase realtime
+        // notifications path (that pipeline only covers order/truck/weather
+        // events), so we render them here in the foreground. Other types stay
+        // deduplicated via the store/realtime path.
+        const data = remoteMessage.data || {};
+        const isChatMessage =
+          data.type === 'chat_message' ||
+          (typeof data.event_code === 'string' &&
+            data.event_code.toUpperCase().includes('CHAT'));
+
+        if (isChatMessage) {
+          const title =
+            remoteMessage.notification?.title ||
+            (data.sender_name as string | undefined) ||
+            'New message';
+          const body =
+            remoteMessage.notification?.body ||
+            (data.body as string | undefined) ||
+            (data.message_preview as string | undefined) ||
+            '';
+
+          await this.displayChatNotification(title, body, data as Record<string, string>);
         }
       },
     );
