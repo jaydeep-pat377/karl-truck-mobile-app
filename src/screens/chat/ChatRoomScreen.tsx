@@ -30,6 +30,7 @@ import { useTypingIndicator } from '../../hooks/useTypingIndicator';
 import { RootStackParamList } from '../../navigation/types';
 import { Message } from '../../types/chat';
 import { useAuthStore } from '../../store/authStore';
+import { useAudioStore } from '../../store/audioStore';
 import { initMessageSound, playMessageSound, isSoundReady } from '../../utils/notificationSound';
 
 type RouteParams = RouteProp<RootStackParamList, 'ChatRoom'>;
@@ -103,6 +104,13 @@ export const ChatRoomScreen: React.FC = () => {
   });
   const { typingUsers, setTyping } = useTypingIndicator(roomId);
   const themeColors = isDark ? colors.dark : colors.light;
+
+  // Stop any playing audio when leaving this screen
+  useEffect(() => {
+    return () => {
+      useAudioStore.getState().cleanup();
+    };
+  }, []);
 
   useEffect(() => {
     initMessageSound().then((success) => {

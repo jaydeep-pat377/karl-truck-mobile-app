@@ -23,6 +23,7 @@ import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
 
 import { ImageAttachment, AudioAttachment } from '../../api/services/chatService';
+import { useAudioStore } from '../../store/audioStore';
 export type { ImageAttachment };
 
 interface MessageInputProps {
@@ -284,6 +285,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           return;
         }
       }
+
+      // Stop any playing audio before recording
+      useAudioStore.getState().cleanup();
 
       const result = await audioRecorderPlayer.startRecorder(undefined, undefined, true);
       recordingPathRef.current = result;
