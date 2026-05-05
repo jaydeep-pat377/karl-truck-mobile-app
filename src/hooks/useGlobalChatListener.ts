@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { supabaseAdmin, isSupabaseConfigured } from '../services/supabase/supabaseClient';
-import { useChatStore, ChatToastData } from '../store/chatStore';
+import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
-import { playMessageSound, initMessageSound } from '../utils/notificationSound';
 
 interface RawChatMessage {
   id: number;
@@ -34,12 +33,6 @@ export const useGlobalChatListener = () => {
   useEffect(() => {
     userIdRef.current = user?.id;
   }, [user?.id]);
-
-  useEffect(() => {
-    initMessageSound().then((success) => {
-      console.log('[GlobalChatListener] Sound init result:', success);
-    });
-  }, []);
 
   useEffect(() => {
     if (!isConfigured || !supabaseAdmin || !user?.id) {
@@ -79,22 +72,9 @@ export const useGlobalChatListener = () => {
                 return;
               }
 
-              // Increment unread count for this order
-              const store = useChatStore.getState();
-              store.incrementUnreadCount(messageRoomId);
-
-              // Set toast data in store
-              const toastData: ChatToastData = {
-                orderId: msg.order_id,
-                orderCode: '', // Will be resolved by the consuming screen
-                senderName: msg.sender_name,
-                messagePreview: msg.message_text || 'Sent an attachment',
-                timestamp: Date.now(),
-              };
-              store.setLatestToast(toastData);
-
-              playMessageSound();
-
+              // Toast/sound are intentionally not fired here — FCM push
+              // (notificationService.displayChatNotification) handles them.
+              useChatStore.getState().incrementUnreadCount(messageRoomId);
             } catch (error) {
               console.error('[GlobalChatListener] Error:', error);
             }
