@@ -1056,7 +1056,8 @@
     "selectTimezone": "Seleccionar zona horaria",
     "currentTime": "Hora actual",
     "timezoneUpdated": "Zona horaria actualizada",
-    "timezoneHint": "La zona horaria afecta la visualización de horas en toda la aplicación"
+    "timezoneHint": "La zona horaria afecta la visualización de horas en toda la aplicación",
+    "companyTime": "Hora de la empresa"
   },
   "profile": {
     "title": "Perfil",

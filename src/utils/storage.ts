@@ -14,6 +14,7 @@ export const STORAGE_KEYS = {
   TICKET_SCAN_HISTORY: 'ticketScanHistory',
   CURRENT_TENANT: 'currentTenant',
   TIMEZONE: 'timezone',
+  COMPANY_TIMEZONE: 'companyTimezone',
 } as const;
 
 export const storageUtils = {

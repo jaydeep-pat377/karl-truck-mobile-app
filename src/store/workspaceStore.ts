@@ -178,8 +178,14 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       }
 
       // Step 4: Update auth store with new credentials
-      const { user, accessToken, refreshToken } = exchangeResponse.data;
+      const { user, accessToken, refreshToken, timezone, company_timezone } = exchangeResponse.data;
       await useAuthStore.getState().setAuth(user, accessToken, refreshToken);
+
+      // Step 4b: Update timezone for the new tenant
+      if (timezone) {
+        const { useTimezoneStore } = require('./timezoneStore');
+        await useTimezoneStore.getState().setTimezoneFromApi(timezone, company_timezone);
+      }
 
       // Step 5: Update current workspace
       await get().setCurrentWorkspace(workspace.id);

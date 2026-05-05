@@ -5,9 +5,10 @@ import { timezoneService } from '../api/services/timezoneService';
 
 interface TimezoneState {
   timezone: TimezoneInfo;
+  companyTimezone: TimezoneInfo | null;
   isLoaded: boolean;
   setTimezone: (tz: TimezoneInfo) => Promise<void>;
-  setTimezoneFromApi: (tz: TimezoneInfo) => Promise<void>;
+  setTimezoneFromApi: (tz: TimezoneInfo, companyTz?: TimezoneInfo | null) => Promise<void>;
   loadTimezone: () => Promise<void>;
   syncFromDb: () => Promise<void>;
   resetTimezone: () => Promise<void>;
@@ -15,6 +16,7 @@ interface TimezoneState {
 
 export const useTimezoneStore = create<TimezoneState>((set) => ({
   timezone: CDT_INITIAL,
+  companyTimezone: null,
   isLoaded: false,
 
   // User selects timezone in Settings — save locally + to DB
@@ -29,18 +31,22 @@ export const useTimezoneStore = create<TimezoneState>((set) => ({
   },
 
   // Timezone comes from API (login response) — save locally only
-  setTimezoneFromApi: async (tz: TimezoneInfo) => {
+  setTimezoneFromApi: async (tz: TimezoneInfo, companyTz?: TimezoneInfo | null) => {
     await storageUtils.setObject(STORAGE_KEYS.TIMEZONE, tz);
-    set({ timezone: tz, isLoaded: true });
+    if (companyTz) {
+      await storageUtils.setObject(STORAGE_KEYS.COMPANY_TIMEZONE, companyTz);
+    }
+    set({ timezone: tz, companyTimezone: companyTz ?? null, isLoaded: true });
   },
 
   // Called on app startup — local storage only, no network
   loadTimezone: async () => {
     const saved = await storageUtils.getObject<TimezoneInfo>(STORAGE_KEYS.TIMEZONE);
+    const savedCompany = await storageUtils.getObject<TimezoneInfo>(STORAGE_KEYS.COMPANY_TIMEZONE);
     if (saved && saved.iana_code) {
-      set({ timezone: saved, isLoaded: true });
+      set({ timezone: saved, companyTimezone: savedCompany ?? null, isLoaded: true });
     } else {
-      set({ isLoaded: true });
+      set({ companyTimezone: savedCompany ?? null, isLoaded: true });
     }
   },
 
@@ -63,6 +69,7 @@ export const useTimezoneStore = create<TimezoneState>((set) => ({
 
   resetTimezone: async () => {
     await storageUtils.remove(STORAGE_KEYS.TIMEZONE);
-    set({ timezone: CDT_INITIAL });
+    await storageUtils.remove(STORAGE_KEYS.COMPANY_TIMEZONE);
+    set({ timezone: CDT_INITIAL, companyTimezone: null });
   },
 }));
