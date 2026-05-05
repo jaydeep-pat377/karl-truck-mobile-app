@@ -191,15 +191,20 @@ class NotificationService {
           useNotificationStore.getState().addNotification(notification);
         }
 
-        // Chat messages do not flow through the Supabase realtime
-        // notifications path (that pipeline only covers order/truck/weather
-        // events), so we render them here in the foreground. Other types stay
-        // deduplicated via the store/realtime path.
+        // Chat messages (order chat + order request chat) do not flow through
+        // the Supabase realtime notifications path (that pipeline only covers
+        // order/truck/weather events), so we render them here in the
+        // foreground. Other types stay deduplicated via the store/realtime path.
         const data = remoteMessage.data || {};
+        const eventCodeStr =
+          typeof data.event_code === 'string'
+            ? data.event_code.toUpperCase()
+            : '';
         const isChatMessage =
           data.type === 'chat_message' ||
-          (typeof data.event_code === 'string' &&
-            data.event_code.toUpperCase().includes('CHAT'));
+          data.type === 'order_request_message' ||
+          eventCodeStr.includes('CHAT') ||
+          eventCodeStr.includes('MESSAGE');
 
         if (isChatMessage) {
           const title =

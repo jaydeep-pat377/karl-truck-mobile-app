@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTimezoneStore } from '../../store/timezoneStore';
 import {
   View,
@@ -41,7 +41,7 @@ import { getUserPermissions, getSenderRole } from '../../utils/permissions';
 // ---------------------------------------------------------------------------
 
 type OrderRequestDetailRouteProp = RouteProp<
-  { OrderRequestDetail: { orderRequestId: string } },
+  { OrderRequestDetail: { orderRequestId: string; scrollToMessages?: boolean } },
   'OrderRequestDetail'
 >;
 
@@ -865,7 +865,17 @@ export const OrderRequestDetailScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
 
-  const { orderRequestId } = route.params;
+  const { orderRequestId, scrollToMessages: shouldScrollToMessages } = route.params;
+
+  // Refs for the auto-scroll-on-notification-tap behaviour.
+  // pageScrollRef = outer KeyboardAwareScrollView (whole page).
+  // messagesScrollRef = inner ScrollView containing the message bubbles.
+  // chatSectionYRef = pixel offset of the chat section inside the page,
+  // captured via onLayout so we can scroll the page to it precisely.
+  const pageScrollRef = useRef<ScrollView | null>(null);
+  const messagesScrollRef = useRef<ScrollView | null>(null);
+  const chatSectionYRef = useRef<number>(0);
+  const didScrollFromNotificationRef = useRef<boolean>(false);
 
   // Data hooks
   const { order, isLoading, isFetching, isError, refetch } = useOrderRequestDetail(orderRequestId);
@@ -887,6 +897,30 @@ export const OrderRequestDetailScreen: React.FC = () => {
   const [confirmModal, setConfirmModal] = useState<ConfirmModalState>(CONFIRM_INITIAL);
   const [creatorName, setCreatorName] = useState('');
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  // Auto-scroll to the chat section + latest message when arrived via a
+  // notification tap. Runs once after the order detail and messages have
+  // both loaded so chatSectionYRef is set and the inner list has content.
+  useEffect(() => {
+    if (
+      !shouldScrollToMessages ||
+      didScrollFromNotificationRef.current ||
+      isLoading ||
+      messagesLoading
+    ) {
+      return;
+    }
+    didScrollFromNotificationRef.current = true;
+
+    // Wait one tick for layout to settle (chatSectionYRef + inner content size).
+    const timer = setTimeout(() => {
+      const targetY = chatSectionYRef.current || 0;
+      pageScrollRef.current?.scrollTo({ y: targetY, animated: true });
+      messagesScrollRef.current?.scrollToEnd({ animated: false });
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [shouldScrollToMessages, isLoading, messagesLoading]);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -1076,6 +1110,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
       <ScreenHeader title={t('orderRequest.title')} showBackButton showRefreshButton isRefreshing={isFetching && !isLoading} onRefresh={() => { refetch(); refetchMessages(); }} />
 
       <KeyboardAwareScrollView
+        ref={pageScrollRef as any}
         style={{ flex: 1 }}
         contentContainerStyle={[
           styles.scrollContent,
@@ -1524,7 +1559,12 @@ export const OrderRequestDetailScreen: React.FC = () => {
           )}
 
           {/* ========== CHAT SECTION ========== */}
-          <View style={[styles.chatSection, { backgroundColor: cardBg }]}>
+          <View
+            style={[styles.chatSection, { backgroundColor: cardBg }]}
+            onLayout={(e) => {
+              chatSectionYRef.current = e.nativeEvent.layout.y;
+            }}
+          >
             <View style={styles.chatHeader}>
               <Icon name="message-text-outline" size={ms(20)} color={colors.primary.main} />
               <Text variant="bodySmall" style={{ color: textColor, fontWeight: '700', marginLeft: ms(8) }}>
@@ -1537,12 +1577,22 @@ export const OrderRequestDetailScreen: React.FC = () => {
 
             {/* Messages list */}
             <ScrollView
+              ref={messagesScrollRef}
               style={[
                 styles.chatMessagesContainer,
                 { backgroundColor: isDark ? colors.chat.dark.messageArea : colors.chat.light.messageArea },
               ]}
               contentContainerStyle={{ paddingVertical: ms(8) }}
               nestedScrollEnabled
+              onContentSizeChange={() => {
+                // When messages first render after a notification tap, jump to
+                // the latest message at the bottom of the inner list. We do
+                // this on every content-size change while the flag is still
+                // active, then the effect below clears the flag.
+                if (shouldScrollToMessages && !didScrollFromNotificationRef.current) {
+                  messagesScrollRef.current?.scrollToEnd({ animated: false });
+                }
+              }}
             >
               {messagesLoading ? (
                 <View style={styles.chatLoading}>

@@ -38,7 +38,7 @@ export interface OrdersFilterParams {
 
 export type OrderRequestsStackParamList = {
   OrderRequestList: undefined;
-  OrderRequestDetail: { orderRequestId: string };
+  OrderRequestDetail: { orderRequestId: string; scrollToMessages?: boolean };
   CreateOrderRequest: { orderType?: 'with_project' | 'without_project' | 'without_project_with_product'; editOrderId?: string; prefillOrder?: Record<string, any> };
 };
 
