@@ -11,19 +11,22 @@ import {
   Alert,
   Modal,
   Pressable,
+  PermissionsAndroid,
 } from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
+import AudioRecorderPlayer from 'react-native-audio-recorder-player';
+import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Icon, Text } from '../common';
 import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
 
-import { ImageAttachment } from '../../api/services/chatService';
+import { ImageAttachment, AudioAttachment } from '../../api/services/chatService';
 export type { ImageAttachment };
 
 interface MessageInputProps {
-  onSend: (message: string, images?: ImageAttachment[]) => Promise<void>;
+  onSend: (message: string, images?: ImageAttachment[], audio?: AudioAttachment) => Promise<void>;
   onTyping?: () => void;
   isSending?: boolean;
   placeholder?: string;
@@ -48,7 +51,6 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
 
   const bgColor = isDark ? colors.chat.dark.receivedBubble : colors.chat.light.receivedBubble;
   const textColor = isDark ? colors.chat.dark.textPrimary : colors.chat.light.textPrimary;
-  const hintColor = isDark ? colors.chat.dark.timeText : colors.semiTransparent.black50;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -92,6 +94,15 @@ const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
   );
 };
 
+const audioRecorderPlayer = AudioRecorderPlayer;
+
+const formatRecordingTime = (ms: number): string => {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
+
 export const MessageInput: React.FC<MessageInputProps> = ({
   onSend,
   onTyping,
@@ -109,11 +120,75 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [showImageModal, setShowImageModal] = useState(false);
   const sendAnim = useRef(new Animated.Value(1)).current;
 
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const recordingPathRef = useRef<string>('');
+
+  // Speech recognition state
+  const [transcribedText, setTranscribedText] = useState('');
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const transcribedTextRef = useRef('');
+
   const inputBg = themeColors.card;
   const containerBg = themeColors.background;
   const textColor = themeColors.text.primary;
   const hintColor = themeColors.text.hint;
   const iconColor = themeColors.text.secondary;
+
+  // Speech recognition event handlers
+  useEffect(() => {
+    const onSpeechResults = (e: SpeechResultsEvent) => {
+      if (e.value && e.value.length > 0) {
+        const text = e.value[0] || '';
+        setTranscribedText(text);
+        transcribedTextRef.current = text;
+      }
+    };
+
+    const onSpeechPartialResults = (e: SpeechResultsEvent) => {
+      if (e.value && e.value.length > 0) {
+        const text = e.value[0] || '';
+        setTranscribedText(text);
+        transcribedTextRef.current = text;
+      }
+    };
+
+    const onSpeechError = (e: SpeechErrorEvent) => {
+      console.log('[Voice] Speech recognition error:', e.error);
+      setIsTranscribing(false);
+    };
+
+    const onSpeechEnd = () => {
+      setIsTranscribing(false);
+    };
+
+    Voice.onSpeechResults = onSpeechResults;
+    Voice.onSpeechPartialResults = onSpeechPartialResults;
+    Voice.onSpeechError = onSpeechError;
+    Voice.onSpeechEnd = onSpeechEnd;
+
+    return () => {
+      Voice.destroy().then(Voice.removeAllListeners);
+    };
+  }, []);
+
+  // Pulse animation for recording indicator
+  useEffect(() => {
+    if (isRecording) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.3, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isRecording, pulseAnim]);
 
   const handleChangeText = useCallback((text: string) => {
     setMessage(text);
@@ -170,6 +245,122 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
   }, []);
 
+  const startSpeechRecognition = useCallback(async () => {
+    try {
+      setTranscribedText('');
+      transcribedTextRef.current = '';
+      setIsTranscribing(true);
+      await Voice.start('en-US');
+    } catch (error) {
+      console.log('[Voice] Failed to start speech recognition:', error);
+      setIsTranscribing(false);
+    }
+  }, []);
+
+  const stopSpeechRecognition = useCallback(async () => {
+    try {
+      await Voice.stop();
+    } catch (error) {
+      console.log('[Voice] Failed to stop speech recognition:', error);
+    }
+    setIsTranscribing(false);
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    try {
+      // Request microphone permission on Android
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+          {
+            title: t('chat.micPermissionTitle') || 'Microphone Permission',
+            message: t('chat.micPermissionMessage') || 'This app needs access to your microphone to record voice messages.',
+            buttonPositive: t('common.ok') || 'OK',
+            buttonNegative: t('common.cancel') || 'Cancel',
+          }
+        );
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert(t('common.error'), 'Microphone permission is required to record voice messages.');
+          return;
+        }
+      }
+
+      const result = await audioRecorderPlayer.startRecorder(undefined, undefined, true);
+      recordingPathRef.current = result;
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      audioRecorderPlayer.addRecordBackListener((e) => {
+        setRecordingDuration(e.currentPosition);
+      });
+
+      // Start speech recognition in parallel
+      startSpeechRecognition();
+    } catch (error) {
+      Alert.alert(t('common.error'), t('chat.errors.recordingFailed'));
+    }
+  }, [t, startSpeechRecognition]);
+
+  const stopRecording = useCallback(async (): Promise<AudioAttachment | null> => {
+    try {
+      await stopSpeechRecognition();
+      const result = await audioRecorderPlayer.stopRecorder();
+      audioRecorderPlayer.removeRecordBackListener();
+      const duration = recordingDuration;
+      setIsRecording(false);
+      setRecordingDuration(0);
+
+      if (duration < 1000) {
+        setTranscribedText('');
+        transcribedTextRef.current = '';
+        return null;
+      }
+
+      const ext = Platform.OS === 'ios' ? 'm4a' : 'mp4';
+      return {
+        uri: result,
+        type: Platform.OS === 'ios' ? 'audio/m4a' : 'audio/mp4',
+        name: `voice_${Date.now()}.${ext}`,
+        duration,
+      };
+    } catch (error) {
+      setIsRecording(false);
+      setRecordingDuration(0);
+      setTranscribedText('');
+      transcribedTextRef.current = '';
+      return null;
+    }
+  }, [recordingDuration, stopSpeechRecognition]);
+
+  const cancelRecording = useCallback(async () => {
+    try {
+      await stopSpeechRecognition();
+      await audioRecorderPlayer.stopRecorder();
+      audioRecorderPlayer.removeRecordBackListener();
+    } catch {}
+    setIsRecording(false);
+    setRecordingDuration(0);
+    setTranscribedText('');
+    transcribedTextRef.current = '';
+  }, [stopSpeechRecognition]);
+
+  const handleSendVoice = useCallback(async () => {
+    const spokenText = transcribedTextRef.current.trim();
+    const audio = await stopRecording();
+    if (!audio) return;
+
+    try {
+      setIsUploading(true);
+      await onSend(spokenText, undefined, audio);
+    } catch (error: any) {
+      Alert.alert(t('common.error'), error?.message || t('chat.errors.sendFailed'));
+    } finally {
+      setIsUploading(false);
+      setTranscribedText('');
+      transcribedTextRef.current = '';
+    }
+  }, [stopRecording, onSend, t]);
+
   const handleSend = useCallback(async () => {
     const trimmed = message.trim();
     if ((!trimmed && selectedImages.length === 0) || isSending || isUploading) return;
@@ -197,6 +388,46 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
   const canSend = (message.trim().length > 0 || selectedImages.length > 0) && !isSending && !isUploading;
   const isProcessing = isSending || isUploading;
+  const showMicButton = message.trim().length === 0 && selectedImages.length === 0 && !isProcessing;
+
+  if (isRecording) {
+    return (
+      <View style={[styles.wrapper, { backgroundColor: containerBg }]}>
+        {transcribedText.length > 0 && (
+          <View style={[styles.transcriptionContainer, { backgroundColor: inputBg }]}>
+            <Icon name="text-recognition" size={ms(14)} color={hintColor} />
+            <Text style={[styles.transcriptionText, { color: textColor }]} numberOfLines={3}>
+              {transcribedText}
+            </Text>
+          </View>
+        )}
+        <View style={styles.recordingRow}>
+          <TouchableOpacity onPress={cancelRecording} style={styles.cancelBtn}>
+            <Icon name="delete" size={ms(22)} color={colors.error.main} />
+          </TouchableOpacity>
+
+          <View style={styles.recordingInfo}>
+            <Animated.View style={[styles.recordingDot, { transform: [{ scale: pulseAnim }] }]} />
+            <Text style={[styles.recordingTimer, { color: textColor }]}>
+              {formatRecordingTime(recordingDuration)}
+            </Text>
+            {isTranscribing && (
+              <Text style={[styles.transcribingLabel, { color: hintColor }]}>
+                {t('chat.transcribing')}
+              </Text>
+            )}
+          </View>
+
+          <TouchableOpacity
+            onPress={handleSendVoice}
+            style={[styles.sendBtn, { backgroundColor: colors.primary.main }]}
+          >
+            <Icon name="send" size={ms(18)} color={colors.common.white} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.wrapper, { backgroundColor: containerBg }]}>
@@ -256,21 +487,31 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         </View>
 
         <Animated.View style={{ transform: [{ scale: sendAnim }] }}>
-          <TouchableOpacity
-            onPress={handleSend}
-            activeOpacity={0.8}
-            disabled={!canSend}
-            style={[
-              styles.sendBtn,
-              { backgroundColor: canSend ? colors.primary.main : (isDark ? colors.chat.dark.inputBg : colors.semiTransparent.black10) }
-            ]}
-          >
-            {isProcessing ? (
-              <ActivityIndicator size="small" color={colors.common.white} />
-            ) : (
-              <Icon name="send" size={ms(18)} color={canSend ? colors.common.white : iconColor} />
-            )}
-          </TouchableOpacity>
+          {showMicButton ? (
+            <TouchableOpacity
+              onPress={startRecording}
+              activeOpacity={0.8}
+              style={[styles.sendBtn, { backgroundColor: colors.primary.main }]}
+            >
+              <Icon name="microphone" size={ms(20)} color={colors.common.white} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={handleSend}
+              activeOpacity={0.8}
+              disabled={!canSend}
+              style={[
+                styles.sendBtn,
+                { backgroundColor: canSend ? colors.primary.main : (isDark ? colors.chat.dark.inputBg : colors.semiTransparent.black10) }
+              ]}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color={colors.common.white} />
+              ) : (
+                <Icon name="send" size={ms(18)} color={canSend ? colors.common.white : iconColor} />
+              )}
+            </TouchableOpacity>
+          )}
         </Animated.View>
       </View>
     </View>
@@ -349,6 +590,56 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // Recording UI
+  recordingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: ms(44),
+  },
+  cancelBtn: {
+    width: ms(44),
+    height: ms(44),
+    borderRadius: ms(12),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recordingInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  recordingDot: {
+    width: ms(10),
+    height: ms(10),
+    borderRadius: ms(5),
+    backgroundColor: colors.error.main,
+  },
+  recordingTimer: {
+    fontSize: ms(16),
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+  },
+  transcribingLabel: {
+    fontSize: ms(12),
+    fontStyle: 'italic',
+  },
+  transcriptionContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.xs,
+    borderRadius: ms(8),
+  },
+  transcriptionText: {
+    flex: 1,
+    fontSize: ms(14),
+    lineHeight: ms(18),
+  },
+  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: colors.semiTransparent.black50,

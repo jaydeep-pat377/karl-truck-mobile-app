@@ -4,3 +4,4 @@ export { MessageInput } from './MessageInput';
 export type { ImageAttachment } from '../../api/services/chatService';
 export { ChatHeader } from './ChatHeader';
 export { TypingIndicator } from './TypingIndicator';
+export { VoiceMessagePlayer } from './VoiceMessagePlayer';

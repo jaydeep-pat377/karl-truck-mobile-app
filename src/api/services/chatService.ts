@@ -15,6 +15,13 @@ export interface ImageAttachment {
   height?: number;
 }
 
+export interface AudioAttachment {
+  uri: string;
+  type: string;
+  name: string;
+  duration: number;
+}
+
 export interface UploadedAttachment {
   url: string;
   type: string;
@@ -22,6 +29,7 @@ export interface UploadedAttachment {
   size?: number;
   width?: number;
   height?: number;
+  duration?: number;
 }
 
 const STORAGE_BUCKET = 'order-chat-images';
@@ -50,6 +58,23 @@ interface RawChatMessage {
   is_deleted: boolean;
   timeline_visible: boolean;
 }
+
+const detectMessageType = (attachments: unknown[]): 'text' | 'image' | 'audio' => {
+  if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
+    return 'text';
+  }
+  const first = attachments[0] as any;
+  if (!first) return 'text';
+  const type = (first.type || '') as string;
+  const url = (first.url || first.file_url || first.path || '') as string;
+  if (type.includes('audio') || /\.(m4a|mp4|mp3|wav|aac|ogg)($|\?)/i.test(url) || first.duration != null) {
+    return 'audio';
+  }
+  if (type.includes('image') || /\.(jpg|jpeg|png|gif|webp|bmp)($|\?)/i.test(url)) {
+    return 'image';
+  }
+  return 'text';
+};
 
 interface OrderChat {
   id: number;
@@ -202,7 +227,7 @@ export const chatService = {
         sender_name: msg.sender_name || 'User',
         sender_role: msg.sender_role || 'contractor',
         content: msg.message_text || '',
-        message_type: 'text' as const,
+        message_type: detectMessageType(msg.attachments),
         attachments: msg.attachments || [],
         created_at: msg.created_at,
         is_deleted: msg.is_deleted,
@@ -353,7 +378,7 @@ export const chatService = {
       sender_name: msg.sender_name,
       sender_role: msg.sender_role,
       content: msg.message_text || '',
-      message_type: 'text',
+      message_type: detectMessageType(msg.attachments),
       attachments: msg.attachments || [],
       created_at: msg.created_at,
       is_deleted: msg.is_deleted,
@@ -372,6 +397,84 @@ export const chatService = {
       return response.ok;
     } catch (error) {
       return false;
+    }
+  },
+
+  uploadAudio: async (audio: AudioAttachment, orderId: number): Promise<UploadedAttachment> => {
+    await checkSupabase();
+    const user = useAuthStore.getState().user;
+    if (!user) throw new Error('Not authenticated');
+
+    const timestamp = Date.now();
+    const fileExt = audio.name.split('.').pop() || 'm4a';
+    const fileName = `${orderId}/${user.id}/${timestamp}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${fileName}`;
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.timeout = 60000;
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${fileName}`;
+          resolve({
+            url: publicUrl,
+            type: audio.type,
+            name: audio.name,
+            duration: audio.duration,
+          });
+        } else {
+          reject(new Error(`Upload failed: ${xhr.status} - ${xhr.responseText || 'Server error'}`));
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Network request failed - please check your internet connection'));
+      };
+
+      xhr.ontimeout = () => {
+        reject(new Error('Upload timeout - please try again'));
+      };
+
+      xhr.open('POST', uploadUrl);
+      xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`);
+      xhr.setRequestHeader('x-upsert', 'true');
+
+      const formData = new FormData();
+      let fileUri = audio.uri;
+      if (Platform.OS === 'ios' && !fileUri.startsWith('file://')) {
+        fileUri = `file://${fileUri}`;
+      }
+
+      const fileData: any = {
+        uri: fileUri,
+        type: audio.type || 'audio/m4a',
+        name: fileName.split('/').pop() || `voice_${timestamp}.m4a`,
+      };
+      formData.append('file', fileData);
+      xhr.send(formData);
+    });
+  },
+
+  sendVoiceMessage: async (
+    payload: SendMessagePayload,
+    audio: AudioAttachment
+  ): Promise<Message> => {
+    try {
+      const isConnected = await chatService.testConnection();
+      if (!isConnected) {
+        throw new Error('Cannot connect to storage server. Please check your internet connection.');
+      }
+      const uploadedAudio = await chatService.uploadAudio(audio, payload.order_id);
+      const result = await chatService.sendMessage({
+        ...payload,
+        message_type: 'audio',
+        attachments: [uploadedAudio],
+      });
+      return result;
+    } catch (error) {
+      throw error;
     }
   },
 
@@ -491,7 +594,7 @@ export const chatService = {
             sender_name: msg.sender_name || 'User',
             sender_role: msg.sender_role || 'contractor',
             content: msg.message_text || '',
-            message_type: 'text',
+            message_type: detectMessageType(msg.attachments),
             attachments: msg.attachments || [],
             created_at: msg.created_at,
             is_deleted: msg.is_deleted,
@@ -518,7 +621,7 @@ export const chatService = {
             sender_name: msg.sender_name || 'User',
             sender_role: msg.sender_role || 'contractor',
             content: msg.message_text || '',
-            message_type: 'text',
+            message_type: detectMessageType(msg.attachments),
             attachments: msg.attachments || [],
             created_at: msg.created_at,
             is_deleted: msg.is_deleted,

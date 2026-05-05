@@ -83,6 +83,10 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>This app needs access to your camera to take a profile photo.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs access to your microphone to record voice messages.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>This app uses speech recognition to transcribe your voice messages into text.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs access to your location for tracking deliveries.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

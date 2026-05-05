@@ -171,7 +171,8 @@
       "openCameraFailed": "Error al abrir la cámara",
       "openGalleryFailed": "Error al abrir la galería",
       "openChatFailed": "Error al abrir el chat",
-      "chatErrorTitle": "Error de Chat"
+      "chatErrorTitle": "Error de Chat",
+      "recordingFailed": "Error al iniciar la grabación"
     },
     "cancel": "Cancelar",
     "createError": "Error al crear el chat",
@@ -184,7 +185,8 @@
     "startConversation": "Iniciar la Conversación",
     "sendToBegin": "Envía un mensaje para comenzar a chatear",
     "pullToLoad": "Desliza hacia abajo para cargar mensajes anteriores",
-    "loadingMessages": "Cargando mensajes..."
+    "loadingMessages": "Cargando mensajes...",
+    "transcribing": "Escuchando..."
   },
   "weather": {
     "unableToLoad": "No se pudieron cargar los datos del clima",

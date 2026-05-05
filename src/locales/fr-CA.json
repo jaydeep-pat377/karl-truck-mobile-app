@@ -171,7 +171,8 @@
       "openCameraFailed": "Échec d'ouverture de la caméra",
       "openGalleryFailed": "Échec d'ouverture de la galerie",
       "openChatFailed": "Échec d'ouverture du clavardage",
-      "chatErrorTitle": "Erreur de clavardage"
+      "chatErrorTitle": "Erreur de clavardage",
+      "recordingFailed": "Échec du démarrage de l'enregistrement"
     },
     "cancel": "Annuler",
     "createError": "Échec de la création du clavardage",
@@ -184,7 +185,8 @@
     "startConversation": "Commencer la conversation",
     "sendToBegin": "Envoyez un message pour commencer à discuter",
     "pullToLoad": "Tirez vers le bas pour charger les anciens messages",
-    "loadingMessages": "Chargement des messages..."
+    "loadingMessages": "Chargement des messages...",
+    "transcribing": "Écoute en cours..."
   },
   "weather": {
     "unableToLoad": "Impossible de charger les données météo",

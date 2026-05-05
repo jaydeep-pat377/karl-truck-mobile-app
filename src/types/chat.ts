@@ -60,7 +60,7 @@ export interface Message {
   sender_name: string;
   sender_role: string;
   content: string;
-  message_type: 'text' | 'image' | 'system';
+  message_type: 'text' | 'image' | 'audio' | 'system';
   attachments: unknown[];
   created_at: string;
   updated_at?: string;
@@ -95,7 +95,7 @@ export interface SendMessagePayload {
   chat_id: number;
   order_id: number;
   content: string;
-  message_type?: 'text' | 'image' | 'system';
+  message_type?: 'text' | 'image' | 'audio' | 'system';
   attachments?: unknown[];
   timeline_visible?: boolean;
 }

@@ -5,6 +5,7 @@ import { Text, Icon } from '../common';
 import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
 import { Message } from '../../types/chat';
+import { VoiceMessagePlayer } from './VoiceMessagePlayer';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -67,7 +68,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const textColor = isDark ? colors.chat.dark.textPrimary : colors.chat.light.textPrimary;
   const timeColor = isDark ? colors.chat.dark.timeText : colors.chat.light.timeText;
 
+  const getAudioInfo = (): { url: string; duration: number } | null => {
+    if (message.message_type !== 'audio' || !message.attachments || !Array.isArray(message.attachments)) {
+      return null;
+    }
+    const attachment = message.attachments[0] as any;
+    if (!attachment) return null;
+    const url = attachment.url || attachment.file_url || attachment.path || '';
+    const duration = attachment.duration || 0;
+    if (!url) return null;
+    return { url, duration };
+  };
+
+  const audioInfo = getAudioInfo();
+
   const getImageUrls = (): string[] => {
+    if (message.message_type === 'audio') return [];
     if (!message.attachments || !Array.isArray(message.attachments)) {
       return [];
     }
@@ -244,6 +260,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                     </TouchableOpacity>
                   ))}
                 </View>
+              )}
+
+              {audioInfo && (
+                <VoiceMessagePlayer
+                  audioUrl={audioInfo.url}
+                  duration={audioInfo.duration}
+                  isOwnMessage={isOwnMessage}
+                />
               )}
 
               {message.content && message.content.trim().length > 0 && (

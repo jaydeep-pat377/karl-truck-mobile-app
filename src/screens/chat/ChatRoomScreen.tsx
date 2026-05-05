@@ -22,6 +22,7 @@ import {
   TypingIndicator,
   ImageAttachment,
 } from '../../components/chat';
+import { AudioAttachment } from '../../api/services/chatService';
 import { colors } from '../../theme/colors';
 import { spacing, ms } from '../../utils/responsive';
 import { useChatMessages } from '../../hooks/useChatMessages';
@@ -212,9 +213,9 @@ export const ChatRoomScreen: React.FC = () => {
   }, [messages]);
 
   const handleSend = useCallback(
-    async (content: string, images?: ImageAttachment[]) => {
+    async (content: string, images?: ImageAttachment[], audio?: AudioAttachment) => {
       try {
-        await sendMessage(content, images);
+        await sendMessage(content, images, audio);
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       } catch (error) {
         console.error('[ChatRoom] handleSend error:', error);

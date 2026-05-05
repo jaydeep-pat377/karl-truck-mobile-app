@@ -171,7 +171,8 @@
       "openCameraFailed": "Failed to open camera",
       "openGalleryFailed": "Failed to open gallery",
       "openChatFailed": "Failed to open chat",
-      "chatErrorTitle": "Chat Error"
+      "chatErrorTitle": "Chat Error",
+      "recordingFailed": "Failed to start recording"
     },
     "cancel": "Cancel",
     "createError": "Failed to create chat",
@@ -184,7 +185,8 @@
     "startConversation": "Start the Conversation",
     "sendToBegin": "Send a message to begin chatting",
     "pullToLoad": "Pull down to load older messages",
-    "loadingMessages": "Loading messages..."
+    "loadingMessages": "Loading messages...",
+    "transcribing": "Listening..."
   },
   "weather": {
     "unableToLoad": "Unable to load weather data",

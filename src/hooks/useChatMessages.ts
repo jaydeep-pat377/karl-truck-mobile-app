@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { AppState, AppStateStatus, Alert } from 'react-native';
-import { chatService, ImageAttachment } from '../api/services/chatService';
+import { chatService, ImageAttachment, AudioAttachment } from '../api/services/chatService';
 import { useChatStore } from '../store/chatStore';
 import { supabase, isSupabaseConfigured } from '../services/supabase/supabaseClient';
 import { Message } from '../types/chat';
@@ -170,6 +170,19 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
                   return;
                 }
 
+                const attachments = msg.attachments || [];
+                let messageType: 'text' | 'image' | 'audio' = 'text';
+                if (attachments.length > 0) {
+                  const first = attachments[0] as any;
+                  const aType = (first?.type || '') as string;
+                  const aUrl = (first?.url || first?.file_url || first?.path || '') as string;
+                  if (aType.includes('audio') || /\.(m4a|mp4|mp3|wav|aac|ogg)($|\?)/i.test(aUrl) || first?.duration != null) {
+                    messageType = 'audio';
+                  } else if (aType.includes('image') || /\.(jpg|jpeg|png|gif|webp|bmp)($|\?)/i.test(aUrl)) {
+                    messageType = 'image';
+                  }
+                }
+
                 const newMessage: Message = {
                   id: String(msg.id),
                   room_id: String(msg.order_id),
@@ -179,8 +192,8 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
                   sender_name: msg.sender_name || 'User',
                   sender_role: msg.sender_role || 'contractor',
                   content: msg.message_text || '',
-                  message_type: 'text',
-                  attachments: msg.attachments || [],
+                  message_type: messageType,
+                  attachments,
                   created_at: msg.created_at,
                   is_deleted: msg.is_deleted,
                   timeline_visible: msg.timeline_visible,
@@ -256,8 +269,18 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
   }, [orderId, roomId, supabaseUserId, addMessage, incrementUnreadCount, currentRoomId, isConfigured, queryClient, pollForNewMessages]);
 
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ content, images }: { content: string; images?: ImageAttachment[] }) => {
+    mutationFn: async ({ content, images, audio }: { content: string; images?: ImageAttachment[]; audio?: AudioAttachment }) => {
       try {
+        if (audio) {
+          return chatService.sendVoiceMessage(
+            {
+              chat_id: chatId || orderId,
+              order_id: orderId,
+              content: content || '',
+            },
+            audio
+          );
+        }
         if (images && images.length > 0) {
           const result = await chatService.sendMessageWithImages(
             {
@@ -278,7 +301,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
         throw error;
       }
     },
-    onMutate: async ({ content, images }) => {
+    onMutate: async ({ content, images, audio }) => {
       let senderName = 'Unknown';
       if (user?.fullName) {
         senderName = user.fullName;
@@ -296,9 +319,15 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
         senderRole = 'concrete_producer';
       }
 
-      const optimisticAttachments = images
-        ? images.map(img => ({ url: img.uri, type: img.type, name: img.name }))
-        : [];
+      const optimisticAttachments = audio
+        ? [{ url: audio.uri, type: audio.type, name: audio.name, duration: audio.duration }]
+        : images
+          ? images.map(img => ({ url: img.uri, type: img.type, name: img.name }))
+          : [];
+
+      const messageType = audio ? 'audio' as const
+        : images && images.length > 0 && !content ? 'image' as const
+        : 'text' as const;
 
       const optimisticMessage: Message = {
         id: `temp-${Date.now()}`,
@@ -309,7 +338,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
         sender_name: senderName,
         sender_role: senderRole,
         content: content,
-        message_type: images && images.length > 0 && !content ? 'image' : 'text',
+        message_type: messageType,
         attachments: optimisticAttachments,
         created_at: new Date().toISOString(),
         is_deleted: false,
@@ -340,8 +369,8 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
   });
 
   const sendMessage = useCallback(
-    (content: string, images?: ImageAttachment[]) => {
-      return sendMessageMutation.mutateAsync({ content, images });
+    (content: string, images?: ImageAttachment[], audio?: AudioAttachment) => {
+      return sendMessageMutation.mutateAsync({ content, images, audio });
     },
     [sendMessageMutation]
   );
