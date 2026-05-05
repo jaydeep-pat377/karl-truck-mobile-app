@@ -148,13 +148,17 @@ axiosInstance.interceptors.response.use(
       !isPublicEndpoint(originalRequest.url)
     ) {
       originalRequest._retry = true;
+      console.log('[Auth] 401 detected, attempting token refresh...');
 
       try {
         const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
         if (refreshToken) {
+          const refreshUrl = `${axiosInstance.defaults.baseURL}/auth/refresh`;
+          console.log('[Auth] Refreshing token via:', refreshUrl);
+
           const response = await axios.post(
-            `${axiosInstance.defaults.baseURL}/auth/refresh`,
+            refreshUrl,
             { refreshToken },
             {
               headers: {
@@ -163,22 +167,36 @@ axiosInstance.interceptors.response.use(
             }
           );
 
+          console.log('[Auth] Refresh response status:', response.status);
+
           if (response.data.success && response.data.data?.accessToken) {
             const { accessToken } = response.data.data;
+            const newRefreshToken = response.data.data?.refreshToken;
 
             await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+            if (newRefreshToken) {
+              await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
+            }
+
+            // Update Zustand store so in-memory token stays in sync
+            useAuthStore.setState({ accessToken });
+
             (originalRequest.headers as any)['Authorization'] = `Bearer ${accessToken}`;
+            console.log('[Auth] Token refreshed successfully, retrying original request...');
 
             return axiosInstance(originalRequest);
           } else {
+            console.error('[Auth] Refresh response invalid:', JSON.stringify(response.data));
             throw new Error(response.data.message || 'Token refresh failed');
           }
         } else {
+          console.error('[Auth] No refresh token found in storage');
           await useAuthStore.getState().logout();
           alertService.showInfo('Session Expired', 'Your session has expired. Please log in again.');
           return Promise.reject(error);
         }
       } catch (refreshError: any) {
+        console.error('[Auth] Token refresh failed:', refreshError?.message || refreshError);
         await useAuthStore.getState().logout();
         alertService.showInfo('Session Expired', 'Your session has expired. Please log in again.');
         return Promise.reject(refreshError);
