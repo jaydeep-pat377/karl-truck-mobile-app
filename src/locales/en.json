@@ -1056,7 +1056,8 @@
     "selectTimezone": "Select Timezone",
     "currentTime": "Current Time",
     "timezoneUpdated": "Timezone updated",
-    "timezoneHint": "Timezone affects how times are displayed across the app and in API responses"
+    "timezoneHint": "Timezone affects how times are displayed across the app and in API responses",
+    "companyTime": "Company Time"
   },
   "profile": {
     "title": "Profile",

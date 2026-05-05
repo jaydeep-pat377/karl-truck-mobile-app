@@ -1056,7 +1056,8 @@
     "selectTimezone": "Sélectionner le fuseau horaire",
     "currentTime": "Heure actuelle",
     "timezoneUpdated": "Fuseau horaire mis à jour",
-    "timezoneHint": "Le fuseau horaire affecte l'affichage des heures dans toute l'application"
+    "timezoneHint": "Le fuseau horaire affecte l'affichage des heures dans toute l'application",
+    "companyTime": "Heure de l'entreprise"
   },
   "profile": {
     "title": "Profil",

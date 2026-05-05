@@ -74,7 +74,10 @@ export const useLogin = () => {
       if (response.success && response.data) {
         // Save timezone from API response (user preference or tenant default)
         if (response.data.timezone) {
-          await useTimezoneStore.getState().setTimezoneFromApi(response.data.timezone);
+          await useTimezoneStore.getState().setTimezoneFromApi(
+            response.data.timezone,
+            response.data.company_timezone,
+          );
         }
 
         await setAuth(

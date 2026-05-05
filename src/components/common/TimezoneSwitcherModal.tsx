@@ -33,7 +33,7 @@ export const TimezoneSwitcherModal: React.FC<TimezoneSwitcherModalProps> = ({
   const themeColors = isDark ? colors.dark : colors.light;
 
   const { height: screenHeight } = useWindowDimensions();
-  const { timezone: currentTimezone, setTimezone } = useTimezoneStore();
+  const { timezone: currentTimezone, companyTimezone, setTimezone } = useTimezoneStore();
   const [timezones, setTimezones] = useState<TimezoneInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingId, setPendingId] = useState<number | null>(null);
@@ -87,6 +87,7 @@ export const TimezoneSwitcherModal: React.FC<TimezoneSwitcherModalProps> = ({
           {timezones.map((item, index) => {
             const isActive = currentTimezone.id === item.id;
             const isPending = pendingId === item.id;
+            const isCompanyTz = companyTimezone?.id === item.id;
             const abbr = getTzAbbreviation(item.iana_code);
 
             return (
@@ -138,9 +139,32 @@ export const TimezoneSwitcherModal: React.FC<TimezoneSwitcherModalProps> = ({
                   >
                     {item.display_name}
                   </Text>
-                  <Text variant="caption" color="secondary" style={{ marginTop: ms(2) }}>
-                    {item.current_time || `${abbr} — UTC ${item.utc_offset}`}
-                  </Text>
+                  <View style={styles.subtitleRow}>
+                    <Text variant="caption" color="secondary" style={{ marginTop: ms(2) }}>
+                      {item.current_time || `${abbr} — UTC ${item.utc_offset}`}
+                    </Text>
+                    {isCompanyTz && (
+                      <View
+                        style={[
+                          styles.companyBadge,
+                          {
+                            backgroundColor: isDark
+                              ? colors.semiTransparent.white08
+                              : colors.semiTransparent.black04,
+                          },
+                        ]}
+                      >
+                        <Icon name="earth" size={ms(10)} color={themeColors.text.secondary} />
+                        <Text
+                          variant="captionSmall"
+                          color="secondary"
+                          style={{ marginLeft: ms(3), fontWeight: '500' }}
+                        >
+                          {t('settings.companyTime')}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
 
                 {isPending ? (
@@ -200,6 +224,20 @@ const styles = StyleSheet.create({
   rowText: {
     flex: 1,
     marginLeft: ms(12),
+  },
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: ms(6),
+  },
+  companyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: ms(6),
+    paddingVertical: ms(2),
+    borderRadius: ms(4),
+    marginTop: ms(2),
   },
   checkBox: {
     width: ms(24),
