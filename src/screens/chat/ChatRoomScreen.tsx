@@ -92,7 +92,6 @@ export const ChatRoomScreen: React.FC = () => {
   const flatListRef = useRef<FlatList>(null);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set());
 
   const previousMessageCountRef = useRef(0);
   const lastMessageIdRef = useRef<string | null>(null);
@@ -153,6 +152,8 @@ export const ChatRoomScreen: React.FC = () => {
     };
   }, []);
 
+  const newMessageIdsRef = useRef<Set<string>>(new Set());
+
   const processedMessages = useMemo((): ProcessedMessage[] => {
     if (!messages || messages.length === 0) return [];
 
@@ -167,6 +168,7 @@ export const ChatRoomScreen: React.FC = () => {
         }
       }
       previousMessageCountRef.current = messages.length;
+      newMessageIdsRef.current = currentNewMessageIds;
     }
 
     messages.forEach((msg, index) => {
@@ -195,17 +197,12 @@ export const ChatRoomScreen: React.FC = () => {
         isFirstInGroup,
         isLastInGroup,
         deliveryStatus,
-        isNewMessage: currentNewMessageIds.has(msg.id) || newMessageIds.has(msg.id),
+        isNewMessage: currentNewMessageIds.has(msg.id) || newMessageIdsRef.current.has(msg.id),
       });
     });
 
-    if (currentNewMessageIds.size > 0) {
-      setNewMessageIds(currentNewMessageIds);
-      setTimeout(() => setNewMessageIds(new Set()), 500);
-    }
-
     return result;
-  }, [messages, newMessageIds]);
+  }, [messages]);
 
   useEffect(() => {
     if (messages && messages.length > 0) {
@@ -243,6 +240,14 @@ export const ChatRoomScreen: React.FC = () => {
   const handleLoadMore = useCallback(async () => {
     await loadMore();
   }, [loadMore]);
+
+  const keyExtractor = useCallback((item: ProcessedMessage) => item.id, []);
+
+  const handleContentSizeChange = useCallback(() => {
+    if (processedMessages.length > 0) {
+      flatListRef.current?.scrollToEnd({ animated: false });
+    }
+  }, [processedMessages.length]);
 
   const renderMessage = useCallback(
     ({ item }: { item: ProcessedMessage }) => {
@@ -318,7 +323,7 @@ export const ChatRoomScreen: React.FC = () => {
           ref={flatListRef}
           data={processedMessages}
           renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
+          keyExtractor={keyExtractor}
           contentContainerStyle={[
             styles.messageList,
             processedMessages.length === 0 && styles.emptyList,
@@ -326,11 +331,7 @@ export const ChatRoomScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-          onContentSizeChange={() => {
-            if (processedMessages.length > 0) {
-              flatListRef.current?.scrollToEnd({ animated: false });
-            }
-          }}
+          onContentSizeChange={handleContentSizeChange}
           ListEmptyComponent={renderEmpty}
           ListHeaderComponent={renderHeader}
           refreshControl={

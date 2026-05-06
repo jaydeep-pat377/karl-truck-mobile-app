@@ -1,22 +1,48 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { RootStackParamList } from './types';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
-import { OrderDetailsScreen } from '../screens/orders/OrderDetailsScreen';
-import { TodayOrdersScreen } from '../screens/orders/TodayOrdersScreen';
-import { TicketScreen } from '../screens/orders/TicketScreen';
-import { TicketDetailScreen } from '../screens/orders/TicketDetailScreen';
-import { OrderProductDetailsScreen } from '../screens/orders/OrderProductDetailsScreen';
-import { WeatherScreen, ProductDetailsScreen, ProductCodeScreen, EvaporationListScreen } from '../screens/weather';
-import { OrderTrackingScreen } from '../screens/tracking/OrderTrackingScreen';
-import { ChatRoomScreen } from '../screens/chat/ChatRoomScreen';
-import { WebViewScreen } from '../screens/settings/WebViewScreen';
 import { useAuthStore } from '../store/authStore';
 import { useTimezoneStore } from '../store/timezoneStore';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { useGlobalChatListener } from '../hooks/useGlobalChatListener';
+
+// Lazy-load detail/modal screens — not needed until user navigates
+const LazyOrderDetailsScreen = lazy(() => import('../screens/orders/OrderDetailsScreen'));
+const LazyTodayOrdersScreen = lazy(() => import('../screens/orders/TodayOrdersScreen'));
+const LazyTicketScreen = lazy(() => import('../screens/orders/TicketScreen'));
+const LazyTicketDetailScreen = lazy(() => import('../screens/orders/TicketDetailScreen'));
+const LazyOrderProductDetailsScreen = lazy(() => import('../screens/orders/OrderProductDetailsScreen'));
+const LazyWeatherScreen = lazy(() => import('../screens/weather/WeatherScreen'));
+const LazyProductDetailsScreen = lazy(() => import('../screens/weather/ProductDetailsScreen'));
+const LazyProductCodeScreen = lazy(() => import('../screens/weather/ProductCodeScreen'));
+const LazyEvaporationListScreen = lazy(() => import('../screens/weather/EvaporationListScreen'));
+const LazyOrderTrackingScreen = lazy(() => import('../screens/tracking/OrderTrackingScreen'));
+const LazyChatRoomScreen = lazy(() => import('../screens/chat/ChatRoomScreen'));
+const LazyWebViewScreen = lazy(() => import('../screens/settings/WebViewScreen'));
+
+const withSuspense = (LazyComponent: React.LazyExoticComponent<React.ComponentType<any>>) => {
+  return (props: any) => (
+    <Suspense fallback={<View style={styles.loadingContainer}><ActivityIndicator size="large" /></View>}>
+      <LazyComponent {...props} />
+    </Suspense>
+  );
+};
+
+const OrderDetailsScreen = withSuspense(LazyOrderDetailsScreen);
+const TodayOrdersScreen = withSuspense(LazyTodayOrdersScreen);
+const TicketScreen = withSuspense(LazyTicketScreen);
+const TicketDetailScreen = withSuspense(LazyTicketDetailScreen);
+const OrderProductDetailsScreen = withSuspense(LazyOrderProductDetailsScreen);
+const WeatherScreen = withSuspense(LazyWeatherScreen);
+const ProductDetailsScreen = withSuspense(LazyProductDetailsScreen);
+const ProductCodeScreen = withSuspense(LazyProductCodeScreen);
+const EvaporationListScreen = withSuspense(LazyEvaporationListScreen);
+const OrderTrackingScreen = withSuspense(LazyOrderTrackingScreen);
+const ChatRoomScreen = withSuspense(LazyChatRoomScreen);
+const WebViewScreen = withSuspense(LazyWebViewScreen);
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

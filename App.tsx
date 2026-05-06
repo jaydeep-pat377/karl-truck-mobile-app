@@ -30,6 +30,8 @@ import { handleDeepLink, isShortUrl } from './src/services/deepLinkService';
 import { queryClient } from './src/lib/queryClient';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { API_BASE_URL } from '@env';
+import Toast from 'react-native-toast-message';
+import { toastConfig } from './src/components/common/ToastConfig';
 
 initSentry();
 
@@ -264,6 +266,7 @@ const App: React.FC = () => {
                 <GlobalAlertProvider>
                   <AppContent />
                 </GlobalAlertProvider>
+                <Toast config={toastConfig} />
               </ThemeProvider>
             </QueryClientProvider>
           </SafeAreaProvider>

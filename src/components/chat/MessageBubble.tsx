@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { View, StyleSheet, Animated, Image, TouchableOpacity, Modal, Dimensions, Platform } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon } from '../common';
@@ -20,6 +20,8 @@ const BUBBLE_COLORS = {
   },
 };
 
+const IMAGE_REGEX = /\.(jpg|jpeg|png|gif|webp|bmp)($|\?)/i;
+
 interface Attachment {
   url?: string;
   type?: string;
@@ -28,6 +30,16 @@ interface Attachment {
   image_url?: string;
   path?: string;
 }
+
+const formatTime = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+const getInitials = (name: string) => {
+  if (!name || name === 'Unknown' || name === 'User') return '?';
+  return name.split(' ').map((n) => n[0]).filter(Boolean).join('').toUpperCase().slice(0, 2) || '?';
+};
 
 interface MessageBubbleProps {
   message: Message;
@@ -42,7 +54,10 @@ interface MessageBubbleProps {
   isNewMessage?: boolean;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({
+const BUBBLE_RADIUS = ms(16);
+const BUBBLE_RADIUS_SMALL = ms(4);
+
+export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   message,
   isOwnMessage,
   showAvatar = true,
@@ -55,7 +70,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   isNewMessage = false,
 }) => {
   const { isDark } = useTheme();
-  const themeColors = isDark ? colors.dark : colors.light;
   const fadeAnim = useRef(new Animated.Value(isNewMessage ? 0 : 1)).current;
   const scaleAnim = useRef(new Animated.Value(isNewMessage ? 0.8 : 1)).current;
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -68,7 +82,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const textColor = isDark ? colors.chat.dark.textPrimary : colors.chat.light.textPrimary;
   const timeColor = isDark ? colors.chat.dark.timeText : colors.chat.light.timeText;
 
-  const getAudioInfo = (): { url: string; duration: number } | null => {
+  const audioInfo = useMemo((): { url: string; duration: number } | null => {
     if (message.message_type !== 'audio' || !message.attachments || !Array.isArray(message.attachments)) {
       return null;
     }
@@ -78,11 +92,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     const duration = attachment.duration || 0;
     if (!url) return null;
     return { url, duration };
-  };
+  }, [message.message_type, message.attachments]);
 
-  const audioInfo = getAudioInfo();
-
-  const getImageUrls = (): string[] => {
+  const imageUrls = useMemo((): string[] => {
     if (message.message_type === 'audio') return [];
     if (!message.attachments || !Array.isArray(message.attachments)) {
       return [];
@@ -94,13 +106,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       })
       .filter((url): url is string => {
         if (!url) return false;
-        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)($|\?)/i.test(url) ||
+        return IMAGE_REGEX.test(url) ||
           url.includes('/storage/') || url.includes('supabase') || message.message_type === 'image';
-        return isImage;
       });
-  };
-
-  const imageUrls = getImageUrls();
+  }, [message.message_type, message.attachments]);
 
   useEffect(() => {
     if (isNewMessage) {
@@ -121,45 +130,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   }, [isNewMessage, fadeAnim, scaleAnim]);
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  const closeModal = useCallback(() => setSelectedImage(null), []);
 
-  const getInitials = (name: string) => {
-    if (!name || name === 'Unknown' || name === 'User') return '?';
-    return name.split(' ').map((n) => n[0]).filter(Boolean).join('').toUpperCase().slice(0, 2) || '?';
-  };
+  const bubbleRadius = useMemo(() => ({
+    borderTopLeftRadius: BUBBLE_RADIUS,
+    borderTopRightRadius: BUBBLE_RADIUS,
+    borderBottomLeftRadius: isLastInGroup ? BUBBLE_RADIUS_SMALL : BUBBLE_RADIUS,
+    borderBottomRightRadius: BUBBLE_RADIUS,
+  }), [isLastInGroup]);
 
-  const getDeliveryIcon = () => {
-    const iconColor = isOwnMessage
-      ? (deliveryStatus === 'read' ? colors.chat.readTick : timeColor)
-      : timeColor;
-
-    switch (deliveryStatus) {
-      case 'sending':
-        return <Icon name="clock-outline" size={ms(14)} color={timeColor} />;
-      case 'sent':
-        return <Icon name="check" size={ms(14)} color={iconColor} />;
-      case 'delivered':
-      case 'read':
-        return <Icon name="check-all" size={ms(14)} color={iconColor} />;
-      default:
-        return null;
-    }
-  };
-
-  const getBubbleRadius = () => {
-    const radius = ms(16);
-    const smallRadius = ms(4);
-
-    return {
-      borderTopLeftRadius: radius,
-      borderTopRightRadius: radius,
-      borderBottomLeftRadius: isLastInGroup ? smallRadius : radius,
-      borderBottomRightRadius: radius,
-    };
-  };
+  const avatarBg = isOwnMessage ? colors.primary.main : colors.secondary.main;
+  const senderColor = isOwnMessage ? colors.primary.main : colors.secondary.main;
+  const initials = getInitials(message.sender_name);
+  const formattedTime = formatTime(message.created_at);
 
   if (message.message_type === 'system') {
     return (
@@ -188,7 +171,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       <Animated.View
         style={[
           styles.container,
-          isOwnMessage ? styles.ownContainer : styles.otherContainer,
           !isLastInGroup && styles.groupedContainer,
           {
             opacity: fadeAnim,
@@ -197,36 +179,29 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         ]}
       >
         {isFirstInGroup && showSenderName && (
-          <View style={[
-            styles.senderNameRow,
-            isOwnMessage ? styles.senderNameRowOwn : styles.senderNameRowOther,
-          ]}>
+          <View style={[styles.senderNameRow, styles.senderNameRowLeft]}>
             <Text style={[
               styles.senderName,
-              isOwnMessage ? styles.senderNameOwn : styles.senderNameOther,
-              { color: isOwnMessage ? colors.primary.main : colors.secondary.main },
+              { color: senderColor },
             ]}>
               {isOwnMessage ? `${message.sender_name} (you)` : message.sender_name}
             </Text>
           </View>
         )}
 
-        <View style={[
-          styles.messageRow,
-          isOwnMessage ? styles.messageRowOwn : styles.messageRowOther,
-        ]}>
+        <View style={[styles.messageRow, styles.messageRowLeft]}>
           <View style={styles.avatarContainer}>
             {isLastInGroup ? (
-              <View style={[styles.avatar, { backgroundColor: isOwnMessage ? colors.primary.main : colors.secondary.main }]}>
-                <Text style={styles.avatarText}>{getInitials(message.sender_name)}</Text>
+              <View style={[styles.avatar, { backgroundColor: avatarBg }]}>
+                <Text style={styles.avatarText}>{initials}</Text>
               </View>
             ) : (
               <View style={styles.avatarPlaceholder} />
             )}
           </View>
 
-          <View style={[styles.bubbleWrapper, styles.otherBubbleWrapper]}>
-            <View style={[styles.bubble, { backgroundColor: bubbleColor }, getBubbleRadius()]}>
+          <View style={styles.bubbleWrapper}>
+            <View style={[styles.bubble, { backgroundColor: bubbleColor }, bubbleRadius]}>
               {imageUrls.length > 0 && (
                 <View style={styles.imagesContainer}>
                   {imageUrls.map((imageUrl, index) => (
@@ -268,11 +243,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
               <View style={styles.metaRow}>
                 <Text style={[styles.time, { color: timeColor }]}>
-                  {formatTime(message.created_at)}
+                  {formattedTime}
                 </Text>
-                {isOwnMessage && (
+                {isOwnMessage && deliveryStatus === 'sending' && (
                   <View style={styles.statusIcon}>
-                    {getDeliveryIcon()}
+                    <Icon name="clock-outline" size={ms(14)} color={timeColor} />
+                  </View>
+                )}
+                {isOwnMessage && deliveryStatus === 'sent' && (
+                  <View style={styles.statusIcon}>
+                    <Icon name="check" size={ms(14)} color={timeColor} />
+                  </View>
+                )}
+                {isOwnMessage && (deliveryStatus === 'delivered' || deliveryStatus === 'read') && (
+                  <View style={styles.statusIcon}>
+                    <Icon name="check-all" size={ms(14)} color={deliveryStatus === 'read' ? colors.chat.readTick : timeColor} />
                   </View>
                 )}
               </View>
@@ -281,47 +266,38 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         </View>
       </Animated.View>
 
-      <Modal visible={!!selectedImage} transparent animationType="fade" onRequestClose={() => setSelectedImage(null)}>
-        <View style={styles.modalContainer}>
-          <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedImage(null)}>
-            <View style={styles.modalCloseBtn}>
-              <Icon name="close" size={ms(24)} color={colors.common.white} />
-            </View>
-          </TouchableOpacity>
-          {selectedImage && (
+      {selectedImage && (
+        <Modal visible transparent animationType="fade" onRequestClose={closeModal}>
+          <View style={styles.modalContainer}>
+            <TouchableOpacity style={styles.modalClose} onPress={closeModal}>
+              <View style={styles.modalCloseBtn}>
+                <Icon name="close" size={ms(24)} color={colors.common.white} />
+              </View>
+            </TouchableOpacity>
             <Image source={{ uri: selectedImage }} style={styles.fullImage} resizeMode="contain" />
-          )}
-        </View>
-      </Modal>
+          </View>
+        </Modal>
+      )}
     </>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'column',
     marginBottom: ms(16),
     width: '100%',
+    alignItems: 'flex-start',
   },
   groupedContainer: {
     marginBottom: ms(4),
-  },
-  ownContainer: {
-    alignItems: 'flex-start',
-  },
-  otherContainer: {
-    alignItems: 'flex-start',
   },
   senderNameRow: {
     flexDirection: 'row',
     marginBottom: ms(2),
     paddingHorizontal: spacing.sm,
   },
-  senderNameRowOwn: {
-    justifyContent: 'flex-start',
-    paddingLeft: ms(38) + spacing.sm,
-  },
-  senderNameRowOther: {
+  senderNameRowLeft: {
     justifyContent: 'flex-start',
     paddingLeft: ms(38) + spacing.sm,
   },
@@ -330,10 +306,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: spacing.sm,
   },
-  messageRowOwn: {
-    justifyContent: 'flex-start',
-  },
-  messageRowOther: {
+  messageRowLeft: {
     justifyContent: 'flex-start',
   },
   avatarContainer: {
@@ -358,21 +331,11 @@ const styles = StyleSheet.create({
   },
   bubbleWrapper: {
     maxWidth: '75%',
-  },
-  ownBubbleWrapper: {
-    alignItems: 'flex-start',
-  },
-  otherBubbleWrapper: {
     alignItems: 'flex-start',
   },
   senderName: {
     fontSize: ms(12),
     fontWeight: '600',
-  },
-  senderNameOwn: {
-    textAlign: 'left',
-  },
-  senderNameOther: {
     textAlign: 'left',
   },
   bubble: {

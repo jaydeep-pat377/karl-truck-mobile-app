@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../utils/storage';
@@ -134,8 +134,10 @@ export const AppLockProvider: React.FC<AppLockProviderProps> = ({ children }) =>
     }
   }, [isAuthenticated, isEnabled]);
 
+  const contextValue = useMemo(() => ({ isLocked, unlock, lockApp }), [isLocked, unlock, lockApp]);
+
   return (
-    <AppLockContext.Provider value={{ isLocked, unlock, lockApp }}>
+    <AppLockContext.Provider value={contextValue}>
       {children}
     </AppLockContext.Provider>
   );

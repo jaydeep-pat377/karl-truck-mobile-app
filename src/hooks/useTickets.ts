@@ -30,7 +30,7 @@ export const useTickets = (params?: Omit<TicketsQueryParams, 'page'>) => {
     },
     staleTime: 2 * 60 * 1000,
     retry: 2,
-    refetchOnMount: 'always',
+    refetchOnMount: true,
   });
 
   const tickets: ApiTicket[] = useMemo(() => {

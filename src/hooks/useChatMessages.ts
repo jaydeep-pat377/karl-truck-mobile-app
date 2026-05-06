@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useCallback, useState, useRef } from 'react';
-import { AppState, AppStateStatus, Alert } from 'react-native';
+import { useEffect, useCallback, useMemo, useState, useRef } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { chatService, ImageAttachment, AudioAttachment } from '../api/services/chatService';
 import { useChatStore } from '../store/chatStore';
 import { supabase, isSupabaseConfigured } from '../services/supabase/supabaseClient';
@@ -71,7 +72,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     queryFn: () => chatService.getMessages(orderId),
     enabled: !!orderId && isConfigured,
     staleTime: 30 * 1000,
-    refetchOnMount: 'always',
+    refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
 
@@ -86,7 +87,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     }
   }, [query.data, roomId, setMessages]);
 
-  const mergedMessages = useCallback(() => {
+  const mergedMessages = useMemo(() => {
     const messageMap = new Map<string, Message>();
 
     (query.data || []).forEach((msg) => messageMap.set(msg.id, msg));
@@ -254,7 +255,10 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
 
-    pollingIntervalRef.current = setInterval(pollForNewMessages, 2000);
+    // Only poll as fallback when realtime is not connected
+    if (!isRealtimeConnected) {
+      pollingIntervalRef.current = setInterval(pollForNewMessages, 5000);
+    }
 
     return () => {
       if (channel) {
@@ -267,6 +271,16 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       subscription.remove();
     };
   }, [orderId, roomId, supabaseUserId, addMessage, incrementUnreadCount, currentRoomId, isConfigured, queryClient, pollForNewMessages]);
+
+  // Stop polling when realtime connects, start when it disconnects
+  useEffect(() => {
+    if (isRealtimeConnected && pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    } else if (!isRealtimeConnected && !pollingIntervalRef.current && orderId && isConfigured) {
+      pollingIntervalRef.current = setInterval(pollForNewMessages, 5000);
+    }
+  }, [isRealtimeConnected, orderId, isConfigured, pollForNewMessages]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, images, audio }: { content: string; images?: ImageAttachment[]; audio?: AudioAttachment }) => {
@@ -360,11 +374,15 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       setRealtimeMessages((prev) => prev.filter((m) => !m.id.startsWith('temp-')));
       queryClient.invalidateQueries({ queryKey: ['chatMessages', orderId] });
 
-      Alert.alert(
-        'Failed to Send',
-        error?.message || 'Could not send message. Please try again.',
-        [{ text: 'OK' }]
-      );
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to Send',
+        text2: error?.message || 'Could not send message. Please try again.',
+        position: 'top',
+        visibilityTime: 5000,
+        autoHide: true,
+        topOffset: 50,
+      });
     },
   });
 
@@ -383,10 +401,9 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
   });
 
   const loadMore = useCallback(async () => {
-    const messages = mergedMessages();
-    if (messages.length === 0) return;
+    if (mergedMessages.length === 0) return;
 
-    const oldestMessage = messages[0];
+    const oldestMessage = mergedMessages[0];
     const olderMessages = await chatService.getMessages(
       orderId,
       50,
@@ -394,12 +411,12 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     );
 
     if (olderMessages.length > 0) {
-      setMessages(roomId, [...olderMessages, ...messages]);
+      setMessages(roomId, [...olderMessages, ...mergedMessages]);
     }
   }, [orderId, roomId, mergedMessages, setMessages]);
 
   return {
-    messages: mergedMessages(),
+    messages: mergedMessages,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error?.message,

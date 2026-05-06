@@ -222,7 +222,7 @@ export const NotificationScreen: React.FC = () => {
             notifications.length === 0 && styles.emptyListContent,
           ]}
           showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ItemSeparatorComponent={SeparatorComponent}
           ListEmptyComponent={
             <EmptyViewWithPreset
               preset="notifications"
@@ -237,11 +237,16 @@ export const NotificationScreen: React.FC = () => {
               tintColor={colors.primary.main}
             />
           }
+          initialNumToRender={8}
+          maxToRenderPerBatch={5}
+          windowSize={5}
         />
       )}
     </SafeAreaView>
   );
 };
+
+const SeparatorComponent = () => <View style={styles.separator} />;
 
 const styles = StyleSheet.create({
   container: {

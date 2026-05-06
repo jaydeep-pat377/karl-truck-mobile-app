@@ -22,7 +22,7 @@ interface ChatMessageToastProps {
   duration?: number;
 }
 
-export const ChatMessageToast: React.FC<ChatMessageToastProps> = ({
+export const ChatMessageToast: React.FC<ChatMessageToastProps> = React.memo(({
   data,
   visible,
   onPress,
@@ -160,7 +160,7 @@ export const ChatMessageToast: React.FC<ChatMessageToastProps> = ({
       </TouchableOpacity>
     </Animated.View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

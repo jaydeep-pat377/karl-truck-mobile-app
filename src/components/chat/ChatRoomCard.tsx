@@ -11,7 +11,7 @@ interface ChatRoomCardProps {
   onPress: () => void;
 }
 
-export const ChatRoomCard: React.FC<ChatRoomCardProps> = ({ room, onPress }) => {
+export const ChatRoomCard: React.FC<ChatRoomCardProps> = React.memo(({ room, onPress }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -94,7 +94,7 @@ export const ChatRoomCard: React.FC<ChatRoomCardProps> = ({ room, onPress }) => 
       <Icon name="chevron-right" size={ms(20)} color={themeColors.text.hint} />
     </TouchableOpacity>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

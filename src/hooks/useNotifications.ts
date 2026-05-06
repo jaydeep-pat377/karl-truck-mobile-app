@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { Platform } from 'react-native';
+import { InteractionManager, Platform } from 'react-native';
 import { notificationService } from '../services/notificationService';
 import { useNotificationStore } from '../store/notificationStore';
 import { useAuthStore } from '../store/authStore';
@@ -20,11 +20,11 @@ export const useNotifications = () => {
 
     if (hasPermission) {
       const token = await notificationService.getToken();
-      console.log('[Notifications] FCM TOKEN:', token);
+      if (__DEV__) console.log('[Notifications] FCM TOKEN:', token);
       notificationService.setupListeners();
       await notificationService.checkInitialNotification();
     } else {
-      console.log('[Notifications] Permission denied - notifications will not work');
+      if (__DEV__) console.log('[Notifications] Permission denied');
     }
   }, []);
 
@@ -36,15 +36,19 @@ export const useNotifications = () => {
       if (success) {
         hasSyncedToken.current = true;
       } else {
-        console.log('[Notifications] Token sync failed, will retry on next state change');
+        if (__DEV__) console.log('[Notifications] Token sync failed, will retry');
       }
     }
   }, [isAuthenticated, isInitialized]);
 
   useEffect(() => {
-    initialize();
+    // Defer notification setup until after initial render/animations complete
+    const handle = InteractionManager.runAfterInteractions(() => {
+      initialize();
+    });
 
     return () => {
+      handle.cancel();
       notificationService.cleanup();
     };
   }, [initialize]);

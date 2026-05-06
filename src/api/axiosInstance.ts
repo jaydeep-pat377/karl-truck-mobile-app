@@ -1,11 +1,23 @@
-import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse, CanceledError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, API_TIMEOUT } from '@env';
 import { STORAGE_KEYS } from '../utils/storage';
 import { alertService } from '../services/alertService';
 import { useAuthStore } from '../store/authStore';
+import Toast from 'react-native-toast-message';
 
 const TIMEOUT = Number(API_TIMEOUT) || 60000;
+
+// Token refresh mutex — prevents concurrent refresh attempts
+let isRefreshingToken = false;
+let refreshQueue: Array<{ resolve: (value: any) => void; reject: (reason?: any) => void }> = [];
+
+const processRefreshQueue = (error: any, token: string | null) => {
+  refreshQueue.forEach(({ resolve, reject }) => {
+    error ? reject(error) : resolve(token);
+  });
+  refreshQueue = [];
+};
 
 const PUBLIC_ENDPOINTS = [
   '/auth/login',
@@ -107,55 +119,71 @@ axiosInstance.interceptors.request.use(
       }
     } catch {}
 
-    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
-    if (config.params && Object.keys(config.params).length > 0) {
-      console.log('[API Request] Query Params:', JSON.stringify(config.params, null, 2));
+    if (__DEV__) {
+      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+      if (config.params && Object.keys(config.params).length > 0) {
+        console.log('[API Request] Query Params:', JSON.stringify(config.params, null, 2));
+      }
+      if (config.data) {
+        const safeData = config.data?.password
+          ? { ...config.data, password: '***' }
+          : config.data;
+        console.log('[API Request] Body:', JSON.stringify(safeData, null, 2));
+      }
     }
-    if (config.data) {
-      const safeData = config.data?.password
-        ? { ...config.data, password: '***' }
-        : config.data;
-      console.log('[API Request] Body:', JSON.stringify(safeData, null, 2));
-    }
-    console.log('[API Request] Headers:', JSON.stringify(config.headers, null, 2));
 
     return config;
   },
   (error: AxiosError) => {
-    console.error('[API Request Error]', error.message);
+    if (__DEV__) console.error('[API Request Error]', error.message);
     return Promise.reject(error);
   }
 );
 
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
-    console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.baseURL}${response.config.url} — Status: ${response.status}`);
-    console.log('[API Response] Data:', JSON.stringify(response.data, null, 2));
+    if (__DEV__) {
+      console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.baseURL}${response.config.url} — Status: ${response.status}`);
+    }
     return response;
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _silentError?: boolean };
-
-    console.error(`[API Error] ${originalRequest.method?.toUpperCase()} ${originalRequest.baseURL}${originalRequest.url} — Status: ${error.response?.status}`);
-    console.error('[API Error] Message:', error.message);
-    if (error.response?.data) {
-      console.error('[API Error] Response:', JSON.stringify(error.response.data, null, 2));
+    // Cancelled requests (user navigated away) — reject silently
+    if (axios.isCancel(error) || error instanceof CanceledError) {
+      return Promise.reject(error);
     }
 
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _silentError?: boolean };
+
+    if (__DEV__) {
+      console.error(`[API Error] ${originalRequest?.method?.toUpperCase()} ${originalRequest?.baseURL}${originalRequest?.url} — Status: ${error.response?.status}`);
+      console.error('[API Error] Message:', error.message);
+    }
+
+    // Token refresh with mutex to prevent concurrent refresh attempts
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
       !isPublicEndpoint(originalRequest.url)
     ) {
       originalRequest._retry = true;
-      console.log('[Auth] 401 detected, attempting token refresh...');
+
+      if (isRefreshingToken) {
+        return new Promise<AxiosResponse>((resolve, reject) => {
+          refreshQueue.push({ resolve, reject });
+        }).then((token) => {
+          (originalRequest.headers as any)['Authorization'] = `Bearer ${token}`;
+          return axiosInstance(originalRequest);
+        });
+      }
+
+      isRefreshingToken = true;
 
       try {
         const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
         if (refreshToken) {
           const refreshUrl = `${axiosInstance.defaults.baseURL}/auth/refresh`;
-          console.log('[Auth] Refreshing token via:', refreshUrl);
 
           const response = await axios.post(
             refreshUrl,
@@ -167,8 +195,6 @@ axiosInstance.interceptors.response.use(
             }
           );
 
-          console.log('[Auth] Refresh response status:', response.status);
-
           if (response.data.success && response.data.data?.accessToken) {
             const { accessToken } = response.data.data;
             const newRefreshToken = response.data.data?.refreshToken;
@@ -178,28 +204,28 @@ axiosInstance.interceptors.response.use(
               await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
             }
 
-            // Update Zustand store so in-memory token stays in sync
             useAuthStore.setState({ accessToken });
 
             (originalRequest.headers as any)['Authorization'] = `Bearer ${accessToken}`;
-            console.log('[Auth] Token refreshed successfully, retrying original request...');
 
+            processRefreshQueue(null, accessToken);
             return axiosInstance(originalRequest);
           } else {
-            console.error('[Auth] Refresh response invalid:', JSON.stringify(response.data));
             throw new Error(response.data.message || 'Token refresh failed');
           }
         } else {
-          console.error('[Auth] No refresh token found in storage');
           await useAuthStore.getState().logout();
-          alertService.showInfo('Session Expired', 'Your session has expired. Please log in again.');
+          Toast.show({ type: 'error', text1: 'Session Expired', text2: 'Your session has expired. Please log in again.', position: 'top', visibilityTime: 5000, autoHide: true, topOffset: 50 });
+          processRefreshQueue(error, null);
           return Promise.reject(error);
         }
       } catch (refreshError: any) {
-        console.error('[Auth] Token refresh failed:', refreshError?.message || refreshError);
+        processRefreshQueue(refreshError, null);
         await useAuthStore.getState().logout();
         alertService.showInfo('Session Expired', 'Your session has expired. Please log in again.');
         return Promise.reject(refreshError);
+      } finally {
+        isRefreshingToken = false;
       }
     }
 

@@ -34,7 +34,7 @@ export const useTrucks = (params?: Omit<TrucksQueryParams, 'page'>) => {
     },
     staleTime: 30 * 1000,
     retry: 2,
-    refetchOnMount: 'always',
+    refetchOnMount: true,
     refetchInterval: 30 * 1000,
   });
 

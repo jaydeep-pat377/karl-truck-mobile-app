@@ -21,7 +21,7 @@ export const useTicketDetails = (params: TicketDetailsQueryParams) => {
     enabled: !!order_code && !!order_date && !!ticket_code,
     staleTime: 2 * 60 * 1000,
     retry: 2,
-    refetchOnMount: 'always',
+    refetchOnMount: true,
   });
 
   const ticket: TicketDetailsTicket | null = query.data?.success

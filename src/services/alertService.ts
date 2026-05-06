@@ -2,6 +2,7 @@
 
 import { AlertType, AlertButton } from '../components/common/AlertModal';
 import { captureException, addBreadcrumb } from './sentryService';
+import Toast from 'react-native-toast-message';
 
 export interface AlertConfig {
   type?: AlertType;
@@ -21,6 +22,12 @@ class AlertService {
   private queue: AlertConfig[] = [];
   private isReady: boolean = false;
 
+  // Deduplication — prevent identical alerts within 2 seconds
+  private lastAlertTitle: string | null = null;
+  private lastAlertTime: number = 0;
+  private static readonly DEDUP_WINDOW_MS = 2000;
+  private static readonly MAX_QUEUE_SIZE = 3;
+
   subscribe(listener: AlertListener): () => void {
     this.listeners.add(listener);
     this.isReady = true;
@@ -36,9 +43,18 @@ class AlertService {
   }
 
   show(config: AlertConfig): void {
-    if (!this.isReady || this.listeners.size === 0) {
+    // Deduplicate: skip if same title shown within 2 seconds
+    const now = Date.now();
+    if (config.title === this.lastAlertTitle && now - this.lastAlertTime < AlertService.DEDUP_WINDOW_MS) {
+      return;
+    }
+    this.lastAlertTitle = config.title;
+    this.lastAlertTime = now;
 
-      this.queue.push(config);
+    if (!this.isReady || this.listeners.size === 0) {
+      if (this.queue.length < AlertService.MAX_QUEUE_SIZE) {
+        this.queue.push(config);
+      }
       return;
     }
 
@@ -178,6 +194,8 @@ class AlertService {
     }
 
 
+    const status = error?.response?.status;
+
     addBreadcrumb({
       category: 'api.error',
       message: `${title}: ${message}`,
@@ -185,17 +203,31 @@ class AlertService {
       data: {
         url: error?.config?.url,
         method: error?.config?.method,
-        status: error?.response?.status,
+        status,
       },
     });
-    captureException(error instanceof Error ? error : new Error(`${title}: ${message}`), {
-      apiUrl: error?.config?.url,
-      apiMethod: error?.config?.method,
-      apiStatus: error?.response?.status,
-      apiResponseData: JSON.stringify(error?.response?.data),
-    });
 
-    this.showError(title, message);
+    // Only capture server errors (5xx) and network/timeout errors to Sentry.
+    // Client errors (400, 422, 403, 404, 429) are user mistakes or expected
+    // conditions — they flood Sentry with non-actionable noise.
+    if (!status || status >= 500) {
+      captureException(error instanceof Error ? error : new Error(`${title}: ${message}`), {
+        apiUrl: error?.config?.url,
+        apiMethod: error?.config?.method,
+        apiStatus: status,
+        apiResponseData: JSON.stringify(error?.response?.data),
+      });
+    }
+
+    Toast.show({
+      type: 'error',
+      text1: title,
+      text2: message,
+      position: 'top',
+      visibilityTime: 5000,
+      autoHide: true,
+      topOffset: 50,
+    });
   }
 }
 

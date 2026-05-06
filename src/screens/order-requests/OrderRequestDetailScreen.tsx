@@ -473,7 +473,7 @@ interface ChatBubbleProps {
   isDark: boolean;
 }
 
-const ChatBubble: React.FC<ChatBubbleProps> = ({
+const ChatBubble: React.FC<ChatBubbleProps> = React.memo(({
   message,
   isOwn,
   showDateSeparator,
@@ -539,7 +539,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
       </View>
     </View>
   );
-};
+});
 
 const chatBubbleStyles = StyleSheet.create({
   dateSeparator: {

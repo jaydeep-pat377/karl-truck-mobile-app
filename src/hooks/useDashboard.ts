@@ -41,7 +41,7 @@ export const useDashboard = (params?: UseDashboardParams) => {
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     retry: 1,
-    refetchOnMount: 'always',
+    refetchOnMount: true,
     refetchOnWindowFocus: false,
   });
 

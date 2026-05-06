@@ -716,7 +716,11 @@ export const OrderRequestListScreen: React.FC = () => {
         onEndReachedThreshold={0.3}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        ItemSeparatorComponent={() => <View style={{ height: ms(10) }} />}
+        ItemSeparatorComponent={OrderRequestSeparator}
+        initialNumToRender={8}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
       />
         </>
       )}
@@ -727,6 +731,8 @@ export const OrderRequestListScreen: React.FC = () => {
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
+
+const OrderRequestSeparator = () => <View style={{ height: ms(10) }} />;
 
 const styles = StyleSheet.create({
   // Header

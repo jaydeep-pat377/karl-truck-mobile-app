@@ -20,7 +20,7 @@ const formatDuration = (milliseconds: number): string => {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 };
 
-export const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({
+export const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = React.memo(({
   audioUrl,
   duration = 0,
   isOwnMessage,
@@ -111,7 +111,7 @@ export const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({
       <Icon name="microphone" size={ms(14)} color={timeColor} style={styles.micIcon} />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

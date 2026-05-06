@@ -30,7 +30,7 @@ export const useTicketsByOrder = (params: UseTicketsByOrderParams) => {
     enabled: !!orderId,
     staleTime: 2 * 60 * 1000,
     retry: 2,
-    refetchOnMount: 'always',
+    refetchOnMount: true,
   });
 
   const data: TicketsByOrderData | null = query.data?.success

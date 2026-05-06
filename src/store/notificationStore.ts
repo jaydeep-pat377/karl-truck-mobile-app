@@ -144,7 +144,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
         set({ isLoading: false, error: response.message || 'Failed to fetch notifications' });
       }
     } catch (error: any) {
-      console.error('Error fetching notifications:', error);
+      if (__DEV__) console.error('Error fetching notifications:', error);
       set({
         isLoading: false,
         error: error?.message || 'Failed to fetch notifications',
@@ -228,7 +228,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
         set({ isLoadingMore: false });
       }
     } catch (error: any) {
-      console.error('Error loading more notifications:', error);
+      if (__DEV__) console.error('Error loading more notifications:', error);
       set({ isLoadingMore: false });
     }
   },

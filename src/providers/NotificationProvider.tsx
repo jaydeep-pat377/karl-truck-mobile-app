@@ -38,7 +38,11 @@ export function NotificationProvider({
   onNotificationTap,
   enabled = true,
 }: NotificationProviderProps) {
-  const store = useNotificationStore();
+  const notifications = useNotificationStore(s => s.notifications);
+  const unreadCount = useNotificationStore(s => s.unreadCount);
+  const isLoading = useNotificationStore(s => s.isLoading);
+  const markAsRead = useNotificationStore(s => s.markAsRead);
+  const markAllAsRead = useNotificationStore(s => s.markAllAsRead);
 
   const {
     showLocalNotification,
@@ -94,8 +98,8 @@ export function NotificationProvider({
 
 
   useEffect(() => {
-    setBadgeCount(store.unreadCount);
-  }, [store.unreadCount, setBadgeCount]);
+    setBadgeCount(unreadCount);
+  }, [unreadCount, setBadgeCount]);
 
 
   useEffect(() => {
@@ -113,20 +117,20 @@ export function NotificationProvider({
 
 
 
-  }, [userId, tenantId, store]);
+  }, [userId, tenantId]);
 
 
   const contextValue = useMemo<NotificationContextType>(
     () => ({
-      notifications: store.notifications,
-      unreadCount: store.unreadCount,
-      isLoading: store.isLoading,
+      notifications,
+      unreadCount,
+      isLoading,
       isConnected,
-      markAsRead: store.markAsRead,
-      markAllAsRead: store.markAllAsRead,
+      markAsRead,
+      markAllAsRead,
       refetch,
     }),
-    [store.notifications, store.unreadCount, store.isLoading, isConnected, store.markAsRead, store.markAllAsRead, refetch]
+    [notifications, unreadCount, isLoading, isConnected, markAsRead, markAllAsRead, refetch]
   );
 
   return (

@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, ReactNode } from 'react';
 import { AlertModal, AlertType, AlertButton } from '../components/common/AlertModal';
 import { alertService, AlertConfig } from '../services/alertService';
 
@@ -138,7 +138,7 @@ export const GlobalAlertProvider: React.FC<GlobalAlertProviderProps> = ({ childr
     return unsubscribe;
   }, [showAlert]);
 
-  const contextValue: GlobalAlertContextValue = {
+  const contextValue = useMemo<GlobalAlertContextValue>(() => ({
     showAlert,
     showError,
     showSuccess,
@@ -146,7 +146,7 @@ export const GlobalAlertProvider: React.FC<GlobalAlertProviderProps> = ({ childr
     showInfo,
     showConfirm,
     hideAlert,
-  };
+  }), [showAlert, showError, showSuccess, showWarning, showInfo, showConfirm, hideAlert]);
 
   return (
     <GlobalAlertContext.Provider value={contextValue}>

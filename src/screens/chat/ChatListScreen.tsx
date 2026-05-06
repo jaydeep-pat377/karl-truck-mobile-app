@@ -130,6 +130,9 @@ export const ChatListScreen: React.FC = () => {
           />
         }
         ListEmptyComponent={renderEmpty}
+        initialNumToRender={8}
+        maxToRenderPerBatch={5}
+        windowSize={5}
       />
     </SafeAreaView>
   );

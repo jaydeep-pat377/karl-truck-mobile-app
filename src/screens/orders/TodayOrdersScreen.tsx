@@ -521,7 +521,7 @@ export const TodayOrdersScreen: React.FC = () => {
           </View>
           <FlatList
           data={filteredOrders}
-          extraData={filteredOrders}
+          extraData={filteredOrders.length}
           renderItem={renderOrderCard}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={renderHeader}

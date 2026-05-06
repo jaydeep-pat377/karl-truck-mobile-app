@@ -14,7 +14,7 @@ export const useProfile = () => {
     queryFn: () => userService.getProfile(),
     staleTime: 5 * 60 * 1000,
     retry: 2,
-    refetchOnMount: 'always',
+    refetchOnMount: true,
   });
 
   const profile: UserProfile | null = query.data?.success ? query.data.data : null;
