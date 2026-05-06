@@ -137,9 +137,9 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
 
     const getBadgeColor = () => {
       switch (type) {
-        case 'company': return '#8B5CF6';
-        case 'region': return '#F97316';
-        case 'plant': return '#3B82F6';
+        case 'company': return colors.productionType.company;
+        case 'region': return colors.productionType.region;
+        case 'plant': return colors.productionType.plant;
       }
     };
 

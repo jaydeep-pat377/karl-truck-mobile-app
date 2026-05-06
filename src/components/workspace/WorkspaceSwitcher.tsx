@@ -667,7 +667,7 @@ const SwitchWorkspaceConfirmModal: React.FC<SwitchWorkspaceConfirmModalProps> = 
                 {
                   backgroundColor: isDark
                     ? colors.semiTransparent.white05
-                    : '#FEF2F2',
+                    : colors.workspaceSwitcher.errorBg,
                 },
               ]}
             >

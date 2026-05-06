@@ -1513,7 +1513,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
                       variant="caption"
                       align="center"
                       style={{
-                        color: isActive ? '#FFFFFF' : themeColors.text.primary,
+                        color: isActive ? colors.common.white : themeColors.text.primary,
                         fontWeight: isActive ? '700' : '500',
                       }}
                       numberOfLines={2}

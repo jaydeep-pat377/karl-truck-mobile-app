@@ -71,7 +71,7 @@ export const EmailTemplateListScreen: React.FC = () => {
       }
       return { label: t('common.inactive'), bgColor: themeColors.border + '60', textColor: themeColors.text.hint };
     }
-    return { label: t('emailTemplates.default'), bgColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', textColor: themeColors.text.secondary };
+    return { label: t('emailTemplates.default'), bgColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black06, textColor: themeColors.text.secondary };
   };
 
   const renderSectionHeader = ({ section }: { section: Section }) => (
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     borderRadius: ms(4),
   },
   variableChipBg: {
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: colors.semiTransparent.black05,
   },
   variableText: {
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',

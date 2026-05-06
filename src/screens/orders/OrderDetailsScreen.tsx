@@ -131,7 +131,7 @@ const getStatusDisplayLabel = (status: string | undefined): string => {
 
 const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'pouring', 'remaining'];
 
-const FALLBACK_SEGMENT_COLOR = '#6b7280';
+const FALLBACK_SEGMENT_COLOR = colors.fallback.segmentColor;
 
 // Same 5-segment progress bar as OrderCard / web
 const PROGRESS_STATUSES = [
@@ -204,9 +204,9 @@ const computeCumulativeFills = (
 };
 
 const getCompletionColor = (percent: number): string => {
-  if (percent >= 90) return '#458B00';
-  if (percent >= 60) return '#F7BB00';
-  return '#C43926';
+  if (percent >= 90) return colors.primary.main;
+  if (percent >= 60) return colors.warning.main;
+  return colors.error.main;
 };
 
 const SHADOWS = {
@@ -2249,7 +2249,7 @@ export const OrderDetailsScreen: React.FC = () => {
           ]}
         >
           <LinearGradient
-            colors={isDark ? ['#3A3A3A', '#2A2A2A', '#1E1E1E'] : ['#FFFFFF', '#F8F8F8', '#F0F0F0']}
+            colors={isDark ? colors.detailHeader.dark : colors.detailHeader.light}
             style={StyleSheet.absoluteFill}
           />
         </Animated.View>
@@ -3437,7 +3437,7 @@ const styles = StyleSheet.create({
     paddingVertical: ms(4),
     paddingHorizontal: ms(8),
     borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: '#000',
+    shadowColor: colors.common.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
@@ -4784,13 +4784,13 @@ const styles = StyleSheet.create({
     minWidth: ms(14),
     height: ms(14),
     borderRadius: ms(7),
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.trackingStatus.cancelled,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: ms(2),
   },
   chatUnreadBadgeText: {
-    color: '#FFFFFF',
+    color: colors.common.white,
     fontSize: ms(8),
     lineHeight: ms(14),
     fontWeight: '700',

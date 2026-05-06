@@ -17,7 +17,7 @@ const PALETTE = [
   colors.accent.indigo,
   colors.warning.main,
   colors.info.main,
-  '#8B5CF6',
+  colors.status.enRoute,
 ];
 
 const getAccent = (index: number) => PALETTE[index % PALETTE.length];

@@ -40,23 +40,23 @@ const getEvaporationRiskLevel = (rate: number | null | undefined): EvaporationRi
 const riskLevelColors: Record<EvaporationRiskLevel, { background: string; text: string; icon: string }> = {
   low: {
     background: colors.dashboard.statGreen,
-    text: '#FFFFFF',
-    icon: '#FFFFFF',
+    text: colors.common.white,
+    icon: colors.common.white,
   },
   medium: {
     background: colors.dashboard.statYellow,
-    text: '#000000',
-    icon: '#000000',
+    text: colors.common.black,
+    icon: colors.common.black,
   },
   high: {
     background: colors.dashboard.statRed,
-    text: '#FFFFFF',
-    icon: '#FFFFFF',
+    text: colors.common.white,
+    icon: colors.common.white,
   },
   unknown: {
-    background: '#9CA3AF',
-    text: '#FFFFFF',
-    icon: '#FFFFFF',
+    background: colors.evaporationPill.unknownBg,
+    text: colors.common.white,
+    icon: colors.common.white,
   },
 };
 
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: ms(4),
-    shadowColor: '#000',
+    shadowColor: colors.common.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,

@@ -1,6 +1,7 @@
 import React from 'react';
 import Svg, { Path, Circle, Rect, G } from 'react-native-svg';
 import { StyleProp, ViewStyle } from 'react-native';
+import { colors } from '../../theme/colors';
 
 export interface ConcreteMixerIconProps {
   size?: number;
@@ -10,7 +11,7 @@ export interface ConcreteMixerIconProps {
 
 export const ConcreteMixerIcon: React.FC<ConcreteMixerIconProps> = ({
   size = 24,
-  color = '#000000',
+  color = colors.common.black,
   style,
 }) => {
   return (

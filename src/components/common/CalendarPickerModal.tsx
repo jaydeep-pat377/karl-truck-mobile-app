@@ -32,9 +32,9 @@ const CalendarPickerModal: React.FC<CalendarPickerModalProps> = ({
   const textColor = isDark ? colors.dark.text.primary : colors.light.text.primary;
   const borderColor = isDark ? colors.dark.border : colors.light.border;
   const calendarBg = isDark ? colors.dark.surface : colors.light.surface;
-  const dayTextColor = isDark ? '#FFFFFF' : '#2d4150';
-  const disabledColor = isDark ? 'rgba(255,255,255,0.2)' : '#d9e1e8';
-  const monthTextColor = isDark ? '#FFFFFF' : '#2d4150';
+  const dayTextColor = isDark ? colors.calendarPicker.dark.dayText : colors.calendarPicker.light.dayText;
+  const disabledColor = isDark ? colors.calendarPicker.dark.disabled : colors.calendarPicker.light.disabled;
+  const monthTextColor = isDark ? colors.calendarPicker.dark.dayText : colors.calendarPicker.light.dayText;
 
   const handleDayPress = useCallback((day: DateData) => {
     setCurrentDate(day.dateString);
@@ -59,7 +59,7 @@ const CalendarPickerModal: React.FC<CalendarPickerModalProps> = ({
         [currentDate]: {
           selected: true,
           selectedColor: colors.primary.main,
-          selectedTextColor: '#FFFFFF',
+          selectedTextColor: colors.common.white,
         },
       }
     : {};
@@ -92,11 +92,11 @@ const CalendarPickerModal: React.FC<CalendarPickerModalProps> = ({
             theme={{
               backgroundColor: calendarBg,
               calendarBackground: calendarBg,
-              textSectionTitleColor: isDark ? 'rgba(255,255,255,0.5)' : '#b6c1cd',
+              textSectionTitleColor: isDark ? colors.calendarPicker.dark.sectionTitle : colors.calendarPicker.light.sectionTitle,
               selectedDayBackgroundColor: colors.primary.main,
-              selectedDayTextColor: '#FFFFFF',
+              selectedDayTextColor: colors.common.white,
               todayTextColor: colors.primary.main,
-              todayBackgroundColor: isDark ? 'rgba(76,175,80,0.15)' : 'rgba(76,175,80,0.1)',
+              todayBackgroundColor: isDark ? colors.calendarPicker.todayBgDark : colors.calendarPicker.todayBgLight,
               dayTextColor,
               textDisabledColor: disabledColor,
               monthTextColor,
@@ -114,7 +114,7 @@ const CalendarPickerModal: React.FC<CalendarPickerModalProps> = ({
           {/* Selected Date Display + Confirm */}
           <View style={[modalStyles.footer, { borderTopColor: borderColor }]}>
             <View style={{ flex: 1 }}>
-              <Text variant="caption" style={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }}>
+              <Text variant="caption" style={{ color: isDark ? colors.semiTransparent.white50 : colors.semiTransparent.black50 }}>
                 Selected
               </Text>
               <Text variant="bodyLarge" style={{ color: textColor, fontWeight: '600', marginTop: ms(2) }}>
@@ -132,7 +132,7 @@ const CalendarPickerModal: React.FC<CalendarPickerModalProps> = ({
               disabled={!currentDate}
               activeOpacity={0.7}
             >
-              <Text variant="buttonSmall" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+              <Text variant="buttonSmall" style={{ color: colors.common.white, fontWeight: '700' }}>
                 Confirm
               </Text>
             </TouchableOpacity>
@@ -146,7 +146,7 @@ const CalendarPickerModal: React.FC<CalendarPickerModalProps> = ({
 const modalStyles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: colors.overlay.medium,
     justifyContent: 'flex-end',
   },
   container: {

@@ -31,9 +31,9 @@ type RouteProps = RouteProp<SettingsStackParamList, 'ScanDetails'>;
 // ── Dynamic themed styles factory ──
 function createThemedStyles(isDark: boolean) {
   const tc = isDark ? colors.dark : colors.light;
-  const tint = isDark ? 'rgba(69,139,0,0.15)' : 'rgba(69,139,0,0.08)';
-  const tintStrong = isDark ? 'rgba(69,139,0,0.2)' : 'rgba(69,139,0,0.1)';
-  const dangerBg = isDark ? 'rgba(196,57,38,0.15)' : colors.error.background;
+  const tint = isDark ? colors.scanDetails.dark.tint : colors.scanDetails.light.tint;
+  const tintStrong = isDark ? colors.scanDetails.dark.tintStrong : colors.scanDetails.light.tintStrong;
+  const dangerBg = isDark ? colors.scanDetails.dark.dangerBg : colors.error.background;
   const shadow = { shadowColor: colors.common.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 };
   const shadowMd = { shadowColor: colors.common.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 };
 

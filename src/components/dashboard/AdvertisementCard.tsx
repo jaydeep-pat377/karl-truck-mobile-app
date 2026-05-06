@@ -25,53 +25,53 @@ const DeliveryIllustration: React.FC = () => (
   <Svg width={100} height={80} viewBox="0 0 100 80">
     <Defs>
       <SvgGradient id="truckGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <Stop offset="0%" stopColor="#4CAF50" />
-        <Stop offset="100%" stopColor="#2E7D32" />
+        <Stop offset="0%" stopColor={colors.adIllustration.truckGreen} />
+        <Stop offset="100%" stopColor={colors.adIllustration.truckGreenDark} />
       </SvgGradient>
       <SvgGradient id="boxGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <Stop offset="0%" stopColor="#FFB74D" />
-        <Stop offset="100%" stopColor="#FF9800" />
+        <Stop offset="0%" stopColor={colors.adIllustration.boxOrange} />
+        <Stop offset="100%" stopColor={colors.adIllustration.sunOrange} />
       </SvgGradient>
     </Defs>
 
 
-    <Rect x="0" y="65" width="100" height="15" fill="#E0E0E0" rx="3" />
-    <Path d="M10 72 L25 72 M35 72 L50 72 M60 72 L75 72 M85 72 L95 72" stroke="#BDBDBD" strokeWidth="2" strokeLinecap="round" strokeDasharray="8 6" />
+    <Rect x="0" y="65" width="100" height="15" fill={colors.adIllustration.road} rx="3" />
+    <Path d="M10 72 L25 72 M35 72 L50 72 M60 72 L75 72 M85 72 L95 72" stroke={colors.adIllustration.roadDash} strokeWidth="2" strokeLinecap="round" strokeDasharray="8 6" />
 
 
     <Rect x="25" y="35" width="45" height="30" rx="4" fill="url(#truckGrad)" />
 
 
     <Path d="M70 45 L70 65 L85 65 L85 50 Q85 45 80 45 Z" fill="url(#truckGrad)" />
-    <Rect x="73" y="48" width="8" height="8" rx="1" fill="#B3E5FC" />
+    <Rect x="73" y="48" width="8" height="8" rx="1" fill={colors.adIllustration.window} />
 
 
-    <Rect x="28" y="40" width="15" height="10" rx="2" fill="rgba(255,255,255,0.3)" />
-    <Rect x="46" y="40" width="15" height="10" rx="2" fill="rgba(255,255,255,0.3)" />
+    <Rect x="28" y="40" width="15" height="10" rx="2" fill={colors.semiTransparent.white30} />
+    <Rect x="46" y="40" width="15" height="10" rx="2" fill={colors.semiTransparent.white30} />
 
 
-    <Circle cx="38" cy="65" r="8" fill="#424242" />
-    <Circle cx="38" cy="65" r="4" fill="#757575" />
-    <Circle cx="78" cy="65" r="8" fill="#424242" />
-    <Circle cx="78" cy="65" r="4" fill="#757575" />
+    <Circle cx="38" cy="65" r="8" fill={colors.adIllustration.wheel} />
+    <Circle cx="38" cy="65" r="4" fill={colors.adIllustration.wheelInner} />
+    <Circle cx="78" cy="65" r="8" fill={colors.adIllustration.wheel} />
+    <Circle cx="78" cy="65" r="4" fill={colors.adIllustration.wheelInner} />
 
 
     <G transform="translate(5, 15) rotate(-15)">
       <Rect width="18" height="14" rx="2" fill="url(#boxGrad)" />
-      <Path d="M0 7 L18 7" stroke="#E65100" strokeWidth="1.5" />
-      <Path d="M9 0 L9 14" stroke="#E65100" strokeWidth="1.5" />
+      <Path d="M0 7 L18 7" stroke={colors.adIllustration.boxOrangeStroke} strokeWidth="1.5" />
+      <Path d="M9 0 L9 14" stroke={colors.adIllustration.boxOrangeStroke} strokeWidth="1.5" />
     </G>
 
     <G transform="translate(12, 5) rotate(10)">
-      <Rect width="14" height="11" rx="2" fill="#81D4FA" />
-      <Path d="M0 5.5 L14 5.5" stroke="#0288D1" strokeWidth="1" />
-      <Path d="M7 0 L7 11" stroke="#0288D1" strokeWidth="1" />
+      <Rect width="14" height="11" rx="2" fill={colors.adIllustration.package} />
+      <Path d="M0 5.5 L14 5.5" stroke={colors.adIllustration.windowStroke} strokeWidth="1" />
+      <Path d="M7 0 L7 11" stroke={colors.adIllustration.windowStroke} strokeWidth="1" />
     </G>
 
 
-    <Path d="M5 50 L15 50" stroke="#BDBDBD" strokeWidth="2" strokeLinecap="round" />
-    <Path d="M0 55 L12 55" stroke="#BDBDBD" strokeWidth="1.5" strokeLinecap="round" />
-    <Path d="M8 60 L18 60" stroke="#BDBDBD" strokeWidth="1" strokeLinecap="round" />
+    <Path d="M5 50 L15 50" stroke={colors.adIllustration.roadDash} strokeWidth="2" strokeLinecap="round" />
+    <Path d="M0 55 L12 55" stroke={colors.adIllustration.roadDash} strokeWidth="1.5" strokeLinecap="round" />
+    <Path d="M8 60 L18 60" stroke={colors.adIllustration.roadDash} strokeWidth="1" strokeLinecap="round" />
   </Svg>
 );
 
@@ -79,12 +79,12 @@ const WeatherIllustration: React.FC = () => (
   <Svg width={100} height={80} viewBox="0 0 100 80">
     <Defs>
       <SvgGradient id="sunGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <Stop offset="0%" stopColor="#FFD54F" />
-        <Stop offset="100%" stopColor="#FF9800" />
+        <Stop offset="0%" stopColor={colors.adIllustration.sunYellow} />
+        <Stop offset="100%" stopColor={colors.adIllustration.sunOrange} />
       </SvgGradient>
       <SvgGradient id="cloudGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <Stop offset="0%" stopColor="#FFFFFF" />
-        <Stop offset="100%" stopColor="#E3F2FD" />
+        <Stop offset="0%" stopColor={colors.common.white} />
+        <Stop offset="100%" stopColor={colors.adIllustration.cloud} />
       </SvgGradient>
     </Defs>
 
@@ -92,7 +92,7 @@ const WeatherIllustration: React.FC = () => (
     <Circle cx="70" cy="25" r="18" fill="url(#sunGrad)" />
 
 
-    <G stroke="#FFB300" strokeWidth="2.5" strokeLinecap="round">
+    <G stroke={colors.adIllustration.sunRay} strokeWidth="2.5" strokeLinecap="round">
       <Path d="M70 2 L70 8" />
       <Path d="M70 42 L70 48" />
       <Path d="M47 25 L53 25" />
@@ -117,7 +117,7 @@ const WeatherIllustration: React.FC = () => (
     />
 
 
-    <Ellipse cx="50" cy="75" rx="35" ry="5" fill="#C8E6C9" />
+    <Ellipse cx="50" cy="75" rx="35" ry="5" fill={colors.adIllustration.grass} />
   </Svg>
 );
 
@@ -191,16 +191,16 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
     switch (ad.illustrationType) {
       case 'delivery':
         return isDark
-          ? ['#1B5E20', '#2E7D32', '#388E3C']
-          : ['#E8F5E9', '#C8E6C9', '#A5D6A7'];
+          ? [...colors.adType.delivery.dark]
+          : [...colors.adType.delivery.light];
       case 'weather':
         return isDark
-          ? ['#E65100', '#F57C00', '#FF9800']
-          : ['#FFF3E0', '#FFE0B2', '#FFCC80'];
+          ? [...colors.adType.weather.dark]
+          : [...colors.adType.weather.light];
       default:
         return isDark
-          ? ['#1565C0', '#1976D2', '#2196F3']
-          : ['#E3F2FD', '#BBDEFB', '#90CAF9'];
+          ? [...colors.adType.analytics.dark]
+          : [...colors.adType.analytics.light];
     }
   };
 
@@ -211,9 +211,9 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
       case 'delivery':
         return colors.primary.main;
       case 'weather':
-        return '#F57C00';
+        return colors.adType.delivery.accent;
       default:
-        return '#1976D2';
+        return colors.adType.analytics.accent;
     }
   };
 
@@ -242,7 +242,7 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
                 style={styles.card}
               >
 
-                <View style={[styles.adLabel, { backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.6)' }]}>
+                <View style={[styles.adLabel, { backgroundColor: isDark ? colors.semiTransparent.black50 : colors.semiTransparent.black60 }]}>
                   <Text style={styles.adLabelText}>Ad</Text>
                 </View>
 
@@ -258,7 +258,7 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
 
 
                 <TouchableOpacity
-                  style={[styles.closeBtn, { backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.8)' }]}
+                  style={[styles.closeBtn, { backgroundColor: isDark ? colors.semiTransparent.black30 : colors.semiTransparent.white80 }]}
                   onPress={() => handleClose(ad.id)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   activeOpacity={0.7}
@@ -277,14 +277,14 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
 
 
                     {ad.subheadline && (
-                      <Text style={[styles.subheadline, { color: isDark ? 'rgba(255,255,255,0.85)' : colors.grey[70] }]}>
+                      <Text style={[styles.subheadline, { color: isDark ? colors.semiTransparent.white85 : colors.grey[70] }]}>
                         {ad.subheadline}
                       </Text>
                     )}
 
 
                     <Text
-                      style={[styles.description, { color: isDark ? 'rgba(255,255,255,0.75)' : colors.grey[60] }]}
+                      style={[styles.description, { color: isDark ? colors.semiTransparent.white75 : colors.grey[60] }]}
                       numberOfLines={2}
                     >
                       {ad.description}
@@ -312,7 +312,7 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
 
 
                 {visibleAds.length > 1 && (
-                  <View style={[styles.pageIndicator, { backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)' }]}>
+                  <View style={[styles.pageIndicator, { backgroundColor: isDark ? colors.semiTransparent.black30 : colors.semiTransparent.white70 }]}>
                     <Text style={[styles.pageText, { color: isDark ? colors.common.white : colors.grey[70] }]}>
                       {index + 1}/{visibleAds.length}
                     </Text>
@@ -320,8 +320,8 @@ export const AdvertisementCard: React.FC<AdvertisementCardProps> = ({
                 )}
 
 
-                <View pointerEvents="none" style={[styles.decorCircle1, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.4)' }]} />
-                <View pointerEvents="none" style={[styles.decorCircle2, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.3)' }]} />
+                <View pointerEvents="none" style={[styles.decorCircle1, { backgroundColor: isDark ? colors.semiTransparent.white05 : colors.semiTransparent.white40 }]} />
+                <View pointerEvents="none" style={[styles.decorCircle2, { backgroundColor: isDark ? colors.semiTransparent.white03 : colors.semiTransparent.white30 }]} />
               </LinearGradient>
             </View>
           );
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     borderRadius: ms(12),
     gap: ms(3),
 
-    shadowColor: '#000',
+    shadowColor: colors.common.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,

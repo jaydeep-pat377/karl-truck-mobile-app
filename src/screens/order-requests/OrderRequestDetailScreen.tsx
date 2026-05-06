@@ -323,7 +323,7 @@ const SectionCard: React.FC<SectionCardProps> = ({ title, icon, headerColor, chi
   return (
     <View style={[sectionCardStyles.card, { backgroundColor: cardBg }]}>
       <View style={[sectionCardStyles.header, { backgroundColor: headerColor }]}>
-        <Icon name={icon} size={ms(18)} color="#FFFFFF" />
+        <Icon name={icon} size={ms(18)} color={colors.common.white} />
         <Text variant="bodySmall" style={sectionCardStyles.headerText}>
           {title}
         </Text>
@@ -660,7 +660,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ state, onConfirm,
                 disabled={state.isLoading}
               >
                 {state.isLoading ? (
-                  <ActivityIndicator size="small" color="#FFF" />
+                  <ActivityIndicator size="small" color={colors.common.white} />
                 ) : (
                   <Text variant="buttonSmall" style={{ color: colors.common.white, fontWeight: '700' }}>
                     {state.type === 'accept' ? t('orderRequest.accept') : t('orderRequest.reject')}
@@ -1160,10 +1160,10 @@ export const OrderRequestDetailScreen: React.FC = () => {
                   activeOpacity={0.7}
                 >
                   {isAccepting ? (
-                    <ActivityIndicator size="small" color="#FFF" />
+                    <ActivityIndicator size="small" color={colors.common.white} />
                   ) : (
                     <>
-                      <Icon name="check-circle" size={ms(18)} color="#FFF" />
+                      <Icon name="check-circle" size={ms(18)} color={colors.common.white} />
                       <Text variant="buttonSmall" style={styles.actionBtnText}>{t('orderRequest.accept')}</Text>
                     </>
                   )}
@@ -1210,7 +1210,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                   }
                   activeOpacity={0.7}
                 >
-                  <Icon name="pencil" size={ms(18)} color="#FFF" />
+                  <Icon name="pencil" size={ms(18)} color={colors.common.white} />
                   <Text variant="buttonSmall" style={styles.actionBtnText}>{t('orderRequest.update')}</Text>
                 </TouchableOpacity>
               </View>
@@ -1353,7 +1353,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                     ? ORDER_STATUS_LABELS[order.order_status] || '-'
                     : '-'
                 }
-                bgColor="#7C3AED"
+                bgColor={colors.orderRequestSection.verification}
                 isDark={isDark}
               />
               <View style={{ width: ms(12) }} />
@@ -1362,7 +1362,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                 label={t('orderRequest.onJobDate')}
                 value={formatDate(order.on_job_date)}
                 sub={order.on_job_time ? formatTime(order.on_job_time) : undefined}
-                bgColor="#0EA5E9"
+                bgColor={colors.orderRequestSection.timeline}
                 isDark={isDark}
               />
             </View>
@@ -1372,7 +1372,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                 label={t('orderRequest.truckRate')}
                 value={truckRate}
                 sub={order.truck_spacing ? t('orderRequest.minSpacing', { count: order.truck_spacing }) : undefined}
-                bgColor="#14B8A6"
+                bgColor={colors.orderRequestSection.details}
                 isDark={isDark}
               />
               <View style={{ width: ms(12) }} />
@@ -1380,7 +1380,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                 icon="package-variant"
                 label={t('product.quantity')}
                 value={order.quantity ? `${Number(order.quantity).toFixed(2)} CY` : '0.00 CY'}
-                bgColor="#F59E0B"
+                bgColor={colors.orderRequestSection.products}
                 isDark={isDark}
               />
             </View>
@@ -1403,7 +1403,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
           <SectionCard
             title={t('orderRequest.jobLocation')}
             icon="map-marker-outline"
-            headerColor="#14B8A6"
+            headerColor={colors.orderRequestSection.summary}
             isDark={isDark}
           >
             <InfoRow label={t('orderRequest.address')} value={order.job_address} isDark={isDark} />
@@ -1423,7 +1423,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
           <SectionCard
             title={t('orderRequest.jobsiteContact')}
             icon="account-outline"
-            headerColor="#8B5CF6"
+            headerColor={colors.orderRequestSection.messages}
             isDark={isDark}
           >
             <InfoRow label={t('orderRequest.name')} value={order.job_contact_name} isDark={isDark} />
@@ -1434,7 +1434,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
           <SectionCard
             title={t('orderRequest.products')}
             icon="cube-outline"
-            headerColor="#F59E0B"
+            headerColor={colors.orderRequestSection.notes}
             isDark={isDark}
           >
             <ProductRow
@@ -1478,7 +1478,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
           <SectionCard
             title={t('orderRequest.orderSummary')}
             icon="text-box-outline"
-            headerColor="#6366F1"
+            headerColor={colors.orderRequestSection.scheduling}
             isDark={isDark}
           >
             <View style={[styles.summaryAlert, isDark && styles.summaryAlertDark]}>
@@ -1649,7 +1649,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                 activeOpacity={0.7}
               >
                 {sendMessageMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#FFF" />
+                  <ActivityIndicator size="small" color={colors.common.white} />
                 ) : (
                   <Icon
                     name="send"

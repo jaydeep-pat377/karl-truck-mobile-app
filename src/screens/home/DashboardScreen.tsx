@@ -99,7 +99,7 @@ const SegmentStripes: React.FC<{ color: string; patternId: string }> = React.mem
   </Svg>
 ));
 
-const FALLBACK_SEGMENT_COLOR = '#6b7280';
+const FALLBACK_SEGMENT_COLOR = colors.fallback.segmentColor;
 
 const PROGRESS_STATUSES = [
   { key: 'loading', colorKey: 'loading', label: 'Loading' },
@@ -170,9 +170,9 @@ const computeCumulativeFills = (
 };
 
 const getCompletionColor = (percent: number): string => {
-  if (percent >= 90) return '#458B00';
-  if (percent >= 60) return '#F7BB00';
-  return '#C43926';
+  if (percent >= 90) return colors.primary.main;
+  if (percent >= 60) return colors.warning.main;
+  return colors.error.main;
 };
 
 // Same logic as web's getOrderStatusCategory (orderStatusValidation.ts)

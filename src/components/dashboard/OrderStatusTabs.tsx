@@ -104,7 +104,7 @@ export const OrderStatusTabs: React.FC<OrderStatusTabsProps> = ({
     return () => clearTimeout(timer);
   }, [selectedStatus, scrollToTab]);
 
-  const tabBackgroundColor = isDark ? '#323232' : '#F2F2F2';
+  const tabBackgroundColor = isDark ? colors.grey[80] : colors.grey[5];
 
   return (
     <View style={[styles.wrapper, { backgroundColor: tabBackgroundColor, borderBottomColor: themeColors.border }]}>

@@ -213,8 +213,8 @@ const STATUS_ICONS: Record<string, { icon: string; label: string }> = {
 };
 
 // Fallback color when API doesn't provide a color for a status
-const FALLBACK_STATUS_COLOR = '#6b7280';
-const CANCELLED_COLOR = '#ef4444';
+const FALLBACK_STATUS_COLOR = colors.fallback.segmentColor;
+const CANCELLED_COLOR = colors.trackingStatus.cancelled;
 
 /** Build status config using only dynamic API colors from database */
 function buildStatusConfig(
@@ -804,11 +804,11 @@ export const OrderTrackingScreen: React.FC = () => {
               <Pressable
                 onPress={() => setIsLegendExpanded(!isLegendExpanded)}
                 style={{
-                  backgroundColor: isDark ? 'rgba(30,30,30,0.92)' : 'rgba(255,255,255,0.95)',
+                  backgroundColor: isDark ? colors.semiTransparent.darkGray92 : colors.semiTransparent.white95,
                   borderRadius: 8,
                   paddingHorizontal: ms(10),
                   paddingVertical: ms(6),
-                  shadowColor: '#000',
+                  shadowColor: colors.common.shadow,
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.25,
                   shadowRadius: 4,

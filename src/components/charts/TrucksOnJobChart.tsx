@@ -27,9 +27,9 @@ import { fontFamily } from '../../theme/typography';
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const COLORS = {
-  waiting: '#434348',
-  pouring: '#90ed7d',
-  grid: '#E0E0E0',
+  waiting: colors.trucksChart.waiting,
+  pouring: colors.trucksChart.pouring,
+  grid: colors.trucksChart.grid,
 };
 
 export interface ScheduledLoadItem {
@@ -659,7 +659,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                         y1={y}
                         x2={zoomedChartWidth - chartPadding.right}
                         y2={y}
-                        stroke={isDark ? '#333' : COLORS.grid}
+                        stroke={isDark ? colors.trucksChart.gridDark : COLORS.grid}
                         strokeWidth={1}
                       />
                     );
@@ -884,7 +884,7 @@ const styles = StyleSheet.create({
   },
   tooltip: {
     position: 'absolute',
-    backgroundColor: 'rgba(30, 30, 30, 0.95)',
+    backgroundColor: colors.semiTransparent.darkGray95,
     paddingHorizontal: ms(10),
     paddingVertical: ms(8),
     borderRadius: ms(6),
@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
   tooltipTitle: {
     fontSize: ms(11),
     fontFamily: fontFamily.semiBold,
-    color: '#fff',
+    color: colors.common.white,
     marginBottom: ms(4),
   },
   tooltipRow: {
@@ -909,7 +909,7 @@ const styles = StyleSheet.create({
   tooltipText: {
     fontSize: ms(10),
     fontFamily: fontFamily.regular,
-    color: '#fff',
+    color: colors.common.white,
   },
 });
 

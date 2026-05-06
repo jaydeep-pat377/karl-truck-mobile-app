@@ -440,14 +440,14 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
           </View>
         </View>
         <View style={styles.headerStats}>
-          <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
+          <View style={[styles.statCard, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black05, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
             <Icon name="clock-outline" size={ms(14)} color={colors.info.main} />
             <View style={styles.statTextContainer}>
               <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>{t('charts.spacing')}</Text>
               <Text style={[styles.statValue, { color: colors.info.main }]}>{truckSpace} min</Text>
             </View>
           </View>
-          <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
+          <View style={[styles.statCard, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black05, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
             <Icon name="speedometer" size={ms(14)} color={colors.info.main} />
             <View style={styles.statTextContainer}>
               <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>{t('charts.rate')}</Text>
@@ -455,7 +455,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
             </View>
           </View>
           {scheduledQty > 0 && (
-            <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
+            <View style={[styles.statCard, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black05, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
               <Icon name="calendar-check" size={ms(14)} color={colors.info.main} />
               <View style={styles.statTextContainer}>
                 <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>{t('charts.scheduled')}</Text>

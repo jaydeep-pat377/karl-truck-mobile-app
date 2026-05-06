@@ -1,6 +1,7 @@
 import React from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { StyleProp, TextStyle } from 'react-native';
+import { colors } from '../../theme/colors';
 
 export interface IconProps {
   name: string;
@@ -13,7 +14,7 @@ export interface IconProps {
 export const Icon: React.FC<IconProps> = ({
   name,
   size = 24,
-  color = '#000000',
+  color = colors.common.black,
   style,
   testID,
 }) => {

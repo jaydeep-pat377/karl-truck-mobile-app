@@ -37,8 +37,8 @@ type TicketDetailRouteProp = RouteProp<RootStackParamList, 'TicketDetail'>;
 const GRID = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 };
 const RADIUS = { sm: 8, md: 12, lg: 16, xl: 24 };
 
-const HEADER_GRADIENT_LIGHT = ['#FFFFFF', '#F8F8F8', '#F0F0F0'];
-const HEADER_GRADIENT_DARK = ['#3A3A3A', '#2A2A2A', '#1E1E1E'];
+const HEADER_GRADIENT_LIGHT = colors.detailHeader.light;
+const HEADER_GRADIENT_DARK = colors.detailHeader.dark;
 
 const getEvaporationBgColor = (rate: number | null | undefined): string => {
   if (rate === null || rate === undefined) return colors.grey[40];
@@ -61,14 +61,14 @@ const getEvaporationText = (rate: number | null | undefined): string => {
 /** QR modal status → dot/text color (mirrors web getStatusStyles) */
 const getQrStatusColor = (status: string): string => {
   const s = (status || '').toLowerCase();
-  if (s.includes('cancel')) return '#ef4444';
-  if (s === 'at plant') return '#10b981';
-  if (s.includes('pour') || s.includes('unload')) return '#f59e0b';
-  if (s.includes('wash')) return '#0ea5e9';
-  if (s === 'to plant') return '#3b82f6';
-  if (s.includes('job')) return '#6366f1';
-  if (s === 'loaded' || s === 'loading') return '#8b5cf6';
-  return '#94a3b8';
+  if (s.includes('cancel')) return colors.qrStatus.cancelled;
+  if (s === 'at plant') return colors.qrStatus.atPlant;
+  if (s.includes('pour') || s.includes('unload')) return colors.qrStatus.pouring;
+  if (s.includes('wash')) return colors.qrStatus.washing;
+  if (s === 'to plant') return colors.qrStatus.toPlant;
+  if (s.includes('job')) return colors.qrStatus.atJob;
+  if (s === 'loaded' || s === 'loading') return colors.qrStatus.loading;
+  return colors.qrStatus.fallback;
 };
 
 interface StatusConfig {
@@ -1644,7 +1644,7 @@ export const TicketDetailScreen: React.FC = () => {
           const etaAge = eta?.calculatedAt ? Math.floor((Date.now() - new Date(eta.calculatedAt).getTime()) / 60000) : 0;
           const isStale = etaAge > 30;
           const etaArrival = eta?.arrivalTime ? new Date(eta.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '--';
-          const orangeColor = '#F97316';
+          const orangeColor = colors.eta.main;
 
           const handleEtaCalc = async (force = false) => {
             if (isEtaCooldownActive()) return;
@@ -1676,9 +1676,9 @@ export const TicketDetailScreen: React.FC = () => {
                 activeOpacity={0.7}
                 disabled={etaLoading}
                 onPress={() => hasEta ? setEtaExpanded(prev => !prev) : handleEtaCalc()}
-                style={[styles.etaHeader, { backgroundColor: isDark ? 'rgba(249,115,22,0.06)' : 'rgba(249,115,22,0.04)' }]}>
+                style={[styles.etaHeader, { backgroundColor: isDark ? colors.eta.bgDark : colors.eta.bgLight }]}>
                 <Icon name="navigation-variant" size={ms(13)} color={orangeColor} />
-                <Text style={[styles.etaHeaderTitle, { color: isDark ? '#FED7AA' : '#7C2D12' }]}>ETA</Text>
+                <Text style={[styles.etaHeaderTitle, { color: isDark ? colors.eta.textDark : colors.eta.textLight }]}>ETA</Text>
                 {hasEta && (
                   <Text style={[styles.etaHeaderPreview, { color: orangeColor }]}>{eta.durationFormatted} · {eta.distanceMiles} mi</Text>
                 )}
@@ -1836,8 +1836,8 @@ export const TicketDetailScreen: React.FC = () => {
                     const concreteEvapColors: Record<string, string> = {
                       Low: colors.success.main,
                       Moderate: colors.warning.main,
-                      High: '#F97316',
-                      Critical: '#DC2626',
+                      High: colors.evaporationSeverity.high,
+                      Critical: colors.evaporationSeverity.critical,
                     };
                     return (
                       <View
@@ -1870,10 +1870,10 @@ export const TicketDetailScreen: React.FC = () => {
             ) : (
               <>
                 <Icon name="weather-cloudy" size={ms(16)} color={themeColors.text.hint} />
-                <Text style={[styles.headerCardWeatherDescText, { color: isDark ? '#60A5FA' : '#2563EB' }]}>
+                <Text style={[styles.headerCardWeatherDescText, { color: isDark ? colors.weatherLink.dark : colors.weatherLink.light }]}>
                   {weatherLoading ? t('orders.fetching') : t('orders.evaporate')}
                 </Text>
-                {weatherLoading && <ActivityIndicator size="small" color={isDark ? '#60A5FA' : '#2563EB'} />}
+                {weatherLoading && <ActivityIndicator size="small" color={isDark ? colors.weatherLink.dark : colors.weatherLink.light} />}
               </>
             )}
           </TouchableOpacity>
@@ -2233,7 +2233,7 @@ export const TicketDetailScreen: React.FC = () => {
             {/* ── Header: gradient as absolute background, content in a regular View ── */}
             <View style={styles.qrHeaderWrap}>
               <LinearGradient
-                colors={['#7c3aed', '#6d28d9', '#4338ca']}
+                colors={colors.qrModal.gradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -2292,7 +2292,7 @@ export const TicketDetailScreen: React.FC = () => {
             </View>
 
             {/* ── Body ── */}
-            <View style={[styles.qrBody, { backgroundColor: isDark ? themeColors.background : '#f8fafc' }]}>
+            <View style={[styles.qrBody, { backgroundColor: isDark ? themeColors.background : colors.qrModal.bodyBg }]}>
               {/* QR frame */}
               <View style={styles.qrFrameShadow}>
                 <View style={styles.qrFrame}>
@@ -2307,12 +2307,12 @@ export const TicketDetailScreen: React.FC = () => {
                       value={encryptedQr}
                       size={ms(180)}
                       backgroundColor={colors.common.white}
-                      color="#1e1b4b"
+                      color={colors.qrModal.text}
                       ecl="H"
                     />
                   ) : (
                     <View style={styles.qrLoading}>
-                      <ActivityIndicator size="large" color="#7c3aed" />
+                      <ActivityIndicator size="large" color={colors.qrModal.loader} />
                       <AppText style={styles.qrLoadingText}>Generating QR...</AppText>
                     </View>
                   )}
@@ -2542,7 +2542,7 @@ const styles = StyleSheet.create({
     borderRadius: ms(10),
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(249,115,22,0.15)',
+    borderColor: colors.eta.border,
   },
   etaHeader: {
     flexDirection: 'row',
@@ -2560,7 +2560,7 @@ const styles = StyleSheet.create({
     fontSize: ms(12),
   },
   etaStaleBadge: {
-    backgroundColor: 'rgba(217,119,6,0.15)',
+    backgroundColor: colors.eta.staleBg,
     paddingHorizontal: ms(4),
     paddingVertical: ms(1),
     borderRadius: ms(6),
@@ -2568,7 +2568,7 @@ const styles = StyleSheet.create({
   etaStaleText: {
     fontFamily: fontFamily.medium,
     fontSize: ms(8),
-    color: '#D97706',
+    color: colors.eta.staleText,
   },
   etaCooldownText: {
     fontFamily: fontFamily.medium,
@@ -2611,7 +2611,7 @@ const styles = StyleSheet.create({
     gap: ms(3),
     paddingTop: ms(3),
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(249,115,22,0.15)',
+    borderTopColor: colors.eta.border,
   },
   etaFooterText: {
     fontFamily: fontFamily.regular,
@@ -3447,7 +3447,7 @@ const styles = StyleSheet.create({
   // ═══ QR Modal — Unified (iOS + Android) ═══
   qrOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: colors.overlay.modal,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: ms(20),
@@ -3460,7 +3460,7 @@ const styles = StyleSheet.create({
     maxWidth: ms(360),
     borderRadius: ms(20),
     backgroundColor: colors.common.white,
-    shadowColor: '#000',
+    shadowColor: colors.common.shadow,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
     shadowRadius: 20,
@@ -3479,7 +3479,7 @@ const styles = StyleSheet.create({
     width: ms(30),
     height: ms(30),
     borderRadius: ms(15),
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: colors.qrModal.liveBorder,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: ms(8),
@@ -3493,7 +3493,7 @@ const styles = StyleSheet.create({
     width: ms(36),
     height: ms(36),
     borderRadius: ms(18),
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: colors.qrModal.liveBorder,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -3509,7 +3509,7 @@ const styles = StyleSheet.create({
   qrSubtitle: {
     fontFamily: fontFamily.regular,
     fontSize: ms(10),
-    color: 'rgba(255,255,255,0.75)',
+    color: colors.semiTransparent.white75,
     marginTop: ms(1),
   },
   qrTicketRow: {
@@ -3518,7 +3518,7 @@ const styles = StyleSheet.create({
   qrTicketLabel: {
     fontFamily: fontFamily.bold,
     fontSize: ms(8),
-    color: 'rgba(255,255,255,0.55)',
+    color: colors.semiTransparent.white55,
     letterSpacing: 1.5,
   },
   qrTicketCode: {
@@ -3542,7 +3542,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: ms(10),
     paddingVertical: ms(4),
     borderRadius: ms(20),
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: colors.qrModal.pillBg,
   },
   qrStatusDot: {
     width: ms(6),
@@ -3562,15 +3562,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: ms(8),
     paddingVertical: ms(4),
     borderRadius: ms(20),
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: colors.qrModal.liveBg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderColor: colors.qrModal.liveBorder,
   },
   qrLiveDot: {
     width: ms(6),
     height: ms(6),
     borderRadius: ms(3),
-    backgroundColor: '#34d399',
+    backgroundColor: colors.qrModal.successDot,
   },
   qrLiveLabel: {
     fontFamily: fontFamily.bold,
@@ -3591,7 +3591,7 @@ const styles = StyleSheet.create({
   qrFrameShadow: {
     borderRadius: ms(14),
     backgroundColor: colors.common.white,
-    shadowColor: '#6d28d9',
+    shadowColor: colors.qrModal.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.10,
     shadowRadius: 10,
@@ -3601,14 +3601,14 @@ const styles = StyleSheet.create({
     padding: ms(16),
     borderRadius: ms(14),
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.qrModal.border,
     backgroundColor: colors.common.white,
   },
   qrCorner: {
     position: 'absolute',
     width: ms(16),
     height: ms(16),
-    borderColor: '#7c3aed',
+    borderColor: colors.qrModal.activeBorder,
   },
   qrTL: {
     top: ms(5),

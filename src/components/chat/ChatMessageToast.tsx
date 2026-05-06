@@ -89,10 +89,10 @@ export const ChatMessageToast: React.FC<ChatMessageToastProps> = React.memo(({
 
   if (!data) return null;
 
-  const bgColor = isDark ? '#1E293B' : '#FFFFFF';
-  const borderColor = isDark ? '#334155' : '#E2E8F0';
-  const senderColor = isDark ? '#F1F5F9' : '#1E293B';
-  const messageColor = isDark ? '#94A3B8' : '#64748B';
+  const bgColor = isDark ? colors.chatToast.dark.bg : colors.chatToast.light.bg;
+  const borderColor = isDark ? colors.chatToast.dark.border : colors.chatToast.light.border;
+  const senderColor = isDark ? colors.chatToast.dark.sender : colors.chatToast.light.sender;
+  const messageColor = isDark ? colors.chatToast.dark.message : colors.chatToast.light.message;
   const orderColor = colors.primary.main;
 
   return (
@@ -117,7 +117,7 @@ export const ChatMessageToast: React.FC<ChatMessageToastProps> = React.memo(({
             borderColor,
             ...Platform.select({
               ios: {
-                shadowColor: '#000',
+                shadowColor: colors.common.shadow,
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.15,
                 shadowRadius: 12,

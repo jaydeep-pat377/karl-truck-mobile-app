@@ -31,7 +31,7 @@ import { ApiTicketStatus, TicketByOrderItem } from '../../types/ticket';
 import { DeliveryProgress, DeliveryProgressSegment } from '../../types/order';
 import { useTranslation } from 'react-i18next';
 
-const FALLBACK_COLOR = '#6b7280';
+const FALLBACK_COLOR = colors.fallback.segmentColor;
 
 const getSegmentColor = (status: string, apiColors?: Record<string, string> | null): string => {
   if (apiColors?.[status.toLowerCase()]) return apiColors[status.toLowerCase()];
@@ -114,9 +114,9 @@ const computeCumulativeFills = (
 };
 
 const getCompletionColor = (percent: number): string => {
-  if (percent >= 90) return '#458B00';
-  if (percent >= 60) return '#F7BB00';
-  return '#C43926';
+  if (percent >= 90) return colors.primary.main;
+  if (percent >= 60) return colors.warning.main;
+  return colors.error.main;
 };
 
 type TicketScreenRouteProp = RouteProp<RootStackParamList, 'Ticket'>;
@@ -173,7 +173,7 @@ const STATUS_META_ICONS: Record<TicketStatus, { icon: string; progressStep: numb
   voided:    { icon: 'close-circle',    progressStep: -1 },
 };
 
-const CANCELLED_COLOR = '#ef4444';
+const CANCELLED_COLOR = colors.trackingStatus.cancelled;
 
 /** Build dynamic status config from API colors */
 function buildStatusConfig(
@@ -596,8 +596,8 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
               const concreteEvapColors: Record<string, string> = {
                 Low: colors.success.main,
                 Moderate: colors.warning.main,
-                High: '#F97316',
-                Critical: '#DC2626',
+                High: colors.evaporationSeverity.high,
+                Critical: colors.evaporationSeverity.critical,
               };
               return (
                 <View
@@ -2063,7 +2063,7 @@ const styles = StyleSheet.create({
     paddingVertical: ms(4),
     paddingHorizontal: ms(8),
     borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: '#000',
+    shadowColor: colors.common.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,

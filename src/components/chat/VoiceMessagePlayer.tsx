@@ -65,8 +65,8 @@ export const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = React.memo(
 
   const iconColor = isDark ? colors.chat.dark.textPrimary : colors.chat.light.textPrimary;
   const barBgColor = isOwnMessage
-    ? (isDark ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.3)')
-    : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)');
+    ? (isDark ? colors.semiTransparent.white20 : colors.semiTransparent.white30)
+    : (isDark ? colors.semiTransparent.white15 : colors.semiTransparent.black10);
   const barFillColor = isOwnMessage ? colors.common.white : colors.primary.main;
   const timeColor = isDark ? colors.chat.dark.timeText : colors.chat.light.timeText;
 
@@ -84,7 +84,7 @@ export const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = React.memo(
         activeOpacity={0.7}
         style={[
           styles.playBtn,
-          { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : colors.primary.light },
+          { backgroundColor: isOwnMessage ? colors.semiTransparent.white20 : colors.primary.light },
         ]}
       >
         <Icon

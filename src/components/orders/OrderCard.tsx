@@ -116,7 +116,7 @@ const SegmentStripes: React.FC<{ color: string; patternId: string }> = React.mem
   </Svg>
 ));
 
-const FALLBACK_SEGMENT_COLOR = '#6b7280';
+const FALLBACK_SEGMENT_COLOR = colors.fallback.segmentColor;
 
 const PROGRESS_STATUSES = [
   { key: 'loading', colorKey: 'loading', label: 'Loading' },
@@ -187,9 +187,9 @@ const computeCumulativeFills = (
 };
 
 const getCompletionColor = (percent: number): string => {
-  if (percent >= 90) return '#458B00';
-  if (percent >= 60) return '#F7BB00';
-  return '#C43926';
+  if (percent >= 90) return colors.primary.main;
+  if (percent >= 60) return colors.warning.main;
+  return colors.error.main;
 };
 
 // Same logic as web's getOrderStatusCategory (orderStatusValidation.ts)
@@ -1026,7 +1026,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: colors.common.shadow,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.15,
         shadowRadius: 4,
@@ -1244,13 +1244,13 @@ const styles = StyleSheet.create({
     minWidth: ms(14),
     height: ms(14),
     borderRadius: ms(7),
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.trackingStatus.cancelled,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: ms(2),
   },
   unreadBadgeText: {
-    color: '#FFFFFF',
+    color: colors.common.white,
     fontSize: ms(8),
     lineHeight: ms(14),
     fontWeight: '700',

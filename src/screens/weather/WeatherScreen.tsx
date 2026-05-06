@@ -446,10 +446,10 @@ interface ConcreteEvaporationCardProps {
 }
 
 const CONCRETE_EVAP_COLORS: Record<string, string> = {
-  Low: '#22C55E',
-  Moderate: '#F59E0B',
-  High: '#F97316',
-  Critical: '#DC2626',
+  Low: colors.evaporationSeverity.low,
+  Moderate: colors.evaporationSeverity.moderate,
+  High: colors.evaporationSeverity.high,
+  Critical: colors.evaporationSeverity.critical,
 };
 
 const ConcreteEvaporationCard: React.FC<ConcreteEvaporationCardProps> = ({
@@ -1120,7 +1120,7 @@ export const WeatherScreen: React.FC = () => {
         onClose={() => setEvapInfoVisible(false)}
         title={t('weather.highEvapTitle')}
         headerIcon="alert-circle-outline"
-        headerIconColor="#F97316"
+        headerIconColor={colors.evaporationSeverity.high}
         height="auto"
       >
         <View style={styles.evapInfoContent}>
@@ -1144,7 +1144,7 @@ export const WeatherScreen: React.FC = () => {
             >
               <View style={styles.evapInfoReferenceRow}>
                 <Text style={styles.evapInfoReference}>{t('weather.crazingRef')}</Text>
-                {loadingLink === '/pdfs/nrmca-cip-3-crazing.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
+                {loadingLink === '/pdfs/nrmca-cip-3-crazing.pdf' && <ActivityIndicator size="small" color={colors.weatherLink.dark} style={styles.linkLoader} />}
               </View>
             </TouchableOpacity>
           </View>
@@ -1161,7 +1161,7 @@ export const WeatherScreen: React.FC = () => {
             >
               <View style={styles.evapInfoReferenceRow}>
                 <Text style={styles.evapInfoReference}>{t('weather.plasticShrinkageRef')}</Text>
-                {loadingLink === '/pdfs/nrmca-cip-5-plastic-shrinkage.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
+                {loadingLink === '/pdfs/nrmca-cip-5-plastic-shrinkage.pdf' && <ActivityIndicator size="small" color={colors.weatherLink.dark} style={styles.linkLoader} />}
               </View>
             </TouchableOpacity>
           </View>
@@ -1178,13 +1178,13 @@ export const WeatherScreen: React.FC = () => {
             >
               <View style={styles.evapInfoReferenceRow}>
                 <Text style={styles.evapInfoReference}>{t('weather.dryingShrinkageRef')}</Text>
-                {loadingLink === '/pdfs/nrmca-cip-4-drying-shrinkage.pdf' && <ActivityIndicator size="small" color="#60A5FA" style={styles.linkLoader} />}
+                {loadingLink === '/pdfs/nrmca-cip-4-drying-shrinkage.pdf' && <ActivityIndicator size="small" color={colors.weatherLink.dark} style={styles.linkLoader} />}
               </View>
             </TouchableOpacity>
           </View>
 
           <View style={[styles.evapInfoRecommendedSection, { borderTopColor: themeColors.border }]}>
-            <Text style={[styles.evapInfoRecommendedTitle, { color: '#DC2626' }]}>
+            <Text style={[styles.evapInfoRecommendedTitle, { color: colors.evaporationSeverity.critical }]}>
               {t('weather.recommendedTitle')}
             </Text>
             <Text style={[styles.evapInfoItemDesc, { color: themeColors.text.secondary, marginBottom: vs(8) }]}>
@@ -1571,7 +1571,7 @@ const styles = StyleSheet.create({
   concreteEvapBarTrack: {
     height: responsive(ms(6), ms(8)),
     borderRadius: responsive(ms(3), ms(4)),
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: colors.semiTransparent.white12,
     overflow: 'hidden',
     marginBottom: responsive(ms(4), ms(6)),
   },
@@ -1588,7 +1588,7 @@ const styles = StyleSheet.create({
     marginTop: vs(4),
     paddingTop: vs(4),
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.12)',
+    borderTopColor: colors.semiTransparent.white12,
   },
   concreteEvapPlantConfigText: {
     fontFamily: fontFamily.regular,
@@ -1607,7 +1607,7 @@ const styles = StyleSheet.create({
   concreteEvapMoreLink: {
     fontFamily: fontFamily.semiBold,
     fontSize: responsive(ms(10), ms(13)),
-    color: '#60A5FA',
+    color: colors.weatherLink.dark,
   },
   evapInfoContent: {
     gap: vs(12),
@@ -1640,7 +1640,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: ms(11),
     lineHeight: ms(15),
-    color: '#60A5FA',
+    color: colors.weatherLink.dark,
     flex: 1,
   },
   evapInfoReferenceRow: {
@@ -1653,7 +1653,7 @@ const styles = StyleSheet.create({
   concreteTempSource: {
     fontFamily: fontFamily.regular,
     fontSize: ms(10),
-    color: '#22C55E',
+    color: colors.evaporationSeverity.low,
     marginTop: vs(2),
   },
   evapInfoRecommendedSection: {
