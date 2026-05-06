@@ -153,14 +153,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     const radius = ms(16);
     const smallRadius = ms(4);
 
-    if (isOwnMessage) {
-      return {
-        borderTopLeftRadius: radius,
-        borderTopRightRadius: radius,
-        borderBottomLeftRadius: radius,
-        borderBottomRightRadius: isLastInGroup ? smallRadius : radius,
-      };
-    }
     return {
       borderTopLeftRadius: radius,
       borderTopRightRadius: radius,
@@ -223,19 +215,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           styles.messageRow,
           isOwnMessage ? styles.messageRowOwn : styles.messageRowOther,
         ]}>
-          {!isOwnMessage && (
-            <View style={styles.avatarContainer}>
-              {isLastInGroup ? (
-                <View style={[styles.avatar, { backgroundColor: colors.secondary.main }]}>
-                  <Text style={styles.avatarText}>{getInitials(message.sender_name)}</Text>
-                </View>
-              ) : (
-                <View style={styles.avatarPlaceholder} />
-              )}
-            </View>
-          )}
+          <View style={styles.avatarContainer}>
+            {isLastInGroup ? (
+              <View style={[styles.avatar, { backgroundColor: isOwnMessage ? colors.primary.main : colors.secondary.main }]}>
+                <Text style={styles.avatarText}>{getInitials(message.sender_name)}</Text>
+              </View>
+            ) : (
+              <View style={styles.avatarPlaceholder} />
+            )}
+          </View>
 
-          <View style={[styles.bubbleWrapper, isOwnMessage ? styles.ownBubbleWrapper : styles.otherBubbleWrapper]}>
+          <View style={[styles.bubbleWrapper, styles.otherBubbleWrapper]}>
             <View style={[styles.bubble, { backgroundColor: bubbleColor }, getBubbleRadius()]}>
               {imageUrls.length > 0 && (
                 <View style={styles.imagesContainer}>
@@ -288,18 +278,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               </View>
             </View>
           </View>
-
-          {isOwnMessage && (
-            <View style={styles.avatarContainerOwn}>
-              {isLastInGroup ? (
-                <View style={[styles.avatar, { backgroundColor: colors.primary.main }]}>
-                  <Text style={styles.avatarText}>{getInitials(message.sender_name)}</Text>
-                </View>
-              ) : (
-                <View style={styles.avatarPlaceholder} />
-              )}
-            </View>
-          )}
         </View>
       </Animated.View>
 
@@ -329,7 +307,7 @@ const styles = StyleSheet.create({
     marginBottom: ms(4),
   },
   ownContainer: {
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
   },
   otherContainer: {
     alignItems: 'flex-start',
@@ -340,8 +318,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   senderNameRowOwn: {
-    justifyContent: 'flex-end',
-    paddingRight: ms(38) + spacing.sm,
+    justifyContent: 'flex-start',
+    paddingLeft: ms(38) + spacing.sm,
   },
   senderNameRowOther: {
     justifyContent: 'flex-start',
@@ -353,7 +331,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   messageRowOwn: {
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
   },
   messageRowOther: {
     justifyContent: 'flex-start',
@@ -361,10 +339,6 @@ const styles = StyleSheet.create({
   avatarContainer: {
     width: ms(32),
     marginRight: ms(6),
-  },
-  avatarContainerOwn: {
-    width: ms(32),
-    marginLeft: ms(6),
   },
   avatar: {
     width: ms(28),
@@ -386,7 +360,7 @@ const styles = StyleSheet.create({
     maxWidth: '75%',
   },
   ownBubbleWrapper: {
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
   },
   otherBubbleWrapper: {
     alignItems: 'flex-start',
@@ -396,7 +370,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   senderNameOwn: {
-    textAlign: 'right',
+    textAlign: 'left',
   },
   senderNameOther: {
     textAlign: 'left',

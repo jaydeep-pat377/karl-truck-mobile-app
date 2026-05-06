@@ -504,10 +504,10 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
           <View style={[chatBubbleStyles.dateSeparatorLine, { backgroundColor: separatorLineColor }]} />
         </View>
       )}
-      <View style={[chatBubbleStyles.bubbleRow, isOwn ? chatBubbleStyles.ownRow : chatBubbleStyles.otherRow]}>
+      <View style={[chatBubbleStyles.bubbleRow, chatBubbleStyles.otherRow]}>
         <View style={{ maxWidth: '75%' }}>
           {/* Sender name + role above bubble */}
-          <View style={[chatBubbleStyles.senderRow, { justifyContent: isOwn ? 'flex-end' : 'flex-start' }]}>
+          <View style={[chatBubbleStyles.senderRow, { justifyContent: 'flex-start' }]}>
             <Text variant="captionSmall" style={{ color: senderNameColor, fontWeight: '600', fontSize: ms(10) }}>
               {message.sender_name}
             </Text>
@@ -521,8 +521,8 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
               chatBubbleStyles.bubble,
               {
                 backgroundColor: isOwn ? ownBubbleBg : otherBubbleBg,
-                borderTopRightRadius: isOwn ? ms(3) : ms(14),
-                borderTopLeftRadius: isOwn ? ms(14) : ms(3),
+                borderTopRightRadius: ms(14),
+                borderTopLeftRadius: ms(3),
                 borderColor: isOwn ? colors.common.transparent : otherBorderColor,
                 borderWidth: isOwn ? 0 : 1,
               },
@@ -554,9 +554,6 @@ const chatBubbleStyles = StyleSheet.create({
   },
   bubbleRow: {
     paddingHorizontal: ms(12),
-  },
-  ownRow: {
-    alignItems: 'flex-end',
   },
   otherRow: {
     alignItems: 'flex-start',
