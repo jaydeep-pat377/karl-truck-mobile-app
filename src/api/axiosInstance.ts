@@ -120,9 +120,13 @@ axiosInstance.interceptors.request.use(
     } catch {}
 
     if (__DEV__) {
+      const token = (config.headers as any)['Authorization'];
       console.log(`[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+      if (token) {
+        console.log('[API Request] Token:', token);
+      }
       if (config.params && Object.keys(config.params).length > 0) {
-        console.log('[API Request] Query Params:', JSON.stringify(config.params, null, 2));
+        console.log('[API Request] Params:', JSON.stringify(config.params, null, 2));
       }
       if (config.data) {
         const safeData = config.data?.password
@@ -144,6 +148,7 @@ axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
     if (__DEV__) {
       console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.baseURL}${response.config.url} — Status: ${response.status}`);
+      console.log('[API Response] Data:', JSON.stringify(response.data, null, 2));
     }
     return response;
   },
@@ -158,6 +163,9 @@ axiosInstance.interceptors.response.use(
     if (__DEV__) {
       console.error(`[API Error] ${originalRequest?.method?.toUpperCase()} ${originalRequest?.baseURL}${originalRequest?.url} — Status: ${error.response?.status}`);
       console.error('[API Error] Message:', error.message);
+      if (error.response?.data) {
+        console.error('[API Error] Data:', JSON.stringify(error.response.data, null, 2));
+      }
     }
 
     // Token refresh with mutex to prevent concurrent refresh attempts

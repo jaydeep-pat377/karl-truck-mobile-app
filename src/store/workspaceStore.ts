@@ -30,6 +30,7 @@ export interface Workspace {
   accent: string;
   status: 'active' | 'inactive';
   backendUrl?: string;
+  imageUrl?: string;
 }
 
 interface WorkspaceState {
@@ -64,6 +65,7 @@ const mapTenantsToWorkspaces = (tenants: TenantListItem[]): Workspace[] =>
     accent: getAccent(i),
     status: 'active' as const,
     backendUrl: t.backend_url,
+    imageUrl: t.image_url,
   }));
 
 export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
@@ -105,6 +107,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
     set({ isLoadingTenants: true });
     try {
       const response = await authService.getTenantList();
+      console.log('[workspaceStore] /api/auth/mobile/tenants response:', JSON.stringify(response, null, 2));
       if (response.success && response.data) {
         const workspaces = mapTenantsToWorkspaces(response.data);
         set({ workspaces });

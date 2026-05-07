@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
+  Image,
   Modal,
   Pressable,
   StyleSheet,
@@ -39,13 +40,16 @@ const WorkspaceAvatar: React.FC<WorkspaceAvatarProps> = ({
 }) => {
   const initial = getWorkspaceInitial(workspace.name);
   const dotSize = Math.max(ms(10), size * 0.28);
+  const borderRadius = size * 0.28;
+  const hasImage = !!workspace.imageUrl;
+
   return (
     <View
       style={{
         width: size,
         height: size,
-        borderRadius: size * 0.28,
-        backgroundColor: workspace.accent,
+        borderRadius,
+        backgroundColor: hasImage ? colors.common.white : workspace.accent,
         alignItems: 'center',
         justifyContent: 'center',
         shadowColor: workspace.accent,
@@ -53,18 +57,27 @@ const WorkspaceAvatar: React.FC<WorkspaceAvatarProps> = ({
         shadowOpacity: 0.25,
         shadowRadius: 6,
         elevation: 4,
+        overflow: 'hidden',
       }}
     >
-      <Text
-        style={{
-          color: colors.common.white,
-          fontSize: size * 0.42,
-          fontWeight: '700',
-          includeFontPadding: false,
-        }}
-      >
-        {initial}
-      </Text>
+      {hasImage ? (
+        <Image
+          source={{ uri: workspace.imageUrl }}
+          style={{ width: size, height: size, borderRadius }}
+          resizeMode="cover"
+        />
+      ) : (
+        <Text
+          style={{
+            color: colors.common.white,
+            fontSize: size * 0.42,
+            fontWeight: '700',
+            includeFontPadding: false,
+          }}
+        >
+          {initial}
+        </Text>
+      )}
       {showStatusDot && (
         <View
           style={{
@@ -127,10 +140,8 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({
   }, [hydrate]);
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchTenants();
-    }
-  }, [isAdmin, fetchTenants]);
+    fetchTenants();
+  }, [fetchTenants]);
 
   // Set current workspace from user's tenant metadata if not already set
   useEffect(() => {
@@ -202,26 +213,30 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({
           },
         ]}
       >
-        <View
-          style={{
-            width: ms(28),
-            height: ms(28),
-            borderRadius: ms(8),
-            backgroundColor: colors.primary.main,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Text
+        {current ? (
+          <WorkspaceAvatar workspace={current} size={ms(28)} />
+        ) : (
+          <View
             style={{
-              color: colors.common.white,
-              fontSize: ms(12),
-              fontWeight: '700',
+              width: ms(28),
+              height: ms(28),
+              borderRadius: ms(8),
+              backgroundColor: colors.primary.main,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            {currentDisplay.initial}
-          </Text>
-        </View>
+            <Text
+              style={{
+                color: colors.common.white,
+                fontSize: ms(12),
+                fontWeight: '700',
+              }}
+            >
+              {currentDisplay.initial}
+            </Text>
+          </View>
+        )}
         {!compact && (
           <Text
             numberOfLines={1}

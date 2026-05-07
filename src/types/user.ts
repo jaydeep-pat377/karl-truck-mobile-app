@@ -168,6 +168,7 @@ export interface TenantListItem {
   subdomain: string;
   slug?: string;
   backend_url?: string;
+  image_url?: string;
 }
 
 export interface SwitchTenantResponseData {

@@ -9,10 +9,6 @@ import { setDynamicBaseUrl, normalizeBackendUrl } from '../api/axiosInstance';
 import { STORAGE_KEYS } from '../utils/storage';
 import { DeviceInfo, LoginRequest, LoginResponse } from '../types/user';
 import { AxiosError } from 'axios';
-import { APP_ENV } from '@env';
-
-// TODO: Remove after testing — forces mobile app to use local backend instead of production
-const DEV_LOCAL_BACKEND_URL = 'http://192.168.1.61:5000/api';
 
 interface LoginParams {
   email: string;
@@ -49,10 +45,7 @@ export const useLogin = () => {
         throw new Error(federatedResponse.message || 'Federated login failed');
       }
 
-      // In development, use local backend; in production, use the tenant's backend_url
-      const backendUrl = APP_ENV === 'development'
-        ? DEV_LOCAL_BACKEND_URL
-        : `${normalizeBackendUrl(federatedResponse.data.tenant.backend_url)}/api`;
+      const backendUrl = `${normalizeBackendUrl(federatedResponse.data.tenant.backend_url)}/api`;
       await AsyncStorage.setItem(STORAGE_KEYS.BACKEND_URL, backendUrl);
       setDynamicBaseUrl(backendUrl);
 

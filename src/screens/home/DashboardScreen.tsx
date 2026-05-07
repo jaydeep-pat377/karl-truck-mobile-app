@@ -387,13 +387,17 @@ const DashboardScreen: React.FC = () => {
   const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId);
   const workspaces = useWorkspaceStore((s) => s.workspaces);
 
+  const currentWorkspace = useMemo(
+    () => workspaces.find((w) => w.id === currentWorkspaceId) ?? null,
+    [workspaces, currentWorkspaceId],
+  );
+
   const headerTitle = useMemo(() => {
-    const current = workspaces.find((w) => w.id === currentWorkspaceId);
-    if (current) return current.name;
+    if (currentWorkspace) return currentWorkspace.name;
     const tenantName = user?.metadata?.tenant?.tenant_name;
     if (tenantName) return tenantName;
     return t('dashboard.overview');
-  }, [workspaces, currentWorkspaceId, user, t]);
+  }, [currentWorkspace, user, t]);
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
@@ -480,7 +484,7 @@ const DashboardScreen: React.FC = () => {
   const advertisements: Advertisement[] = useMemo(() => {
 
     return apiAnnouncements.map((announcement) => {
-      const hasImage = !!announcement.icon_or_percent;
+      const isImageUrl = !!announcement.icon_or_percent && /^https?:\/\//i.test(announcement.icon_or_percent);
       return {
         id: String(announcement.id),
         badge: announcement.tagline || announcement.campaign || t('dashboard.announcement'),
@@ -488,8 +492,8 @@ const DashboardScreen: React.FC = () => {
         subheadline: announcement.subtitle,
         description: announcement.message_details_code || announcement.subtitle || '',
         ctaText: t('dashboard.learnMore'),
-        illustrationType: getIllustrationType(announcement.tile_type, hasImage),
-        image: hasImage ? { uri: announcement.icon_or_percent } : undefined,
+        illustrationType: getIllustrationType(announcement.tile_type, isImageUrl),
+        image: isImageUrl ? { uri: announcement.icon_or_percent } : undefined,
         gradientColors: announcement.color ? generateGradientFromColor(announcement.color, isDark) : undefined,
         accentColor: announcement.color || undefined,
         onAction: announcement.url ? () => {
@@ -946,6 +950,7 @@ const DashboardScreen: React.FC = () => {
             companies={companies}
             regions={regions}
             plants={plants}
+            workspaceImageUrl={currentWorkspace?.imageUrl}
             showRegion={showRegion}
             onCompanyPress={(company) => {
 

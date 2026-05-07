@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Text, Icon } from '../common';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -70,6 +70,7 @@ interface ProductionSummaryProps {
   onPress?: () => void;
   onTabChange?: (tab: SummaryTabType, itemCount: number) => void;
   showRegion?: boolean;
+  workspaceImageUrl?: string;
 }
 
 export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
@@ -87,6 +88,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
   onPlantPress,
   onTabChange,
   showRegion = true,
+  workspaceImageUrl,
 }) => {
   const { t } = useTranslation();
   const { isDark } = useTheme();
@@ -153,7 +155,15 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
 
         <View style={styles.header}>
           <View style={styles.titleRow}>
-            <Icon name={getIcon()} size={ms(18)} color={themeColors.text.primary} />
+            {type === 'company' && workspaceImageUrl ? (
+              <Image
+                source={{ uri: workspaceImageUrl }}
+                style={styles.companyLogo}
+                resizeMode="cover"
+              />
+            ) : (
+              <Icon name={getIcon()} size={ms(18)} color={themeColors.text.primary} />
+            )}
             <Text style={[styles.title, { color: themeColors.text.primary }]} numberOfLines={1}>
               {item.name}
             </Text>
@@ -394,6 +404,11 @@ const styles = StyleSheet.create({
     color: colors.common.white,
     fontSize: ms(10),
     fontFamily: fontFamily.bold,
+  },
+  companyLogo: {
+    width: ms(20),
+    height: ms(20),
+    borderRadius: ms(4),
   },
   title: {
     fontSize: ms(14),
