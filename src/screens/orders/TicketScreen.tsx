@@ -26,7 +26,7 @@ import { spacing, ms } from '../../utils/responsive';
 import { WeatherIcon } from '../../utils/weatherIcon';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { RootStackParamList } from '../../navigation/types';
-import { useTicketsByOrder, useRealtimeTickets } from '../../hooks';
+import { useTicketsByOrder, useRealtimeTickets, useOrderDetails } from '../../hooks';
 import { ApiTicketStatus, TicketByOrderItem } from '../../types/ticket';
 import { DeliveryProgress, DeliveryProgressSegment } from '../../types/order';
 import { useTranslation } from 'react-i18next';
@@ -566,7 +566,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
             numberOfLines={1}>
             {weatherData.weather_description || t('orders.partlyCloudy')}
           </Text>
-          {weatherData.temperature_fahrenheit !== null && weatherData.temperature_fahrenheit !== undefined && (
+          {(weatherData.temperature_fahrenheit ?? null) !== null && (
             <>
               <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
               <Text style={[styles.headerWeatherInfoText, { color: themeColors.text.secondary }]}>
@@ -574,19 +574,19 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
               </Text>
             </>
           )}
-          {weatherData.wind_speed_mph !== null && weatherData.wind_speed_mph !== undefined && (
+          {(weatherData.wind_speed_mph || null) !== null && (
             <>
               <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
               <Text style={[styles.headerWeatherInfoText, { color: themeColors.text.secondary }]}>
-                {t('orders.mphWind', { speed: weatherData.wind_speed_mph })}
+                {weatherData.wind_speed_mph} {t('orders.mphWind')}
               </Text>
             </>
           )}
-          {weatherData.humidity !== null && weatherData.humidity !== undefined && (
+          {(weatherData.humidity || null) !== null && (
             <>
               <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
               <Text style={[styles.headerWeatherInfoText, { color: themeColors.text.secondary }]}>
-                {t('orders.rhLabel', { value: weatherData.humidity })}
+                {weatherData.humidity}% {t('orders.relativeHumidity')}
               </Text>
             </>
           )}
@@ -1349,7 +1349,6 @@ export const TicketScreen: React.FC = () => {
     tickets: apiTickets,
     customerName,
     projectName,
-    weatherData,
     orderedQty,
     totalDeliveredQty,
     progressDisplay,
@@ -1366,6 +1365,9 @@ export const TicketScreen: React.FC = () => {
     orderId,
     sort_order: advancedFilters.sortOrder,
   });
+
+  const { orderDetails } = useOrderDetails({ order_code: orderCode, order_date: orderDate });
+  const weatherData = orderDetails?.weather_data || null;
 
   // Supabase Realtime: auto-refetch tickets when changes detected
   useRealtimeTickets({

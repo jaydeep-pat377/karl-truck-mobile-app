@@ -333,7 +333,7 @@
     "map": "Map",
     "miles": "Miles",
     "mix": "Mix",
-    "mphWind": "{{speed}} mph wind",
+    "mphWind": "mph wind",
     "order": "Order",
     "orderActivity": "Order Activity",
     "orderCreated": "Order Created",
