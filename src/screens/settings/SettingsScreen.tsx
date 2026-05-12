@@ -261,7 +261,7 @@ export const SettingsScreen: React.FC = () => {
                 ) : (
                   <>
                     <View style={styles.profileNameRow}>
-                      <Text variant="body" style={{ fontWeight: '600', flex: 1 }}>
+                      <Text variant="body" numberOfLines={1} style={{ fontWeight: '600', flex: 1 }}>
                         {profile?.fullName || ''}
                       </Text>
                       {profile?.active && (
