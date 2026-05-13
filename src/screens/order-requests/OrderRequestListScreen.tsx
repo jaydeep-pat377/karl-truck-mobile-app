@@ -102,7 +102,9 @@ const getOrderCode = (order: OrderEntity): string =>
 const formatTime = (timeStr: string): string => {
   if (!timeStr) return '';
   try {
-    // Handle "HH:mm" or "HH:mm:ss" format
+    // If already formatted with AM/PM (e.g. "12:40 PM PDT"), return as-is
+    if (/AM|PM/i.test(timeStr)) return timeStr;
+    // Handle "HH:mm" or "HH:mm:ss" 24-hour format
     const parts = timeStr.split(':');
     let hours = parseInt(parts[0], 10);
     const minutes = parts[1] || '00';
