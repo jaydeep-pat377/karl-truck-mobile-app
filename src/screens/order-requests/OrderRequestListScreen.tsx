@@ -99,6 +99,22 @@ const FILTER_TABS: {
 const getOrderCode = (order: OrderEntity): string =>
   `OE-${order.id.slice(0, 6).toUpperCase()}`;
 
+const formatTime = (timeStr: string): string => {
+  if (!timeStr) return '';
+  try {
+    // Handle "HH:mm" or "HH:mm:ss" format
+    const parts = timeStr.split(':');
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts[1] || '00';
+    if (isNaN(hours)) return timeStr;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes} ${ampm}`;
+  } catch {
+    return timeStr;
+  }
+};
+
 const formatDate = (dateStr: string, ianaCode?: string): string => {
   if (!dateStr) return '';
   try {
@@ -486,6 +502,7 @@ export const OrderRequestListScreen: React.FC = () => {
                   numberOfLines={1}
                 >
                   {formatDate(item.on_job_date, timezone.iana_code)}
+                  {item.on_job_time ? `, ${formatTime(item.on_job_time)}` : ''}
                 </Text>
               </View>
               {item.quantity != null && (
