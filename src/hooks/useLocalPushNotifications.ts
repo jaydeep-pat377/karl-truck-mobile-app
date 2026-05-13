@@ -146,7 +146,8 @@ export function useLocalPushNotifications(props?: UseLocalPushNotificationsProps
           pressAction: {
             id: 'default',
           },
-          smallIcon: 'ic_launcher',
+          smallIcon: 'ic_notification',
+          color: '#6BB130',
           sound: 'default',
         },
         ios: {

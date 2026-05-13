@@ -58,7 +58,8 @@ const playSystemNotificationSound = async (): Promise<void> => {
       android: {
         channelId: CHANNEL_ID,
         importance: AndroidImportance.HIGH,
-        smallIcon: 'ic_launcher',
+        smallIcon: 'ic_notification',
+        color: '#6BB130',
         sound: 'default',
         autoCancel: true,
         pressAction: { id: 'default' },

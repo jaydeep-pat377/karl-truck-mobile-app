@@ -27,10 +27,16 @@
       android:name="com.google.firebase.messaging.default_notification_channel_id"
       android:value="truckast_heads_up" />
 
-    <!-- Firebase Notification Icon -->
+    <!-- Firebase Notification Icon (white silhouette truck) -->
     <meta-data
       android:name="com.google.firebase.messaging.default_notification_icon"
-      android:resource="@mipmap/ic_launcher" />
+      android:resource="@drawable/ic_notification" />
+
+    <!-- Tint color applied to the notification icon -->
+    <meta-data
+      android:name="com.google.firebase.messaging.default_notification_color"
+      android:resource="@color/notification_color"
+      tools:replace="android:resource" />
 
     <!-- Disable FCM auto-init to let our custom service handle notifications -->
     <meta-data

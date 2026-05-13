@@ -62,7 +62,8 @@ async function displayNotification(title, body, data = {}) {
         pressAction: {
           id: 'default',
         },
-        smallIcon: 'ic_launcher',
+        smallIcon: 'ic_notification',
+        color: '#6BB130',
         sound: 'default',
         vibrationPattern: [300, 500],
         lights: ['#FF0000', 300, 600],
