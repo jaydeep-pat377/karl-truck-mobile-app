@@ -1,3 +1,9 @@
+export interface DashboardUserTimezone {
+  iana: string;
+  abbreviation: string;
+  current_time: string;
+}
+
 export interface DashboardUser {
   id: string;
   firstName: string;
@@ -6,6 +12,7 @@ export interface DashboardUser {
   email: string;
   avatarUrl: string | null;
   company: string | null;
+  current_user_timezone?: DashboardUserTimezone;
 }
 
 export interface DashboardNotifications {

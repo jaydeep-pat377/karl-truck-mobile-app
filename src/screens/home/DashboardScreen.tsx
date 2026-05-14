@@ -300,6 +300,7 @@ const DashboardScreen: React.FC = () => {
     marketSummary,
     activeDeliveries,
     dateRange,
+    currentUserTimezone,
     isLoading,
     isError,
     error,
@@ -320,6 +321,7 @@ const DashboardScreen: React.FC = () => {
     onUpdate: refetch,
   });
 
+  const formattedTimezoneDate = currentUserTimezone?.current_time || '';
 
   const companies: CompanyData[] = useMemo(() => {
     if (!marketSummary?.companies) return [];
@@ -887,14 +889,24 @@ const DashboardScreen: React.FC = () => {
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <View style={styles.headerLeft}>
           <WorkspaceSwitcher />
-          <Text
-            variant="h3"
-            style={{ color: themeColors.text.primary, marginLeft: ms(10), marginRight: ms(8), flexShrink: 1 }}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {headerTitle}
-          </Text>
+          <View style={{ marginLeft: ms(10), marginRight: ms(8), flexShrink: 1 }}>
+            <Text
+              variant="h3"
+              style={{ color: themeColors.text.primary }}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {headerTitle}
+            </Text>
+            {currentUserTimezone && (
+              <View style={styles.timezoneContainer}>
+                <Icon name="clock-outline" size={ms(12)} color={themeColors.text.secondary} />
+                <Text style={[styles.timezoneText, { color: themeColors.text.secondary }]}>
+                  {formattedTimezoneDate}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
@@ -1198,6 +1210,16 @@ const createStyles = (
       lineHeight: ms(18),
       textAlign: 'center',
       includeFontPadding: false,
+    },
+    timezoneContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginTop: ms(2),
+      gap: ms(3),
+    },
+    timezoneText: {
+      fontSize: ms(11),
+      fontFamily: fontFamily.medium,
     },
     scrollView: {
       flex: 1,

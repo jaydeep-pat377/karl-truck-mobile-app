@@ -138,6 +138,7 @@ interface DeliveryTicket {
   unit: string;
   status: TicketStatus;
   statusDisplay: string;
+  statusTime?: string;
   scheduledTime: string;
   product: string;
   load: string;
@@ -315,7 +316,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, onMapPress, is
                   styles.timeText,
                   { color: isDark ? colors.ticket.ui.dark.timeText : colors.ticket.ui.light.timeText },
                 ]}>
-                {ticket.scheduledTime}
+                {ticket.statusTime || ticket.scheduledTime}
               </Text>
             </View>
           </View>
@@ -1434,6 +1435,7 @@ export const TicketScreen: React.FC = () => {
         unit: 'CY',
         status: ticket.status || 'ticketed',
         statusDisplay: getDisplayStatus(ticket.status, ticket.status_display),
+        statusTime: ticket.status_time,
         scheduledTime: getTimestampForStatus(ticket.status, ticket.timestamps),
         product: ticket.product || '',
         load: ticket.load || '',

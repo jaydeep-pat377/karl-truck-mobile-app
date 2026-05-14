@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse, CanceledError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { API_BASE_URL, API_TIMEOUT } from '@env';
 import { STORAGE_KEYS } from '../utils/storage';
 import { alertService } from '../services/alertService';
@@ -76,13 +77,17 @@ export const axiosInstance = axios.create({
  * converts those and strips trailing slashes.
  */
 export const normalizeBackendUrl = (url: string): string => {
-  let cleaned = url.replace(/\/+$/, '');
+  let cleaned = url.trim().replace(/\/+$/, '');
   // Convert Vercel frontend URLs → correct API domain
   const vercelMatch = cleaned.match(
     /^https?:\/\/(\w[\w-]*?)-frontend-truckast-ai\.vercel\.app$/i,
   );
   if (vercelMatch) {
     cleaned = `https://${vercelMatch[1]}-api.truckast.ai`;
+  }
+  // Android emulator can't reach localhost — rewrite to 10.0.2.2
+  if (Platform.OS === 'android') {
+    cleaned = cleaned.replace(/\/\/localhost([:\/])/i, '//10.0.2.2$1');
   }
   return cleaned;
 };

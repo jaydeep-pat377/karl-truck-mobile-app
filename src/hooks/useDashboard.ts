@@ -93,6 +93,7 @@ export const useDashboard = (params?: UseDashboardParams) => {
     activeDeliveries: activeDeliveriesWithAllOrders,
     recentAlerts: firstPageData?.recent_alerts ?? [],
     dateRange: firstPageData?.date_range ?? null,
+    currentUserTimezone: firstPageData?.user?.current_user_timezone ?? null,
     isLoading: isInitialLoading,
     isError: query.isError,
     error: errorMessage,

@@ -173,6 +173,7 @@ export interface TicketByOrderItem {
   ordered_qty: number;
   status: ApiTicketStatus;
   status_display: string;
+  status_time?: string;
   remove_reason_code: string | null;
   product: string;
   timestamps: TicketTimestamps;
