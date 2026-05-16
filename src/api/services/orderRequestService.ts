@@ -99,6 +99,13 @@ export const orderRequestService = {
     );
   },
 
+  getOrdersByProjectCode: async (projectCode: string): Promise<OrderRequestSearchOrdersApiResponse> => {
+    return apiClient.get<OrderRequestSearchOrdersApiResponse>(
+      API_ENDPOINTS.ORDER_REQUESTS.ORDERS_BY_PROJECT,
+      { params: { projectCode } }
+    );
+  },
+
   searchOrders: async (q: string): Promise<OrderRequestSearchOrdersApiResponse> => {
     return apiClient.get<OrderRequestSearchOrdersApiResponse>(
       API_ENDPOINTS.ORDER_REQUESTS.SEARCH_ORDERS,

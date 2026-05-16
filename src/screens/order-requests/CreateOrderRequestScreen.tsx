@@ -78,23 +78,15 @@ const ROCK_SIZE_OPTIONS: DropdownOption[] = [
 
 
 const USAGE_OPTIONS: DropdownOption[] = [
-  'APRONS', 'BALCONY', 'BASEMENT', 'BASEMENT SLAB', 'BASEMENT WALLS',
-  'BASINS', 'BEAM', 'BLOCK FILL', 'BREEZEWAY', 'BRIDGE DECK',
-  'CAISSONS', 'CANOPY', 'CAP', 'CATCH BASIN', 'CELLAR',
-  'COLUMN', 'CONDUIT', 'CULVERT', 'CURB', 'CURB & GUTTER',
-  'DIAMONDS', 'DITCH', 'DOCK', 'DRAIN', 'DRIVEWAY',
-  'ELEVATED DECK', 'EQUIPMENT PAD', 'FILL', 'FLOOR', 'FOOTING',
-  'FOUNDATION', 'FOUNDATION WALL', 'GARAGE', 'GRADE BEAM', 'GROUT',
-  'GUTTER', 'HEADWALL', 'INLET', 'MANHOLE', 'MEDIAN',
-  'MISC', 'MUD SLAB', 'OVERLAY', 'PAD', 'PARKING',
-  'PATIO', 'PAVEMENT', 'PIER', 'PILASTER', 'PILE',
-  'PLANTER', 'PORCH', 'POST', 'RAMP', 'RETAINING WALL',
-  'RIP RAP', 'ROAD', 'RUNWAY', 'SHAFT', 'SHEAR WALL',
-  'SIDEWALK', 'SLAB', 'SLAB ON GRADE', 'SLOPE PAVING', 'SOG',
-  'SPILLWAY', 'STAIRS', 'STEM WALL', 'STEPS', 'STORM SHELTER',
-  'STRUCTURAL', 'SWIMMING POOL', 'TILT WALL', 'TOPPING', 'TRENCH',
-  'TROUGH', 'TUNNEL', 'VAULT', 'WALL', 'WASHOUT',
-].map((u) => ({ value: u, label: u }));
+  'PIER', 'FOOTING', 'STEM WALL FOUNDATION', 'GRADE BEAMS', 'WALL',
+  'INTERIOR SLAB ON GRADE', 'INTERIOR SLAB ON DECK', 'PATIO/PORCH',
+  'DRIVE WAY', 'SIDE WALK', 'CURB', 'PAVING',
+  'FENCE / POLE / SIGN FOUNDATION', 'POOL DECK', 'SHOTCRETE',
+  'BLOCK FILL', 'DOCK', 'BRIDGE DECK', 'COLUMN', 'DRAIN',
+  'UTILITY', 'BASEMENT', 'CULVERT/DITCH LINER', 'DUCT BANKS',
+  'GROUT', 'STAIRS', 'TILT WALL', 'SAFEROOM', 'RAMP',
+  'DUMPSTER PAD', 'FLUMES', 'EXTERIOR PAD', 'OTHER',
+].map((u) => ({ value: u, label: u === 'OTHER' ? 'Other' : u }));
 
 const SLUMP_OPTIONS: DropdownOption[] = [
   { value: '1', label: '1' },
@@ -107,6 +99,12 @@ const SLUMP_OPTIONS: DropdownOption[] = [
   { value: '8', label: '8' },
   { value: '9', label: '9' },
   { value: '10', label: '10' },
+];
+
+const SPACING_MINUTE_PRESETS = ['7', '10', '15', '20', '30', '45', '60', '75'];
+const SPACING_MINUTE_OPTIONS: DropdownOption[] = [
+  ...SPACING_MINUTE_PRESETS.map((m) => ({ value: m, label: `${m} minutes` })),
+  { value: 'other', label: 'Other' },
 ];
 
 const READONLY_STATUSES = ['approved', 'rejected', 'canceled'];
@@ -454,13 +452,10 @@ export const CreateOrderRequestScreen: React.FC = () => {
   ], [t]);
 
   const ORDER_STATUS_OPTIONS: DropdownOption[] = useMemo(() => [
-    { value: '0', label: t('orders.status.normal') },
-    { value: '1', label: t('orders.status.willCall') },
-    { value: '2', label: t('orders.status.weatherPermitting') },
-    { value: '3', label: t('orders.status.hold') },
-    { value: '4', label: t('orders.status.completed') },
-    { value: '5', label: t('orders.status.waitList') },
-  ], [t]);
+    { value: '0', label: 'FIRM' },
+    { value: '3', label: 'HOLD' },
+    { value: '1', label: 'W/C' },
+  ], []);
 
   const SPACING_TYPE_OPTIONS: DropdownOption[] = useMemo(() => [
     { value: 'yards_per_hour', label: t('createOrderRequest.yardsPerHour') },
@@ -507,6 +502,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
   const [regionName, setRegionName] = useState('');
   const [customerJobNumber, setCustomerJobNumber] = useState('');
   const [usageCode, setUsageCode] = useState('');
+  const [usageOther, setUsageOther] = useState('');
   const [poNumber, setPoNumber] = useState('');
   const [orderStatus, setOrderStatus] = useState<number | null>(null);
   const [onJobDate, setOnJobDate] = useState('');
@@ -545,6 +541,12 @@ export const CreateOrderRequestScreen: React.FC = () => {
   // Driver Instructions
   const [driverInstructions, setDriverInstructions] = useState('');
 
+  // Internal fields (auto-filled, no visible UI — matches web)
+  const [pourMethodCode, setPourMethodCode] = useState('');
+  const [pourMethodName, setPourMethodName] = useState('');
+  const [plantCode, setPlantCode] = useState('');
+  const [plantName, setPlantName] = useState('');
+
   // Concrete product
   const [knowMixCode, setKnowMixCode] = useState(false);
   const [concreteProductCode, setConcreteProductCode] = useState('');
@@ -557,10 +559,13 @@ export const CreateOrderRequestScreen: React.FC = () => {
   const [flyAsh, setFlyAsh] = useState('');
   const [quantity, setQuantity] = useState('');
   const [truckSpacing, setTruckSpacing] = useState('');
-  const [spacingType, setSpacingType] = useState('yards_per_hour');
+  const [spacingType, setSpacingType] = useState('minutes');
+  const [spacingMinutesIsOther, setSpacingMinutesIsOther] = useState(false);
   const [slump, setSlump] = useState('');
   const [concreteNotes, setConcreteNotes] = useState('');
   const [callBackLoad, setCallBackLoad] = useState('');
+  const [pumped, setPumped] = useState('no');
+  const [pumpType, setPumpType] = useState('');
 
   // Admixture
   const [admixtureProductCode, setAdmixtureProductCode] = useState('');
@@ -575,6 +580,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
   // Modal state
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [themedAlert, setThemedAlert] = useState<ThemedAlertState>(ALERT_INITIAL);
+  const [pendingSlump, setPendingSlump] = useState<string | null>(null);
 
   // Product search
   const { products: searchedProducts } = useSearchProducts(productSearchQuery);
@@ -692,6 +698,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
       setRegionName(editOrder.region_name ?? '');
       setCustomerJobNumber(editOrder.customer_job_number ?? '');
       setUsageCode(editOrder.usage_code ?? '');
+      setUsageOther(editOrder.usage_code === 'OTHER' ? (editOrder.usage_name ?? '') : '');
       setPoNumber(editOrder.po_number ?? '');
       setOrderStatus(editOrder.order_status ?? 0);
       setOnJobDate(editOrder.on_job_date ?? '');
@@ -706,6 +713,10 @@ export const CreateOrderRequestScreen: React.FC = () => {
       setContactName(editOrder.job_contact_name ?? '');
       setContactPhone(editOrder.job_contact_phone ?? '');
       setDriverInstructions(editOrder.driver_instructions ?? '');
+      setPourMethodCode(editOrder.pour_method_code ?? '');
+      setPourMethodName(editOrder.pour_method_name ?? '');
+      setPlantCode(editOrder.plant_code ?? '');
+      setPlantName(editOrder.plant_name ?? '');
       setKnowMixCode(editOrder.know_mix_code ?? false);
       setConcreteProductCode(editOrder.concrete_product_code ?? '');
       setConcreteProductName(editOrder.concrete_product_name ?? '');
@@ -719,9 +730,14 @@ export const CreateOrderRequestScreen: React.FC = () => {
         editOrder.truck_spacing != null ? String(editOrder.truck_spacing) : '',
       );
       setSpacingType(editOrder.spacing_type ?? 'yards_per_hour');
+      if (editOrder.truck_spacing != null && editOrder.spacing_type !== 'yards_per_hour') {
+        setSpacingMinutesIsOther(!SPACING_MINUTE_PRESETS.includes(String(editOrder.truck_spacing)));
+      }
       setSlump(editOrder.slump ?? '');
       setConcreteNotes(editOrder.concrete_notes ?? '');
       setCallBackLoad(editOrder.call_back_load ?? '');
+      setPumped(editOrder.pumped ? 'yes' : 'no');
+      setPumpType(editOrder.pump_type ?? '');
       setAdmixtureProductCode(editOrder.admixture_product_code ?? '');
       setAdmixtureProductName(editOrder.admixture_product_name ?? '');
       setAdmixtureNotes(editOrder.admixture_notes ?? '');
@@ -801,18 +817,41 @@ export const CreateOrderRequestScreen: React.FC = () => {
 
   const isReorderMode = !!prefillOrder && !isEditMode;
 
-  // Auto-fill from project selection
+  // Auto-fill from project selection (matches web handleProjectChange)
   const handleProjectSelect = useCallback(
-    (option: DropdownOption) => {
-      setProjectCode(option.value);
-      const project = formData?.projects?.find((p) => p.code === option.value);
+    async (option: DropdownOption) => {
+      const projectCode = option.value;
+      setProjectCode(projectCode);
+      // Reset referenced order when project changes
+      setReferencedOrder('');
+      setReferencedOrderLabel('');
+
+      const project = formData?.projects?.find((p) => p.code === projectCode);
       if (project) {
         setProjectName(project.name);
+        setJobName(project.name);
         if (project.delivery_addr1) setJobAddress(project.delivery_addr1);
         if (project.delivery_addr2) setJobCity(project.delivery_addr2);
         if (project.delivery_addr3) setJobState(project.delivery_addr3);
         if (project.contact) setContactName(project.contact);
         if (project.phone) setContactPhone(project.phone);
+      }
+
+      // Fetch orders for this project and auto-set referenced order to most recent
+      try {
+        const result = await orderRequestService.getOrdersByProjectCode(projectCode);
+        if (result?.success && result.data?.orders?.length > 0) {
+          const latest = result.data.orders[0];
+          // Add to searchedOrders map so it can be found by handleReferencedOrderSelect
+          searchedOrdersMapRef.current.set(latest.order_code, latest);
+          // Set as referenced order
+          setReferencedOrder(`order|${latest.order_code}`);
+          setReferencedOrderLabel(
+            [latest.order_code, latest.customer_name, latest.project_name].filter(Boolean).join(' — '),
+          );
+        }
+      } catch (err) {
+        console.error('[handleProjectSelect] Failed to fetch orders for project:', err);
       }
     },
     [formData],
@@ -859,6 +898,41 @@ export const CreateOrderRequestScreen: React.FC = () => {
     }
   }, [knowMixCode, orderType, psi, rockSize, airNonAir, flyAsh]);
 
+  // Auto-select Admixture products whose label contains the slump number (only when slump >= 6).
+  // Matches web: order-request-form.tsx lines 1342-1367
+  const slumpAutoAdmixtureRef = useRef<Set<string>>(new Set());
+  React.useEffect(() => {
+    if (!formData?.admixtureProducts || formData.admixtureProducts.length === 0) return;
+    const slumpNum = parseInt(slump, 10);
+    const currentCodes = admixtureProductCode ? admixtureProductCode.split(',').filter(Boolean) : [];
+    const next = new Set(currentCodes);
+
+    // Remove previously auto-added items
+    slumpAutoAdmixtureRef.current.forEach((v) => next.delete(v));
+
+    const newlyAdded = new Set<string>();
+    if (!Number.isNaN(slumpNum) && slumpNum >= 6) {
+      const pattern = new RegExp(`\\b${slumpNum}\\b`);
+      formData.admixtureProducts.forEach((item) => {
+        if (pattern.test(item.label) && !next.has(item.value)) {
+          next.add(item.value);
+          newlyAdded.add(item.value);
+        }
+      });
+    }
+    slumpAutoAdmixtureRef.current = newlyAdded;
+
+    const updatedCodes = Array.from(next).join(',');
+    if (updatedCodes === admixtureProductCode) return;
+
+    // Resolve names for the updated codes
+    const updatedNames = Array.from(next)
+      .map((code) => formData.admixtureProducts.find((p) => p.value === code)?.label || code)
+      .join(', ');
+    setAdmixtureProductCode(updatedCodes);
+    setAdmixtureProductName(updatedNames);
+  }, [slump, formData?.admixtureProducts]);
+
   // Auto-fill from referenced order selection
   const handleReferencedOrderSelect = useCallback(
     async (option: DropdownOption) => {
@@ -897,7 +971,10 @@ export const CreateOrderRequestScreen: React.FC = () => {
           if (o.company_id) { setCompanyId(o.company_id); setCompanyName(o.company_name || ''); }
           if (o.region_code) { setRegionCode(o.region_code); setRegionName(o.region_name || ''); }
           if (o.customer_job_number) setCustomerJobNumber(o.customer_job_number);
-          if (o.usage_code) setUsageCode(o.usage_code);
+          if (o.usage_code) {
+            setUsageCode(o.usage_code);
+            setUsageOther(o.usage_code === 'OTHER' ? (o.usage_name ?? '') : '');
+          }
           if (o.po_number) setPoNumber(o.po_number);
           if (o.order_status !== null && o.order_status !== undefined) setOrderStatus(o.order_status);
           if (o.on_job_date) setOnJobDate(o.on_job_date);
@@ -910,6 +987,8 @@ export const CreateOrderRequestScreen: React.FC = () => {
           if (o.job_contact_name) setContactName(o.job_contact_name);
           if (o.job_contact_phone) setContactPhone(o.job_contact_phone);
           if (o.driver_instructions) setDriverInstructions(o.driver_instructions);
+          if (o.pour_method_code) { setPourMethodCode(o.pour_method_code); setPourMethodName(o.pour_method_name || ''); }
+          if (o.plant_code) { setPlantCode(o.plant_code); setPlantName(o.plant_name || ''); }
           setKnowMixCode(o.know_mix_code ?? false);
           if (o.concrete_product_code) { setConcreteProductCode(o.concrete_product_code); setConcreteProductName(o.concrete_product_name || ''); }
           if (o.concrete_product_text) setConcreteProductText(o.concrete_product_text);
@@ -920,9 +999,14 @@ export const CreateOrderRequestScreen: React.FC = () => {
           if (o.quantity) setQuantity(String(o.quantity));
           if (o.truck_spacing) setTruckSpacing(String(o.truck_spacing));
           if (o.spacing_type) setSpacingType(o.spacing_type);
+          if (o.truck_spacing != null && o.spacing_type !== 'yards_per_hour') {
+            setSpacingMinutesIsOther(!SPACING_MINUTE_PRESETS.includes(String(o.truck_spacing)));
+          }
           if (o.slump) setSlump(o.slump);
           if (o.concrete_notes) setConcreteNotes(o.concrete_notes);
           if (o.call_back_load) setCallBackLoad(o.call_back_load);
+          if (o.pumped != null) setPumped(o.pumped ? 'yes' : 'no');
+          if (o.pump_type) setPumpType(o.pump_type);
           if (o.admixture_product_code) { setAdmixtureProductCode(o.admixture_product_code); setAdmixtureProductName(o.admixture_product_name || ''); }
           if (o.admixture_notes) setAdmixtureNotes(o.admixture_notes);
           if (o.other_product_code) { setOtherProductCode(o.other_product_code); setOtherProductName(o.other_product_name || ''); }
@@ -945,14 +1029,14 @@ export const CreateOrderRequestScreen: React.FC = () => {
     if (!companyId) missing.push('Company');
     if (showRegion && !regionCode) missing.push('Region');
     if (!usageCode) missing.push('Usage');
+    if (usageCode === 'OTHER' && !usageOther.trim()) missing.push('Enter Usage');
     if (orderStatus === null || orderStatus === undefined) missing.push('Order Status');
     if (!onJobDate) missing.push(orderType === 'with_project' ? 'On Job Date' : 'Requested On Job Date');
     if (!onJobTime) missing.push(orderType === 'with_project' ? 'On Job Time' : 'Requested On Job Time');
     if (!jobAddress) missing.push('Job Address');
     if (!jobCity) missing.push('Job City');
-    if (!jobZipCode) missing.push('Job Zip Code');
-    if (!contactName) missing.push('Contact Name');
-    if (!contactPhone) missing.push('Contact Phone');
+    if (!contactName) missing.push('Job Contact Name');
+    if (!contactPhone) missing.push('Job Contact Phone');
     if (!slump) missing.push('Slump');
     if (!quantity) missing.push('Quantity');
 
@@ -980,7 +1064,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
       return false;
     }
     return true;
-  }, [companyId, regionCode, usageCode, onJobDate, onJobTime, jobAddress, jobCity, contactName, contactPhone,
+  }, [companyId, regionCode, usageCode, usageOther, onJobDate, onJobTime, jobAddress, jobCity, contactName, contactPhone,
     slump, quantity, orderType, projectCode, concreteProductCode, knowMixCode, psi, rockSize, airNonAir, flyAsh, t, showRegion, orderStatus]);
 
   const buildInput = useCallback((): OrderEntityCreateInput => {
@@ -1005,12 +1089,21 @@ export const CreateOrderRequestScreen: React.FC = () => {
     if (regionName) input.region_name = regionName;
     if (customerJobNumber) input.customer_job_number = customerJobNumber;
     if (usageCode) input.usage_code = usageCode;
+    if (usageCode === 'OTHER' && usageOther.trim()) {
+      input.usage_name = usageOther.trim();
+    } else if (usageCode) {
+      input.usage_name = usageCode;
+    }
     if (poNumber) input.po_number = poNumber;
     if (orderStatus !== null) input.order_status = orderStatus;
     if (jobName) input.job_name = jobName;
     if (jobState) input.job_state = jobState;
     if (jobZipCode) input.job_zip_code = jobZipCode;
     if (driverInstructions) input.driver_instructions = driverInstructions;
+    if (pourMethodCode) input.pour_method_code = pourMethodCode;
+    if (pourMethodName) input.pour_method_name = pourMethodName;
+    if (plantCode) input.plant_code = plantCode;
+    if (plantName) input.plant_name = plantName;
 
     if (orderType === 'with_project') {
       if (projectCode) input.project_code = projectCode;
@@ -1036,11 +1129,13 @@ export const CreateOrderRequestScreen: React.FC = () => {
     }
 
     if (quantity) input.quantity = parseFloat(quantity);
-    if (truckSpacing) input.truck_spacing = parseFloat(truckSpacing);
+    if (truckSpacing) input.truck_spacing = parseInt(truckSpacing, 10);
     if (spacingType) input.spacing_type = spacingType;
     if (slump) input.slump = slump;
     if (concreteNotes) input.concrete_notes = concreteNotes;
     if (callBackLoad) input.call_back_load = callBackLoad;
+    input.pumped = pumped === 'yes';
+    if (pumped === 'yes' && pumpType) input.pump_type = pumpType;
 
     if (admixtureProductCode) input.admixture_product_code = admixtureProductCode;
     if (admixtureProductName) input.admixture_product_name = admixtureProductName;
@@ -1053,11 +1148,11 @@ export const CreateOrderRequestScreen: React.FC = () => {
     return input;
   }, [
     orderType, companyId, companyName, referencedOrder, regionCode, regionName,
-    customerJobNumber, usageCode, poNumber, orderStatus, onJobDate, onJobTime,
+    customerJobNumber, usageCode, usageOther, poNumber, orderStatus, onJobDate, onJobTime,
     jobName, projectCode, projectName, jobAddress, jobCity, jobState,
-    jobZipCode, contactName, contactPhone, driverInstructions, knowMixCode,
+    jobZipCode, contactName, contactPhone, driverInstructions, pourMethodCode, pourMethodName, plantCode, plantName, knowMixCode,
     concreteProductCode, concreteProductName, concreteProductText, psi, rockSize, airNonAir, flyAsh,
-    quantity, truckSpacing, spacingType, slump, concreteNotes, callBackLoad,
+    quantity, truckSpacing, spacingType, slump, concreteNotes, callBackLoad, pumped, pumpType,
     admixtureProductCode, admixtureProductName, admixtureNotes,
     otherProductCode, otherProductName, otherNotes,
   ]);
@@ -1112,18 +1207,20 @@ export const CreateOrderRequestScreen: React.FC = () => {
     setCompanyId(''); setCompanyName('');
     setReferencedOrder(''); setReferencedOrderLabel('');
     setRegionCode(''); setRegionName('');
-    setCustomerJobNumber(''); setUsageCode('');
+    setCustomerJobNumber(''); setUsageCode(''); setUsageOther('');
     setPoNumber(''); setOrderStatus(null);
     setOnJobDate(''); setOnJobTime('');
     setJobName(''); setProjectCode(''); setProjectName('');
     setJobAddress(''); setJobCity(''); setJobState(''); setJobZipCode('');
     setContactName(''); setContactPhone('');
     setDriverInstructions('');
+    setPourMethodCode(''); setPourMethodName('');
+    setPlantCode(''); setPlantName('');
     setKnowMixCode(false);
     setConcreteProductCode(''); setConcreteProductName(''); setConcreteProductText('');
     setPsi(''); setRockSize(''); setAirNonAir(''); setFlyAsh('');
-    setQuantity(''); setTruckSpacing(''); setSpacingType('yards_per_hour');
-    setSlump(''); setConcreteNotes(''); setCallBackLoad('');
+    setQuantity(''); setTruckSpacing(''); setSpacingType('minutes'); setSpacingMinutesIsOther(false);
+    setSlump(''); setConcreteNotes(''); setCallBackLoad(''); setPumped('no'); setPumpType('');
     setAdmixtureProductCode(''); setAdmixtureProductName(''); setAdmixtureNotes('');
     setOtherProductCode(''); setOtherProductName(''); setOtherNotes('');
   }, [routeOrderType]);
@@ -1140,8 +1237,9 @@ export const CreateOrderRequestScreen: React.FC = () => {
   const isFormValid = useMemo(() => {
     // Base required
     if (!companyId || (showRegion && !regionCode) || !usageCode || orderStatus === null || orderStatus === undefined) return false;
+    if (usageCode === 'OTHER' && !usageOther.trim()) return false;
     if (!onJobDate || !onJobTime) return false;
-    if (!jobAddress || !jobCity || !jobZipCode) return false;
+    if (!jobAddress || !jobCity) return false;
     if (!contactName || !contactPhone) return false;
     if (!slump || !quantity) return false;
     // Type-specific
@@ -1151,7 +1249,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
       if (!psi || !rockSize || !airNonAir || !flyAsh) return false;
     }
     return true;
-  }, [companyId, regionCode, usageCode, orderStatus, onJobDate, onJobTime, jobAddress, jobCity, jobZipCode,
+  }, [companyId, regionCode, usageCode, usageOther, orderStatus, onJobDate, onJobTime, jobAddress, jobCity,
     contactName, contactPhone, slump, quantity, orderType, projectCode, concreteProductCode, knowMixCode, psi, rockSize, airNonAir, flyAsh]);
 
   const getDropdownOptions = useCallback((): DropdownOption[] => {
@@ -1172,6 +1270,8 @@ export const CreateOrderRequestScreen: React.FC = () => {
         return ORDER_STATUS_OPTIONS;
       case 'spacingType':
         return SPACING_TYPE_OPTIONS;
+      case 'spacingMinutes':
+        return SPACING_MINUTE_OPTIONS;
       case 'airNonAir':
         return AIR_OPTIONS;
       case 'psi':
@@ -1203,6 +1303,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
       case 'usage': return t('createOrderRequest.selectUsage');
       case 'orderStatus': return t('createOrderRequest.selectOrderStatus');
       case 'spacingType': return t('createOrderRequest.selectSpacingType');
+      case 'spacingMinutes': return 'Select Spacing Minutes';
       case 'airNonAir': return t('createOrderRequest.selectAirNonAir');
       case 'psi': return t('createOrderRequest.selectPSI');
       case 'rockSize': return t('createOrderRequest.selectRockSize');
@@ -1225,6 +1326,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
       case 'usage': return usageCode;
       case 'orderStatus': return orderStatus !== null ? String(orderStatus) : '';
       case 'spacingType': return spacingType;
+      case 'spacingMinutes': return spacingMinutesIsOther ? 'other' : (truckSpacing && SPACING_MINUTE_PRESETS.includes(truckSpacing) ? truckSpacing : '');
       case 'airNonAir': return airNonAir;
       case 'psi': return psi;
       case 'rockSize': return rockSize;
@@ -1235,7 +1337,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
       case 'otherProduct': return otherProductCode;
       default: return '';
     }
-  }, [activeDropdown, companyId, regionCode, projectCode, concreteProductCode, referencedOrder, usageCode, orderStatus, spacingType, airNonAir, psi, rockSize, flyAsh, slump, callBackLoad, admixtureProductCode, otherProductCode]);
+  }, [activeDropdown, companyId, regionCode, projectCode, concreteProductCode, referencedOrder, usageCode, orderStatus, spacingType, spacingMinutesIsOther, truckSpacing, airNonAir, psi, rockSize, flyAsh, slump, callBackLoad, admixtureProductCode, otherProductCode]);
 
   const handleDropdownSelect = useCallback(
     (option: DropdownOption) => {
@@ -1263,6 +1365,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
           break;
         case 'usage':
           setUsageCode(option.value);
+          if (option.value !== 'OTHER') setUsageOther('');
           break;
         case 'product': {
           setConcreteProductCode(option.value);
@@ -1278,6 +1381,15 @@ export const CreateOrderRequestScreen: React.FC = () => {
         case 'spacingType':
           setSpacingType(option.value);
           break;
+        case 'spacingMinutes':
+          if (option.value === 'other') {
+            setSpacingMinutesIsOther(true);
+            setTruckSpacing('');
+          } else {
+            setSpacingMinutesIsOther(false);
+            setTruckSpacing(option.value);
+          }
+          break;
         case 'airNonAir':
           setAirNonAir(option.value);
           break;
@@ -1290,9 +1402,17 @@ export const CreateOrderRequestScreen: React.FC = () => {
         case 'flyAsh':
           setFlyAsh(option.value);
           break;
-        case 'slump':
-          setSlump(option.value);
+        case 'slump': {
+          const numeric = parseInt(option.value, 10);
+          if (!Number.isNaN(numeric) && numeric > 5) {
+            // Delay to let dropdown modal finish its close animation on iOS
+            // before opening the confirmation modal (avoids overlapping modal issue)
+            setTimeout(() => setPendingSlump(option.value), 500);
+          } else {
+            setSlump(option.value);
+          }
           break;
+        }
         case 'callBackLoad':
           setCallBackLoad(option.value);
           break;
@@ -1559,7 +1679,8 @@ export const CreateOrderRequestScreen: React.FC = () => {
             {renderDropdownField('Referenced Order', referencedOrderLabel || referencedOrder || '', 'referencedOrder', false, isReorderMode)}
             {showRegion && renderDropdownField('Region', regionName ? `${regionName} (${regionCode})` : '', 'region', true, isReorderMode)}
             {renderField('Customer Job Number', customerJobNumber, setCustomerJobNumber, 'e.g., CJ-001')}
-            {renderDropdownField('Usage', usageCode || '', 'usage', true)}
+            {renderDropdownField('Usage', usageCode === 'OTHER' ? 'Other' : usageCode || '', 'usage', true)}
+            {usageCode === 'OTHER' && renderField('Enter Usage', usageOther, setUsageOther, 'Please enter usage description', true)}
             {renderField('P.O. Number', poNumber, setPoNumber, 'e.g., PO-12345')}
             {renderDropdownField('Order Status', orderStatusLabel, 'orderStatus', true)}
 
@@ -1674,13 +1795,13 @@ export const CreateOrderRequestScreen: React.FC = () => {
                   <Icon name="map-marker-radius-outline" size={ms(20)} color={!jobAddress ? colors.grey[30] : colors.common.white} />
                 </TouchableOpacity>
                 <View style={{ flex: 1 }}>
-                  {renderTextInput(jobAddress, setJobAddress, 'Enter job address')}
+                  {renderTextInput(jobAddress, setJobAddress, 'Street address')}
                 </View>
               </View>
             </View>
-            {renderField('Job City', jobCity, setJobCity, 'Enter job city', true)}
-            {renderField('Job State', jobState, setJobState, 'Enter job state')}
-            {renderField('Job Zip Code', jobZipCode, setJobZipCode, 'Enter zip code', true, {
+            {renderField('Job City', jobCity, setJobCity, 'City', true)}
+            {renderField('Job State', jobState, setJobState, 'State')}
+            {renderField('Job Zip Code', jobZipCode, setJobZipCode, 'Zip', false, {
               keyboardType: 'number-pad',
             })}
           </View>
@@ -1695,10 +1816,30 @@ export const CreateOrderRequestScreen: React.FC = () => {
                 Jobsite Contact
               </Text>
             </View>
-            {renderField('Contact Name', contactName, setContactName, 'Enter contact name', true)}
-            {renderField('Contact Phone', contactPhone, setContactPhone, 'Enter contact phone', true, {
-              keyboardType: 'phone-pad',
-            })}
+            {renderField('Job Contact Name', contactName, setContactName, 'John Doe', true)}
+            <View style={styles.fieldContainer}>
+              {renderLabel('Job Contact Phone', true)}
+              <TextInput
+                style={[
+                  styles.textInput,
+                  {
+                    backgroundColor: themeColors.surface,
+                    color: themeColors.text.primary,
+                    borderColor: themeColors.border,
+                  },
+                  isReadOnly && styles.readOnlyInput,
+                ]}
+                value={contactPhone}
+                onChangeText={(v: string) => setContactPhone(v.replace(/\D/g, '').slice(0, 10))}
+                placeholder="1234567890"
+                placeholderTextColor={themeColors.text.hint}
+                keyboardType="number-pad"
+                maxLength={10}
+                editable={!isReadOnly}
+                returnKeyType="done"
+                onSubmitEditing={() => Keyboard.dismiss()}
+              />
+            </View>
           </View>
 
           {/* ============================================================== */}
@@ -1740,7 +1881,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
                   'Non Project Product',
                   concreteProductText,
                   setConcreteProductText,
-                  'Specific mix code if requested...',
+                  'If a specific mix code is requested, please enter it here',
                 )}
               </>
             )}
@@ -1818,7 +1959,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
                   'Concrete Product',
                   concreteProductText,
                   setConcreteProductText,
-                  'Specific mix code if requested...',
+                  'If a specific mix code is requested, please enter it here',
                 )}
 
                 {/* Show PSI, Rock Size, Air/Non-air, Fly Ash when mix code is NOT known */}
@@ -1836,30 +1977,104 @@ export const CreateOrderRequestScreen: React.FC = () => {
             {/* ---- Common fields (all types) ---- */}
             {renderDropdownField('Slump', slump, 'slump', true)}
 
-            {renderField('Quantity', quantity, setQuantity, 'Enter quantity', true, {
+            {renderField('Quantity', quantity, setQuantity, '0.00', true, {
               keyboardType: 'decimal-pad',
             })}
 
-            <View style={styles.rowFields}>
-              <View style={{ flex: 1, marginRight: spacing.sm }}>
-                {renderDropdownField('Spacing Type', spacingTypeLabel, 'spacingType', true)}
-              </View>
-              <View style={{ flex: 1, marginLeft: spacing.sm }}>
-                {renderField(
-                  spacingType === 'yards_per_hour' ? 'Spacing (Yards/Hour)' : 'Spacing Minutes',
-                  truckSpacing,
-                  setTruckSpacing,
-                  spacingType === 'yards_per_hour' ? 'Specify yards per hour' : 'Specify Minutes',
+            {renderDropdownField('Spacing Type', spacingTypeLabel, 'spacingType', true)}
+            {spacingType === 'yards_per_hour' ? (
+              renderField('Spacing (Yards/Hour)', truckSpacing, setTruckSpacing, 'Specify yards per hour', true, { keyboardType: 'decimal-pad' })
+            ) : (
+              <>
+                {renderDropdownField(
+                  'Spacing Minutes',
+                  spacingMinutesIsOther ? 'Other' : (truckSpacing && SPACING_MINUTE_PRESETS.includes(truckSpacing) ? `${truckSpacing} minutes` : ''),
+                  'spacingMinutes',
                   true,
-                  { keyboardType: 'decimal-pad' },
                 )}
-              </View>
-            </View>
+                {spacingMinutesIsOther && renderField('Enter Minutes', truckSpacing, setTruckSpacing, 'Enter minutes', true, { keyboardType: 'number-pad' })}
+              </>
+            )}
 
             {renderField('Concrete Notes', concreteNotes, setConcreteNotes, 'Add concrete notes...', false, {
               multiline: true,
             })}
             {renderDropdownField('Call Back Load', callBackLoad || '', 'callBackLoad')}
+
+            {/* Pumped */}
+            <View style={styles.fieldContainer}>
+              {renderLabel('Pumped')}
+              <View style={{ flexDirection: 'row', gap: ms(10) }}>
+                {[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }].map((opt) => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[
+                      styles.orderTypeToggleBtn,
+                      {
+                        backgroundColor: pumped === opt.value ? colors.primary.main : isDark ? colors.dark.card : colors.grey[5],
+                        borderColor: pumped === opt.value ? colors.primary.main : themeColors.border,
+                        flex: 1,
+                      },
+                    ]}
+                    onPress={() => {
+                      if (!isReadOnly) {
+                        setPumped(opt.value);
+                        if (opt.value === 'no') setPumpType('');
+                      }
+                    }}
+                    disabled={isReadOnly}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      variant="caption"
+                      align="center"
+                      style={{
+                        color: pumped === opt.value ? colors.common.white : themeColors.text.primary,
+                        fontWeight: pumped === opt.value ? '700' : '500',
+                      }}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Pump Type - shown when Pumped = Yes */}
+            {pumped === 'yes' && (
+              <View style={styles.fieldContainer}>
+                {renderLabel('Pump Type')}
+                <View style={{ flexDirection: 'row', gap: ms(10) }}>
+                  {[{ value: 'boom', label: 'Boom' }, { value: 'line', label: 'Line' }].map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={[
+                        styles.orderTypeToggleBtn,
+                        {
+                          backgroundColor: pumpType === opt.value ? colors.primary.main : isDark ? colors.dark.card : colors.grey[5],
+                          borderColor: pumpType === opt.value ? colors.primary.main : themeColors.border,
+                          flex: 1,
+                        },
+                      ]}
+                      onPress={() => !isReadOnly && setPumpType(opt.value)}
+                      disabled={isReadOnly}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        variant="caption"
+                        align="center"
+                        style={{
+                          color: pumpType === opt.value ? colors.common.white : themeColors.text.primary,
+                          fontWeight: pumpType === opt.value ? '700' : '500',
+                        }}
+                      >
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
 
           {/* ============================================================== */}
@@ -1980,6 +2195,42 @@ export const CreateOrderRequestScreen: React.FC = () => {
         onClose={() => setThemedAlert(ALERT_INITIAL)}
         isDark={isDark}
       />
+
+      {/* Slump > 5 Confirmation Modal */}
+      <Modal visible={pendingSlump !== null} transparent animationType="fade" onRequestClose={() => setPendingSlump(null)}>
+        <View style={themedAlertStyles.overlay}>
+          <View style={[themedAlertStyles.card, { backgroundColor: isDark ? colors.dark.card : colors.common.white }]}>
+            <View style={[themedAlertStyles.iconCircle, { backgroundColor: colors.warning.main + '15' }]}>
+              <Icon name="alert" size={ms(32)} color={colors.warning.main} />
+            </View>
+            <Text variant="h3" style={[themedAlertStyles.title, { color: isDark ? colors.dark.text.primary : colors.light.text.primary }]}>
+              {'Maximum Slump for this mix without additional admixture is 5".'}
+            </Text>
+            <Text variant="bodySmall" style={[themedAlertStyles.message, { color: isDark ? colors.dark.text.secondary : colors.light.text.secondary }]}>
+              {'Ordered slump above 5" will include Mid-Range or High-Range Water Reducer, priced separately.\n\nContinue?'}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: ms(12), width: '100%' }}>
+              <TouchableOpacity
+                style={[themedAlertStyles.btn, { flex: 1, backgroundColor: colors.primary.main }]}
+                onPress={() => {
+                  if (pendingSlump !== null) setSlump(pendingSlump);
+                  setPendingSlump(null);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text variant="buttonSmall" style={{ color: colors.common.white, fontWeight: '700' }}>Yes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[themedAlertStyles.btn, { flex: 1, backgroundColor: isDark ? colors.dark.surface : colors.grey[5], borderWidth: 1, borderColor: isDark ? colors.dark.border : colors.light.border }]}
+                onPress={() => setPendingSlump(null)}
+                activeOpacity={0.7}
+              >
+                <Text variant="buttonSmall" style={{ color: isDark ? colors.dark.text.primary : colors.light.text.primary, fontWeight: '700' }}>No</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* iOS Time Picker Modal */}
       {showTimePicker && Platform.OS === 'ios' && (

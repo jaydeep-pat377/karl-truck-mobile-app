@@ -47,6 +47,8 @@ export interface OrderEntity {
   slump: string | null;
   concrete_notes: string | null;
   call_back_load: string | null;
+  pumped: boolean | null;
+  pump_type: string | null;
   admixture_product_code: string | null;
   admixture_product_name: string | null;
   admixture_notes: string | null;
@@ -240,6 +242,8 @@ export interface OrderEntityCreateInput {
   slump?: string;
   concrete_notes?: string;
   call_back_load?: string;
+  pumped?: boolean;
+  pump_type?: string;
   admixture_product_code?: string;
   admixture_product_name?: string;
   admixture_notes?: string;

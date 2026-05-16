@@ -53,6 +53,7 @@ export const API_ENDPOINTS = {
     VERIFICATION: '/order-requests',
     MESSAGES: '/order-requests',
     FORM_DATA: '/order-requests/form-data',
+    ORDERS_BY_PROJECT: '/order-requests/orders-by-project',
     SEARCH_ORDERS: '/order-requests/search-orders',
     SEARCH_PRODUCTS: '/order-requests/search-products',
     RECENT_ENTITIES: '/order-requests/recent-entities',
