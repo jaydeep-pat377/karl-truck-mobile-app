@@ -15,6 +15,7 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, ScreenContainer, ScreenHeader, Button } from '../../components/common';
 import TruckLoader from '../../components/common/TruckLoader';
@@ -35,6 +36,7 @@ import { OrderEntityCreateInput, ORDER_STATUS_LABELS, OrderType } from '../../ty
 import { orderRequestService } from '../../api/services/orderRequestService';
 import { useAuthStore } from '../../store/authStore';
 import { useTranslation } from 'react-i18next';
+import { OrderRequestsStackParamList } from '../../navigation/types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -433,7 +435,7 @@ const themedAlertStyles = StyleSheet.create({
 // ---------------------------------------------------------------------------
 
 export const CreateOrderRequestScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<OrderRequestsStackParamList>>();
   const route = useRoute<CreateOrderRequestRouteProp>();
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
@@ -786,12 +788,18 @@ export const CreateOrderRequestScreen: React.FC = () => {
       }
       // Auto-detect order type — web checks project_code/project_name then item_code
       if (prefillOrder.project_name || prefillOrder.project_code) {
+        console.log('[Reorder] Detected order type: with_project', { project_name: prefillOrder.project_name, project_code: prefillOrder.project_code });
         setOrderType('with_project');
       } else if (prefillOrder.item_code) {
+        console.log('[Reorder] Detected order type: without_project_with_product', { item_code: prefillOrder.item_code });
         setOrderType('without_project_with_product');
+      } else {
+        console.log('[Reorder] Detected order type: without_project (default)', { project_name: prefillOrder.project_name, item_code: prefillOrder.item_code });
       }
     }
   }, [prefillOrder, isEditMode, formData]);
+
+  const isReorderMode = !!prefillOrder && !isEditMode;
 
   // Auto-fill from project selection
   const handleProjectSelect = useCallback(
@@ -942,6 +950,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
     if (!onJobTime) missing.push(orderType === 'with_project' ? 'On Job Time' : 'Requested On Job Time');
     if (!jobAddress) missing.push('Job Address');
     if (!jobCity) missing.push('Job City');
+    if (!jobZipCode) missing.push('Job Zip Code');
     if (!contactName) missing.push('Contact Name');
     if (!contactPhone) missing.push('Contact Phone');
     if (!slump) missing.push('Slump');
@@ -1132,7 +1141,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
     // Base required
     if (!companyId || (showRegion && !regionCode) || !usageCode || orderStatus === null || orderStatus === undefined) return false;
     if (!onJobDate || !onJobTime) return false;
-    if (!jobAddress || !jobCity) return false;
+    if (!jobAddress || !jobCity || !jobZipCode) return false;
     if (!contactName || !contactPhone) return false;
     if (!slump || !quantity) return false;
     // Type-specific
@@ -1142,7 +1151,7 @@ export const CreateOrderRequestScreen: React.FC = () => {
       if (!psi || !rockSize || !airNonAir || !flyAsh) return false;
     }
     return true;
-  }, [companyId, regionCode, usageCode, orderStatus, onJobDate, onJobTime, jobAddress, jobCity,
+  }, [companyId, regionCode, usageCode, orderStatus, onJobDate, onJobTime, jobAddress, jobCity, jobZipCode,
     contactName, contactPhone, slump, quantity, orderType, projectCode, concreteProductCode, knowMixCode, psi, rockSize, airNonAir, flyAsh]);
 
   const getDropdownOptions = useCallback((): DropdownOption[] => {
@@ -1363,7 +1372,10 @@ export const CreateOrderRequestScreen: React.FC = () => {
     displayValue: string,
     dropdownKey: string,
     required?: boolean,
-  ) => (
+    disabled?: boolean,
+  ) => {
+    const isDisabled = isReadOnly || !!disabled;
+    return (
     <View style={styles.fieldContainer}>
       {renderLabel(label, required)}
       <TouchableOpacity
@@ -1373,10 +1385,10 @@ export const CreateOrderRequestScreen: React.FC = () => {
             backgroundColor: themeColors.surface,
             borderColor: themeColors.border,
           },
-          isReadOnly && styles.readOnlyInput,
+          isDisabled && styles.readOnlyInput,
         ]}
-        onPress={() => !isReadOnly && setActiveDropdown(dropdownKey)}
-        disabled={isReadOnly}
+        onPress={() => !isDisabled && setActiveDropdown(dropdownKey)}
+        disabled={isDisabled}
         activeOpacity={0.7}
       >
         <Text
@@ -1394,7 +1406,8 @@ export const CreateOrderRequestScreen: React.FC = () => {
         />
       </TouchableOpacity>
     </View>
-  );
+    );
+  };
 
   const renderField = (
     label: string,
@@ -1537,14 +1550,14 @@ export const CreateOrderRequestScreen: React.FC = () => {
               </Text>
             </View>
 
-            {renderDropdownField('Company', companyName ? `${companyName} (${companyId})` : '', 'company', true)}
+            {renderDropdownField('Company', companyName ? `${companyName} (${companyId})` : '', 'company', true, isReorderMode)}
             {orderType === 'with_project' && (
               <>
-                {renderDropdownField('Project', projectName ? `${projectName} (${projectCode})` : '', 'project', true)}
+                {renderDropdownField('Project', projectName ? `${projectName} (${projectCode})` : '', 'project', true, isReorderMode)}
               </>
             )}
-            {renderDropdownField('Referenced Order', referencedOrderLabel || referencedOrder || '', 'referencedOrder')}
-            {showRegion && renderDropdownField('Region', regionName ? `${regionName} (${regionCode})` : '', 'region', true)}
+            {renderDropdownField('Referenced Order', referencedOrderLabel || referencedOrder || '', 'referencedOrder', false, isReorderMode)}
+            {showRegion && renderDropdownField('Region', regionName ? `${regionName} (${regionCode})` : '', 'region', true, isReorderMode)}
             {renderField('Customer Job Number', customerJobNumber, setCustomerJobNumber, 'e.g., CJ-001')}
             {renderDropdownField('Usage', usageCode || '', 'usage', true)}
             {renderField('P.O. Number', poNumber, setPoNumber, 'e.g., PO-12345')}
@@ -1644,10 +1657,30 @@ export const CreateOrderRequestScreen: React.FC = () => {
                 Job Location
               </Text>
             </View>
-            {renderField('Job Address', jobAddress, setJobAddress, 'Enter job address', true)}
+            <View style={styles.fieldContainer}>
+              {renderLabel('Job Address', true)}
+              <View style={styles.addressInputRow}>
+                <TouchableOpacity
+                  style={[styles.mapIconBtn, { backgroundColor: jobAddress ? colors.primary.main : colors.grey[15] }]}
+                  onPress={() => {
+                    const fullAddress = [jobAddress, jobCity, jobState, jobZipCode].filter(Boolean).join(', ');
+                    if (fullAddress) {
+                      navigation.navigate('AddressMap', { address: fullAddress });
+                    }
+                  }}
+                  disabled={!jobAddress}
+                  activeOpacity={0.7}
+                >
+                  <Icon name="map-marker-radius-outline" size={ms(20)} color={!jobAddress ? colors.grey[30] : colors.common.white} />
+                </TouchableOpacity>
+                <View style={{ flex: 1 }}>
+                  {renderTextInput(jobAddress, setJobAddress, 'Enter job address')}
+                </View>
+              </View>
+            </View>
             {renderField('Job City', jobCity, setJobCity, 'Enter job city', true)}
             {renderField('Job State', jobState, setJobState, 'Enter job state')}
-            {renderField('Job Zip Code', jobZipCode, setJobZipCode, 'Enter zip code', false, {
+            {renderField('Job Zip Code', jobZipCode, setJobZipCode, 'Enter zip code', true, {
               keyboardType: 'number-pad',
             })}
           </View>
@@ -2063,6 +2096,18 @@ const styles = StyleSheet.create({
   // Fields
   fieldContainer: {
     marginBottom: spacing.md,
+  },
+  addressInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(8),
+  },
+  mapIconBtn: {
+    width: ms(44),
+    height: ms(44),
+    borderRadius: ms(12),
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   fieldLabel: {
     marginBottom: spacing.xs,

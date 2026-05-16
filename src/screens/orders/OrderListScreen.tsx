@@ -1543,11 +1543,11 @@ export const OrderListScreen: React.FC = () => {
   // Matches web: passes order data for form prefill
   // Web maps delivery_addr1 → jobAddress, delivery_addr2 → jobCity, delivery_addr3 → jobState
   const handleOrderRequest = useCallback((order: Order) => {
-    // Parse combined delivery address into parts (addr1, city, state)
+    // Use separate fields if available, otherwise parse from combined address
     const addrParts = (order.deliveryAddress || '').split(',').map(s => s.trim());
     const addr1 = addrParts[0] || '';
-    const city = addrParts.length > 1 ? addrParts[addrParts.length - 2] || '' : '';
-    const state = addrParts.length > 2 ? addrParts[addrParts.length - 1] || '' : '';
+    const city = order.deliveryCity || (addrParts.length > 1 ? addrParts[addrParts.length - 2] || '' : '');
+    const state = order.deliveryState || (addrParts.length > 2 ? addrParts[addrParts.length - 1] || '' : '');
 
     (navigation as any).navigate('OrderRequests', {
       screen: 'CreateOrderRequest',
@@ -1562,6 +1562,7 @@ export const OrderListScreen: React.FC = () => {
           job_address: addr1,
           job_city: city,
           job_state: state,
+          job_zip_code: order.deliveryZip,
           plant_code: order.plantDetails?.code,
           plant_name: order.plantDetails?.name,
           item_code: order.productType,
