@@ -5,6 +5,8 @@ import { Text, Icon } from '../common';
 import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
 import { ChatRoom } from '../../types/chat';
+import { useTimezoneStore } from '../../store/timezoneStore';
+import { formatTimeInTz } from '../../utils/timezone';
 
 interface ChatRoomCardProps {
   room: ChatRoom;
@@ -14,6 +16,7 @@ interface ChatRoomCardProps {
 export const ChatRoomCard: React.FC<ChatRoomCardProps> = React.memo(({ room, onPress }) => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
+  const userTzIana = useTimezoneStore((s) => s.timezone.iana_code);
 
   const formatTime = (dateString?: string) => {
     if (!dateString) return '';
@@ -23,7 +26,8 @@ export const ChatRoomCard: React.FC<ChatRoomCardProps> = React.memo(({ room, onP
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
     if (days === 0) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      // 12hr in user's selected timezone, no TZ chip
+      return formatTimeInTz(date, userTzIana, false, false);
     } else if (days === 1) {
       return 'Yesterday';
     } else if (days < 7) {

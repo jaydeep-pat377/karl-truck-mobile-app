@@ -131,7 +131,9 @@ const formatDateLocal = (dateStr: string | null | undefined): string => {
   return formatDate(dateStr);
 };
 
-// Format a time string like "14:30:00" with timezone abbreviation in 12-hour format
+// Format a clock-time string like "14:30:00" → "02:30 PM" (12hr, no TZ chip).
+// Clock-only strings can't be timezone-converted reliably (no anchor date),
+// so we just normalise the 12hr format here.
 const formatTime = (timeStr: string | null | undefined): string => {
   if (!timeStr) return '-';
   try {
@@ -139,10 +141,7 @@ const formatTime = (timeStr: string | null | undefined): string => {
       const [h, m] = timeStr.split(':').map(Number);
       const period = h >= 12 ? 'PM' : 'AM';
       const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-      // Use a reference date to get the timezone abbreviation
-      const ref = new Date();
-      const p = getPartsInTimezone(ref);
-      return `${h12}:${String(m).padStart(2, '0')} ${period} ${p.tzAbbr}`;
+      return `${h12}:${String(m).padStart(2, '0')} ${period}`;
     }
     return timeStr;
   } catch {
@@ -150,13 +149,14 @@ const formatTime = (timeStr: string | null | undefined): string => {
   }
 };
 
-// Format a full ISO timestamp like "2026-03-31T07:11:24+00:00" → "03/31/2026 02:11 CDT"
+// Format a full ISO timestamp like "2026-03-31T07:11:24+00:00" → "03/31/2026 02:11 PM"
+// (12hr in user's selected timezone, no TZ chip).
 const formatDateTime = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '-';
   try {
     const d = new Date(dateStr);
     const p = getPartsInTimezone(d);
-    return `${p.month}/${p.day}/${p.year} ${p.hours}:${p.minutes} ${p.period} ${p.tzAbbr}`;
+    return `${p.month}/${p.day}/${p.year} ${p.hours}:${p.minutes} ${p.period}`;
   } catch {
     return dateStr;
   }

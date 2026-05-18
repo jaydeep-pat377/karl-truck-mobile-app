@@ -102,8 +102,12 @@ const getOrderCode = (order: OrderEntity): string =>
 const formatTime = (timeStr: string): string => {
   if (!timeStr) return '';
   try {
-    // If already formatted with AM/PM (e.g. "12:40 PM PDT"), return as-is
-    if (/AM|PM/i.test(timeStr)) return timeStr;
+    // If already formatted with AM/PM (e.g. "12:40 PM PDT"), strip any
+    // trailing TZ abbreviation so the chip is hidden everywhere except the
+    // dashboard subtitle.
+    if (/AM|PM/i.test(timeStr)) {
+      return timeStr.replace(/\s+[A-Z]{2,5}$/, '');
+    }
     // Handle "HH:mm" or "HH:mm:ss" 24-hour format
     const parts = timeStr.split(':');
     let hours = parseInt(parts[0], 10);

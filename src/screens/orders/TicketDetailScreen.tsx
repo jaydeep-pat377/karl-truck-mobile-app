@@ -30,6 +30,8 @@ import { RootStackParamList } from '../../navigation/types';
 import { useTicketDetails, useAlert } from '../../hooks';
 import { ApiTicketStatus, VerifiJson, FreshWeatherData } from '../../types/ticket';
 import { ticketService } from '../../api/services/ticketService';
+import { useTimezoneStore } from '../../store/timezoneStore';
+import { formatTimeInTz } from '../../utils/timezone';
 import { encryptQRPayload } from '../../api/services/qrService';
 
 type TicketDetailRouteProp = RouteProp<RootStackParamList, 'TicketDetail'>;
@@ -1247,19 +1249,11 @@ export const TicketDetailScreen: React.FC = () => {
   }, [isDark, apiStatusColors]);
 
 
+  const userTzIana = useTimezoneStore((s) => s.timezone.iana_code);
   const formatEtaTime = (etaString: string | null | undefined): string => {
     if (!etaString) return '';
-    try {
-      const date = new Date(etaString);
-      if (isNaN(date.getTime())) return etaString;
-      return date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      });
-    } catch {
-      return etaString;
-    }
+    // 12hr in user's selected timezone, no TZ chip
+    return formatTimeInTz(etaString, userTzIana, false, false);
   };
 
   const formattedEta = formatEtaTime(etaAtJob);
@@ -1654,7 +1648,7 @@ export const TicketDetailScreen: React.FC = () => {
           const hasEta = !!eta;
           const etaAge = eta?.calculatedAt ? Math.floor((Date.now() - new Date(eta.calculatedAt).getTime()) / 60000) : 0;
           const isStale = etaAge > 30;
-          const etaArrival = eta?.arrivalTime ? new Date(eta.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '--';
+          const etaArrival = eta?.arrivalTime ? formatTimeInTz(eta.arrivalTime, userTzIana, false, false) : '--';
           const orangeColor = colors.eta.main;
 
           const handleEtaCalc = async (force = false) => {

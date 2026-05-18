@@ -6,6 +6,8 @@ import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
 import { Message } from '../../types/chat';
 import { VoiceMessagePlayer } from './VoiceMessagePlayer';
+import { useTimezoneStore } from '../../store/timezoneStore';
+import { formatTimeInTz } from '../../utils/timezone';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -31,9 +33,9 @@ interface Attachment {
   path?: string;
 }
 
-const formatTime = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+// 12hr in the user's selected timezone, no TZ chip
+const formatTime = (dateString: string, ianaCode: string) => {
+  return formatTimeInTz(dateString, ianaCode, false, false);
 };
 
 const getInitials = (name: string) => {
@@ -142,7 +144,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   const avatarBg = isOwnMessage ? colors.primary.main : colors.secondary.main;
   const senderColor = isOwnMessage ? colors.primary.main : colors.secondary.main;
   const initials = getInitials(message.sender_name);
-  const formattedTime = formatTime(message.created_at);
+  const userTzIana = useTimezoneStore((s) => s.timezone.iana_code);
+  const formattedTime = formatTime(message.created_at, userTzIana);
 
   if (message.message_type === 'system') {
     return (
