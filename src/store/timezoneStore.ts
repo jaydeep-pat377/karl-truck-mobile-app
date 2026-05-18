@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { STORAGE_KEYS, storageUtils } from '../utils/storage';
 import { TimezoneInfo, CDT_INITIAL } from '../utils/timezone';
 import { timezoneService } from '../api/services/timezoneService';
+import { queryClient } from '../lib/queryClient';
 
 interface TimezoneState {
   timezone: TimezoneInfo;
@@ -19,7 +20,9 @@ export const useTimezoneStore = create<TimezoneState>((set) => ({
   companyTimezone: null,
   isLoaded: false,
 
-  // User selects timezone in Settings — save locally + to DB
+  // User selects timezone in Settings — save locally + to DB, then invalidate
+  // every React Query so tz-aware screens (dashboard, orders, tickets, tracking,
+  // etc.) refetch immediately without a manual pull-to-refresh.
   setTimezone: async (tz: TimezoneInfo) => {
     await storageUtils.setObject(STORAGE_KEYS.TIMEZONE, tz);
     set({ timezone: tz });
@@ -28,6 +31,12 @@ export const useTimezoneStore = create<TimezoneState>((set) => ({
     } catch (err) {
       console.error('[TimezoneStore] Failed to save to DB:', err);
     }
+    // Refetch every query immediately (active AND inactive) so any tz-formatted
+    // data is fresh by the time the user next navigates to that screen.
+    // Without refetchType:'all', inactive queries would only refetch lazily
+    // on next mount, which can leave detail screens showing the old tz until
+    // the user pulls to refresh.
+    queryClient.invalidateQueries({ refetchType: 'all' });
   },
 
   // Timezone comes from API (login response) — save locally only
