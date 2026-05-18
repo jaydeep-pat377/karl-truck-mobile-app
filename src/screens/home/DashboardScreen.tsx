@@ -440,8 +440,15 @@ const DashboardScreen: React.FC = () => {
 
   const themeColors = isDark ? colors.dark : colors.light;
 
-  const onRefresh = useCallback(() => {
-    refetch();
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setIsManualRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsManualRefreshing(false);
+    }
   }, [refetch]);
 
   const handleDateFilterChange = useCallback((filter: DateFilter) => {
@@ -943,7 +950,7 @@ const DashboardScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isRefetching && !isFetchingNextPage}
+            refreshing={isManualRefreshing}
             onRefresh={onRefresh}
             tintColor={colors.primary.main}
             colors={[colors.primary.main, colors.secondary.main]}

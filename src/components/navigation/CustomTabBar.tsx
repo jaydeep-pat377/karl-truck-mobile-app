@@ -14,6 +14,7 @@ import { Icon } from '../common';
 import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
 import { useTheme } from '../../contexts/ThemeContext';
+import { notifyScreenFocus } from '../../lib/queryClient';
 
 // Screens where tab bar should STAY VISIBLE even when nested (not at index 0)
 const TAB_VISIBLE_SCREEN_NAMES: string[] = [
@@ -302,6 +303,9 @@ const TabItem: React.FC<TabItemProps> = ({
         navigation.navigate(route.name);
       }
     }
+
+    // Trigger React Query focus event so stale queries refetch on tab press
+    notifyScreenFocus();
   };
 
   const onLongPress = () => {

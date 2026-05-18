@@ -1220,6 +1220,17 @@ export const TicketDetailScreen: React.FC = () => {
     ticket_code: ticketCode,
   });
 
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setIsManualRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  }, [refetch]);
+
   const statusConfigMap = useMemo(() => {
     const baseConfig = isDark ? STATUS_CONFIG_DARK : STATUS_CONFIG_LIGHT;
     if (!apiStatusColors) return baseConfig;
@@ -1920,8 +1931,8 @@ export const TicketDetailScreen: React.FC = () => {
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
+            refreshing={isManualRefreshing}
+            onRefresh={handleRefresh}
             tintColor={themeColors.text.primary}
             colors={[colors.primary.main, colors.secondary.light]}
             progressBackgroundColor={themeColors.card}

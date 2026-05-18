@@ -763,9 +763,16 @@ export const WeatherScreen: React.FC = () => {
     };
   }, [weatherData, orderCode, orderDate, t]);
 
-  const onRefresh = useCallback(() => {
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
     if (!hasFreshWeather) {
-      refetch();
+      setIsManualRefreshing(true);
+      try {
+        await refetch();
+      } finally {
+        setIsManualRefreshing(false);
+      }
     }
   }, [refetch, hasFreshWeather]);
 
@@ -931,7 +938,7 @@ export const WeatherScreen: React.FC = () => {
         bounces={true}
         refreshControl={
           <RefreshControl
-            refreshing={isRefetching}
+            refreshing={isManualRefreshing}
             onRefresh={onRefresh}
             tintColor={colors.common.white}
             colors={[colors.primary.main, colors.secondary.main]}

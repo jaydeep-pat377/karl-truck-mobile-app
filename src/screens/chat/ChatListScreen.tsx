@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -27,6 +27,17 @@ export const ChatListScreen: React.FC = () => {
   const { isDark } = useTheme();
   const { t } = useTranslation();
   const { rooms, isLoading, refetch, isRefetching, isConfigured } = useChatRooms();
+
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setIsManualRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  }, [refetch]);
 
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -123,8 +134,8 @@ export const ChatListScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
+            refreshing={isManualRefreshing}
+            onRefresh={handleRefresh}
             tintColor={colors.primary.main}
             colors={[colors.primary.main]}
           />

@@ -42,7 +42,6 @@ export const useDashboard = (params?: UseDashboardParams) => {
     gcTime: 10 * 60 * 1000,
     retry: 1,
     refetchOnMount: true,
-    refetchOnWindowFocus: false,
   });
 
   const firstPageData: DashboardData | null =

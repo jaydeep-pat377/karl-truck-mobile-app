@@ -238,7 +238,16 @@ export const TodayOrdersScreen: React.FC = () => {
     return { totalOrdered, totalDelivered, totalRemaining, avgProgress };
   }, [apiOrders]);
 
-  const handleRefresh = useCallback(() => refetch(), [refetch]);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setIsManualRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  }, [refetch]);
 
   const fmtQty = (qty: number) => qty % 1 === 0 ? qty.toString() : qty.toFixed(1);
 
@@ -540,7 +549,7 @@ export const TodayOrdersScreen: React.FC = () => {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           refreshControl={
             <RefreshControl
-              refreshing={isRefetching}
+              refreshing={isManualRefreshing}
               onRefresh={handleRefresh}
               tintColor={colors.primary.main}
               colors={[colors.primary.main]}

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -35,6 +35,17 @@ export const EmailTemplateListScreen: React.FC = () => {
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
   const { templates, defaults, isLoading, isRefetching, refetch } = useEmailTemplates();
+
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setIsManualRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  }, [refetch]);
 
   const sections: Section[] = useMemo(() => {
     if (!defaults.length) return [];
@@ -225,8 +236,8 @@ export const EmailTemplateListScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
+            refreshing={isManualRefreshing}
+            onRefresh={handleRefresh}
             tintColor={colors.primary.main}
           />
         }

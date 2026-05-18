@@ -355,6 +355,17 @@ export const OrderTrackingScreen: React.FC = () => {
     refetchInterval: 30000,
   });
 
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setIsManualRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  }, [refetch]);
+
   // Build dynamic status config from API colors (same source as web frontend)
   const statusConfig = useMemo(
     () => buildStatusConfig(trackingData?.status_colors as Record<string, string | undefined> ?? null),
@@ -969,8 +980,8 @@ export const OrderTrackingScreen: React.FC = () => {
             }}
             refreshControl={
               <RefreshControl
-                refreshing={isRefetching}
-                onRefresh={refetch}
+                refreshing={isManualRefreshing}
+                onRefresh={handleRefresh}
                 tintColor={colors.primary.main}
                 colors={[colors.primary.main]}
               />

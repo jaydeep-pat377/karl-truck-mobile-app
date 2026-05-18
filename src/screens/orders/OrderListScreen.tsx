@@ -1366,10 +1366,17 @@ export const OrderListScreen: React.FC = () => {
 
   }, [orderStatusFilter]);
 
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
   const handleRefresh = useCallback(async () => {
-    await fetchAppPermissions();
-    refetch();
-    fetchUnreadCounts();
+    setIsManualRefreshing(true);
+    try {
+      await fetchAppPermissions();
+      await refetch();
+      fetchUnreadCounts();
+    } finally {
+      setIsManualRefreshing(false);
+    }
   }, [refetch, fetchAppPermissions, fetchUnreadCounts]);
 
   const handleLoadMore = useCallback(() => {
@@ -2003,7 +2010,7 @@ export const OrderListScreen: React.FC = () => {
             })}
           refreshControl={
             <RefreshControl
-              refreshing={isRefetching}
+              refreshing={isManualRefreshing}
               onRefresh={handleRefresh}
               tintColor={colors.primary.main}
               colors={[colors.primary.main, colors.secondary.main]}

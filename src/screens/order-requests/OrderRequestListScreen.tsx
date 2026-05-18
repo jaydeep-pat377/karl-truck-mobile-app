@@ -207,8 +207,15 @@ export const OrderRequestListScreen: React.FC = () => {
   // Handlers
   // -----------------------------------------------------------------------
 
-  const handleRefresh = useCallback(() => {
-    refetch();
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setIsManualRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsManualRefreshing(false);
+    }
   }, [refetch]);
 
   const handleLoadMore = useCallback(() => {
@@ -611,7 +618,7 @@ export const OrderRequestListScreen: React.FC = () => {
         showBackButton
         showRefreshButton
         onRefresh={handleRefresh}
-        isRefreshing={isRefetching && !isFilterLoading}
+        isRefreshing={isManualRefreshing}
       />
 
       {isLoading ? (
@@ -725,7 +732,7 @@ export const OrderRequestListScreen: React.FC = () => {
         ]}
         refreshControl={
           <RefreshControl
-            refreshing={isRefetching && !isFilterLoading}
+            refreshing={isManualRefreshing}
             onRefresh={handleRefresh}
             tintColor={colors.primary.main}
             colors={[colors.primary.main]}

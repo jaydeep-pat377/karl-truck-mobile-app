@@ -1491,8 +1491,15 @@ export const TicketScreen: React.FC = () => {
     navigation.goBack();
   }, [navigation]);
 
-  const handleRefresh = useCallback(() => {
-    refetch();
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setIsManualRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsManualRefreshing(false);
+    }
   }, [refetch]);
 
   const handleLoadMore = useCallback(() => {
@@ -1718,7 +1725,7 @@ export const TicketScreen: React.FC = () => {
           onEndReachedThreshold={0.3}
           refreshControl={
             <RefreshControl
-              refreshing={isRefetching}
+              refreshing={isManualRefreshing}
               onRefresh={handleRefresh}
               tintColor={colors.primary.main}
               colors={[colors.primary.main, colors.secondary.main]}
