@@ -13,6 +13,8 @@ export interface PourSpeedGraphApi {
   schedule_rate: number;
   truck_space: number;
   schedule_qty: number;
+  number_of_loads?: number;
+  load_qty?: number;
   unload_duration_minutes?: number;
   y_max: number;
   ordered: Array<{ time: string; time_display: string; rate: number; cumulative_qty?: number }>;
@@ -118,6 +120,8 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
           yMax={graphData?.pour_speed?.y_max || 50}
           scheduledQty={graphData?.pour_speed?.schedule_qty || scheduledQty}
           truckSpace={graphData?.pour_speed?.truck_space || truckSpace}
+          numberOfLoads={graphData?.pour_speed?.number_of_loads ?? graphData?.ordered_delivered_poured?.number_of_loads ?? 0}
+          loadQty={graphData?.pour_speed?.load_qty ?? graphData?.ordered_delivered_poured?.load_qty ?? 0}
           isDark={isDark}
           height={chartHeight}
           scrollable={scrollable}
@@ -155,6 +159,7 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
             scheduledLoads={scheduledLoads}
             isDark={isDark}
             height={chartHeight}
+            xAxisDomain={pourSpeedXAxisDomain}
           />
         )
       )}

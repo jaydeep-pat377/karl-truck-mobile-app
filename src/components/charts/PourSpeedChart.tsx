@@ -1,6 +1,6 @@
 
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -65,6 +65,10 @@ export interface PourSpeedChartProps {
 
   truckSpace?: number;
 
+  numberOfLoads?: number;
+
+  loadQty?: number;
+
   isDark: boolean;
 
   height?: number;
@@ -88,6 +92,8 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   yMax,
   scheduledQty,
   truckSpace = 0,
+  numberOfLoads = 0,
+  loadQty = 0,
   isDark,
   height = ms(180),
   horizontalPadding = 16,
@@ -97,6 +103,20 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   minPointSpacing = 120,
 }) => {
   const { t } = useTranslation();
+
+  useEffect(() => {
+    console.log('========== POUR SPEED CHART DATA ==========');
+    console.log('Spacing (truckSpace):', truckSpace, 'min');
+    console.log('Rate (scheduleRate):', scheduleRate, 'CY/HR');
+    console.log('Scheduled (scheduledQty):', scheduledQty, 'CY');
+    console.log('Loads (numberOfLoads):', numberOfLoads);
+    console.log('Load Size (loadQty):', loadQty, 'CY');
+    console.log('yMax:', yMax);
+    console.log('Ordered Data Count:', orderedData.length);
+    console.log('Delivered Data Count:', deliveredData.length);
+    console.log('Poured Data Count:', pouredData.length);
+    console.log('============================================');
+  }, [orderedData, deliveredData, pouredData, scheduleRate, scheduledQty, truckSpace, numberOfLoads, loadQty, yMax, truckReferenceTimes]);
 
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(
     new Set(['ordered', 'delivered', 'poured'])
@@ -159,7 +179,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   const themeColors = isDark ? colors.dark : colors.light;
   const containerWidth = SCREEN_WIDTH - horizontalPadding * 2;
   const yAxisWidth = 40;
-  const padding = { top: 16, right: 20, bottom: 50, left: 35 };
+  const padding = { top: 28, right: 32, bottom: 32, left: 35 };
   const chartHeight = height - padding.top - padding.bottom;
   const baseChartWidth = containerWidth - yAxisWidth;
 
@@ -180,8 +200,8 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     const dataMinTime = allTimes.length > 0 ? Math.min(...allTimes) : 480;
     const dataMaxTime = allTimes.length > 0 ? Math.max(...allTimes) : 540;
 
-    const minTime = Math.floor(dataMinTime / 15) * 15 - 15;
-    const maxTime = Math.ceil(dataMaxTime / 15) * 15 + 15;
+    const minTime = Math.floor(dataMinTime / 60) * 60;
+    const maxTime = (Math.floor(dataMaxTime / 60) + 1) * 60;
     const range = maxTime - minTime || 1;
 
     return { minTime, maxTime, range };
@@ -292,25 +312,28 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
   const formatMinutesToTime = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return `${hours}:${mins.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
 
   const xAxisLabels = useMemo(() => {
     const labels: { time: number; display: string; hasData: boolean }[] = [];
 
-
-
-    const labelWidth = 50;
+    const labelWidth = 44;
     const availableWidth = zoomedChartWidth - padding.left - padding.right;
     const maxLabels = Math.max(2, Math.floor(availableWidth / labelWidth));
-
-
     const totalMinutes = timeRange.maxTime - timeRange.minTime;
-    const rawInterval = Math.ceil(totalMinutes / maxLabels);
+    const minIntervalForFit = Math.ceil(totalMinutes / maxLabels);
 
+    const minStepForZoom = zoomLevel < 1.5 ? 60 : zoomLevel < 2.5 ? 30 : 15;
 
-    const timeInterval = Math.max(15, Math.ceil(rawInterval / 15) * 15);
-
+    const niceSteps = [15, 30, 60, 120, 180, 240];
+    let timeInterval = 60;
+    for (const step of niceSteps) {
+      if (step >= minStepForZoom && step >= minIntervalForFit) {
+        timeInterval = step;
+        break;
+      }
+    }
 
     const allDataTimes = [
       ...orderedData.map(d => parseTimeToMinutes(d.time_display)),
@@ -331,7 +354,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
     }
 
     return labels;
-  }, [timeRange, zoomedChartWidth, orderedData, deliveredData, pouredData]);
+  }, [timeRange, zoomedChartWidth, zoomLevel, orderedData, deliveredData, pouredData]);
 
   const renderMarker = (
     type: string,
@@ -359,6 +382,8 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
             cy={y}
             r={size}
             fill={color}
+            stroke={themeColors.card}
+            strokeWidth={1}
           />
         );
       case 'diamond':
@@ -367,7 +392,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
           <Path
             d={`M ${x} ${y - d} L ${x + d} ${y} L ${x} ${y + d} L ${x - d} ${y} Z`}
             fill={color}
-            stroke={color}
+            stroke={themeColors.card}
             strokeWidth={1}
           />
         );
@@ -377,16 +402,18 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
           <Path
             d={`M ${x - s} ${y - s} L ${x + s} ${y - s} L ${x + s} ${y + s} L ${x - s} ${y + s} Z`}
             fill={color}
-            stroke={color}
+            stroke={themeColors.card}
             strokeWidth={1}
           />
         );
       case 'filledSquare':
-        const fs = size - 1;
+        const fs = size;
         return (
           <Path
             d={`M ${x - fs} ${y - fs} L ${x + fs} ${y - fs} L ${x + fs} ${y + fs} L ${x - fs} ${y + fs} Z`}
             fill={color}
+            stroke={themeColors.card}
+            strokeWidth={1}
           />
         );
       case 'hollowSquare':
@@ -463,6 +490,24 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
               </View>
             </View>
           )}
+          {numberOfLoads > 0 && (
+            <View style={[styles.statCard, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black05, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
+              <Icon name="layers-outline" size={ms(14)} color={colors.info.main} />
+              <View style={styles.statTextContainer}>
+                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Loads</Text>
+                <Text style={[styles.statValue, { color: colors.info.main }]}>{numberOfLoads}</Text>
+              </View>
+            </View>
+          )}
+          {loadQty > 0 && (
+            <View style={[styles.statCard, { backgroundColor: isDark ? colors.semiTransparent.white08 : colors.semiTransparent.black05, borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
+              <Icon name="cube-outline" size={ms(14)} color={colors.info.main} />
+              <View style={styles.statTextContainer}>
+                <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>Load Size</Text>
+                <Text style={[styles.statValue, { color: colors.info.main }]}>{loadQty.toFixed(2)} CY</Text>
+              </View>
+            </View>
+          )}
         </View>
       </View>
 
@@ -472,7 +517,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
             <Svg width={yAxisWidth} height={height}>
               <SvgText
                 x={yAxisWidth - 5}
-                y={ms(10)}
+                y={ms(9)}
                 fontSize={ms(9)}
                 fill={themeColors.text.hint}
                 textAnchor="end"
@@ -531,6 +576,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                       d={`M ${padding.left} ${y} L ${zoomedChartWidth - padding.right} ${y}`}
                       stroke={isDark ? colors.grey[60] + '30' : colors.grey[15]}
                       strokeWidth={1}
+                      strokeDasharray="3 3"
                     />
                   );
                 })}
@@ -571,17 +617,23 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                   const x = getX(label.time);
                   if (x < padding.left - 10 || x > zoomedChartWidth - padding.right + 10) return null;
 
-                  const labelColor = label.hasData ? themeColors.text.hint : (isDark ? colors.grey[40] : colors.grey[70]);
+                  const edgeBuffer = ms(18);
+                  const labelAnchor: 'start' | 'middle' | 'end' =
+                    x <= padding.left + edgeBuffer
+                      ? 'start'
+                      : x >= zoomedChartWidth - padding.right - edgeBuffer
+                        ? 'end'
+                        : 'middle';
+
                   return (
                     <SvgText
                       key={`x-label-${i}`}
                       x={x}
-                      y={height - 28}
-                      fontSize={ms(11)}
-                      fill={labelColor}
-                      textAnchor="end"
+                      y={height - padding.bottom + ms(16)}
+                      fontSize={ms(10)}
+                      fill={themeColors.text.hint}
+                      textAnchor={labelAnchor}
                       fontFamily={fontFamily.medium}
-                      transform={`rotate(-45, ${x}, ${height - 28})`}
                     >
                       {label.display}
                     </SvgText>
@@ -593,7 +645,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                     key={`line-${s.key}`}
                     d={s.lineType === 'smooth' ? createSmoothPath(s.data) : createLinePath(s.data)}
                     stroke={s.color}
-                    strokeWidth={2}
+                    strokeWidth={3}
                     fill="transparent"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -760,21 +812,21 @@ const styles = StyleSheet.create({
   },
   headerStats: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     marginTop: ms(8),
     gap: ms(6),
   },
   statCard: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: ms(6),
+    paddingHorizontal: ms(8),
     paddingVertical: ms(4),
     borderRadius: ms(6),
     borderWidth: 1,
     gap: ms(6),
   },
   statTextContainer: {
-    flex: 1,
+    flexShrink: 1,
   },
   statLabel: {
     fontSize: ms(9),

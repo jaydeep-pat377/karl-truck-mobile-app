@@ -220,6 +220,16 @@ class NotificationService {
             '';
 
           await this.displayChatNotification(title, body, data as Record<string, string>);
+        } else if (remoteMessage.notification) {
+          const title = remoteMessage.notification.title || '';
+          const body = remoteMessage.notification.body || '';
+          if (title || body) {
+            await this.displayNotification(
+              title,
+              body,
+              data as Record<string, string>,
+            );
+          }
         }
       },
     );

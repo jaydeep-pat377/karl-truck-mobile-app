@@ -86,6 +86,7 @@ export interface TrucksOnJobChartProps {
   isDark: boolean;
   height?: number;
   horizontalPadding?: number;
+  xAxisDomain?: [number, number];
 }
 
 function parseTimeString(timeStr: string | null | undefined, referenceDate?: Date): Date | null {
@@ -304,6 +305,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
   isDark,
   height = ms(220),
   horizontalPadding = 16,
+  xAxisDomain,
 }) => {
   const { t } = useTranslation();
   const [tooltip, setTooltip] = useState<{
@@ -382,15 +384,15 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
 
   const themeColors = isDark ? colors.dark : colors.light;
   const containerWidth = SCREEN_WIDTH - horizontalPadding * 2;
-  const yAxisWidth = 25;
-  const chartPadding = { top: 15, right: 20, bottom: 65, left: 35 };
+  const yAxisWidth = 40;
+  const chartPadding = { top: 28, right: 32, bottom: 32, left: 35 };
   const chartAreaHeight = height - chartPadding.top - chartPadding.bottom;
   const baseChartWidth = containerWidth - yAxisWidth;
   const zoomedChartWidth = baseChartWidth * zoomLevel;
 
 
   const maxY = useMemo(() => {
-    if (!hasData) return 6;
+    if (!hasData) return 3;
 
     const showWaiting = selectedFilters.has('waiting');
     const showPouring = selectedFilters.has('pouring');
@@ -405,15 +407,14 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
       maxValue = Math.max(...chartData.map(d => d.pouring), 0);
     }
 
-
-    const roundedUp = Math.ceil(maxValue / 2) * 2 + 2;
-    return Math.max(roundedUp, 6);
+    return Math.max(Math.ceil(maxValue) + 1, 3);
   }, [chartData, hasData, selectedFilters]);
 
 
   const yAxisValues = useMemo(() => {
+    const step = maxY <= 5 ? 1 : maxY <= 10 ? 2 : Math.ceil(maxY / 5);
     const values: number[] = [];
-    for (let i = maxY; i >= 0; i -= 2) {
+    for (let i = maxY; i >= 0; i -= step) {
       values.push(i);
     }
     return values;
@@ -421,31 +422,47 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
 
 
   const xAxisConfig = useMemo(() => {
-    if (!hasData || chartData.length === 0) {
-      return { startMs: Date.now(), endMs: Date.now() + 3600000, tickInterval: 30 };
+    if ((!hasData || chartData.length === 0) && !xAxisDomain) {
+      return { startMs: Date.now(), endMs: Date.now() + 3600000, tickInterval: 60 };
     }
 
-    const firstTime = chartData[0].timestamp;
-    const lastTime = chartData[chartData.length - 1].timestamp;
+    let startMs: number;
+    let endMs: number;
 
-
-    const PADDING_MS = 30 * 60 * 1000;
-    const startMs = firstTime - PADDING_MS;
-    const endMs = lastTime + PADDING_MS;
-
-
-    const durationHours = (endMs - startMs) / (60 * 60 * 1000);
-    let tickInterval: number;
-    if (durationHours <= 4) {
-      tickInterval = 15;
-    } else if (durationHours <= 8) {
-      tickInterval = 30;
+    if (xAxisDomain) {
+      startMs = xAxisDomain[0];
+      endMs = xAxisDomain[1];
     } else {
-      tickInterval = 60;
+      const firstTime = chartData[0].timestamp;
+      const lastTime = chartData[chartData.length - 1].timestamp;
+
+      const startDate = new Date(firstTime);
+      startDate.setUTCMinutes(0, 0, 0);
+      startMs = startDate.getTime();
+
+      const endDate = new Date(lastTime);
+      endDate.setUTCMinutes(0, 0, 0);
+      endDate.setUTCHours(endDate.getUTCHours() + 1);
+      endMs = endDate.getTime();
+    }
+
+    const labelWidth = 40;
+    const availableWidth = baseChartWidth * zoomLevel - chartPadding.left - chartPadding.right;
+    const maxLabels = Math.max(2, Math.floor(availableWidth / labelWidth));
+    const totalMinutes = (endMs - startMs) / (60 * 1000);
+    const minIntervalForFit = Math.ceil(totalMinutes / maxLabels);
+
+    const niceSteps = [15, 30, 60, 120, 180, 240];
+    let tickInterval = 60;
+    for (const step of niceSteps) {
+      if (step >= minIntervalForFit) {
+        tickInterval = step;
+        break;
+      }
     }
 
     return { startMs, endMs, tickInterval };
-  }, [chartData, hasData]);
+  }, [chartData, hasData, zoomLevel, baseChartWidth, chartPadding.left, chartPadding.right, xAxisDomain]);
 
 
   const getX = (timestamp: number): number => {
@@ -468,9 +485,9 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
 
   const formatTime = (timestamp: number): string => {
     const date = new Date(timestamp);
-    const hours = date.getHours();
-    const mins = date.getMinutes();
-    return `${hours}:${mins.toString().padStart(2, '0')}`;
+    const hours = date.getUTCHours().toString().padStart(2, '0');
+    const mins = date.getUTCMinutes().toString().padStart(2, '0');
+    return `${hours}:${mins}`;
   };
 
 
@@ -661,6 +678,7 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
                         y2={y}
                         stroke={isDark ? colors.trucksChart.gridDark : COLORS.grid}
                         strokeWidth={1}
+                        strokeDasharray="3 3"
                       />
                     );
                   })}
@@ -709,16 +727,25 @@ export const TrucksOnJobChart: React.FC<TrucksOnJobChartProps> = ({
 
                   {xAxisLabels.map((label, idx) => {
                     const x = getXFromPosition(label.position);
+                    if (x < chartPadding.left - 10 || x > zoomedChartWidth - chartPadding.right + 10) return null;
+
+                    const edgeBuffer = ms(18);
+                    const labelAnchor: 'start' | 'middle' | 'end' =
+                      x <= chartPadding.left + edgeBuffer
+                        ? 'start'
+                        : x >= zoomedChartWidth - chartPadding.right - edgeBuffer
+                          ? 'end'
+                          : 'middle';
+
                     return (
                       <SvgText
                         key={`x-${idx}-${label.display}`}
                         x={x}
-                        y={height - 38}
+                        y={height - chartPadding.bottom + ms(16)}
                         fontSize={ms(10)}
                         fill={themeColors.text.hint}
-                        textAnchor="end"
+                        textAnchor={labelAnchor}
                         fontFamily={fontFamily.medium}
-                        transform={`rotate(-45, ${x}, ${height - 38})`}
                       >
                         {label.display}
                       </SvgText>
