@@ -118,14 +118,22 @@ export const AddressMapScreen: React.FC = () => {
                 animationMode="flyTo"
                 animationDuration={1000}
               />
-              <Mapbox.PointAnnotation id="address-pin" coordinate={coordinates}>
-                <View style={styles.pinContainer}>
-                  <View style={styles.pin}>
-                    <Icon name="map-marker" size={ms(24)} color={colors.common.white} />
+              <Mapbox.MarkerView coordinate={coordinates} anchor={{ x: 0.5, y: 1 }} allowOverlap={true}>
+                <View style={styles.markerWrap}>
+                  <View style={styles.markerLabelContainer}>
+                    <View style={styles.markerLabel}>
+                      <Icon name="map-marker" size={ms(12)} color={colors.common.white} style={{ marginRight: ms(4) }} />
+                      <Text style={styles.markerLabelText} numberOfLines={1}>
+                        Job Site
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.pinShadow} />
+                  <View style={styles.jobMarker}>
+                    <Icon name="map-marker" size={ms(37)} color={colors.common.white} />
+                  </View>
+                  <View style={styles.jobArrow} />
                 </View>
-              </Mapbox.PointAnnotation>
+              </Mapbox.MarkerView>
             </Mapbox.MapView>
 
             {/* Map controls */}
@@ -206,28 +214,57 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  pinContainer: {
+  markerWrap: {
     alignItems: 'center',
   },
-  pin: {
-    width: ms(40),
-    height: ms(40),
-    borderRadius: ms(20),
-    backgroundColor: colors.primary.main,
+  markerLabelContainer: {
+    marginBottom: ms(4),
+  },
+  markerLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.mapMarker.jobSite,
+    paddingHorizontal: ms(8),
+    paddingVertical: ms(4),
+    borderRadius: ms(6),
+    maxWidth: ms(180),
+    shadowColor: colors.common.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  markerLabelText: {
+    fontSize: ms(11),
+    fontFamily: fontFamily.semiBold,
+    color: colors.common.white,
+    textAlign: 'center',
+  },
+  jobMarker: {
+    width: ms(55),
+    height: ms(55),
+    borderRadius: ms(28),
+    backgroundColor: colors.mapMarker.jobSite,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    borderWidth: 3,
+    borderColor: colors.common.white,
+    shadowColor: colors.common.black,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
   },
-  pinShadow: {
-    width: ms(12),
-    height: ms(6),
-    borderRadius: ms(6),
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    marginTop: ms(2),
+  jobArrow: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 7,
+    borderRightWidth: 7,
+    borderTopWidth: 9,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: colors.mapMarker.jobSite,
+    marginTop: -3,
   },
   controlsContainer: {
     position: 'absolute',

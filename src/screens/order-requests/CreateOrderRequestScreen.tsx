@@ -226,7 +226,7 @@ const SearchableDropdownModal: React.FC<SearchableDropdownModalProps> = ({
           {/* List */}
           <FlatList
             data={filtered}
-            keyExtractor={(item) => item.value}
+            keyExtractor={(item, index) => `${item.value}_${index}`}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => {
               const isSelected = multiSelect
