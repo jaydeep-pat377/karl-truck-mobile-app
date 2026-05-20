@@ -106,7 +106,9 @@ const formatTime = (timeStr: string): string => {
     // trailing TZ abbreviation so the chip is hidden everywhere except the
     // dashboard subtitle.
     if (/AM|PM/i.test(timeStr)) {
-      return timeStr.replace(/\s+[A-Z]{2,5}$/, '');
+      // Strip trailing TZ abbreviation (e.g. "03:37 PM PDT" → "03:37 PM")
+      // but keep AM/PM itself
+      return timeStr.replace(/\s+(?!AM|PM)[A-Z]{2,5}$/i, '');
     }
     // Handle "HH:mm" or "HH:mm:ss" 24-hour format
     const parts = timeStr.split(':');
@@ -121,18 +123,14 @@ const formatTime = (timeStr: string): string => {
   }
 };
 
-const formatDate = (dateStr: string, ianaCode?: string): string => {
+const formatDate = (dateStr: string): string => {
   if (!dateStr) return '';
   try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: ianaCode || 'America/Chicago',
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric',
-    });
-    return formatter.format(d);
+    // dateStr is "YYYY-MM-DD" — parse parts directly to avoid UTC timezone shift
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [year, month, day] = parts;
+    return `${month}/${day}/${year}`;
   } catch {
     return dateStr;
   }
@@ -514,7 +512,7 @@ export const OrderRequestListScreen: React.FC = () => {
                   }}
                   numberOfLines={1}
                 >
-                  {formatDate(item.on_job_date, timezone.iana_code)}
+                  {formatDate(item.on_job_date)}
                   {item.on_job_time ? `, ${formatTime(item.on_job_time)}` : ''}
                 </Text>
               </View>
