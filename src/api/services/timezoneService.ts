@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import { API_ENDPOINTS } from '../endpoints';
 import { TimezoneInfo } from '../../utils/timezone';
 
 interface TimezoneResponse {
@@ -16,7 +17,7 @@ export const timezoneService = {
    * Fetch available timezones from the backend (DB).
    */
   async getTimezones(): Promise<TimezoneInfo[]> {
-    const response = await apiClient.get<TimezoneResponse>('/timezones');
+    const response = await apiClient.get<TimezoneResponse>(API_ENDPOINTS.TIMEZONES.LIST);
     return response?.data || [];
   },
 
@@ -26,7 +27,7 @@ export const timezoneService = {
    */
   async getSavedTimezoneId(): Promise<number | null> {
     try {
-      const response = await apiClient.get<PreferenceResponse>('/user-preferences/timezone');
+      const response = await apiClient.get<PreferenceResponse>(`${API_ENDPOINTS.USER_PREFERENCES.GET}/timezone`);
       return response?.data ?? null;
     } catch {
       return null;
@@ -38,6 +39,6 @@ export const timezoneService = {
    * Stores the timezone ID in user_preferences table.
    */
   async saveTimezonePreference(timezoneId: number): Promise<void> {
-    await apiClient.put('/user-preferences/timezone', { value: timezoneId });
+    await apiClient.put(`${API_ENDPOINTS.USER_PREFERENCES.SET}/timezone`, { value: timezoneId });
   },
 };

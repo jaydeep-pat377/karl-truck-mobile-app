@@ -1,4 +1,5 @@
 import { axiosInstance } from '../axiosInstance';
+import { API_ENDPOINTS } from '../endpoints';
 import type {
   TKQRData,
   TKTicketData,
@@ -114,7 +115,7 @@ async function tryVerifyEndpoint(
 ): Promise<VerifyResult> {
   try {
     const response = await axiosInstance.post<QrVerifyResponse>(
-      '/qr/verify',
+      API_ENDPOINTS.QR.VERIFY,
       { payload: rawPayload },
       { _silentError: true } as any,
     );
@@ -209,7 +210,7 @@ async function tryDecryptEndpoint(
 ): Promise<VerifyResult | null> {
   try {
     const response = await axiosInstance.post<QrDecryptResponse>(
-      '/qr/decrypt',
+      API_ENDPOINTS.QR.DECRYPT,
       { payload: rawPayload },
       { _silentError: true } as any,
     );
@@ -341,7 +342,7 @@ export async function encryptQRPayload(
 ): Promise<string | null> {
   try {
     const response = await axiosInstance.post<QrEncryptResponse>(
-      '/qr/encrypt',
+      API_ENDPOINTS.QR.ENCRYPT,
       params,
       { _silentError: true } as any,
     );
@@ -371,7 +372,7 @@ export async function fetchScanHistory(
   page: number = 1,
   limit: number = 20,
 ): Promise<{ records: ScanRecord[]; pagination: Pagination }> {
-  const response = await axiosInstance.get<ScanHistoryResponse>('/scan-history', {
+  const response = await axiosInstance.get<ScanHistoryResponse>(API_ENDPOINTS.SCAN_HISTORY.LIST, {
     params: { page, limit },
     _silentError: true,
   } as any);
@@ -379,20 +380,20 @@ export async function fetchScanHistory(
 }
 
 export async function saveScanRemote(record: ScanRecord): Promise<ScanRecord> {
-  const response = await axiosInstance.post<SaveScanResponse>('/scan-history', record, {
+  const response = await axiosInstance.post<SaveScanResponse>(API_ENDPOINTS.SCAN_HISTORY.SAVE, record, {
     _silentError: true,
   } as any);
   return response.data.data;
 }
 
 export async function deleteScanRemote(id: string): Promise<void> {
-  await axiosInstance.delete(`/scan-history/${id}`, {
+  await axiosInstance.delete(`${API_ENDPOINTS.SCAN_HISTORY.DELETE}/${id}`, {
     _silentError: true,
   } as any);
 }
 
 export async function clearScanHistoryRemote(): Promise<void> {
-  await axiosInstance.delete('/scan-history', {
+  await axiosInstance.delete(API_ENDPOINTS.SCAN_HISTORY.CLEAR, {
     _silentError: true,
   } as any);
 }
