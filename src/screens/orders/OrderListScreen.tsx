@@ -1714,6 +1714,34 @@ export const OrderListScreen: React.FC = () => {
         <Text variant="h2">{isFavouriteFilter ? t('orderList.savedOrders') : t('orders.title')}</Text>
 
         <View style={styles.headerActions}>
+          {__DEV__ && (
+            <>
+              <TouchableOpacity
+                style={styles.headerIcon}
+                onPress={() => navigation.navigate('OrdersRedesign' as never)}
+                activeOpacity={0.7}>
+                <Icon name="flask-outline" size={iconSizes.lg} color={themeColors.text.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerIcon}
+                onPress={() => navigation.navigate('OrdersRedesignC' as never)}
+                activeOpacity={0.7}>
+                <Icon name="view-list-outline" size={iconSizes.lg} color={themeColors.text.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerIcon}
+                onPress={() => navigation.navigate('OrdersRedesignD' as never)}
+                activeOpacity={0.7}>
+                <Icon name="timeline-clock-outline" size={iconSizes.lg} color={themeColors.text.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerIcon}
+                onPress={() => navigation.navigate('OrdersRedesignE' as never)}
+                activeOpacity={0.7}>
+                <Icon name="card-account-details-outline" size={iconSizes.lg} color={themeColors.text.primary} />
+              </TouchableOpacity>
+            </>
+          )}
           {!isLoading && (
             <TouchableOpacity
               style={styles.headerIcon}

@@ -69,6 +69,10 @@ export type OrdersStackParamList = {
     sourceTab?: 'Orders' | 'Today' | 'Home';
     initialSection?: 'details' | 'performance';
   };
+  OrdersRedesign: undefined;
+  OrdersRedesignC: undefined;
+  OrdersRedesignD: undefined;
+  OrdersRedesignE: undefined;
 };
 
 export type SettingsStackParamList = {
