@@ -71,6 +71,11 @@ export const API_ENDPOINTS = {
     UNREAD_COUNTS: '/chat/unread-counts',
     MARK_READ: '/chat/mark-read',
   },
+  QR: {
+    VERIFY: '/qr/verify',
+    ENCRYPT: '/qr/encrypt',
+    DECRYPT: '/qr/decrypt',
+  },
   SHORT_URLS: {
     RESOLVE: '/short-urls/resolve',
   },
