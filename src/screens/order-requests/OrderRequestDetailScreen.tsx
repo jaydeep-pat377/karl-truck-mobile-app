@@ -131,19 +131,37 @@ const formatDateLocal = (dateStr: string | null | undefined): string => {
   return formatDate(dateStr);
 };
 
-// Format a clock-time string like "14:30:00" → "02:30 PM" (12hr, no TZ chip).
-// Clock-only strings can't be timezone-converted reliably (no anchor date),
-// so we just normalise the 12hr format here.
+// Parse a time string into 24-hour { hours, minutes }.
+// Handles both "14:30" / "14:30:00" (24hr) and "06:40 PM" (12hr with AM/PM).
+const parseTimeParts = (timeStr: string): { hours: number; minutes: number } | null => {
+  // 12-hour with AM/PM: "06:40 PM", "6:40 AM"
+  const ampm = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (ampm) {
+    let h = parseInt(ampm[1], 10);
+    const m = parseInt(ampm[2], 10);
+    const isPM = ampm[3].toUpperCase() === 'PM';
+    if (isPM && h !== 12) h += 12;
+    if (!isPM && h === 12) h = 0;
+    return { hours: h, minutes: m };
+  }
+  // 24-hour: "14:30" or "14:30:00"
+  const h24 = timeStr.match(/^(\d{1,2}):(\d{2})/);
+  if (h24) {
+    return { hours: parseInt(h24[1], 10), minutes: parseInt(h24[2], 10) };
+  }
+  return null;
+};
+
+// Format a clock-time string to "HH:MM AM/PM" display format.
+// Handles both "14:30:00" (24hr) and "06:40 PM" (12hr with AM/PM).
 const formatTime = (timeStr: string | null | undefined): string => {
   if (!timeStr) return '-';
   try {
-    if (/^\d{2}:\d{2}/.test(timeStr)) {
-      const [h, m] = timeStr.split(':').map(Number);
-      const period = h >= 12 ? 'PM' : 'AM';
-      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-      return `${h12}:${String(m).padStart(2, '0')} ${period}`;
-    }
-    return timeStr;
+    const p = parseTimeParts(timeStr);
+    if (!p) return timeStr;
+    const period = p.hours >= 12 ? 'PM' : 'AM';
+    const h12 = p.hours === 0 ? 12 : p.hours > 12 ? p.hours - 12 : p.hours;
+    return `${h12}:${String(p.minutes).padStart(2, '0')} ${period}`;
   } catch {
     return timeStr;
   }
@@ -154,6 +172,10 @@ const formatTime = (timeStr: string | null | undefined): string => {
 const formatDateTime = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '-';
   try {
+    // If already pre-formatted by the API (e.g. "04/10/2026, 08:08 AM"), use as-is
+    if (/^\d{1,2}\/\d{1,2}\/\d{4},?\s+\d{1,2}:\d{2}\s*(AM|PM)$/i.test(dateStr)) {
+      return dateStr.replace(',', '');
+    }
     const d = new Date(dateStr);
     const p = getPartsInTimezone(d);
     return `${p.month}/${p.day}/${p.year} ${p.hours}:${p.minutes} ${p.period}`;
@@ -168,7 +190,8 @@ const formatDateSeparator = (
   dateStr: string,
   t: (key: string) => string,
 ): string => {
-  const d = new Date(dateStr);
+  const d = parseFlexibleDate(dateStr);
+  if (!d) return dateStr;
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today.getTime() - 86400000);
@@ -179,8 +202,9 @@ const formatDateSeparator = (
 };
 
 const isDifferentDay = (a: string, b: string): boolean => {
-  const d1 = new Date(a);
-  const d2 = new Date(b);
+  const d1 = parseFlexibleDate(a);
+  const d2 = parseFlexibleDate(b);
+  if (!d1 || !d2) return false;
   return (
     d1.getFullYear() !== d2.getFullYear() ||
     d1.getMonth() !== d2.getMonth() ||
@@ -444,19 +468,36 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
 };
 
-// Format time from a full ISO timestamp — matches web's formatTimeOnly logic
-// Extracts time directly from the ISO string (e.g. "2026-04-03T06:44:00+00:00" → "06:44")
+// Parse a date string that may be ISO ("2026-04-03T06:44:00+00:00") or
+// pre-formatted from the API ("05/07/2026, 04:31 AM").
+const parseFlexibleDate = (dateStr: string): Date | null => {
+  // Try ISO first
+  if (dateStr.includes('T')) {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d;
+  }
+  // Try pre-formatted: "MM/DD/YYYY, HH:MM AM/PM"
+  const m = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4}),?\s+(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (m) {
+    let hours = parseInt(m[4], 10);
+    const minutes = parseInt(m[5], 10);
+    const isPM = m[6].toUpperCase() === 'PM';
+    if (isPM && hours !== 12) hours += 12;
+    if (!isPM && hours === 12) hours = 0;
+    return new Date(parseInt(m[3], 10), parseInt(m[1], 10) - 1, parseInt(m[2], 10), hours, minutes);
+  }
+  // Fallback
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+};
+
+// Format time from a date string — handles both ISO and pre-formatted API dates.
 const formatMessageTime = (dateStr: string): string => {
   try {
-    let timePart = dateStr;
-    if (dateStr.includes('T')) {
-      timePart = dateStr.split('T')[1]?.split('+')[0]?.split('Z')[0]?.split('-')[0] || '';
-    }
-    if (!timePart || !timePart.includes(':')) return '';
-    const [hoursStr, minutesStr] = timePart.split(':');
-    const hours = parseInt(hoursStr, 10);
-    const minutes = parseInt(minutesStr, 10);
-    if (isNaN(hours) || isNaN(minutes)) return '';
+    const d = parseFlexibleDate(dateStr);
+    if (!d) return '';
+    const hours = d.getHours();
+    const minutes = d.getMinutes();
     const h = hours % 12 || 12;
     const ampm = hours >= 12 ? 'PM' : 'AM';
     return `${String(h).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${ampm}`;
@@ -1313,7 +1354,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                         variant="bodySmall"
                         style={{ color: verificationTime ? textColor : (isDark ? colors.dark.text.hint : colors.light.text.hint) }}
                       >
-                        {verificationTime ? (() => { const [h, m] = verificationTime.split(':').map(Number); const period = h >= 12 ? 'PM' : 'AM'; const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h; return `${h12}:${String(m).padStart(2, '0')} ${period}`; })() : t('orderRequest.selectTime')}
+                        {verificationTime ? formatTime(verificationTime) : t('orderRequest.selectTime')}
                       </Text>
                       <Icon name="clock-outline" size={ms(16)} color={secondaryTextColor} />
                     </TouchableOpacity>
@@ -1321,7 +1362,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                       <DateTimePicker
                         value={
                           verificationTime
-                            ? (() => { const [h, m] = verificationTime.split(':').map(Number); const d = new Date(); d.setHours(h, m); return d; })()
+                            ? (() => { const p = parseTimeParts(verificationTime); const d = new Date(); if (p) d.setHours(p.hours, p.minutes); return d; })()
                             : new Date()
                         }
                         mode="time"
@@ -1712,7 +1753,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
                 <DateTimePicker
                   value={
                     verificationTime
-                      ? (() => { const [h, m] = verificationTime.split(':').map(Number); const d = new Date(); d.setHours(h, m); return d; })()
+                      ? (() => { const p = parseTimeParts(verificationTime); const d = new Date(); if (p) d.setHours(p.hours, p.minutes); return d; })()
                       : tempVerifyTime
                   }
                   mode="time"
