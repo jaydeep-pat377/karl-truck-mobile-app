@@ -1078,10 +1078,16 @@ export const OrderRequestDetailScreen: React.FC = () => {
     // DB CHECK: sender_role IN ('concrete_producer', 'contractor', 'admin')
     const senderRole = getSenderRole(user);
     try {
+      const senderName = user?.fullName
+        || user?.metadata?.full_name
+        || `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
+        || user?.email?.split('@')[0]
+        || undefined;
       await sendMessageMutation.mutateAsync({
         id: order.id,
         messageText: messageText.trim(),
         senderRole,
+        senderName,
       });
       setMessageText('');
     } catch (err: any) {

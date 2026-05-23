@@ -82,14 +82,16 @@ export const orderRequestService = {
   sendMessage: async (
     id: string,
     messageText: string,
-    senderRole: string
+    senderRole: string,
+    senderName?: string
   ): Promise<OrderRequestSendMessageApiResponse> => {
     return apiClient.post<
       OrderRequestSendMessageApiResponse,
-      { message_text: string; sender_role: string }
+      { message_text: string; sender_role: string; sender_name?: string }
     >(`${API_ENDPOINTS.ORDER_REQUESTS.MESSAGES}/${id}/messages`, {
       message_text: messageText,
       sender_role: senderRole,
+      ...(senderName ? { sender_name: senderName } : {}),
     });
   },
 

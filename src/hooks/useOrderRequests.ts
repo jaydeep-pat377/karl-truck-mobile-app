@@ -171,11 +171,13 @@ export const useSendOrderRequestMessage = () => {
       id,
       messageText,
       senderRole,
+      senderName,
     }: {
       id: string;
       messageText: string;
       senderRole: string;
-    }) => orderRequestService.sendMessage(id, messageText, senderRole),
+      senderName?: string;
+    }) => orderRequestService.sendMessage(id, messageText, senderRole, senderName),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['orderRequestMessages', variables.id],
