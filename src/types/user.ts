@@ -126,6 +126,12 @@ export interface ExchangeCodeRequest {
   device_info: DeviceInfo;
 }
 
+export interface EncryptedSupabaseConfig {
+  SUPABASE_URL: string | null;
+  SUPABASE_ANON_KEY: string | null;
+  SUPABASE_SERVICE_ROLE_KEY: string | null;
+}
+
 export interface LoginResponseData {
   user: User;
   timezone?: {
@@ -144,6 +150,7 @@ export interface LoginResponseData {
     utc_offset: string;
     dst_offset: string | null;
   } | null;
+  supabase_config?: EncryptedSupabaseConfig;
   accessToken: string;
   refreshToken: string;
 }
@@ -174,6 +181,7 @@ export interface TenantListItem {
 export interface SwitchTenantResponseData {
   code: string;
   client_secret: string;
+  supabase_config?: EncryptedSupabaseConfig;
   tenant: {
     id: number;
     name: string;

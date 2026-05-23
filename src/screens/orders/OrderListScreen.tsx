@@ -229,6 +229,58 @@ const getApiDateFilter = (filter: DateFilterId, selectedDate: Date): OrdersQuery
   }
 };
 
+interface OrderRowProps {
+  item: Order;
+  progressBarColors: Record<string, string> | null | undefined;
+  isChatLoading: boolean;
+  isFavorite: boolean;
+  showOrderRequestButton: boolean;
+  chatUnreadCount: number;
+  onOrderPress: (order: Order) => void;
+  onOrderDetails: (order: Order) => void;
+  onTicket: (order: Order) => void;
+  onWeatherPress: (order: Order) => void;
+  onMap: (order: Order) => void;
+  onChat: (order: Order) => void;
+  onOrderRequest?: (order: Order) => void;
+  onFavoritePress: (orderId: string) => void;
+}
+
+const OrderRow = React.memo<OrderRowProps>(({
+  item,
+  progressBarColors,
+  isChatLoading,
+  isFavorite,
+  showOrderRequestButton,
+  chatUnreadCount,
+  onOrderPress,
+  onOrderDetails,
+  onTicket,
+  onWeatherPress,
+  onMap,
+  onChat,
+  onOrderRequest,
+  onFavoritePress,
+}) => (
+  <OrderCard
+    order={item}
+    showDetails={true}
+    progressBarColors={progressBarColors}
+    onPress={() => onOrderPress(item)}
+    onOrderDetails={() => onOrderDetails(item)}
+    onTicket={() => onTicket(item)}
+    onWeatherPress={() => onWeatherPress(item)}
+    onMap={() => onMap(item)}
+    onChat={() => onChat(item)}
+    onOrderRequest={onOrderRequest ? () => onOrderRequest(item) : undefined}
+    onFavoritePress={() => onFavoritePress(item.id)}
+    isChatLoading={isChatLoading}
+    isFavorite={isFavorite}
+    showOrderRequestButton={showOrderRequestButton}
+    chatUnreadCount={chatUnreadCount}
+  />
+));
+
 const OrderCardSkeleton: React.FC<{ isDark: boolean }> = ({ isDark }) => {
   const shimmerColor = isDark ? colors.dark.cardElevated : colors.grey[5];
 
@@ -1640,27 +1692,28 @@ export const OrderListScreen: React.FC = () => {
     }
   }, [getOrCreateRoom, markRoomAsRead, navigation, showAlert, t]);
 
+  const orderRequestHandler = canOrderRequest ? handleOrderRequest : undefined;
+
   const renderOrderCard = useCallback(
     ({ item }: { item: Order }) => (
-      <OrderCard
-        order={item}
-        showDetails={true}
+      <OrderRow
+        item={item}
         progressBarColors={progressBarColors}
-        onPress={() => handleOrderPress(item)}
-        onOrderDetails={() => handleOrderDetails(item)}
-        onTicket={() => handleTicket(item)}
-        onWeatherPress={() => handleWeatherPress(item)}
-        onMap={() => handleMap(item)}
-        onChat={() => handleChat(item)}
-        onOrderRequest={canOrderRequest ? () => handleOrderRequest(item) : undefined}
-        onFavoritePress={() => handleToggleFavorite(item.id)}
         isChatLoading={chatLoadingOrderId === item.id}
-        isFavorite={item.isFavorite}
+        isFavorite={item.isFavorite ?? false}
         showOrderRequestButton={canOrderRequest}
         chatUnreadCount={mergedUnreadCounts[item.id] || 0}
+        onOrderPress={handleOrderPress}
+        onOrderDetails={handleOrderDetails}
+        onTicket={handleTicket}
+        onWeatherPress={handleWeatherPress}
+        onMap={handleMap}
+        onChat={handleChat}
+        onOrderRequest={orderRequestHandler}
+        onFavoritePress={handleToggleFavorite}
       />
     ),
-    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleMap, handleChat, handleOrderRequest, handleToggleFavorite, chatLoadingOrderId, progressBarColors, canOrderRequest, mergedUnreadCounts]
+    [handleOrderPress, handleOrderDetails, handleTicket, handleWeatherPress, handleMap, handleChat, orderRequestHandler, handleToggleFavorite, chatLoadingOrderId, progressBarColors, canOrderRequest, mergedUnreadCounts]
   );
 
   const ItemSeparator = useCallback(() => <View style={styles.separator} />, []);
@@ -1998,16 +2051,12 @@ export const OrderListScreen: React.FC = () => {
             ItemSeparatorComponent={ItemSeparator}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.3}
-            initialNumToRender={5}
-            maxToRenderPerBatch={3}
-            windowSize={3}
-            removeClippedSubviews={true}
-            updateCellsBatchingPeriod={100}
-            getItemLayout={(_, index) => ({
-              length: 180,
-              offset: 180 * index,
-              index,
-            })}
+            initialNumToRender={15}
+            maxToRenderPerBatch={20}
+            windowSize={21}
+            removeClippedSubviews={false}
+            updateCellsBatchingPeriod={30}
+            disableVirtualization={false}
           refreshControl={
             <RefreshControl
               refreshing={isManualRefreshing}

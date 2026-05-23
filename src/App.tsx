@@ -12,7 +12,7 @@ import { useAuthStore } from './store/authStore';
 
 import { SplashScreen } from './components/common';
 
-import { initializeSupabaseAuth } from './services/supabase/supabaseClient';
+import { initializeSupabaseAuth, restoreTenantSupabaseFromStorage } from './services/supabase/supabaseClient';
 
 import { i18nReady } from './locales';
 
@@ -203,11 +203,16 @@ const App: React.FC = () => {
 
   useEffect(() => {
     i18nReady.then(() => setIsI18nReady(true));
-    initializeSupabaseAuth().then((session) => {
+    // Restore tenant Supabase credentials (if a session is cached) BEFORE
+    // initializing auth, so the anon user-id store and any early consumers
+    // hit the correct tenant project.
+    (async () => {
+      await restoreTenantSupabaseFromStorage();
+      const session = await initializeSupabaseAuth();
       if (session) {
         console.log('@@@@@@ Supabase auth initialized successfully');
       }
-    });
+    })();
   }, []);
 
   const onNavigationReady = useCallback(() => {

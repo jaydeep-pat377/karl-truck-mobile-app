@@ -8,6 +8,7 @@ import { setWidgetLoggedIn, reloadWidget } from '../native/WidgetModule';
 import { normaliseUserRole } from '../utils/permissions';
 import { setDynamicBaseUrl, resetBaseUrl } from '../api/axiosInstance';
 import { useWorkspaceStore } from './workspaceStore';
+import { tearDownSupabase } from '../services/supabase/supabaseClient';
 
 interface AuthState {
   user: User | null;
@@ -80,6 +81,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   logout: async () => {
     try {
+      // Disconnect tenant Supabase realtime + reset client to .env defaults
+      // BEFORE wiping storage, so any in-flight subscribers see a clean teardown.
+      tearDownSupabase();
+
       await AsyncStorage.multiRemove([
         STORAGE_KEYS.ACCESS_TOKEN,
         STORAGE_KEYS.REFRESH_TOKEN,
@@ -87,7 +92,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         STORAGE_KEYS.APP_PERMISSIONS,
         STORAGE_KEYS.BACKEND_URL,
         STORAGE_KEYS.CURRENT_TENANT,
+        STORAGE_KEYS.SUPABASE_URL,
+        STORAGE_KEYS.SUPABASE_ANON_KEY,
+        STORAGE_KEYS.SUPABASE_SERVICE_ROLE_KEY,
       ]);
+
+      // Verification log: after removal, all 3 should read back as null.
+      const afterClear = await AsyncStorage.multiGet([
+        STORAGE_KEYS.SUPABASE_URL,
+        STORAGE_KEYS.SUPABASE_ANON_KEY,
+        STORAGE_KEYS.SUPABASE_SERVICE_ROLE_KEY,
+      ]);
+      console.log('[authStore.logout] AsyncStorage after Supabase cred removal:');
+      afterClear.forEach(([k, v]) => console.log(`  ${k} = ${v}`));
 
       resetBaseUrl();
 

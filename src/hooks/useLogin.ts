@@ -9,6 +9,9 @@ import { setDynamicBaseUrl, normalizeBackendUrl } from '../api/axiosInstance';
 import { STORAGE_KEYS } from '../utils/storage';
 import { DeviceInfo, LoginRequest, LoginResponse } from '../types/user';
 import { AxiosError } from 'axios';
+import { decryptValue } from '../utils/encryption';
+import { initializeTenantSupabase } from '../services/supabase/supabaseClient';
+import { FORCE_BACKEND_URL } from '@env';
 
 interface LoginParams {
   email: string;
@@ -45,7 +48,14 @@ export const useLogin = () => {
         throw new Error(federatedResponse.message || 'Federated login failed');
       }
 
-      const backendUrl = `${normalizeBackendUrl(federatedResponse.data.tenant.backend_url)}/api`;
+      const federatedBackendUrl = federatedResponse.data.tenant.backend_url;
+      const effectiveBackendUrl = FORCE_BACKEND_URL && FORCE_BACKEND_URL.trim().length > 0
+        ? FORCE_BACKEND_URL
+        : federatedBackendUrl;
+      if (FORCE_BACKEND_URL && FORCE_BACKEND_URL.trim().length > 0) {
+        console.log(`[useLogin] FORCE_BACKEND_URL override active: ${FORCE_BACKEND_URL} (federated returned: ${federatedBackendUrl})`);
+      }
+      const backendUrl = `${normalizeBackendUrl(effectiveBackendUrl)}/api`;
       await AsyncStorage.setItem(STORAGE_KEYS.BACKEND_URL, backendUrl);
       setDynamicBaseUrl(backendUrl);
 
@@ -70,6 +80,46 @@ export const useLogin = () => {
           await useTimezoneStore.getState().setTimezoneFromApi(
             response.data.timezone,
             response.data.company_timezone,
+          );
+        }
+
+        // Pull tenant Supabase credentials per spec:
+        //   URL          → response.data.user.metadata.tenant.tenant_supabase_url (plaintext as-is)
+        //   ANON_KEY     → response.data.supabase_config.SUPABASE_ANON_KEY (encrypted → decrypt)
+        //   SERVICE_KEY  → response.data.supabase_config.SUPABASE_SERVICE_ROLE_KEY (encrypted → decrypt)
+        // Store all 3 (plaintext) in AsyncStorage; clear on logout.
+        const tenantUrl =
+          response.data.user?.metadata?.tenant?.tenant_supabase_url || null;
+        const anonKey = decryptValue(
+          response.data.supabase_config?.SUPABASE_ANON_KEY,
+        );
+        const serviceKey = decryptValue(
+          response.data.supabase_config?.SUPABASE_SERVICE_ROLE_KEY,
+        );
+
+        if (tenantUrl && anonKey) {
+          await AsyncStorage.multiSet([
+            [STORAGE_KEYS.SUPABASE_URL, tenantUrl],
+            [STORAGE_KEYS.SUPABASE_ANON_KEY, anonKey],
+            [STORAGE_KEYS.SUPABASE_SERVICE_ROLE_KEY, serviceKey || ''],
+          ]);
+
+          // Verification log: show what landed in AsyncStorage after the write.
+          const stored = await AsyncStorage.multiGet([
+            STORAGE_KEYS.SUPABASE_URL,
+            STORAGE_KEYS.SUPABASE_ANON_KEY,
+            STORAGE_KEYS.SUPABASE_SERVICE_ROLE_KEY,
+          ]);
+          console.log('[useLogin] AsyncStorage stored Supabase creds:');
+          stored.forEach(([k, v]) =>
+            console.log(`  ${k} = ${v ? v.slice(0, 60) + (v.length > 60 ? '…' : '') : v}`),
+          );
+
+          initializeTenantSupabase(tenantUrl, anonKey, serviceKey || anonKey);
+        } else {
+          console.warn(
+            '[useLogin] missing tenant URL or ANON_KEY decryption failed — chat will use .env defaults',
+            { hasUrl: !!tenantUrl, hasAnonKey: !!anonKey },
           );
         }
 
