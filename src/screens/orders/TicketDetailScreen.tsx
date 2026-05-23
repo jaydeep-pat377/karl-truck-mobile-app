@@ -2508,6 +2508,7 @@ const styles = StyleSheet.create({
   headerCardWeatherRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     marginTop: ms(8),
     paddingTop: ms(8),
     gap: ms(4),
