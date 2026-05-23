@@ -835,7 +835,19 @@
     "bannerAccepted": "This order request has been accepted",
     "bannerRejected": "This order request has been rejected",
     "bannerCanceled": "This order request has been canceled",
-    "noMessagesYet": "No messages yet"
+    "noMessagesYet": "No messages yet",
+    "statusDisplay": {
+      "pending": "Pending",
+      "submitted": "Submitted",
+      "approved": "Accepted",
+      "rejected": "Rejected",
+      "canceled": "Canceled"
+    },
+    "roles": {
+      "concrete_producer": "Producer",
+      "contractor": "Contractor",
+      "admin": "Admin"
+    }
   },
   "createOrderRequest": {
     "title": "Create Order Request",
