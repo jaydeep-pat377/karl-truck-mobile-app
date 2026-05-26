@@ -48,15 +48,30 @@ async function createNotificationChannel() {
 async function displayNotification(title, body, data = {}) {
   try {
     await createNotificationChannel();
-    const notificationId = `notif_${Date.now()}`;
+
+    // Stable id derived from message_id (or content hash fallback) so a
+    // re-delivered FCM updates the existing banner in place instead of
+    // stacking. Chat messages route to the chat channel; everything else
+    // stays on truckast_heads_up.
+    const isChat =
+      data?.type === 'chat_message' ||
+      data?.type === 'order_request_message' ||
+      String(data?.event_code || '').toUpperCase().includes('CHAT') ||
+      String(data?.event_code || '').toUpperCase().includes('MESSAGE');
+    const channelId = isChat ? CHAT_CHANNEL_ID : CHANNEL_ID;
+    const stableId = data?.message_id
+      ? `msg_${data.message_id}`
+      : data?.notification_id
+        ? `notif_${data.notification_id}`
+        : `notif_${Date.now()}`;
 
     const notification = {
-      id: notificationId,
+      id: stableId,
       title,
       body,
       data,
       android: {
-        channelId: CHANNEL_ID,
+        channelId,
         importance: AndroidImportance.HIGH,
         visibility: AndroidVisibility.PUBLIC,
         pressAction: {
@@ -69,6 +84,7 @@ async function displayNotification(title, body, data = {}) {
         lights: ['#FF0000', 300, 600],
         autoCancel: true,
         showTimestamp: true,
+        ...(data?.message_id ? { tag: `chat_msg_${data.message_id}` } : {}),
       },
       ios: {
         sound: 'default',
@@ -108,32 +124,17 @@ notifee.onBackgroundEvent(async ({ type, detail }) => {
 messaging().setBackgroundMessageHandler(async remoteMessage => {
   const { notification, data, messageId, sentTime } = remoteMessage;
 
-  if (notification) {
-    try {
-      const { useNotificationStore } = require('./src/store/notificationStore');
-      useNotificationStore.getState().addNotification({
-        id: messageId || Date.now().toString(),
-        type: data?.type || 'system',
-        title: notification.title || '',
-        body: notification.body || '',
-        priority: data?.priority || 'medium',
-        isRead: false,
-        data: data || {},
-        orderId: data?.orderId,
-        truckId: data?.truckId,
-        deepLink: data?.deepLink,
-        createdAt: sentTime
-          ? new Date(sentTime).toISOString()
-          : new Date().toISOString(),
-      });
-    } catch (e) {
-      console.log('[FCM] Store error:', e.message);
-    }
-    return;
-  }
-
-  const title = data?.title || '';
-  const body = data?.body || '';
+  // Chat pushes arrive data-only on Android (see backend sendChatPush —
+  // top-level `notification` was dropped so the FCM SDK doesn't
+  // auto-render a banner that then competes with our notifee call).
+  // Other notification senders (the web frontend's /api/notifications/send,
+  // for example) still ship a top-level `notification`, in which case
+  // the OS already drew the banner and we MUST NOT call displayNotification
+  // here or the user gets two. We only display when no `notification`
+  // field is present, falling back to title/body inside `data`.
+  const title = notification?.title || data?.title || data?.sender_name || '';
+  const body =
+    notification?.body || data?.body || data?.message_preview || '';
 
   if (!title && !body) {
     return;
@@ -160,7 +161,9 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
     console.log('[FCM] Store error:', e.message);
   }
 
-  await displayNotification(title, body, data || {});
+  if (!notification) {
+    await displayNotification(title, body, data || {});
+  }
 });
 
 AppRegistry.registerComponent(appName, () => App);

@@ -8,6 +8,7 @@ import {
 } from '../lib/notification-client';
 import { useNotificationStore } from '../store/notificationStore';
 import { AppNotification } from '../types/notification';
+import { buildNotifKey, claimNotification } from '../utils/notificationDedup';
 
 interface UseRealtimeSubscriptionProps {
   userId: string | null;
@@ -102,7 +103,18 @@ export function useRealtimeSubscription({
         if (tenantId && notifTenantId !== null && notifTenantId !== tenantId) {
           return;
         }
-        addNotification(notification);
+        // The same content can arrive via FCM (notificationService.onMessage).
+        // Claim the store-add and the display path separately so the in-app
+        // bell list and the OS banner each surface exactly once.
+        const storeKey = buildNotifKey({
+          title: notification.title,
+          body: notification.body,
+          entityType: payload.new.entity_type,
+          entityId: payload.new.entity_id,
+        });
+        if (claimNotification(`store:${storeKey}`)) {
+          addNotification(notification);
+        }
         onNewNotificationRef.current?.(notification);
       },
 

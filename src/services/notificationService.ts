@@ -6,6 +6,7 @@ import { AppNotification, NotificationType } from '../types/notification';
 import { navigateFromNotification, navigateToTab } from './navigationService';
 import { ensureCorrectTenant } from './deepLinkService';
 import { alertService } from './alertService';
+import { buildNotifKey, claimNotification } from '../utils/notificationDedup';
 
 const CHANNEL_ID = 'truckast_heads_up';
 const CHAT_CHANNEL_ID = 'chat';
@@ -58,6 +59,18 @@ class NotificationService {
     body: string,
     data: Record<string, string>,
   ): Promise<void> {
+    const key = buildNotifKey({
+      title,
+      body,
+      chatId: data?.chat_id,
+      messageId: data?.message_id,
+      entityType: data?.entity_type,
+      entityId: data?.entity_id,
+    });
+    if (!claimNotification(`display:${key}`)) {
+      return;
+    }
+
     try {
       await this.createChatChannel();
       await notifee.displayNotification({
@@ -92,6 +105,15 @@ class NotificationService {
     body: string,
     data?: Record<string, string>,
   ): Promise<void> {
+    const key = buildNotifKey({
+      title,
+      body,
+      entityType: data?.entity_type,
+      entityId: data?.entity_id,
+    });
+    if (!claimNotification(`display:${key}`)) {
+      return;
+    }
     try {
       await this.createNotificationChannel();
       const notificationId = await notifee.displayNotification({
@@ -188,16 +210,39 @@ class NotificationService {
   setupListeners(): void {
     this.unsubscribeOnMessage = messaging().onMessage(
       async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
+        const data = remoteMessage.data || {};
+
+        // Same content can arrive on this device via the Supabase
+        // notification_queue realtime path (see useRealtimeSubscription /
+        // useSupabaseNotifications). Whichever path observes the (title,
+        // body, entity) tuple first owns the bell-list entry; the other
+        // path drops the event. Display dedup happens separately inside
+        // displayChatNotification / displayNotification.
+        const fcmTitle =
+          remoteMessage.notification?.title ||
+          (data.title as string | undefined) ||
+          (data.sender_name as string | undefined) ||
+          '';
+        const fcmBody =
+          remoteMessage.notification?.body ||
+          (data.body as string | undefined) ||
+          (data.message_preview as string | undefined) ||
+          '';
+        const storeKey = buildNotifKey({
+          title: fcmTitle,
+          body: fcmBody,
+          entityType: data?.entity_type as string | undefined,
+          entityId: data?.entity_id as string | undefined,
+          chatId: data?.chat_id as string | undefined,
+          messageId: data?.message_id as string | undefined,
+        });
+        const ownsStoreAdd = claimNotification(`store:${storeKey}`);
+
         const notification = this.parseRemoteMessage(remoteMessage);
-        if (notification) {
+        if (notification && ownsStoreAdd) {
           useNotificationStore.getState().addNotification(notification);
         }
 
-        // Chat messages (order chat + order request chat) do not flow through
-        // the Supabase realtime notifications path (that pipeline only covers
-        // order/truck/weather events), so we render them here in the
-        // foreground. Other types stay deduplicated via the store/realtime path.
-        const data = remoteMessage.data || {};
         const eventCodeStr =
           typeof data.event_code === 'string'
             ? data.event_code.toUpperCase()
@@ -209,17 +254,17 @@ class NotificationService {
           eventCodeStr.includes('MESSAGE');
 
         if (isChatMessage) {
-          const title =
-            remoteMessage.notification?.title ||
-            (data.sender_name as string | undefined) ||
-            'New message';
-          const body =
-            remoteMessage.notification?.body ||
-            (data.body as string | undefined) ||
-            (data.message_preview as string | undefined) ||
-            '';
-
-          await this.displayChatNotification(title, body, data as Record<string, string>);
+          await this.displayChatNotification(
+            fcmTitle || 'New message',
+            fcmBody,
+            data as Record<string, string>,
+          );
+        } else if (fcmTitle || fcmBody) {
+          await this.displayNotification(
+            fcmTitle,
+            fcmBody,
+            data as Record<string, string>,
+          );
         }
       },
     );
@@ -280,13 +325,26 @@ class NotificationService {
     remoteMessage: FirebaseMessagingTypes.RemoteMessage,
   ): AppNotification | null {
     const { notification, data, messageId, sentTime } = remoteMessage;
-    if (!notification) return null;
+    // Chat pushes are now data-only on Android (see backend sendChatPush),
+    // so remoteMessage.notification is undefined and title/body ride in
+    // data. Pick whichever source has a value.
+    const title =
+      notification?.title ||
+      (data?.title as string | undefined) ||
+      (data?.sender_name as string | undefined) ||
+      '';
+    const body =
+      notification?.body ||
+      (data?.body as string | undefined) ||
+      (data?.message_preview as string | undefined) ||
+      '';
+    if (!title && !body) return null;
 
     return {
       id: messageId || Date.now().toString(),
       type: (data?.type as NotificationType) || 'system',
-      title: notification.title || '',
-      body: notification.body || '',
+      title,
+      body,
       priority: (data?.priority as AppNotification['priority']) || 'medium',
       isRead: false,
       data: data as Record<string, unknown>,

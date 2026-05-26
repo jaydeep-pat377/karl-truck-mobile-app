@@ -10,6 +10,7 @@ import {
   isSoundReady,
 } from '../utils/notificationSound';
 import { testNotificationConnection } from '../lib/notification-client';
+import { buildNotifKey, claimNotification } from '../utils/notificationDedup';
 
 interface NotificationContextType {
   notifications: AppNotification[];
@@ -66,7 +67,19 @@ export function NotificationProvider({
 
   const handleNewNotification = useCallback(
     async (notification: AppNotification) => {
-      const appState = AppState.currentState;
+      // First path (FCM or queue) to claim this content key owns the OS
+      // banner; the other path drops here to avoid a duplicate.
+      const data = (notification.data ?? {}) as Record<string, unknown>;
+      const displayKey = buildNotifKey({
+        title: notification.title,
+        body: notification.body,
+        entityType: data.entity_type as string | undefined,
+        entityId: data.entity_id as string | number | undefined,
+      });
+      if (!claimNotification(`display:${displayKey}`)) {
+        return;
+      }
+
       playMessageSound();
 
       await showLocalNotification({

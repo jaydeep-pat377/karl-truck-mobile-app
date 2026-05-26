@@ -6,6 +6,7 @@ import notifee, { AndroidImportance, AndroidVisibility } from '@notifee/react-na
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import 'react-native-url-polyfill/auto';
 import { NOTIFICATION_SUPABASE_URL, NOTIFICATION_SUPABASE_ANON_KEY } from '@env';
+import { buildNotifKey, claimNotification } from '../utils/notificationDedup';
 
 const CHANNEL_ID = 'truckast_heads_up';
 
@@ -345,8 +346,19 @@ export function useSupabaseNotifications({
             return [newNotification, ...prev];
           });
 
-
-          showLocalNotification(newNotification);
+          // The same chat message also arrives via FCM
+          // (notificationService.displayChatNotification). Whichever path
+          // gets here first owns the OS banner — the other one drops via
+          // the shared content key.
+          const displayKey = buildNotifKey({
+            title: newNotification.subject,
+            body: newNotification.body,
+            entityType: newNotification.entity_type,
+            entityId: newNotification.entity_id,
+          });
+          if (claimNotification(`display:${displayKey}`)) {
+            showLocalNotification(newNotification);
+          }
 
 
           if (onNewNotificationRef.current) {
