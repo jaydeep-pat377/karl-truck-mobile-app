@@ -44,6 +44,7 @@ const SILENT_ERROR_ENDPOINTS = [
   '/weather',
   '/eta',
   '/short-urls/resolve',
+  '/notifications/register-device',
 ];
 
 const isPublicEndpoint = (url: string | undefined): boolean => {
@@ -165,7 +166,9 @@ axiosInstance.interceptors.response.use(
 
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _silentError?: boolean };
 
-    if (__DEV__) {
+    const isSilent = SILENT_ERROR_ENDPOINTS.some(ep => originalRequest?.url?.includes(ep));
+
+    if (__DEV__ && !isSilent) {
       console.error(`[API Error] ${originalRequest?.method?.toUpperCase()} ${originalRequest?.baseURL}${originalRequest?.url} — Status: ${error.response?.status}`);
       console.error('[API Error] Message:', error.message);
       if (error.response?.data) {

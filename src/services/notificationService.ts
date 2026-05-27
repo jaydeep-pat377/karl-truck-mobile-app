@@ -204,7 +204,26 @@ class NotificationService {
   }
 
   async syncTokenToServer(_token?: string): Promise<boolean> {
-    return false;
+    try {
+      const token = _token || useNotificationStore.getState().fcmToken;
+      if (!token) return false;
+      const { default: apiClient } = await import('../api/apiClient');
+      const { API_ENDPOINTS } = await import('../api/endpoints');
+      await apiClient.post(API_ENDPOINTS.NOTIFICATIONS.REGISTER_DEVICE, {
+        device_token: token,
+        device_type: Platform.OS,
+      });
+      return true;
+    } catch (error: any) {
+      // 404 = endpoint not deployed yet; token was already registered at
+      // login via device_info in exchange-code, so this is non-fatal.
+      const status = error?.response?.status;
+      if (status === 404) {
+        return true;
+      }
+      console.warn('[Notifications] syncTokenToServer failed:', error?.message);
+      return false;
+    }
   }
 
   setupListeners(): void {

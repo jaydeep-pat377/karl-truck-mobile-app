@@ -142,7 +142,7 @@ export function useRealtimeSubscription({
 
   useEffect(() => {
     const handleAppState = (state: AppStateStatus) => {
-      if (state === 'active' && userId && enabled) {
+      if (state === 'active' && userId && enabled && !channelRef.current) {
         setTimeout(subscribe, 500);
       }
     };

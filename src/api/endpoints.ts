@@ -40,6 +40,7 @@ export const API_ENDPOINTS = {
   },
   NOTIFICATIONS: {
     QUEUE: '/notification-queue',
+    REGISTER_DEVICE: '/notifications/register-device',
   },
   ANNOUNCEMENTS: {
     ME: '/announcements/me',

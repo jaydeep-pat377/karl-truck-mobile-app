@@ -6,6 +6,8 @@ import { STORAGE_KEYS } from '../utils/storage';
 import { TenantListItem } from '../types/user';
 import { authService } from '../api/services/authService';
 import { setDynamicBaseUrl, normalizeBackendUrl } from '../api/axiosInstance';
+import { decryptValue } from '../utils/encryption';
+import { initializeTenantSupabase } from '../services/supabase/supabaseClient';
 import { APP_ENV } from '@env';
 
 // TODO: Remove after testing — forces code exchange to use local backend
@@ -183,6 +185,21 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       // Step 4: Update auth store with new credentials
       const { user, accessToken, refreshToken, timezone, company_timezone } = exchangeResponse.data;
       await useAuthStore.getState().setAuth(user, accessToken, refreshToken);
+
+      // Step 4a: Re-initialize Supabase with the new tenant's credentials
+      const tenantUrl = user?.metadata?.tenant?.tenant_supabase_url || null;
+      const supabaseConfig = exchangeResponse.data.supabase_config;
+      const anonKey = decryptValue(supabaseConfig?.SUPABASE_ANON_KEY);
+      const serviceKey = decryptValue(supabaseConfig?.SUPABASE_SERVICE_ROLE_KEY);
+
+      if (tenantUrl && anonKey) {
+        await AsyncStorage.multiSet([
+          [STORAGE_KEYS.SUPABASE_URL, tenantUrl],
+          [STORAGE_KEYS.SUPABASE_ANON_KEY, anonKey],
+          [STORAGE_KEYS.SUPABASE_SERVICE_ROLE_KEY, serviceKey || ''],
+        ]);
+        initializeTenantSupabase(tenantUrl, anonKey, serviceKey || anonKey);
+      }
 
       // Step 4b: Update timezone for the new tenant
       if (timezone) {

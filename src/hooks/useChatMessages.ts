@@ -48,6 +48,13 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastMessageTimeRef = useRef<string | null>(null);
+  const currentRoomIdRef = useRef(currentRoomId);
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    currentRoomIdRef.current = currentRoomId;
+  }, [currentRoomId]);
 
   useEffect(() => {
     if (user?.id) {
@@ -114,7 +121,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
           );
 
           if (newMessages.length > 0) {
-            if (currentRoomId !== roomId) {
+            if (currentRoomIdRef.current !== roomId) {
               playMessageSound();
             }
 
@@ -135,33 +142,31 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     } catch (err) {
       console.log('[Chat Poll] Error:', err);
     }
-  }, [orderId, roomId, supabaseUserId, addMessage, isConfigured, currentRoomId]);
+  }, [orderId, roomId, supabaseUserId, addMessage, isConfigured]);
 
   useEffect(() => {
     if (!orderId || !isConfigured || !supabase) return;
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let disposed = false;
 
     const setupSubscription = () => {
+      if (disposed) return;
+
       try {
         channel = supabase
           .channel(`chat-order-${orderId}-${Date.now()}`)
           .on(
             'postgres_changes',
             {
-              event: '*',
+              event: 'INSERT',
               schema: 'public',
               table: 'chat_messages',
               filter: `order_id=eq.${orderId}`,
             },
             (payload) => {
               try {
-                if (payload.eventType !== 'INSERT') {
-                  return;
-                }
-
                 const msg = payload.new as RawChatMessage;
-
 
                 if (supabaseUserId && msg.sender_id === supabaseUserId) {
                   return;
@@ -209,8 +214,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
                 addMessage(roomId, newMessage);
 
-
-                if (currentRoomId !== roomId) {
+                if (currentRoomIdRef.current !== roomId) {
                   incrementUnreadCount(roomId);
                   playMessageSound();
                 }
@@ -224,12 +228,19 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
           .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') {
               setIsRealtimeConnected(true);
+              retryCountRef.current = 0;
             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || err) {
               setIsRealtimeConnected(false);
 
               if (channel) {
                 supabase.removeChannel(channel);
                 channel = null;
+              }
+
+              if (!disposed && retryCountRef.current < 5) {
+                const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 30000);
+                retryCountRef.current += 1;
+                retryTimerRef.current = setTimeout(setupSubscription, delay);
               }
             } else if (status === 'CLOSED') {
               setIsRealtimeConnected(false);
@@ -249,18 +260,21 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
         if (channel) {
           channel.subscribe();
+        } else {
+          retryCountRef.current = 0;
+          setupSubscription();
         }
       }
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
 
-    // Only poll as fallback when realtime is not connected
-    if (!isRealtimeConnected) {
-      pollingIntervalRef.current = setInterval(pollForNewMessages, 5000);
-    }
-
     return () => {
+      disposed = true;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
       if (channel) {
         supabase.removeChannel(channel);
       }
@@ -270,17 +284,29 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       }
       subscription.remove();
     };
-  }, [orderId, roomId, supabaseUserId, addMessage, incrementUnreadCount, currentRoomId, isConfigured, queryClient, pollForNewMessages]);
+  }, [orderId, roomId, supabaseUserId, addMessage, incrementUnreadCount, isConfigured, queryClient]);
 
-  // Stop polling when realtime connects, start when it disconnects
+  // Start polling as fallback when realtime is not connected; stop when it connects
+  const pollFnRef = useRef(pollForNewMessages);
+  useEffect(() => { pollFnRef.current = pollForNewMessages; }, [pollForNewMessages]);
+
   useEffect(() => {
-    if (isRealtimeConnected && pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    } else if (!isRealtimeConnected && !pollingIntervalRef.current && orderId && isConfigured) {
-      pollingIntervalRef.current = setInterval(pollForNewMessages, 5000);
+    if (isRealtimeConnected) {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    } else if (orderId && isConfigured) {
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = setInterval(() => pollFnRef.current(), 5000);
     }
-  }, [isRealtimeConnected, orderId, isConfigured, pollForNewMessages]);
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [isRealtimeConnected, orderId, isConfigured]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, images, audio }: { content: string; images?: ImageAttachment[]; audio?: AudioAttachment }) => {

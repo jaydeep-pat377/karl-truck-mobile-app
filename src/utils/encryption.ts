@@ -67,13 +67,14 @@ export const encryptValue = (plaintext: string | null | undefined): string | nul
 
 export const decryptValue = (encrypted: string | null | undefined): string | null => {
   if (!encrypted) return null;
-  const parts = encrypted.split(':');
-  if (parts.length !== 3) {
-    console.warn('[encryption] decryptValue: unexpected format, expected iv:tag:ciphertext');
-    return null;
+  // If the value is NOT in our encrypted format (iv:tag:ct, all hex), treat it
+  // as a plain string and pass it through. The backend may send credentials
+  // either encrypted or as plain JWTs depending on configuration.
+  if (!ENCRYPTED_FORMAT.test(encrypted)) {
+    return encrypted;
   }
   try {
-    const [ivHex, tagHex, ctHex] = parts;
+    const [ivHex, tagHex, ctHex] = encrypted.split(':');
     const iv = hexToBytes(ivHex);
     const tag = hexToBytes(tagHex);
     const ct = hexToBytes(ctHex);
