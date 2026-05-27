@@ -1,5 +1,6 @@
 import { gcm } from '@noble/ciphers/aes.js';
 import { hexToBytes, bytesToHex, concatBytes } from '@noble/ciphers/utils.js';
+import CryptoJS from 'crypto-js';
 import { Buffer } from 'buffer';
 import { ENCRYPTION_KEY } from '@env';
 
@@ -16,7 +17,9 @@ export interface DecryptedSupabaseConfig {
 }
 
 let cachedKey: Uint8Array | null = null;
+let cachedAdminKey: Uint8Array | null = null;
 
+/** Mobile/backend key: direct hex decode of ENCRYPTION_KEY (12-byte IV) */
 const getKey = (): Uint8Array => {
   if (cachedKey) return cachedKey;
   if (!ENCRYPTION_KEY) {
@@ -27,6 +30,19 @@ const getKey = (): Uint8Array => {
   }
   const key = hexToBytes(ENCRYPTION_KEY);
   cachedKey = key;
+  return key;
+};
+
+/** Admin panel key: SHA256 hash of the ENCRYPTION_KEY string (16-byte IV) */
+const getAdminKey = (): Uint8Array => {
+  if (cachedAdminKey) return cachedAdminKey;
+  if (!ENCRYPTION_KEY) {
+    throw new Error('ENCRYPTION_KEY is not configured in .env');
+  }
+  const hash = CryptoJS.SHA256(ENCRYPTION_KEY);
+  const hexStr = hash.toString(CryptoJS.enc.Hex);
+  const key = hexToBytes(hexStr);
+  cachedAdminKey = key;
   return key;
 };
 
@@ -65,6 +81,15 @@ export const encryptValue = (plaintext: string | null | undefined): string | nul
   }
 };
 
+/**
+ * Decrypt an AES-256-GCM encrypted value.
+ *
+ * Supports two key derivation methods:
+ *   - Backend/mobile format: 12-byte IV, key = hex_decode(ENCRYPTION_KEY)
+ *   - Admin panel format:    16-byte IV, key = SHA256(ENCRYPTION_KEY)
+ *
+ * Tries the appropriate key based on IV length, falls back to the other.
+ */
 export const decryptValue = (encrypted: string | null | undefined): string | null => {
   if (!encrypted) return null;
   const parts = encrypted.split(':');
@@ -72,18 +97,32 @@ export const decryptValue = (encrypted: string | null | undefined): string | nul
     console.warn('[encryption] decryptValue: unexpected format, expected iv:tag:ciphertext');
     return null;
   }
+  const [ivHex, tagHex, ctHex] = parts;
+  const iv = hexToBytes(ivHex);
+  const tag = hexToBytes(tagHex);
+  const ct = hexToBytes(ctHex);
+  const combined = concatBytes(ct, tag);
+
+  // Determine primary key based on IV length:
+  //   12 bytes → backend/mobile format (direct hex key)
+  //   16 bytes → admin panel format (SHA256 key)
+  const primaryKey = iv.length === 12 ? getKey() : getAdminKey();
+  const fallbackKey = iv.length === 12 ? getAdminKey() : getKey();
+
+  // Try primary key first
   try {
-    const [ivHex, tagHex, ctHex] = parts;
-    const iv = hexToBytes(ivHex);
-    const tag = hexToBytes(tagHex);
-    const ct = hexToBytes(ctHex);
-    const combined = concatBytes(ct, tag);
-    const plaintext = gcm(getKey(), iv).decrypt(combined);
-    // Avoid noble's bytesToUtf8 (uses TextDecoder, missing in Hermes).
-    // Buffer is already a project dep via the 'buffer' package.
+    const plaintext = gcm(primaryKey, iv).decrypt(combined);
+    return Buffer.from(plaintext).toString('utf8');
+  } catch {
+    // Primary failed, try fallback
+  }
+
+  // Try fallback key
+  try {
+    const plaintext = gcm(fallbackKey, iv).decrypt(combined);
     return Buffer.from(plaintext).toString('utf8');
   } catch (err: any) {
-    console.error('[encryption] decryptValue failed:', err?.message);
+    console.error('[encryption] decryptValue failed with both keys:', err?.message);
     return null;
   }
 };

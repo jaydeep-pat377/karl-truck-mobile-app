@@ -115,6 +115,7 @@ export const initializeTenantSupabase = (
   _supabase = buildAnonClient(url, anonKey);
   _supabaseAdmin = serviceRoleKey ? buildAdminClient(url, serviceRoleKey) : buildAdminClient(url, anonKey);
   _supabase.realtime.connect();
+  _supabaseAdmin.realtime.connect();
   isInitialized = true;
 };
 
@@ -215,6 +216,7 @@ export const isAuthenticated = (): boolean => {
 AppState.addEventListener('change', (state: AppStateStatus) => {
   if (state === 'active' && isInitialized) {
     _supabase?.realtime.connect();
+    _supabaseAdmin?.realtime.connect();
   }
 });
 

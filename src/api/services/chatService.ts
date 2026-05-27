@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin, isSupabaseConfigured, ensureAuthenticated } from '../../services/supabase/supabaseClient';
+import { supabaseAdmin, isSupabaseConfigured, ensureAuthenticated } from '../../services/supabase/supabaseClient';
 import apiClient from '../apiClient';
 import { API_ENDPOINTS } from '../endpoints';
 import { ChatRoom, Message, SendMessagePayload } from '../../types/chat';
@@ -571,9 +571,9 @@ export const chatService = {
     orderId: number,
     onMessage: (message: Message) => void
   ) => {
-    if (!isSupabaseConfigured() || !supabase) return null;
+    if (!isSupabaseConfigured() || !supabaseAdmin) return null;
 
-    const channel = supabase
+    const channel = supabaseAdmin
       .channel(`order-chat:${orderId}`)
       .on(
         'postgres_changes',
@@ -639,10 +639,10 @@ export const chatService = {
   },
 
   unsubscribeFromMessages: async (
-    channel: ReturnType<typeof supabase.channel>
+    channel: ReturnType<typeof supabaseAdmin.channel>
   ) => {
-    if (channel && supabase) {
-      await supabase.removeChannel(channel);
+    if (channel && supabaseAdmin) {
+      await supabaseAdmin.removeChannel(channel);
     }
   },
 

@@ -4,7 +4,7 @@ import { AppState, AppStateStatus } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { chatService, ImageAttachment, AudioAttachment } from '../api/services/chatService';
 import { useChatStore } from '../store/chatStore';
-import { supabase, isSupabaseConfigured } from '../services/supabase/supabaseClient';
+import { supabaseAdmin as supabase, isSupabaseConfigured } from '../services/supabase/supabaseClient';
 import { Message } from '../types/chat';
 import { useAuthStore } from '../store/authStore';
 import { playMessageSound } from '../utils/notificationSound';
