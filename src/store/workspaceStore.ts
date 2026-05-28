@@ -6,10 +6,13 @@ import { STORAGE_KEYS } from '../utils/storage';
 import { TenantListItem } from '../types/user';
 import { authService } from '../api/services/authService';
 import { setDynamicBaseUrl, normalizeBackendUrl } from '../api/axiosInstance';
-import { APP_ENV } from '@env';
+import { notificationService } from '../services/notificationService';
+import { decryptValue } from '../utils/encryption';
+import { initializeTenantSupabase } from '../services/supabase/supabaseClient';
+import { APP_ENV, FORCE_BACKEND_URL } from '@env';
 
 // TODO: Remove after testing — forces code exchange to use local backend
-const DEV_LOCAL_BACKEND_URL = 'http://192.168.1.20:5000/api';
+const DEV_LOCAL_BACKEND_URL = 'http://192.168.1.7:5000/api';
 
 const PALETTE = [
   colors.primary.main,
@@ -154,18 +157,29 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
 
       const { code, client_secret, tenant } = switchResponse.data;
 
-      // In development, stay on local backend; in production, switch to target tenant's backend
-      const newBackendUrl = APP_ENV === 'development'
-        ? DEV_LOCAL_BACKEND_URL
-        : `${normalizeBackendUrl(tenant.backend_url)}/api`;
+      // Priority: FORCE_BACKEND_URL override > tenant's backend_url > local dev fallback
+      const forced = FORCE_BACKEND_URL && FORCE_BACKEND_URL.trim().length > 0
+        ? `${normalizeBackendUrl(FORCE_BACKEND_URL)}/api`
+        : null;
+      const newBackendUrl = forced
+        ?? (APP_ENV === 'development'
+          ? DEV_LOCAL_BACKEND_URL
+          : `${normalizeBackendUrl(tenant.backend_url)}/api`);
+      if (forced) {
+        console.log(`[workspaceStore] FORCE_BACKEND_URL override active: ${forced} (tenant.backend_url: ${tenant.backend_url})`);
+      }
 
       // Step 2: Set new base URL
       await AsyncStorage.setItem(STORAGE_KEYS.BACKEND_URL, newBackendUrl);
       setDynamicBaseUrl(newBackendUrl);
 
-      // Step 3: Exchange code for new tokens on the target tenant
+      // Step 3: Exchange code for new tokens on the target tenant.
+      // Use the real FCM token so the device_token registered in the target
+      // tenant's user_devices table is one FCM can actually deliver to —
+      // otherwise pushes silently fail for chats in that tenant.
+      const fcmToken = await notificationService.getToken();
       const deviceInfo = {
-        device_token: `switch_${Platform.OS}_${Date.now().toString(36)}`,
+        device_token: fcmToken || `switch_${Platform.OS}_${Date.now().toString(36)}`,
         device_type: Platform.OS as 'android' | 'ios',
         device_name: `${Platform.OS} Device`,
       };
@@ -178,6 +192,58 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
 
       if (!exchangeResponse.success || !exchangeResponse.data) {
         throw new Error(exchangeResponse.message || 'Code exchange failed');
+      }
+
+      // Step 3b: Swap Supabase to target tenant's project BEFORE setAuth.
+      // Tenants return supabase_config in two shapes (top-level encrypted
+      // vs nested under user.metadata.tenant.supabase_config). See
+      // useLogin.ts for the same logic — fall through encrypted top,
+      // encrypted nested, then raw nested.
+      const nestedConfig =
+        (exchangeResponse.data.user?.metadata?.tenant as any)?.supabase_config || {};
+      const pickKey = (top: string | undefined, nested: string | undefined): string | null => {
+        const fromTop = decryptValue(top);
+        if (fromTop) return fromTop;
+        const fromNestedDecrypted = decryptValue(nested);
+        if (fromNestedDecrypted) return fromNestedDecrypted;
+        return nested || top || null;
+      };
+      const tenantUrl =
+        exchangeResponse.data.user?.metadata?.tenant?.tenant_supabase_url ||
+        nestedConfig.SUPABASE_URL ||
+        null;
+      const anonKey = pickKey(
+        exchangeResponse.data.supabase_config?.SUPABASE_ANON_KEY,
+        nestedConfig.SUPABASE_ANON_KEY,
+      );
+      const serviceKey = pickKey(
+        exchangeResponse.data.supabase_config?.SUPABASE_SERVICE_ROLE_KEY,
+        nestedConfig.SUPABASE_SERVICE_ROLE_KEY,
+      );
+
+      if (tenantUrl && anonKey) {
+        await AsyncStorage.multiSet([
+          [STORAGE_KEYS.SUPABASE_URL, tenantUrl],
+          [STORAGE_KEYS.SUPABASE_ANON_KEY, anonKey],
+          [STORAGE_KEYS.SUPABASE_SERVICE_ROLE_KEY, serviceKey || ''],
+        ]);
+
+        const stored = await AsyncStorage.multiGet([
+          STORAGE_KEYS.SUPABASE_URL,
+          STORAGE_KEYS.SUPABASE_ANON_KEY,
+          STORAGE_KEYS.SUPABASE_SERVICE_ROLE_KEY,
+        ]);
+        console.log('[workspaceStore] AsyncStorage stored Supabase creds (post-switch):');
+        stored.forEach(([k, v]) =>
+          console.log(`  ${k} = ${v ? v.slice(0, 60) + (v.length > 60 ? '…' : '') : v}`),
+        );
+
+        initializeTenantSupabase(tenantUrl, anonKey, serviceKey || anonKey);
+      } else {
+        console.warn(
+          '[workspaceStore] switchTenant: missing tenant URL or ANON_KEY decryption failed — keeping previous Supabase client',
+          { hasUrl: !!tenantUrl, hasAnonKey: !!anonKey },
+        );
       }
 
       // Step 4: Update auth store with new credentials

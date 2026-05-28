@@ -83,18 +83,39 @@ export const useLogin = () => {
           );
         }
 
-        // Pull tenant Supabase credentials per spec:
-        //   URL          → response.data.user.metadata.tenant.tenant_supabase_url (plaintext as-is)
-        //   ANON_KEY     → response.data.supabase_config.SUPABASE_ANON_KEY (encrypted → decrypt)
-        //   SERVICE_KEY  → response.data.supabase_config.SUPABASE_SERVICE_ROLE_KEY (encrypted → decrypt)
-        // Store all 3 (plaintext) in AsyncStorage; clear on logout.
+        // Pull tenant Supabase credentials. Two response shapes seen in
+        // the wild, and both can be encrypted:
+        //   Dolese: top-level `supabase_config` with encrypted values.
+        //   Sunrise et al: same fields nested under
+        //                  user.metadata.tenant.supabase_config — also
+        //                  encrypted (not plaintext as I initially assumed).
+        // Resolution: try to decrypt whichever location has a value; if
+        // decryption fails for a hex-iv:tag:ct string, the value is null
+        // and we fall through to the next candidate; if a tenant
+        // genuinely returns plaintext, decryptValue() returns null and
+        // we use the raw value at the end. Without this, the encrypted
+        // anon key gets sent to Supabase verbatim and the client rejects
+        // it as "Invalid API key" on every realtime/query call.
+        const nestedConfig =
+          (response.data.user?.metadata?.tenant as any)?.supabase_config || {};
+        const pickKey = (top: string | undefined, nested: string | undefined): string | null => {
+          const fromTop = decryptValue(top);
+          if (fromTop) return fromTop;
+          const fromNestedDecrypted = decryptValue(nested);
+          if (fromNestedDecrypted) return fromNestedDecrypted;
+          return nested || top || null;
+        };
         const tenantUrl =
-          response.data.user?.metadata?.tenant?.tenant_supabase_url || null;
-        const anonKey = decryptValue(
+          response.data.user?.metadata?.tenant?.tenant_supabase_url ||
+          nestedConfig.SUPABASE_URL ||
+          null;
+        const anonKey = pickKey(
           response.data.supabase_config?.SUPABASE_ANON_KEY,
+          nestedConfig.SUPABASE_ANON_KEY,
         );
-        const serviceKey = decryptValue(
+        const serviceKey = pickKey(
           response.data.supabase_config?.SUPABASE_SERVICE_ROLE_KEY,
+          nestedConfig.SUPABASE_SERVICE_ROLE_KEY,
         );
 
         if (tenantUrl && anonKey) {

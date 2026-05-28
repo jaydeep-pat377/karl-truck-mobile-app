@@ -115,6 +115,11 @@ export function navigateFromNotification(data: Record<string, string | unknown>)
   // Order Request chat → navigate into Main → OrderRequests stack →
   // OrderRequestDetail. MUST be checked before the generic ORDER branch
   // because eventCode 'ORDER_REQUEST_MESSAGE' also contains 'ORDER'.
+  //
+  // Use `reset` (not `navigate`) so the OrderRequests stack is rebuilt
+  // as [OrderRequestList, OrderRequestDetail]. That way the system back
+  // button on OrderRequestDetail pops to the list, not to wherever Main
+  // happened to be showing (Home in kill-state cold-boots).
   if (
     eventCode.includes('ORDER_REQUEST') ||
     eventCode.includes('REQUEST_MESSAGE') ||
@@ -125,18 +130,33 @@ export function navigateFromNotification(data: Record<string, string | unknown>)
       data.orderEntityId) as string;
     if (orderRequestId) {
       dispatchWhenReady(
-        CommonActions.navigate({
-          name: 'Main',
-          params: {
-            screen: 'OrderRequests',
-            params: {
-              screen: 'OrderRequestDetail',
-              // scrollToMessages flag tells the detail screen to jump to the
-              // chat section + last message on mount — only set when we land
-              // here from a notification tap.
-              params: { orderRequestId, scrollToMessages: true },
+        CommonActions.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'Main',
+              state: {
+                index: 0,
+                routes: [
+                  {
+                    name: 'OrderRequests',
+                    state: {
+                      index: 1,
+                      routes: [
+                        { name: 'OrderRequestList' },
+                        {
+                          name: 'OrderRequestDetail',
+                          // scrollToMessages flag tells the detail screen
+                          // to jump to the chat section on mount.
+                          params: { orderRequestId, scrollToMessages: true },
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
             },
-          },
+          ],
         }),
       );
     } else {
@@ -197,16 +217,30 @@ export function navigateFromNotification(data: Record<string, string | unknown>)
       const customerName = (data.customer_name || data.customerName) as string;
       const projectName = (data.project_name || data.projectName) as string;
       const deliveryAddress = (data.delivery_address || data.deliveryAddress) as string;
-      navigate('ChatRoom', {
-        roomId,
-        roomName: ((data.room_name || data.roomName) as string) || 'Chat',
-        chatId: parseInt(chatId, 10),
-        orderId: parseInt(effectiveOrderId || '0', 10),
-        orderDate: orderDate || undefined,
-        customerName: customerName || undefined,
-        projectName: projectName || undefined,
-        deliveryAddress: deliveryAddress || undefined,
-      });
+      // Rebuild the RootStack as [Main(Orders tab), ChatRoom] so the
+      // system back button on the chat screen lands on the Orders list,
+      // not on whatever Main was showing (Home, in kill-state cold-boots).
+      dispatchWhenReady(
+        CommonActions.reset({
+          index: 1,
+          routes: [
+            { name: 'Main', params: { screen: 'Orders' } },
+            {
+              name: 'ChatRoom',
+              params: {
+                roomId,
+                roomName: ((data.room_name || data.roomName) as string) || 'Chat',
+                chatId: parseInt(chatId, 10),
+                orderId: parseInt(effectiveOrderId || '0', 10),
+                orderDate: orderDate || undefined,
+                customerName: customerName || undefined,
+                projectName: projectName || undefined,
+                deliveryAddress: deliveryAddress || undefined,
+              },
+            },
+          ],
+        }),
+      );
     } else {
       navigateToTab('Orders');
     }

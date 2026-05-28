@@ -1,5 +1,6 @@
 import { gcm } from '@noble/ciphers/aes.js';
-import { hexToBytes, bytesToHex, concatBytes } from '@noble/ciphers/utils.js';
+import { hexToBytes, bytesToHex, concatBytes, utf8ToBytes } from '@noble/ciphers/utils.js';
+import { sha256 } from '@noble/hashes/sha2.js';
 import CryptoJS from 'crypto-js';
 import { Buffer } from 'buffer';
 import { ENCRYPTION_KEY } from '@env';
@@ -25,12 +26,11 @@ const getKey = (): Uint8Array => {
   if (!ENCRYPTION_KEY) {
     throw new Error('ENCRYPTION_KEY is not configured in .env');
   }
-  if (ENCRYPTION_KEY.length !== 64) {
-    throw new Error('ENCRYPTION_KEY must be 64 hex chars (32 bytes)');
-  }
-  const key = hexToBytes(ENCRYPTION_KEY);
-  cachedKey = key;
-  return key;
+  // admin-truckast-ai encrypts using SHA-256(ENCRYPTION_SECRET_KEY) as the AES
+  // key. Mirror that derivation so values written by admin can be decrypted
+  // here.
+  cachedKey = sha256(utf8ToBytes(ENCRYPTION_KEY));
+  return cachedKey;
 };
 
 /** Admin panel key: SHA256 hash of the ENCRYPTION_KEY string (16-byte IV) */
@@ -63,10 +63,8 @@ export const encryptValue = (plaintext: string | null | undefined): string | nul
   if (ENCRYPTED_FORMAT.test(plaintext)) return plaintext;
   try {
     const key = getKey();
-    // GCM nonce: 12 random bytes. Math.random is fine here — nonce-uniqueness
-    // (not unpredictability) is what GCM requires, and 96 bits of entropy
-    // makes collision astronomically unlikely.
-    const iv = new Uint8Array(12);
+    // 16-byte IV to match admin-truckast-ai's encryption format.
+    const iv = new Uint8Array(16);
     for (let i = 0; i < iv.length; i++) iv[i] = (Math.random() * 256) | 0;
     const plaintextBytes = new Uint8Array(Buffer.from(plaintext, 'utf8'));
     const ctWithTag = gcm(key, iv).encrypt(plaintextBytes);
