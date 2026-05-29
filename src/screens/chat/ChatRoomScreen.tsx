@@ -22,6 +22,7 @@ import {
   TypingIndicator,
   ImageAttachment,
 } from '../../components/chat';
+import { ChatBottomMenu } from '../../components/navigation';
 import { AudioAttachment } from '../../api/services/chatService';
 import { colors } from '../../theme/colors';
 import { spacing, ms } from '../../utils/responsive';
@@ -355,10 +356,9 @@ export const ChatRoomScreen: React.FC = () => {
           styles.inputWrapper,
           {
             backgroundColor: themeColors.background,
-            // Only padding we need is the home-indicator safe area. The
-            // keyboard itself is handled by adjustResize; don't toggle
-            // this with a state, that was the root cause of the glitch.
-            paddingBottom: insets.bottom,
+            // The bottom safe-area is now owned by the ChatBottomMenu below,
+            // so the input only needs a small gap above it.
+            paddingBottom: spacing.xs,
           },
         ]}
       >
@@ -368,6 +368,7 @@ export const ChatRoomScreen: React.FC = () => {
           isSending={isSending}
         />
       </View>
+      <ChatBottomMenu />
     </>
   );
 
