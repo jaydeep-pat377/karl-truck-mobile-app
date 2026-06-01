@@ -9,10 +9,7 @@ import { setDynamicBaseUrl, normalizeBackendUrl } from '../api/axiosInstance';
 import { notificationService } from '../services/notificationService';
 import { decryptValue } from '../utils/encryption';
 import { initializeTenantSupabase } from '../services/supabase/supabaseClient';
-import { APP_ENV, FORCE_BACKEND_URL } from '@env';
-
-// TODO: Remove after testing — forces code exchange to use local backend
-const DEV_LOCAL_BACKEND_URL = 'http://192.168.1.7:5000/api';
+import { FORCE_BACKEND_URL } from '@env';
 
 const PALETTE = [
   colors.primary.main,
@@ -162,9 +159,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
         ? `${normalizeBackendUrl(FORCE_BACKEND_URL)}/api`
         : null;
       const newBackendUrl = forced
-        ?? (APP_ENV === 'development'
-          ? DEV_LOCAL_BACKEND_URL
-          : `${normalizeBackendUrl(tenant.backend_url)}/api`);
+        ?? `${normalizeBackendUrl(tenant.backend_url)}/api`;
       if (forced) {
         console.log(`[workspaceStore] FORCE_BACKEND_URL override active: ${forced} (tenant.backend_url: ${tenant.backend_url})`);
       }
