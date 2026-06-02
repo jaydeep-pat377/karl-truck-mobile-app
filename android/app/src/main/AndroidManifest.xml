@@ -66,6 +66,17 @@
           android:host="tkai.tkurl.co"
           android:pathPrefix="/dl/" />
       </intent-filter>
+
+      <!-- Custom scheme for SSO auth callback -->
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data
+          android:scheme="truckast"
+          android:host="auth"
+          android:pathPrefix="/callback" />
+      </intent-filter>
     </activity>
 
     <!-- Today's Overview Widget -->

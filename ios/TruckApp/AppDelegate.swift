@@ -75,6 +75,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     print("FCM Token: \(fcmToken ?? "nil")")
   }
 
+  // Handle custom URL schemes (truckast://auth/callback for SSO)
+  func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+  ) -> Bool {
+    return RCTLinkingManager.application(app, open: url, options: options)
+  }
+
   // Handle Universal Links for deep linking
   func application(
     _ application: UIApplication,

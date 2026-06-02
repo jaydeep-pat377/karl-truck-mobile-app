@@ -25,10 +25,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon } from '../../components/common';
+import { GoogleLogo } from '../../components/common/GoogleLogo';
+import { MicrosoftLogo } from '../../components/common/MicrosoftLogo';
 import { colors } from '../../theme/colors';
 import { useTranslation } from 'react-i18next';
 import { ms, vs, spacing } from '../../utils/responsive';
 import { useLogin } from '../../hooks/useLogin';
+import { useSSOLogin } from '../../hooks/useSSOLogin';
 import { STORAGE_KEYS } from '../../utils/storage';
 import { notificationService } from '../../services/notificationService';
 
@@ -153,6 +156,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
   const { theme, isDark } = useTheme();
   const { t } = useTranslation();
   const { login, isLoading, error: authError, reset: clearError } = useLogin();
+  const { startGoogleSignIn, isLoading: isSSOLoading, error: ssoError, reset: clearSSOError } = useSSOLogin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -196,6 +200,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
       setErrors(prev => ({ ...prev, general: authError }));
     }
   }, [authError]);
+
+  useEffect(() => {
+    if (ssoError) {
+      setErrors(prev => ({ ...prev, general: ssoError }));
+    }
+  }, [ssoError]);
 
   const justVerified = route?.params?.verified;
 
@@ -495,6 +505,82 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
           </Animated.View>
 
 
+          {/* SSO Divider */}
+          <Animated.View
+            entering={FadeInUp.delay(400).springify()}
+            style={styles.dividerContainer}
+          >
+            <View style={[styles.dividerLine, { backgroundColor: isDark ? colors.grey[70] : colors.grey[30] }]} />
+            <Text variant="caption" style={[styles.dividerText, { color: isDark ? colors.grey[50] : colors.grey[50] }]}>
+              {t('auth.or')}
+            </Text>
+            <View style={[styles.dividerLine, { backgroundColor: isDark ? colors.grey[70] : colors.grey[30] }]} />
+          </Animated.View>
+
+          {/* SSO Buttons */}
+          <Animated.View
+            entering={FadeInUp.delay(450).springify()}
+            style={styles.ssoContainer}
+          >
+            {/* Microsoft */}
+            <TouchableOpacity
+              style={[
+                styles.ssoButton,
+                {
+                  backgroundColor: isDark ? '#2F2F2F' : '#FFFFFF',
+                  shadowColor: isDark ? colors.common.black : colors.grey[60],
+                },
+              ]}
+              onPress={() => {
+                clearError();
+                clearSSOError();
+                setErrors({});
+                // TODO: implement Microsoft sign-in
+              }}
+              disabled={isLoading || isSSOLoading}
+              activeOpacity={0.8}
+            >
+              <View style={styles.ssoIconWrapper}>
+                <MicrosoftLogo size={ms(20)} />
+              </View>
+              <Text style={[styles.ssoButtonText, { color: isDark ? '#FFFFFF' : '#3C4043' }]}>
+                Sign in with Microsoft
+              </Text>
+            </TouchableOpacity>
+
+            {/* Google */}
+            <TouchableOpacity
+              style={[
+                styles.ssoButton,
+                {
+                  backgroundColor: isDark ? '#2F2F2F' : '#FFFFFF',
+                  shadowColor: isDark ? colors.common.black : colors.grey[60],
+                },
+              ]}
+              onPress={() => {
+                clearError();
+                clearSSOError();
+                setErrors({});
+                startGoogleSignIn();
+              }}
+              disabled={isLoading || isSSOLoading}
+              activeOpacity={0.8}
+            >
+              {isSSOLoading ? (
+                <ActivityIndicator size="small" color="#4285F4" />
+              ) : (
+                <>
+                  <View style={styles.ssoIconWrapper}>
+                    <GoogleLogo size={ms(20)} />
+                  </View>
+                  <Text style={[styles.ssoButtonText, { color: isDark ? '#FFFFFF' : '#3C4043' }]}>
+                    Sign in with Google
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
+
           <Animated.View
             entering={FadeInUp.delay(500).springify()}
             style={styles.footer}>
@@ -696,6 +782,44 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: ms(16),
     letterSpacing: 0.5,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: vs(20),
+    paddingHorizontal: ms(8),
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    marginHorizontal: ms(16),
+    fontSize: ms(12),
+    fontWeight: '500',
+  },
+  ssoContainer: {
+    marginTop: vs(16),
+    gap: vs(12),
+  },
+  ssoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: ms(52),
+    borderRadius: ms(26),
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  ssoIconWrapper: {
+    marginRight: ms(10),
+  },
+  ssoButtonText: {
+    fontSize: ms(15),
+    fontWeight: '500',
+    letterSpacing: 0.25,
   },
   footer: {
     alignItems: 'center',

@@ -12,4 +12,6 @@ declare module '@env' {
   export const NOTIFICATION_SUPABASE_URL: string;
   export const NOTIFICATION_SUPABASE_ANON_KEY: string;
   export const ENCRYPTION_KEY: string;
+  export const SSO_AUTH_APP_URL: string;
+  export const GOOGLE_WEB_CLIENT_ID: string;
 }
