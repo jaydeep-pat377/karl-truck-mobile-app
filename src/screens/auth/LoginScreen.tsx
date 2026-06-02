@@ -10,7 +10,9 @@ import {
   StatusBar,
   ActivityIndicator,
   Keyboard,
+  Modal,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -156,7 +158,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
   const { theme, isDark } = useTheme();
   const { t } = useTranslation();
   const { login, isLoading, error: authError, reset: clearError } = useLogin();
-  const { startGoogleSignIn, isLoading: isSSOLoading, error: ssoError, reset: clearSSOError } = useSSOLogin();
+  const {
+    startGoogleSignIn,
+    startMicrosoftSignIn,
+    isLoading: isSSOLoading,
+    error: ssoError,
+    reset: clearSSOError,
+    msAuthState,
+    handleMicrosoftWebViewNavigation,
+    handleMicrosoftWebViewClose,
+  } = useSSOLogin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -535,17 +546,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
                 clearError();
                 clearSSOError();
                 setErrors({});
-                // TODO: implement Microsoft sign-in
+                startMicrosoftSignIn();
               }}
               disabled={isLoading || isSSOLoading}
               activeOpacity={0.8}
             >
-              <View style={styles.ssoIconWrapper}>
-                <MicrosoftLogo size={ms(20)} />
-              </View>
-              <Text style={[styles.ssoButtonText, { color: isDark ? '#FFFFFF' : '#3C4043' }]}>
-                Sign in with Microsoft
-              </Text>
+              {isSSOLoading ? (
+                <ActivityIndicator size="small" color="#00A4EF" />
+              ) : (
+                <>
+                  <View style={styles.ssoIconWrapper}>
+                    <MicrosoftLogo size={ms(20)} />
+                  </View>
+                  <Text style={[styles.ssoButtonText, { color: isDark ? '#FFFFFF' : '#3C4043' }]}>
+                    Sign in with Microsoft
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
 
             {/* Google */}
@@ -593,6 +610,47 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
           </Animated.View>
         </KeyboardAwareScrollView>
       </SafeAreaView>
+
+      {/* Microsoft OAuth WebView Modal */}
+      <Modal
+        visible={msAuthState.visible}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={handleMicrosoftWebViewClose}
+      >
+        <SafeAreaView style={styles.webViewContainer} edges={['top']}>
+          <View style={styles.webViewHeader}>
+            <TouchableOpacity onPress={handleMicrosoftWebViewClose} style={styles.webViewCloseBtn}>
+              <Text style={styles.webViewCloseText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.webViewTitle}>Sign in with Microsoft</Text>
+            <View style={styles.webViewCloseBtn} />
+          </View>
+          {msAuthState.url ? (
+            <WebView
+              source={{ uri: msAuthState.url }}
+              onShouldStartLoadWithRequest={(request) => {
+                return handleMicrosoftWebViewNavigation(request.url);
+              }}
+              onNavigationStateChange={(navState) => {
+                if (navState.url) {
+                  handleMicrosoftWebViewNavigation(navState.url);
+                }
+              }}
+              startInLoadingState
+              renderLoading={() => (
+                <View style={styles.webViewLoading}>
+                  <ActivityIndicator size="large" color={colors.primary.main} />
+                </View>
+              )}
+              javaScriptEnabled
+              domStorageEnabled
+              sharedCookiesEnabled
+              style={styles.webView}
+            />
+          ) : null}
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 };
@@ -830,6 +888,46 @@ const styles = StyleSheet.create({
   },
   footerBrand: {
     fontWeight: '600',
+  },
+  webViewContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  webViewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#fff',
+  },
+  webViewCloseBtn: {
+    width: 60,
+  },
+  webViewCloseText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  webViewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  webView: {
+    flex: 1,
+  },
+  webViewLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
   },
 });
 

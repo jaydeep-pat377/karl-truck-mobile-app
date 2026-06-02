@@ -43,7 +43,10 @@ export const useLogin = () => {
   const mutation = useMutation<LoginResponse, AxiosError<ApiErrorResponse>, LoginParams>({
     mutationFn: async ({ email, password, deviceToken }: LoginParams) => {
       // Federated login to get tenant backend_url
+      console.log('[useLogin] ====== FEDERATED LOGIN START ======');
+      console.log('[useLogin] Step 1 — federatedLogin params:', JSON.stringify({ email, password: '***' }));
       const federatedResponse = await authService.federatedLogin(email, password);
+      console.log('[useLogin] Step 1 — federatedLogin response:', JSON.stringify(federatedResponse, null, 2));
       if (!federatedResponse.success || !federatedResponse.data?.tenant?.backend_url) {
         throw new Error(federatedResponse.message || 'Federated login failed');
       }
@@ -71,7 +74,26 @@ export const useLogin = () => {
         password,
         device_info: getDeviceInfo(deviceToken),
       };
-      return authService.login(credentials, federatedResponse.data.code, federatedResponse.data.client_secret);
+      console.log('[useLogin] Step 2 — exchange-code params:', JSON.stringify({
+        code: federatedResponse.data.code,
+        client_secret: federatedResponse.data.client_secret ? '***' : undefined,
+        device_info: credentials.device_info,
+      }));
+      console.log('[useLogin] Step 2 — exchange-code baseURL:', `${backendUrl}/auth/mobile/exchange-code`);
+      const exchangeResponse = await authService.login(credentials, federatedResponse.data.code, federatedResponse.data.client_secret);
+      console.log('[useLogin] Step 2 — exchange-code response:', JSON.stringify({
+        success: exchangeResponse.success,
+        hasUser: !!exchangeResponse.data?.user,
+        userId: exchangeResponse.data?.user?.id,
+        userEmail: exchangeResponse.data?.user?.email,
+        hasAccessToken: !!exchangeResponse.data?.accessToken,
+        hasRefreshToken: !!exchangeResponse.data?.refreshToken,
+        backendUrl: exchangeResponse.data?.user?.metadata?.tenant?.tenant_backend_url,
+        tenant: exchangeResponse.data?.tenant,
+        timezone: exchangeResponse.data?.timezone,
+      }, null, 2));
+      console.log('[useLogin] ====== FEDERATED LOGIN END ======');
+      return exchangeResponse;
     },
     onSuccess: async (response) => {
       if (response.success && response.data) {
