@@ -17,6 +17,8 @@ interface Props {
   insights: DashboardInsight[];
   onSave?: () => void;
   saving?: boolean;
+  /** Saved-dashboard id (enables per-widget comments); null for a live/unsaved dashboard. */
+  dashboardId?: string | null;
 }
 
 const SHEET_H_PADDING = spacing.lg; // BottomSheet content horizontal padding
@@ -28,6 +30,7 @@ export const DashboardSheet: React.FC<Props> = ({
   insights,
   onSave,
   saving,
+  dashboardId,
 }) => {
   const theme = useAppTheme();
   const { width } = useWindowDimensions();
@@ -76,7 +79,7 @@ export const DashboardSheet: React.FC<Props> = ({
           )}
           {insights.length > 0 && <InsightsBanner insights={insights} />}
           {dashboard.widgets.map((w) => (
-            <WidgetRenderer key={w.id} widget={w} width={contentWidth} />
+            <WidgetRenderer key={w.id} widget={w} width={contentWidth} dashboardId={dashboardId} />
           ))}
         </View>
       )}
