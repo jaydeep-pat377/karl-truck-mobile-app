@@ -261,6 +261,8 @@ export type RootStackParamList = {
   Appointments: NavigatorScreenParams<AppointmentsStackParamList>;
   OrderProductDetails: OrderProductDetailsScreenParams;
   WebView: WebViewScreenParams;
+  AIAssistant: { initialMessage?: string } | undefined;
+  AISettings: undefined;
 };
 
 export type AuthStackScreenProps<T extends keyof AuthStackParamList> =

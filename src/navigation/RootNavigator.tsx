@@ -22,6 +22,8 @@ const LazyEvaporationListScreen = lazy(() => import('../screens/weather/Evaporat
 const LazyOrderTrackingScreen = lazy(() => import('../screens/tracking/OrderTrackingScreen'));
 const LazyChatRoomScreen = lazy(() => import('../screens/chat/ChatRoomScreen'));
 const LazyWebViewScreen = lazy(() => import('../screens/settings/WebViewScreen'));
+const LazyAIAssistantScreen = lazy(() => import('../screens/ai/AIAssistantScreen'));
+const LazyAISettingsScreen = lazy(() => import('../screens/ai/AISettingsScreen'));
 
 const withSuspense = (LazyComponent: React.LazyExoticComponent<React.ComponentType<any>>) => {
   return (props: any) => (
@@ -43,6 +45,8 @@ const EvaporationListScreen = withSuspense(LazyEvaporationListScreen);
 const OrderTrackingScreen = withSuspense(LazyOrderTrackingScreen);
 const ChatRoomScreen = withSuspense(LazyChatRoomScreen);
 const WebViewScreen = withSuspense(LazyWebViewScreen);
+const AIAssistantScreen = withSuspense(LazyAIAssistantScreen);
+const AISettingsScreen = withSuspense(LazyAISettingsScreen);
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -165,6 +169,20 @@ export const RootNavigator: React.FC = () => {
           <Stack.Screen
             name="WebView"
             component={WebViewScreen}
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="AIAssistant"
+            component={AIAssistantScreen}
+            options={{
+              animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen
+            name="AISettings"
+            component={AISettingsScreen}
             options={{
               animation: 'slide_from_right',
             }}

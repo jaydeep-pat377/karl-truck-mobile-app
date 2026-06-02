@@ -9,6 +9,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  PanResponder,
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,7 +25,8 @@ export interface BottomSheetProps {
   title?: string;
   subtitle?: string;
   children: React.ReactNode;
-  height?: number | 'auto' | 'full';
+  /** 'content' wraps the children's height (capped at 90%); 'auto' = 85%; 'full' = near full-screen. */
+  height?: number | 'auto' | 'full' | 'content';
   showHandle?: boolean;
   showCloseButton?: boolean;
   headerIcon?: string;
@@ -55,25 +57,31 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const isClosing = useRef(false);
 
+  const isContent = height === 'content';
+  const maxSheetHeight = screenHeight - insets.top - ms(20);
   const sheetHeight: number = height === 'full'
-    ? screenHeight - insets.top - ms(20)
+    ? maxSheetHeight
     : height === 'auto'
       ? screenHeight * 0.85
-      : (height as number);
+      : isContent
+        ? 0 // unused — content mode wraps the children instead
+        : (height as number);
 
   const openSheet = useCallback(() => {
     isClosing.current = false;
     Animated.parallel([
+      // slideAnim uses the JS driver so it can follow the finger during a
+      // swipe-to-close drag (setValue on a native-driven value won't move it).
       Animated.spring(slideAnim, {
         toValue: 0,
-        useNativeDriver: true,
+        useNativeDriver: false,
         tension: 50,
         friction: 12,
       }),
       Animated.timing(backdropAnim, {
         toValue: 1,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
   }, [slideAnim, backdropAnim]);
@@ -86,17 +94,47 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       Animated.timing(slideAnim, {
         toValue: screenHeight,
         duration: 250,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(backdropAnim, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start(() => {
       onClose();
     });
   }, [slideAnim, backdropAnim, onClose, screenHeight]);
+
+  // Swipe-down-to-close: attached to the handle + header so it never fights
+  // the scrollable content below.
+  const closeRef = useRef(closeSheet);
+  closeRef.current = closeSheet;
+  const springBack = useCallback(() => {
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      useNativeDriver: false,
+      tension: 60,
+      friction: 12,
+    }).start();
+  }, [slideAnim]);
+  const dragResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_e: any, g: { dx: number; dy: number }) =>
+        g.dy > 4 && Math.abs(g.dy) > Math.abs(g.dx),
+      onMoveShouldSetPanResponderCapture: (_e: any, g: { dx: number; dy: number }) =>
+        g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+      onPanResponderMove: (_e: any, g: { dy: number }) => {
+        if (g.dy > 0) slideAnim.setValue(g.dy);
+      },
+      onPanResponderRelease: (_e: any, g: { dy: number; vy: number }) => {
+        if (g.dy > 90 || g.vy > 0.8) closeRef.current();
+        else springBack();
+      },
+      onPanResponderTerminate: () => springBack(),
+    }),
+  ).current;
 
   useEffect(() => {
     if (visible) {
@@ -145,29 +183,30 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             styles.sheet,
             {
               backgroundColor: themeColors.card,
-              height: sheetHeight,
               transform: [{ translateY: slideAnim }],
             },
+            isContent ? { maxHeight: maxSheetHeight } : { height: sheetHeight },
           ]}
         >
 
-          {showHandle && (
-            <View style={styles.handleContainer}>
-              <View
-                style={[
-                  styles.handle,
-                  { backgroundColor: isDark ? colors.grey[50] : colors.grey[25] },
-                ]}
-              />
-            </View>
-          )}
+          <View {...dragResponder.panHandlers}>
+            {showHandle && (
+              <View style={styles.handleContainer}>
+                <View
+                  style={[
+                    styles.handle,
+                    { backgroundColor: isDark ? colors.grey[50] : colors.grey[25] },
+                  ]}
+                />
+              </View>
+            )}
 
 
-          {(title || showCloseButton) && (
-            <View style={[
-              styles.header,
-              { borderBottomColor: isDark ? themeColors.border : colors.grey[10] }
-            ]}>
+            {(title || showCloseButton) && (
+              <View style={[
+                styles.header,
+                { borderBottomColor: isDark ? themeColors.border : colors.grey[10] }
+              ]}>
               <View style={styles.headerLeft}>
                 {headerIcon && (
                   <View
@@ -219,12 +258,12 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
               )}
             </View>
           )}
+          </View>
 
-
-{disableScroll ? (
+          {disableScroll ? (
             <View
               style={[
-                styles.scrollView,
+                !isContent && styles.scrollView,
                 styles.contentContainer,
                 { paddingBottom: insets.bottom + ms(16) }
               ]}
@@ -233,13 +272,13 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             </View>
           ) : (
             <ScrollView
-              style={styles.scrollView}
+              style={isContent ? styles.scrollViewContent : styles.scrollView}
               contentContainerStyle={[
                 styles.contentContainer,
                 { paddingBottom: insets.bottom + ms(16) }
               ]}
-              showsVerticalScrollIndicator={true}
-              bounces={true}
+              showsVerticalScrollIndicator={!isContent}
+              bounces={!isContent}
               keyboardShouldPersistTaps="handled"
             >
               {children}
@@ -320,6 +359,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 0,
+    flexShrink: 1,
   },
   contentContainer: {
     paddingHorizontal: spacing.lg,

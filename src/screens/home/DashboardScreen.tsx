@@ -37,6 +37,7 @@ import { DeliveryProgress } from '../../types/order';
 import Svg, { Defs, Pattern, Line, Rect } from 'react-native-svg';
 import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { WorkspaceSwitcher } from '../../components/workspace';
+import { AiAssistantFab } from '../../components/ai-assistant';
 
 const getSegmentColor = (status: string): string => {
   const statusColorMap: Record<string, string> = {
@@ -1153,6 +1154,8 @@ const DashboardScreen: React.FC = () => {
 
         <View style={{ height: TAB_BAR_HEIGHT + spacing.lg }} />
       </ScrollView>
+
+      <AiAssistantFab bottom={TAB_BAR_HEIGHT + spacing.lg} />
     </SafeAreaView>
   );
 };

@@ -14,4 +14,5 @@ declare module '@env' {
   export const ENCRYPTION_KEY: string;
   export const SSO_AUTH_APP_URL: string;
   export const GOOGLE_WEB_CLIENT_ID: string;
+  export const AI_BASE_URL: string;
 }
