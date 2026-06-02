@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Text, Icon, BottomSheet, AlertModal } from '../common';
+import { ShareDashboardSheet } from './ShareDashboardSheet';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { ms, spacing } from '../../utils/responsive';
 import { aiAssistantService } from '../../api/services/aiAssistantService';
@@ -25,6 +26,7 @@ export const SavedDashboardsSheet: React.FC<Props> = ({ visible, onClose, onOpen
   const [error, setError] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [shareTarget, setShareTarget] = useState<{ id: string; title: string | null } | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -101,7 +103,16 @@ export const SavedDashboardsSheet: React.FC<Props> = ({ visible, onClose, onOpen
         )}
       </TouchableOpacity>
       {canDelete && (
-        <TouchableOpacity onPress={() => setConfirmId(id)} hitSlop={styles.hit}>
+        <TouchableOpacity
+          onPress={() => setShareTarget({ id, title })}
+          hitSlop={styles.hit}
+          style={styles.rowAction}
+        >
+          <Icon name="share-variant-outline" size={ms(16)} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
+      )}
+      {canDelete && (
+        <TouchableOpacity onPress={() => setConfirmId(id)} hitSlop={styles.hit} style={styles.rowAction}>
           <Icon name="trash-can-outline" size={ms(16)} color={theme.colors.textHint} />
         </TouchableOpacity>
       )}
@@ -191,6 +202,13 @@ export const SavedDashboardsSheet: React.FC<Props> = ({ visible, onClose, onOpen
         ]}
         onClose={() => setConfirmId(null)}
       />
+
+      <ShareDashboardSheet
+        visible={!!shareTarget}
+        onClose={() => setShareTarget(null)}
+        dashboardId={shareTarget?.id ?? null}
+        dashboardTitle={shareTarget?.title}
+      />
     </BottomSheet>
   );
 };
@@ -210,6 +228,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   rowMain: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  rowAction: { marginLeft: spacing.sm },
   title: { marginLeft: spacing.sm, flex: 1 },
   hit: { top: 10, bottom: 10, left: 10, right: 10 },
   retryBtn: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md },

@@ -1,9 +1,10 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import type { Widget } from '../../../types/ai-assistant';
 import { useAppTheme } from '../../../contexts/ThemeContext';
 import { ms, spacing } from '../../../utils/responsive';
-import { Text } from '../../../components/common';
+import { Text, AlertModal } from '../../../components/common';
+import { aiAssistantService } from '../../../api/services/aiAssistantService';
 
 const MAX_ROWS = 50;
 const CELL_MIN_WIDTH = ms(110);
@@ -26,11 +27,47 @@ function cellText(value: unknown): string {
 export function DataTableWidget({
   widget,
   maxHeight,
+  enableExplain,
 }: {
   widget: Widget;
   maxHeight?: number;
+  /** When true, tapping a row asks the AI to explain that group. */
+  enableExplain?: boolean;
 }) {
   const theme = useAppTheme();
+  const w = widget as unknown as {
+    query?: { table?: string; filters?: unknown[] };
+    aggregate?: { groupBy?: string; method?: string; valueColumn?: string };
+  };
+  const [explainOpen, setExplainOpen] = useState(false);
+  const [explaining, setExplaining] = useState(false);
+  const [explanation, setExplanation] = useState<string | null>(null);
+
+  const canExplain = !!enableExplain && !!w.query?.table;
+
+  const explainRow = async (rec: Record<string, unknown>) => {
+    if (!canExplain) return;
+    const colKey = w.aggregate?.groupBy || effectiveColumns[0];
+    setExplanation(null);
+    setExplaining(true);
+    setExplainOpen(true);
+    try {
+      const res = await aiAssistantService.explainCell({
+        widgetId: widget.id,
+        widgetTitle: widget.title,
+        widgetType: widget.type,
+        columnKey: colKey,
+        columnValue: rec[colKey] as string | number,
+        query: w.query,
+        aggregate: w.aggregate,
+      });
+      setExplanation(res.explanation);
+    } catch (e: any) {
+      setExplanation(e?.message ?? 'Could not explain this row.');
+    } finally {
+      setExplaining(false);
+    }
+  };
 
   const columns = Array.isArray(widget.data?.columns) ? widget.data!.columns! : [];
   const allRows = Array.isArray(widget.data?.rows) ? widget.data!.rows! : [];
@@ -57,6 +94,7 @@ export function DataTableWidget({
   const overflow = allRows.length - rows.length;
 
   return (
+    <>
     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
       <View>
         <ScrollView
@@ -85,9 +123,12 @@ export function DataTableWidget({
           {rows.map((row, r) => {
             const rec = (row && typeof row === 'object' ? row : {}) as Record<string, unknown>;
             return (
-              <View
+              <TouchableOpacity
                 key={`r-${r}`}
                 style={[styles.row, { borderColor: theme.colors.border }]}
+                activeOpacity={canExplain ? 0.6 : 1}
+                disabled={!canExplain}
+                onPress={() => explainRow(rec)}
               >
                 {effectiveColumns.map((col, c) => (
                   <View key={`c-${r}-${c}`} style={[styles.cell, { borderColor: theme.colors.border }]}>
@@ -96,7 +137,7 @@ export function DataTableWidget({
                     </Text>
                   </View>
                 ))}
-              </View>
+              </TouchableOpacity>
             );
           })}
 
@@ -112,6 +153,18 @@ export function DataTableWidget({
         </ScrollView>
       </View>
     </ScrollView>
+    {canExplain && (
+      <AlertModal
+        visible={explainOpen}
+        type="info"
+        icon="lightbulb-on-outline"
+        title="Explanation"
+        message={explaining ? 'Analyzing…' : explanation ?? ''}
+        buttons={[{ text: 'Close', style: 'default' }]}
+        onClose={() => setExplainOpen(false)}
+      />
+    )}
+    </>
   );
 }
 

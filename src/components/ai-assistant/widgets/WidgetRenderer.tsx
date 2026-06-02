@@ -9,7 +9,13 @@ import { DataTableWidget } from './DataTableWidget';
 import { BarChartWidget } from './BarChartWidget';
 import { LineChartWidget } from './LineChartWidget';
 import { PieChartWidget } from './PieChartWidget';
+import { ScatterChartWidget } from './ScatterChartWidget';
+import { RadarChartWidget } from './RadarChartWidget';
+import { ComposedChartWidget } from './ComposedChartWidget';
+import { TreemapWidget } from './TreemapWidget';
+import { RadialBarChartWidget } from './RadialBarChartWidget';
 import { WidgetActions } from './WidgetActions';
+import { EmptyHint } from './EmptyHint';
 
 const CARD_PADDING = spacing.md;
 
@@ -25,7 +31,15 @@ function hasData(widget: Widget): boolean {
   return Array.isArray(data.rows) && data.rows.length > 0;
 }
 
-export function WidgetRenderer({ widget, width }: { widget: Widget; width: number }) {
+export function WidgetRenderer({
+  widget,
+  width,
+  dashboardId,
+}: {
+  widget: Widget;
+  width: number;
+  dashboardId?: string | null;
+}) {
   const theme = useAppTheme();
 
   // Width available to the body once card padding is removed.
@@ -44,20 +58,14 @@ export function WidgetRenderer({ widget, width }: { widget: Widget; width: numbe
     }
 
     if (!hasData(widget)) {
-      return (
-        <View style={styles.emptyWrap}>
-          <Text variant="bodySmall" color="hint">
-            No data
-          </Text>
-        </View>
-      );
+      return <EmptyHint widget={widget} />;
     }
 
     switch (widget.type) {
       case 'kpi-card':
         return <KpiCardWidget widget={widget} />;
       case 'data-table':
-        return <DataTableWidget widget={widget} maxHeight={ms(280)} />;
+        return <DataTableWidget widget={widget} maxHeight={ms(280)} enableExplain />;
       case 'text-summary':
         return (
           <Text variant="body" color="primary">
@@ -68,12 +76,19 @@ export function WidgetRenderer({ widget, width }: { widget: Widget; width: numbe
       case 'area-chart':
         return <LineChartWidget widget={widget} width={innerWidth} />;
       case 'pie-chart':
-      case 'treemap':
-      case 'radial-bar-chart':
         return <PieChartWidget widget={widget} width={innerWidth} />;
+      case 'treemap':
+        return <TreemapWidget widget={widget} width={innerWidth} />;
+      case 'radial-bar-chart':
+        return <RadialBarChartWidget widget={widget} width={innerWidth} />;
+      case 'scatter-chart':
+        return <ScatterChartWidget widget={widget} width={innerWidth} />;
+      case 'radar-chart':
+        return <RadarChartWidget widget={widget} width={innerWidth} />;
+      case 'composed-chart':
+        return <ComposedChartWidget widget={widget} width={innerWidth} />;
       default:
-        // bar-chart, horizontal-bar-chart, stacked-bar-chart, scatter-chart,
-        // radar-chart, composed-chart.
+        // bar-chart, horizontal-bar-chart, stacked-bar-chart
         return <BarChartWidget widget={widget} width={innerWidth} />;
     }
   };
@@ -98,7 +113,7 @@ export function WidgetRenderer({ widget, width }: { widget: Widget; width: numbe
             </Text>
           )}
         </View>
-        <WidgetActions widget={widget} />
+        <WidgetActions widget={widget} dashboardId={dashboardId} />
       </View>
       <View style={styles.body}>{renderBody()}</View>
     </View>

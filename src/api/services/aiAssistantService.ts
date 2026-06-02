@@ -259,6 +259,86 @@ export const aiAssistantService = {
     const suffix = params.length ? `?${params.join('&')}` : '';
     return apiClient.get<AiUsagePayload>(`/ai/config/usage${suffix}`);
   },
+
+  /* ---- Widget Info raw rows, cell explain, empty-state hint ---- */
+  getRawRows: async (body: {
+    table: string;
+    filters?: unknown[];
+    order?: { column: string; ascending?: boolean };
+    limit?: number;
+  }): Promise<{ columns: string[]; rows: Record<string, unknown>[] }> => {
+    return apiClient.post('/ai/raw-rows', body);
+  },
+
+  explainCell: async (body: Record<string, unknown>): Promise<{ explanation: string }> => {
+    return apiClient.post('/ai/explain-cell', body);
+  },
+
+  emptyHint: async (body: Record<string, unknown>): Promise<{ hint: string }> => {
+    return apiClient.post('/ai/empty-hint', body);
+  },
+
+  recordFeedback: async (body: {
+    auditLogId: number;
+    rating: 'up' | 'down';
+    comment?: string | null;
+  }): Promise<{ success: boolean }> => {
+    return apiClient.post('/ai/feedback', body);
+  },
+
+  /* ---- Dashboard sharing ---- */
+  getShareInfo: async (
+    id: string,
+  ): Promise<{
+    shares: Array<{ id: string; shared_with_user_id: string; created_at: string }>;
+    publicToken: string | null;
+    isPublic: boolean;
+  }> => {
+    return apiClient.get(`/ai/dashboards/${id}/share`);
+  },
+
+  applyShare: async (
+    id: string,
+    body:
+      | { action: 'invite'; email: string }
+      | { action: 'generateLink' }
+      | { action: 'revokeLink' },
+  ): Promise<any> => {
+    return apiClient.post(`/ai/dashboards/${id}/share`, body);
+  },
+
+  revokeShare: async (id: string, sharedWithUserId: string): Promise<void> => {
+    await apiClient.delete(`/ai/dashboards/${id}/share`, { data: { sharedWithUserId } });
+  },
+
+  /* ---- Widget comments (on saved dashboards) ---- */
+  listComments: async (
+    id: string,
+    widgetId?: string,
+  ): Promise<{
+    comments: Array<{
+      id: string;
+      widget_id: string;
+      user_id: string;
+      body: string;
+      parent_id: string | null;
+      created_at: string;
+    }>;
+  }> => {
+    const suffix = widgetId ? `?widgetId=${encodeURIComponent(widgetId)}` : '';
+    return apiClient.get(`/ai/dashboards/${id}/comments${suffix}`);
+  },
+
+  addComment: async (
+    id: string,
+    body: { widgetId: string; body: string; parentId?: string | null },
+  ): Promise<any> => {
+    return apiClient.post(`/ai/dashboards/${id}/comments`, body);
+  },
+
+  deleteComment: async (id: string, commentId: string): Promise<void> => {
+    await apiClient.delete(`/ai/dashboards/${id}/comments/${commentId}`);
+  },
 };
 
 class AbortLikeError extends Error {

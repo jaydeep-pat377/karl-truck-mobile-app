@@ -70,6 +70,14 @@ export const AIAssistantScreen: React.FC = () => {
   const [dashOpen, setDashOpen] = useState(false);
   const [savedOpen, setSavedOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  // id of the saved dashboard currently being viewed (enables comments);
+  // null when viewing a freshly-generated/unsaved dashboard.
+  const [savedDashboardId, setSavedDashboardId] = useState<string | null>(null);
+
+  // A new chat turn replaces the dashboard, so it's no longer the saved one.
+  useEffect(() => {
+    if (status === 'submitted') setSavedDashboardId(null);
+  }, [status]);
   const listRef = useRef<FlatList<AiMessage>>(null);
   const busy = status !== 'idle';
   const model = getModelDef(modelId);
@@ -100,10 +108,16 @@ export const AIAssistantScreen: React.FC = () => {
   const handleOpenSaved = useCallback(
     (d: SavedDashboardFull) => {
       showDashboard({ title: d.title || 'Dashboard', widgets: d.widgets });
+      setSavedDashboardId(d.id);
       setDashOpen(true);
     },
     [showDashboard],
   );
+
+  const handleNewChat = useCallback(() => {
+    setSavedDashboardId(null);
+    newChat();
+  }, [newChat]);
 
   // Optional: auto-send an initial message passed via navigation params.
   const initialSentRef = useRef(false);
@@ -188,7 +202,7 @@ export const AIAssistantScreen: React.FC = () => {
         </TouchableOpacity>
 
         <View style={styles.headerActions}>
-          {headerBtn('plus', newChat, 'New chat')}
+          {headerBtn('plus', handleNewChat, 'New chat')}
           {headerBtn('bookmark-multiple-outline', () => setSavedOpen(true), 'Saved dashboards')}
           {headerBtn('history', () => setHistoryOpen(true), 'History', !!threadId)}
           {headerBtn('cog-outline', () => (navigation as any).navigate('AISettings'), 'AI settings')}
@@ -272,7 +286,7 @@ export const AIAssistantScreen: React.FC = () => {
         onClose={() => setHistoryOpen(false)}
         currentThreadId={threadId}
         onSelect={loadThread}
-        onNew={newChat}
+        onNew={handleNewChat}
       />
       <DashboardSheet
         visible={dashOpen}
@@ -281,6 +295,7 @@ export const AIAssistantScreen: React.FC = () => {
         insights={insights}
         onSave={handleSaveDashboard}
         saving={saving}
+        dashboardId={savedDashboardId}
       />
       <SavedDashboardsSheet
         visible={savedOpen}

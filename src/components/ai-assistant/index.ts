@@ -6,6 +6,8 @@ export { AiModelSelector } from './AiModelSelector';
 export { AiHistorySheet } from './AiHistorySheet';
 export { DashboardSheet } from './DashboardSheet';
 export { SavedDashboardsSheet } from './SavedDashboardsSheet';
+export { ShareDashboardSheet } from './ShareDashboardSheet';
+export { WidgetCommentsSheet } from './WidgetCommentsSheet';
 export { AiAssistantFab } from './AiAssistantFab';
 export { AiToolStep } from './AiToolStep';
 export { AiTypingDots } from './AiTypingDots';

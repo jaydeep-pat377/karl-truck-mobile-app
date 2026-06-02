@@ -12,6 +12,7 @@ import { colors } from '../../../theme/colors';
 import { aiAssistantService } from '../../../api/services/aiAssistantService';
 import { shareWidgetCsv } from './widgetExport';
 import { DataTableWidget } from './DataTableWidget';
+import { WidgetCommentsSheet } from '../WidgetCommentsSheet';
 import { formatValue } from './chartUtils';
 import type { Widget, VerifyResult, VerifyStatus } from '../../../types/ai-assistant';
 
@@ -47,13 +48,23 @@ const OP_LABEL: Record<string, string> = {
   in: 'in', not_in: 'not in', like: 'like', ilike: 'ilike', is: 'is', is_not: 'is not',
 };
 
-export function WidgetActions({ widget }: { widget: Widget }) {
+export function WidgetActions({
+  widget,
+  dashboardId,
+}: {
+  widget: Widget;
+  dashboardId?: string | null;
+}) {
   const theme = useAppTheme();
   const [infoOpen, setInfoOpen] = useState(false);
   const [verifyOpen, setVerifyOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const [status, setStatus] = useState<VerifyStatus>('idle');
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<'aggregated' | 'raw'>('aggregated');
+  const [rawData, setRawData] = useState<{ columns: string[]; rows: Record<string, unknown>[] } | null>(null);
+  const [rawLoading, setRawLoading] = useState(false);
 
   const query = (widget as unknown as { query?: QueryConfig }).query;
   const aggregate = (widget as unknown as { aggregate?: AggregateConfig }).aggregate;
@@ -88,6 +99,32 @@ export function WidgetActions({ widget }: { widget: Widget }) {
     }
   };
 
+  const loadRaw = async () => {
+    setTab('raw');
+    if (rawData || rawLoading || !query?.table) return;
+    setRawLoading(true);
+    try {
+      const data = await aiAssistantService.getRawRows({
+        table: query.table,
+        filters: query.filters,
+        limit: 100,
+      });
+      setRawData(data);
+    } catch {
+      setRawData({ columns: [], rows: [] });
+    } finally {
+      setRawLoading(false);
+    }
+  };
+
+  const rawWidget = rawData
+    ? ({
+        ...widget,
+        type: 'data-table',
+        data: { columns: rawData.columns, rows: rawData.rows },
+      } as Widget)
+    : null;
+
   const meta = STATUS_META[status];
   const verifyColor = meta.color(theme);
 
@@ -111,6 +148,16 @@ export function WidgetActions({ widget }: { widget: Widget }) {
           accessibilityLabel="Download CSV"
         >
           <Icon name="tray-arrow-down" size={ms(16)} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
+      )}
+      {!!dashboardId && (
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => setCommentsOpen(true)}
+          hitSlop={styles.hit}
+          accessibilityLabel="Comments"
+        >
+          <Icon name="comment-text-outline" size={ms(16)} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       )}
       {canVerify && (
@@ -165,9 +212,43 @@ export function WidgetActions({ widget }: { widget: Widget }) {
             </Text>
           </Section>
         )}
-        {hasRows && (
-          <Section label={`DATA (${rows!.length} rows)`}>
-            <DataTableWidget widget={widget} maxHeight={ms(320)} />
+        {(hasRows || query?.table) && (
+          <Section label="DATA">
+            <View style={styles.tabs}>
+              <TouchableOpacity
+                style={[styles.tab, tab === 'aggregated' && { borderColor: theme.colors.primary.main }]}
+                onPress={() => setTab('aggregated')}
+              >
+                <Text variant="caption" color={tab === 'aggregated' ? 'primary' : 'secondary'}>
+                  Aggregated
+                </Text>
+              </TouchableOpacity>
+              {!!query?.table && (
+                <TouchableOpacity
+                  style={[styles.tab, tab === 'raw' && { borderColor: theme.colors.primary.main }]}
+                  onPress={loadRaw}
+                >
+                  <Text variant="caption" color={tab === 'raw' ? 'primary' : 'secondary'}>
+                    Raw rows
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {tab === 'aggregated' ? (
+              hasRows ? (
+                <DataTableWidget widget={widget} maxHeight={ms(320)} />
+              ) : (
+                <Text variant="caption" color="hint">No aggregated data.</Text>
+              )
+            ) : rawLoading ? (
+              <View style={styles.center}>
+                <ActivityIndicator color={theme.colors.primary.main} />
+              </View>
+            ) : rawWidget && rawData && rawData.rows.length > 0 ? (
+              <DataTableWidget widget={rawWidget} maxHeight={ms(320)} />
+            ) : (
+              <Text variant="caption" color="hint">No matching rows.</Text>
+            )}
           </Section>
         )}
       </BottomSheet>
@@ -231,6 +312,16 @@ export function WidgetActions({ widget }: { widget: Widget }) {
           </View>
         )}
       </BottomSheet>
+
+      {!!dashboardId && (
+        <WidgetCommentsSheet
+          visible={commentsOpen}
+          onClose={() => setCommentsOpen(false)}
+          dashboardId={dashboardId}
+          widgetId={widget.id}
+          widgetTitle={widget.title}
+        />
+      )}
     </View>
   );
 }
@@ -287,6 +378,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   sectionLabel: { letterSpacing: 0.5, marginBottom: spacing.xs },
+  tabs: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
+  tab: { borderWidth: StyleSheet.hairlineWidth, borderRadius: ms(8), paddingHorizontal: spacing.md, paddingVertical: ms(5) },
   mono: { fontFamily: 'monospace' as any },
   center: { alignItems: 'center', paddingVertical: spacing.lg },
   loadingText: { marginTop: spacing.sm, textAlign: 'center' },
