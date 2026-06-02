@@ -32,15 +32,23 @@ import { DeviceInfo } from '../types/user';
 import { decryptValue } from '../utils/encryption';
 import { initializeTenantSupabase } from '../services/supabase/supabaseClient';
 import { notificationService } from '../services/notificationService';
-import { FEDERATED_AUTH_URL, FORCE_BACKEND_URL, GOOGLE_WEB_CLIENT_ID } from '@env';
+import {
+  FEDERATED_AUTH_URL,
+  FORCE_BACKEND_URL,
+  GOOGLE_WEB_CLIENT_ID,
+  MICROSOFT_OAUTH_CLIENT_ID,
+  MICROSOFT_OAUTH_CLIENT_SECRET,
+  MICROSOFT_REDIRECT_URI,
+} from '@env';
 
-const FEDERATED_URL = FEDERATED_AUTH_URL || 'https://admin.truckast.ai/api';
+const FEDERATED_URL = FEDERATED_AUTH_URL;
 
 // Microsoft OAuth — direct from mobile
-const MS_CLIENT_ID = '9c2d902a-153e-40e6-a91b-2f15b34d98ca';
+const MS_CLIENT_ID = MICROSOFT_OAUTH_CLIENT_ID;
+const MS_CLIENT_SECRET = MICROSOFT_OAUTH_CLIENT_SECRET;
 const MS_AUTHORIZE_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize';
 const MS_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
-const MS_REDIRECT_URI = 'https://auth.truckast.ai/api/auth/oauth/microsoft/callback';
+const MS_REDIRECT_URI = MICROSOFT_REDIRECT_URI;
 const MS_SCOPES = 'openid email profile User.Read';
 
 // ---------- helpers ----------
@@ -337,7 +345,7 @@ export const useSSOLogin = () => {
       // Exchange code for access_token using PKCE
       const tokenBody = new URLSearchParams({
         client_id: MS_CLIENT_ID,
-        client_secret: 'gvN8Q~H9cdUiFTY75OjIL~PRWPA.UMHOJfVnycsW',
+        client_secret: MS_CLIENT_SECRET,
         grant_type: 'authorization_code',
         code,
         redirect_uri: MS_REDIRECT_URI,
