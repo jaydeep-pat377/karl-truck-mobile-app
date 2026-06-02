@@ -168,6 +168,7 @@ export const useSSOLogin = () => {
   const { setAuth } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeProvider, setActiveProvider] = useState<'google' | 'microsoft' | null>(null);
 
   // WebView state for Microsoft auth
   const [msAuthState, setMsAuthState] = useState<MicrosoftAuthState>({
@@ -225,6 +226,7 @@ export const useSSOLogin = () => {
   const startGoogleSignIn = useCallback(async () => {
     setError(null);
     setIsLoading(true);
+    setActiveProvider('google');
     try {
       ensureGoogleConfigured();
       await GoogleSignin.hasPlayServices();
@@ -294,6 +296,7 @@ export const useSSOLogin = () => {
   const startMicrosoftSignIn = useCallback(async () => {
     setError(null);
     setIsLoading(true);
+    setActiveProvider('microsoft');
 
     try {
       const codeVerifier = randomBase64Url(64);
@@ -415,12 +418,14 @@ export const useSSOLogin = () => {
   const reset = useCallback(() => {
     setError(null);
     setIsLoading(false);
+    setActiveProvider(null);
   }, []);
 
   return {
     startGoogleSignIn,
     startMicrosoftSignIn,
     isLoading,
+    activeProvider,
     error,
     reset,
     // Microsoft WebView state — LoginScreen renders the WebView using these

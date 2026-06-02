@@ -162,6 +162,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
     startGoogleSignIn,
     startMicrosoftSignIn,
     isLoading: isSSOLoading,
+    activeProvider,
     error: ssoError,
     reset: clearSSOError,
     msAuthState,
@@ -551,7 +552,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
               disabled={isLoading || isSSOLoading}
               activeOpacity={0.8}
             >
-              {isSSOLoading ? (
+              {isSSOLoading && activeProvider === 'microsoft' ? (
                 <ActivityIndicator size="small" color="#00A4EF" />
               ) : (
                 <>
@@ -583,7 +584,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
               disabled={isLoading || isSSOLoading}
               activeOpacity={0.8}
             >
-              {isSSOLoading ? (
+              {isSSOLoading && activeProvider === 'google' ? (
                 <ActivityIndicator size="small" color="#4285F4" />
               ) : (
                 <>
