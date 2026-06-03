@@ -140,6 +140,7 @@ export interface AiConfigUpdate {
   providerKeys?: {
     googleApiKey?: string | null;
     anthropicApiKey?: string | null;
+    copilotApiKey?: string | null;
     azureApiKey?: string | null;
     azureResourceName?: string | null;
     azureDeployment?: string | null;

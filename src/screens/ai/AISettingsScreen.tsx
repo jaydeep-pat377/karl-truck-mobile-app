@@ -161,6 +161,21 @@ export const AISettingsScreen: React.FC = () => {
     }
   };
 
+  const clearKey = async (field: keyof KeyFields) => {
+    if (!isAdmin || saving) return;
+    setSaving(true);
+    try {
+      await aiAssistantService.updateConfig({ providerKeys: { [field]: null } });
+      setKeys((k) => ({ ...k, [field]: '' }));
+      Toast.show({ type: 'success', text1: 'Key cleared', position: 'top', topOffset: 50 });
+      await load();
+    } catch (e: any) {
+      Toast.show({ type: 'error', text1: 'Clear failed', text2: e?.message, position: 'top', topOffset: 50 });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const addTokens = async () => {
     const n = Number(topup);
     if (!n || n <= 0 || addingTokens) return;
@@ -343,12 +358,13 @@ export const AISettingsScreen: React.FC = () => {
             </Section>
 
             {/* Provider API keys */}
-            <Section theme={theme} title="Provider API keys" subtitle="Stored encrypted. Leave a field blank to keep the current value.">
-              <KeyField theme={theme} label="Google Generative AI key" status={payload?.keyStatus?.google} value={keys.googleApiKey} onChange={(v) => setKeys((k) => ({ ...k, googleApiKey: v }))} secure />
-              <KeyField theme={theme} label="Anthropic API key" status={payload?.keyStatus?.anthropic} value={keys.anthropicApiKey} onChange={(v) => setKeys((k) => ({ ...k, anthropicApiKey: v }))} secure />
-              <KeyField theme={theme} label="Copilot API key (Azure OpenAI)" status={payload?.keyStatus?.copilot} value={keys.copilotApiKey} onChange={(v) => setKeys((k) => ({ ...k, copilotApiKey: v }))} secure />
-              <KeyField theme={theme} label="Azure resource name" status={payload?.keyStatus?.azureResourceName} value={keys.azureResourceName} onChange={(v) => setKeys((k) => ({ ...k, azureResourceName: v }))} />
-              <KeyField theme={theme} label="Azure deployment" status={payload?.keyStatus?.azureDeployment} value={keys.azureDeployment} onChange={(v) => setKeys((k) => ({ ...k, azureDeployment: v }))} />
+            <Section theme={theme} title="Provider API keys" subtitle="Credentials for each provider. Stored encrypted; override the server environment variables. Leave a field blank to keep the current value.">
+              <KeyField theme={theme} label="Google Generative AI API key" status={payload?.keyStatus?.google} value={keys.googleApiKey} onChange={(v) => setKeys((k) => ({ ...k, googleApiKey: v }))} onClear={() => clearKey('googleApiKey')} secure description="Powers Gemini models." />
+              <KeyField theme={theme} label="Anthropic API key" status={payload?.keyStatus?.anthropic} value={keys.anthropicApiKey} onChange={(v) => setKeys((k) => ({ ...k, anthropicApiKey: v }))} onClear={() => clearKey('anthropicApiKey')} secure description="Powers Claude models." />
+              <Text variant="captionSmall" style={{ color: theme.colors.text, fontWeight: '600', marginTop: spacing.xs, marginBottom: spacing.xs }}>Copilot (Azure OpenAI)</Text>
+              <KeyField theme={theme} label="API key" status={payload?.keyStatus?.copilot} value={keys.copilotApiKey} onChange={(v) => setKeys((k) => ({ ...k, copilotApiKey: v }))} onClear={() => clearKey('copilotApiKey')} secure />
+              <KeyField theme={theme} label="Resource name" status={payload?.keyStatus?.azureResourceName} value={keys.azureResourceName} onChange={(v) => setKeys((k) => ({ ...k, azureResourceName: v }))} onClear={() => clearKey('azureResourceName')} description="<name> in <name>.openai.azure.com" />
+              <KeyField theme={theme} label="Deployment name" status={payload?.keyStatus?.azureDeployment} value={keys.azureDeployment} onChange={(v) => setKeys((k) => ({ ...k, azureDeployment: v }))} onClear={() => clearKey('azureDeployment')} description="e.g. gpt-4o" />
             </Section>
 
             {/* Usage */}
@@ -479,36 +495,65 @@ const KeyField = ({
   status,
   value,
   onChange,
+  onClear,
   secure,
+  description,
 }: {
   theme: any;
   label: string;
   status?: ProviderKeyStatus['google'];
   value: string;
   onChange: (v: string) => void;
+  onClear?: () => void;
   secure?: boolean;
-}) => (
-  <View style={styles.keyField}>
-    <View style={styles.keyHeader}>
-      <Text variant="captionSmall" color="hint">{label}</Text>
-      {status && (
-        <Text variant="captionSmall" style={{ color: status.configured ? colors.success.main : theme.colors.textHint }}>
-          {status.source === 'app' ? 'Set in app' : status.source === 'env' ? 'From environment' : 'Not set'}
-        </Text>
-      )}
+  description?: string;
+}) => {
+  const [focused, setFocused] = useState(false);
+  // A key set in-app is stored encrypted; the API never returns the real value,
+  // so render masked dots so the field reads as "filled". The dots are
+  // display-only: the real `value` stays '' (so saving without typing keeps the
+  // existing key). Focusing clears the mask so the user can type a replacement.
+  // Env-sourced keys mirror the web exactly — empty input + "Enter a new value
+  // to replace" placeholder + the "From environment" badge (no dots).
+  const masked = status?.source === 'app' && value === '' && !focused;
+  const canClear = status?.source === 'app' && !!onClear;
+  return (
+    <View style={styles.keyField}>
+      <View style={styles.keyHeader}>
+        <Text variant="captionSmall" color="hint">{label}</Text>
+        <View style={styles.keyHeaderRight}>
+          {canClear && (
+            <TouchableOpacity onPress={onClear} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text variant="captionSmall" style={{ color: colors.error.main, fontWeight: '600' }}>Clear</Text>
+            </TouchableOpacity>
+          )}
+          {status?.source === 'app' ? (
+            <Text variant="captionSmall" style={{ color: colors.success.main }}>Set in app</Text>
+          ) : status?.source === 'env' ? (
+            <Text variant="captionSmall" style={{ color: theme.colors.textSecondary }}>From environment</Text>
+          ) : (
+            <Text variant="captionSmall" style={{ color: theme.colors.textHint }}>Not set</Text>
+          )}
+        </View>
+      </View>
+      <TextInput
+        style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.cardElevated }]}
+        value={masked ? '••••••••' : value}
+        onChangeText={onChange}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        secureTextEntry={secure && !masked}
+        autoCapitalize="none"
+        autoCorrect={false}
+        placeholder={status?.configured ? 'Enter a new value to replace' : 'Not set'}
+        placeholderTextColor={theme.colors.textHint}
+      />
+      {description ? (
+        <Text variant="captionSmall" color="hint" style={styles.keyDescription}>{description}</Text>
+      ) : null}
     </View>
-    <TextInput
-      style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.cardElevated }]}
-      value={value}
-      onChangeText={onChange}
-      secureTextEntry={secure}
-      autoCapitalize="none"
-      autoCorrect={false}
-      placeholder={status?.configured ? '•••••••• (leave blank to keep)' : 'Enter value'}
-      placeholderTextColor={theme.colors.textHint}
-    />
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -587,7 +632,9 @@ const styles = StyleSheet.create({
     minWidth: ms(60),
   },
   keyField: { marginBottom: spacing.sm },
-  keyHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs },
+  keyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
+  keyHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  keyDescription: { marginTop: spacing.xs },
   usageRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: ms(5), gap: spacing.sm },
   queryRow: { paddingVertical: ms(5), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(128,128,128,0.15)' },
   tabBar: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm, flexWrap: 'wrap' },
