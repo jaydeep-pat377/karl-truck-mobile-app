@@ -37,14 +37,14 @@ const fmt = (n: number) => Math.round(n).toLocaleString();
 type KeyFields = {
   googleApiKey: string;
   anthropicApiKey: string;
-  azureApiKey: string;
+  copilotApiKey: string;
   azureResourceName: string;
   azureDeployment: string;
 };
 const EMPTY_KEYS: KeyFields = {
   googleApiKey: '',
   anthropicApiKey: '',
-  azureApiKey: '',
+  copilotApiKey: '',
   azureResourceName: '',
   azureDeployment: '',
 };
@@ -67,6 +67,18 @@ export const AISettingsScreen: React.FC = () => {
   const [enforced, setEnforced] = useState(false);
   const [topup, setTopup] = useState('');
   const [keys, setKeys] = useState<KeyFields>(EMPTY_KEYS);
+  const [usageDays, setUsageDays] = useState(30);
+  const [usageTab, setUsageTab] = useState<'byUser' | 'byModel' | 'topQueries' | 'access'>('byUser');
+
+  const loadUsage = useCallback(async (days: number) => {
+    const to = new Date();
+    const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
+    try {
+      setUsage(await aiAssistantService.getConfigUsage(from.toISOString(), to.toISOString()));
+    } catch {
+      /* usage optional */
+    }
+  }, []);
 
   const hydrate = useCallback((p: AiConfigPayload) => {
     setEnabled(new Set(p.config.enabledModelIds));
@@ -85,7 +97,7 @@ export const AISettingsScreen: React.FC = () => {
       setPayload(p);
       hydrate(p);
       if (p.isAdmin) {
-        aiAssistantService.getConfigUsage().then(setUsage).catch(() => {});
+        loadUsage(usageDays);
       }
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load settings');
@@ -334,25 +346,102 @@ export const AISettingsScreen: React.FC = () => {
             <Section theme={theme} title="Provider API keys" subtitle="Stored encrypted. Leave a field blank to keep the current value.">
               <KeyField theme={theme} label="Google Generative AI key" status={payload?.keyStatus?.google} value={keys.googleApiKey} onChange={(v) => setKeys((k) => ({ ...k, googleApiKey: v }))} secure />
               <KeyField theme={theme} label="Anthropic API key" status={payload?.keyStatus?.anthropic} value={keys.anthropicApiKey} onChange={(v) => setKeys((k) => ({ ...k, anthropicApiKey: v }))} secure />
-              <KeyField theme={theme} label="Azure OpenAI key" status={payload?.keyStatus?.azureApiKey} value={keys.azureApiKey} onChange={(v) => setKeys((k) => ({ ...k, azureApiKey: v }))} secure />
+              <KeyField theme={theme} label="Copilot API key (Azure OpenAI)" status={payload?.keyStatus?.copilot} value={keys.copilotApiKey} onChange={(v) => setKeys((k) => ({ ...k, copilotApiKey: v }))} secure />
               <KeyField theme={theme} label="Azure resource name" status={payload?.keyStatus?.azureResourceName} value={keys.azureResourceName} onChange={(v) => setKeys((k) => ({ ...k, azureResourceName: v }))} />
               <KeyField theme={theme} label="Azure deployment" status={payload?.keyStatus?.azureDeployment} value={keys.azureDeployment} onChange={(v) => setKeys((k) => ({ ...k, azureDeployment: v }))} />
             </Section>
 
             {/* Usage */}
             {usage && (
-              <Section theme={theme} title="Usage (last 30 days)" subtitle="">
-                <View style={styles.statsRow}>
-                  <Stat theme={theme} label="Tokens" value={fmt(usage.totals.tokens)} />
-                  <Stat theme={theme} label="Queries" value={fmt(usage.totals.queries)} />
-                  <Stat theme={theme} label="Cost" value={`$${usage.totals.cost.toFixed(2)}`} accent />
+              <Section theme={theme} title="Usage" subtitle="Who is burning tokens, on which models, and on what queries.">
+                {/* Date range */}
+                <View style={styles.tabBar}>
+                  {[7, 30, 90].map((d) => (
+                    <TouchableOpacity
+                      key={d}
+                      style={[styles.rangeChip, usageDays === d && { backgroundColor: colors.primary.main + '22', borderColor: colors.primary.main }]}
+                      onPress={() => { setUsageDays(d); loadUsage(d); }}
+                    >
+                      <Text variant="captionSmall" color={usageDays === d ? 'primary' : 'secondary'}>Last {d}d</Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-                {usage.byModel.map((m) => (
-                  <View key={m.modelId} style={styles.usageRow}>
-                    <Text variant="caption" color="primary" numberOfLines={1} style={styles.flex}>{m.label}</Text>
-                    <Text variant="caption" color="secondary">{fmt(m.tokens)} tok · {m.queries}q</Text>
-                  </View>
-                ))}
+
+                <View style={styles.statsRow}>
+                  <Stat theme={theme} label="Total tokens" value={fmt(usage.totals.tokens)} />
+                  <Stat theme={theme} label="Est. cost" value={`$${usage.totals.cost.toFixed(2)}`} accent />
+                  <Stat theme={theme} label="Queries" value={fmt(usage.totals.queries)} />
+                </View>
+
+                {/* Tabs */}
+                <View style={styles.tabBar}>
+                  {([
+                    ['byUser', 'By user'],
+                    ['byModel', 'By model'],
+                    ['topQueries', 'Top queries'],
+                    ['access', 'Access'],
+                  ] as const).map(([key, label]) => (
+                    <TouchableOpacity
+                      key={key}
+                      style={[styles.usageTab, usageTab === key && { borderBottomColor: colors.primary.main }]}
+                      onPress={() => setUsageTab(key)}
+                    >
+                      <Text variant="captionSmall" color={usageTab === key ? 'primary' : 'hint'} style={usageTab === key ? styles.bold : undefined}>
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {usageTab === 'byUser' &&
+                  (usage.byUser.length === 0 ? (
+                    <Text variant="caption" color="hint">No usage in this range.</Text>
+                  ) : (
+                    usage.byUser.map((u, i) => (
+                      <View key={u.userId ?? `u${i}`} style={styles.usageRow}>
+                        <View style={styles.flex}>
+                          <Text variant="caption" color="primary" numberOfLines={1}>{u.name}</Text>
+                          {!!u.email && <Text variant="captionSmall" color="hint" numberOfLines={1}>{u.email}</Text>}
+                        </View>
+                        <Text variant="captionSmall" color="secondary">{fmt(u.tokens)} tok · {u.queries}q · ${u.cost.toFixed(2)}</Text>
+                      </View>
+                    ))
+                  ))}
+
+                {usageTab === 'byModel' &&
+                  usage.byModel.map((m) => (
+                    <View key={m.modelId} style={styles.usageRow}>
+                      <Text variant="caption" color="primary" numberOfLines={1} style={styles.flex}>{m.label}</Text>
+                      <Text variant="captionSmall" color="secondary">{fmt(m.tokens)} tok · {m.queries}q · ${m.cost.toFixed(2)}</Text>
+                    </View>
+                  ))}
+
+                {usageTab === 'topQueries' &&
+                  (usage.topQueries.length === 0 ? (
+                    <Text variant="caption" color="hint">No queries in this range.</Text>
+                  ) : (
+                    usage.topQueries.map((q, i) => (
+                      <View key={i} style={styles.queryRow}>
+                        <Text variant="caption" color="primary" numberOfLines={2}>{q.question}</Text>
+                        <Text variant="captionSmall" color="hint">{q.modelLabel} · {q.userName} · {fmt(q.totalTokens)} tok</Text>
+                      </View>
+                    ))
+                  ))}
+
+                {usageTab === 'access' &&
+                  (usage.access.length === 0 ? (
+                    <Text variant="caption" color="hint">No users have AI Assistant access.</Text>
+                  ) : (
+                    usage.access.map((u) => (
+                      <View key={u.userId} style={styles.usageRow}>
+                        <View style={styles.flex}>
+                          <Text variant="caption" color="primary" numberOfLines={1}>{u.name}</Text>
+                          {!!u.email && <Text variant="captionSmall" color="hint" numberOfLines={1}>{u.email}</Text>}
+                        </View>
+                        <Icon name="check-circle" size={ms(14)} color={colors.success.main} />
+                      </View>
+                    ))
+                  ))}
               </Section>
             )}
           </ScrollView>
@@ -499,7 +588,11 @@ const styles = StyleSheet.create({
   },
   keyField: { marginBottom: spacing.sm },
   keyHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs },
-  usageRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: ms(4), gap: spacing.sm },
+  usageRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: ms(5), gap: spacing.sm },
+  queryRow: { paddingVertical: ms(5), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(128,128,128,0.15)' },
+  tabBar: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm, flexWrap: 'wrap' },
+  rangeChip: { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(128,128,128,0.3)', borderRadius: ms(14), paddingHorizontal: spacing.md, paddingVertical: ms(4) },
+  usageTab: { paddingVertical: ms(5), paddingHorizontal: ms(2), borderBottomWidth: 2, borderBottomColor: 'transparent' },
 });
 
 export default AISettingsScreen;

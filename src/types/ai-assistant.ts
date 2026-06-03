@@ -111,7 +111,7 @@ export interface KeyStatusEntry {
 export interface ProviderKeyStatus {
   google: KeyStatusEntry;
   anthropic: KeyStatusEntry;
-  azureApiKey: KeyStatusEntry;
+  copilot: KeyStatusEntry;
   azureResourceName: KeyStatusEntry;
   azureDeployment: KeyStatusEntry;
 }
@@ -150,14 +150,17 @@ export interface AiConfigUpdate {
 export interface AiUsagePayload {
   range: { from: string; to: string };
   totals: { tokens: number; cost: number; queries: number };
+  byUser: Array<{ userId: string | null; name: string; email: string; tokens: number; cost: number; queries: number }>;
   byModel: Array<{ modelId: string; label: string; tokens: number; cost: number; queries: number }>;
   topQueries: Array<{
     question: string | null;
     modelLabel: string;
+    userName: string;
     totalTokens: number;
     estimatedCost: number;
     createdAt: string;
   }>;
+  access: Array<{ userId: string; name: string; email: string }>;
 }
 
 export interface SavedDashboardSummary {
