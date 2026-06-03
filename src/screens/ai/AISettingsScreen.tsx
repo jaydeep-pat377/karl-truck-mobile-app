@@ -139,18 +139,24 @@ export const AISettingsScreen: React.FC = () => {
   };
 
   const save = async () => {
-    if (!isAdmin || saving) return;
+    if (saving) return;
     setSaving(true);
     try {
-      await aiAssistantService.updateConfig({
-        enabledModelIds: [...enabled],
-        defaultModelId: defaultId,
-        tokenBank: {
-          monthlyAllotment: allotment.trim() === '' ? null : Number(allotment),
-          enforced,
-        },
-        providerKeys: buildKeyUpdate(),
-      });
+      // Everyone can save their own provider keys; admins additionally save the
+      // org-wide model/token-bank config. The backend ignores non-key fields
+      // for non-admins, so non-admins send keys only.
+      const payloadToSave = isAdmin
+        ? {
+            enabledModelIds: [...enabled],
+            defaultModelId: defaultId,
+            tokenBank: {
+              monthlyAllotment: allotment.trim() === '' ? null : Number(allotment),
+              enforced,
+            },
+            providerKeys: buildKeyUpdate(),
+          }
+        : { providerKeys: buildKeyUpdate() };
+      await aiAssistantService.updateConfig(payloadToSave);
       setKeys(EMPTY_KEYS);
       Toast.show({ type: 'success', text1: 'Settings saved', position: 'top', topOffset: 50 });
       await load();
@@ -162,7 +168,7 @@ export const AISettingsScreen: React.FC = () => {
   };
 
   const clearKey = async (field: keyof KeyFields) => {
-    if (!isAdmin || saving) return;
+    if (saving) return;
     setSaving(true);
     try {
       await aiAssistantService.updateConfig({ providerKeys: { [field]: null } });
@@ -207,7 +213,7 @@ export const AISettingsScreen: React.FC = () => {
         <Text variant="h4" color="primary" style={styles.headerTitle}>
           AI settings
         </Text>
-        {isAdmin && (
+        {!loading && !error && (
           <TouchableOpacity
             style={[styles.saveBtn, { backgroundColor: colors.primary.main }]}
             onPress={save}
@@ -239,16 +245,6 @@ export const AISettingsScreen: React.FC = () => {
             <Text variant="caption" color="primary" style={styles.saveText}>Retry</Text>
           </TouchableOpacity>
         </View>
-      ) : !isAdmin ? (
-        <View style={styles.center}>
-          <Icon name="shield-lock-outline" size={ms(40)} color={theme.colors.textHint} />
-          <Text variant="body" color="secondary" align="center" style={styles.gap}>
-            Admin access required
-          </Text>
-          <Text variant="caption" color="hint" align="center" style={styles.subtle}>
-            AI configuration can only be changed by an administrator.
-          </Text>
-        </View>
       ) : (
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView
@@ -256,7 +252,8 @@ export const AISettingsScreen: React.FC = () => {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* Model selection */}
+            {/* Model selection (admin-only org setting) */}
+            {isAdmin && (
             <Section theme={theme} title="Model selection" subtitle="Enable models and choose the default.">
               {MODELS.map((m) => {
                 const on = enabled.has(m.id);
@@ -292,8 +289,10 @@ export const AISettingsScreen: React.FC = () => {
                 );
               })}
             </Section>
+            )}
 
-            {/* Token bank */}
+            {/* Token bank (admin-only org setting) */}
+            {isAdmin && (
             <Section theme={theme} title="Token bank" subtitle="Monthly allotment + admin top-ups. Queries are blocked at zero balance when enforced.">
               {bank && !bank.unlimited ? (
                 <>
@@ -356,9 +355,10 @@ export const AISettingsScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
             </Section>
+            )}
 
-            {/* Provider API keys */}
-            <Section theme={theme} title="Provider API keys" subtitle="Credentials for each provider. Stored encrypted; override the server environment variables. Leave a field blank to keep the current value.">
+            {/* Provider API keys — PER-USER, available to every user */}
+            <Section theme={theme} title="Provider API keys" subtitle="Your own keys for each provider. Stored encrypted. You must set a key for a model's provider to use it. Leave a field blank to keep the current value.">
               <KeyField theme={theme} label="Google Generative AI API key" status={payload?.keyStatus?.google} value={keys.googleApiKey} onChange={(v) => setKeys((k) => ({ ...k, googleApiKey: v }))} onClear={() => clearKey('googleApiKey')} secure description="Powers Gemini models." />
               <KeyField theme={theme} label="Anthropic API key" status={payload?.keyStatus?.anthropic} value={keys.anthropicApiKey} onChange={(v) => setKeys((k) => ({ ...k, anthropicApiKey: v }))} onClear={() => clearKey('anthropicApiKey')} secure description="Powers Claude models." />
               <Text variant="captionSmall" style={{ color: theme.colors.text, fontWeight: '600', marginTop: spacing.xs, marginBottom: spacing.xs }}>Copilot (Azure OpenAI)</Text>
