@@ -56,15 +56,18 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
 
-      <!-- Deep link / Universal Link for short URLs -->
+      <!-- Deep link / Universal Link for short URLs (all tenant prefixes) -->
       <intent-filter android:autoVerify="true">
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
-        <data
-          android:scheme="https"
-          android:host="tkai.tkurl.co"
-          android:pathPrefix="/dl/" />
+        <data android:scheme="https" android:host="tkai.tkurl.co" android:pathPrefix="/dl/" />
+        <data android:scheme="https" android:host="tkai.tkurl.co" android:pathPrefix="/hc/" />
+        <data android:scheme="https" android:host="tkai.tkurl.co" android:pathPrefix="/sr/" />
+        <data android:scheme="https" android:host="tkai.tkurl.co" android:pathPrefix="/pm/" />
+        <data android:scheme="https" android:host="tkai.tkurl.co" android:pathPrefix="/sw/" />
+        <data android:scheme="https" android:host="tkai.tkurl.co" android:pathPrefix="/cs/" />
+        <data android:scheme="https" android:host="tkai.tkurl.co" android:pathPrefix="/di/" />
       </intent-filter>
 
       <!-- Custom scheme for SSO auth callback -->

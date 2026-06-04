@@ -8,7 +8,8 @@ import { useWorkspaceStore, Workspace } from '../store/workspaceStore';
 import { queryClient } from '../lib/queryClient';
 
 const SHORT_URL_HOST = 'tkai.tkurl.co';
-const SHORT_URL_PATH_PREFIX = '/dl/';
+// Valid tenant path prefixes: /dl/, /hc/, /sr/, /pm/, /sw/, /cs/, /di/, etc.
+const VALID_PATH_PREFIXES = ['dl', 'hc', 'sr', 'pm', 'sw', 'cs', 'di'];
 
 export type DeepLinkTab = 'details' | 'tickets' | 'chat' | 'performance' | 'map';
 
@@ -53,11 +54,12 @@ function parseUrl(url: string): { host: string; pathname: string; params: Record
 }
 
 /**
- * Extract the short URL code from a universal link URL.
- * Expected format: https://tkai.tkurl.co/dl/{code}
+ * Extract the tenant prefix and short URL code from a universal link URL.
+ * Expected format: https://tkai.tkurl.co/{tenant}/{code}
+ * where tenant is one of: dl, hc, sr, pm, sw, cs, di
  * Returns null if the URL is not a valid short URL.
  */
-export function extractCodeFromUrl(url: string): string | null {
+export function extractCodeFromUrl(url: string): { code: string; tenantPrefix: string } | null {
   const parsed = parseUrl(url);
   if (!parsed) {
     console.error('[DeepLink] Failed to parse URL:', url);
@@ -69,18 +71,20 @@ export function extractCodeFromUrl(url: string): string | null {
     return null;
   }
 
-  if (!parsed.pathname.startsWith(SHORT_URL_PATH_PREFIX)) {
+  // Match /{prefix}/{code} where prefix is a known tenant slug
+  const segments = parsed.pathname.split('/').filter(Boolean);
+  if (segments.length < 2 || !VALID_PATH_PREFIXES.includes(segments[0])) {
     console.warn('[DeepLink] Unknown path:', parsed.pathname);
     return null;
   }
 
-  const code = parsed.pathname.slice(SHORT_URL_PATH_PREFIX.length).replace(/\/+$/, '');
+  const code = segments[1];
   if (!code) {
     console.warn('[DeepLink] Empty code in URL');
     return null;
   }
 
-  return decodeURIComponent(code);
+  return { code: decodeURIComponent(code), tenantPrefix: segments[0] };
 }
 
 /**
@@ -135,26 +139,57 @@ export function parseOriginalUrl(originalUrl: string): ParsedDeepLink | null {
   }
 }
 
+// Maps short DB slugs from short_urls table to workspace subdomain identifiers.
+// TODO: Remove once backend resolve endpoint returns tenant_subdomain via JOIN.
+const SHORT_SLUG_TO_SUBDOMAIN: Record<string, string> = {
+  dl: 'dolese',
+  hc: 'hercules',
+  cs: 'concretesupply',
+  di: 'delta',
+  sw: 'sws',
+  sr: 'sunrise',
+  pm: 'preferred',
+  tt: 'test',
+};
+
+// Display names for tenant prefixes (used in user-facing messages)
+const TENANT_DISPLAY_NAMES: Record<string, string> = {
+  dl: 'Dolese Ready Mix',
+  hc: 'Hercules',
+  cs: 'Concrete Supply',
+  di: 'Delta Industries',
+  sw: 'Stevenson Weir',
+  sr: 'Sunrise',
+  pm: 'Preferred Materials',
+};
+
 /**
  * Find a workspace matching the tenant identifier.
- * Tries matching by: slug → subdomain → id (in priority order).
+ * Tries matching by: slug → short-slug mapping → subdomain → id (in priority order).
  */
 function findWorkspaceByTenant(
   workspaces: Workspace[],
   tenantSlug: string,
   tenantSubdomain?: string,
 ): Workspace | undefined {
-  // 1. Match by slug (e.g. 'dl' → Dolese)
+  // 1. Match by slug directly
   let match = workspaces.find((w) => w.slug === tenantSlug);
   if (match) return match;
 
-  // 2. Match by subdomain if resolve returned it (e.g. 'dolese')
+  // 2. Match by short-slug mapping (e.g. 'dl' → 'dolese')
+  const mappedSubdomain = SHORT_SLUG_TO_SUBDOMAIN[tenantSlug];
+  if (mappedSubdomain) {
+    match = workspaces.find((w) => w.slug === mappedSubdomain || w.subdomain === mappedSubdomain);
+    if (match) return match;
+  }
+
+  // 3. Match by subdomain if resolve returned it (e.g. 'dolese')
   if (tenantSubdomain) {
     match = workspaces.find((w) => w.subdomain === tenantSubdomain);
     if (match) return match;
   }
 
-  // 3. Fallback: match tenant_slug against subdomain or id
+  // 4. Fallback: match tenant_slug against subdomain or id
   //    (handles case where backend returns subdomain as tenant_slug)
   match = workspaces.find((w) => w.subdomain === tenantSlug || w.id === tenantSlug);
   return match;
@@ -344,9 +379,9 @@ async function navigateToScreen(data: ParsedDeepLink): Promise<void> {
  * Handle an incoming deep link URL end-to-end.
  *
  * Flow:
- * 1. Extract code from URL
- * 2. Resolve short URL via federated server (cross-tenant capable)
- * 3. Switch tenant if the link belongs to a different workspace
+ * 1. Extract tenant prefix and code from URL (e.g. /hc/9CsSD0 → tenant=hc, code=9CsSD0)
+ * 2. Switch to the correct tenant based on URL prefix
+ * 3. Resolve short URL to get original_url
  * 4. Parse original_url
  * 5. Navigate to the appropriate screen
  *
@@ -355,22 +390,49 @@ async function navigateToScreen(data: ParsedDeepLink): Promise<void> {
 export async function handleDeepLink(url: string): Promise<boolean> {
   console.log('[DeepLink] Handling URL:', url);
 
-  // Step 1: Extract code
-  const code = extractCodeFromUrl(url);
-  if (!code) {
+  // Step 1: Extract code and tenant prefix from URL
+  const extracted = extractCodeFromUrl(url);
+  if (!extracted) {
     console.warn('[DeepLink] Could not extract code from URL');
     return false;
   }
 
-  console.log('[DeepLink] Code extracted:', code);
+  const { code, tenantPrefix } = extracted;
+  console.log('[DeepLink] Code extracted:', code, 'tenant prefix:', tenantPrefix);
 
-  // Step 2: Resolve short URL
-  // Try federated server first (works cross-tenant), fall back to current tenant backend
+  // Step 2: Switch to the correct tenant based on URL prefix
+  const tenantSlug = tenantPrefix;
+  const tenantName = TENANT_DISPLAY_NAMES[tenantPrefix] || tenantPrefix;
+  try {
+    const result = await ensureCorrectTenant(tenantSlug);
+    if (!result.matched) {
+      console.warn('[DeepLink] Tenant match failed:', result.reason);
+      console.warn('[DeepLink] Debug:', result.debug);
+      alertService.show({
+        type: 'warning',
+        title: 'Workspace Not Available',
+        message: `This link belongs to "${tenantName}" workspace, but you don't have access to it. Please contact your administrator to get access.`,
+        buttons: [{ text: 'OK', style: 'default' }],
+      });
+      return false;
+    }
+    console.log('[DeepLink] Tenant resolved:', result.reason, result.workspace?.name);
+  } catch (error: any) {
+    console.error('[DeepLink] Tenant switch failed:', error);
+    alertService.show({
+      type: 'error',
+      title: 'Switch Failed',
+      message: `Failed to switch to "${tenantName}" workspace: ${error?.message || 'Unknown error'}`,
+      buttons: [{ text: 'OK', style: 'default' }],
+    });
+    return false;
+  }
+
+  // Step 3: Resolve short URL (now on the correct tenant's backend)
   try {
     let response = await shortUrlService.resolveShortUrlFederated(code);
 
     if (!response.success || !response.data) {
-      // Fallback: try current tenant's backend
       console.log('[DeepLink] Federated resolve failed, trying tenant backend...');
       response = await shortUrlService.resolveShortUrl(code);
     }
@@ -388,32 +450,8 @@ export async function handleDeepLink(url: string): Promise<boolean> {
       return false;
     }
 
-    const { tenant_slug, tenant_subdomain, original_url } = response.data;
-    console.log('[DeepLink] Resolved — tenant_slug:', tenant_slug, 'tenant_subdomain:', tenant_subdomain, 'url:', original_url);
-
-    // Step 3: Switch to the correct tenant if needed
-    if (tenant_slug) {
-      try {
-        const result = await ensureCorrectTenant(tenant_slug, tenant_subdomain);
-        if (!result.matched) {
-          console.warn('[DeepLink] Tenant match failed:', result.reason);
-          console.warn('[DeepLink] Debug:', result.debug);
-          alertService.showError(
-            'Workspace Not Found',
-            'You don\'t have access to the workspace associated with this link. Please contact your administrator to get access.',
-          );
-          return false;
-        }
-        console.log('[DeepLink] Tenant resolved:', result.reason, result.workspace?.name);
-      } catch (error: any) {
-        console.error('[DeepLink] Tenant switch failed:', error);
-        alertService.showError(
-          'Switch Failed',
-          `Failed to switch workspace: ${error?.message || 'Unknown error'}`,
-        );
-        return false;
-      }
-    }
+    const { original_url } = response.data;
+    console.log('[DeepLink] Resolved — url:', original_url);
 
     // Step 4: Parse original_url
     const parsed = parseOriginalUrl(original_url);
@@ -440,7 +478,8 @@ export function isShortUrl(url: string): boolean {
   if (!parsed) {
     return false;
   }
-  return parsed.host === SHORT_URL_HOST && parsed.pathname.startsWith(SHORT_URL_PATH_PREFIX);
+  const segments = parsed.pathname.split('/').filter(Boolean);
+  return parsed.host === SHORT_URL_HOST && segments.length >= 2 && VALID_PATH_PREFIXES.includes(segments[0]);
 }
 
 export async function getInitialDeepLink(): Promise<string | null> {
