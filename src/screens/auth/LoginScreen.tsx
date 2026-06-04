@@ -537,7 +537,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
             {/* Microsoft */}
             <TouchableOpacity
               style={[
-                styles.ssoButton,
+                styles.ssoIconButton,
                 {
                   backgroundColor: isDark ? '#2F2F2F' : '#FFFFFF',
                   shadowColor: isDark ? colors.common.black : colors.grey[60],
@@ -555,21 +555,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
               {isSSOLoading && activeProvider === 'microsoft' ? (
                 <ActivityIndicator size="small" color="#00A4EF" />
               ) : (
-                <>
-                  <View style={styles.ssoIconWrapper}>
-                    <MicrosoftLogo size={ms(20)} />
-                  </View>
-                  <Text style={[styles.ssoButtonText, { color: isDark ? '#FFFFFF' : '#3C4043' }]}>
-                    Sign in with Microsoft
-                  </Text>
-                </>
+                <MicrosoftLogo size={ms(24)} />
               )}
             </TouchableOpacity>
 
             {/* Google */}
             <TouchableOpacity
               style={[
-                styles.ssoButton,
+                styles.ssoIconButton,
                 {
                   backgroundColor: isDark ? '#2F2F2F' : '#FFFFFF',
                   shadowColor: isDark ? colors.common.black : colors.grey[60],
@@ -587,14 +580,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) =
               {isSSOLoading && activeProvider === 'google' ? (
                 <ActivityIndicator size="small" color="#4285F4" />
               ) : (
-                <>
-                  <View style={styles.ssoIconWrapper}>
-                    <GoogleLogo size={ms(20)} />
-                  </View>
-                  <Text style={[styles.ssoButtonText, { color: isDark ? '#FFFFFF' : '#3C4043' }]}>
-                    Sign in with Google
-                  </Text>
-                </>
+                <GoogleLogo size={ms(24)} />
               )}
             </TouchableOpacity>
           </Animated.View>
@@ -858,27 +844,21 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   ssoContainer: {
-    marginTop: vs(16),
-    gap: vs(12),
-  },
-  ssoButton: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
+    marginTop: vs(16),
+    gap: ms(20),
+  },
+  ssoIconButton: {
+    width: ms(52),
     height: ms(52),
     borderRadius: ms(26),
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 3,
-  },
-  ssoIconWrapper: {
-    marginRight: ms(10),
-  },
-  ssoButtonText: {
-    fontSize: ms(15),
-    fontWeight: '500',
-    letterSpacing: 0.25,
   },
   footer: {
     alignItems: 'center',
