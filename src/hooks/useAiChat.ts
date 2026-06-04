@@ -170,12 +170,26 @@ export function useAiChat(): UseAiChat {
           }
         }
       } catch (e: any) {
-        setError(e?.message ?? 'Failed to load conversation');
+        // A remembered thread id can be stale — e.g. cached from a previous
+        // login/tenant whose DB doesn't have it. Don't surface a scary error;
+        // just forget it and start a fresh conversation.
+        const notFound =
+          e?.response?.status === 404 || /not found/i.test(e?.message ?? '');
+        if (notFound) {
+          persistThreadId(null);
+          setMessages([]);
+          messagesRef.current = [];
+          setDashboard(null);
+          setInsights([]);
+          setFollowUps([]);
+        } else {
+          setError(e?.message ?? 'Failed to load conversation');
+        }
       } finally {
         setLoadingThread(false);
       }
     },
-    [applyOutputs],
+    [applyOutputs, persistThreadId],
   );
 
   const loadThread = useCallback(
