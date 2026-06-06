@@ -5,6 +5,7 @@ import { Text, Icon } from '../common';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { ms, spacing } from '../../utils/responsive';
 import { AI_SUGGESTIONS } from '../../lib/ai/suggestions';
+import { aiAssistantService } from '../../api/services/aiAssistantService';
 
 interface Props {
   onPick: (text: string) => void;
@@ -12,6 +13,23 @@ interface Props {
 
 export const AiSuggestions: React.FC<Props> = ({ onPick }) => {
   const theme = useAppTheme();
+  // Role-aware starter questions from the backend (producer vs contractor),
+  // falling back to the static list if the request fails.
+  const [suggestions, setSuggestions] = React.useState<string[]>(AI_SUGGESTIONS);
+  React.useEffect(() => {
+    let active = true;
+    aiAssistantService
+      .getSuggestions()
+      .then((r) => {
+        if (active && Array.isArray(r?.suggestions) && r.suggestions.length) {
+          setSuggestions(r.suggestions);
+        }
+      })
+      .catch(() => {/* keep static fallback */});
+    return () => {
+      active = false;
+    };
+  }, []);
   return (
     <View style={styles.container}>
       <View style={[styles.iconBubble, { backgroundColor: theme.colors.primary.main + '22' }]}>
@@ -24,7 +42,7 @@ export const AiSuggestions: React.FC<Props> = ({ onPick }) => {
         Pick a prompt or type your own question about Truckast operations
       </Text>
       <View style={styles.grid}>
-        {AI_SUGGESTIONS.map((s) => (
+        {suggestions.map((s) => (
           <TouchableOpacity
             key={s}
             style={[

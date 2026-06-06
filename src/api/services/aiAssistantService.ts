@@ -246,6 +246,12 @@ export const aiAssistantService = {
     return apiClient.get<AiConfigPayload>('/ai/config');
   },
 
+  // Role-aware starter questions (producer vs contractor). Backend derives the
+  // role from the auth token; the caller falls back to a static list on error.
+  getSuggestions: async (): Promise<{ userType: string; suggestions: string[] }> => {
+    return apiClient.get<{ userType: string; suggestions: string[] }>('/ai/suggestions');
+  },
+
   updateConfig: async (
     payload: AiConfigUpdate,
   ): Promise<{ ok: boolean; config?: unknown }> => {

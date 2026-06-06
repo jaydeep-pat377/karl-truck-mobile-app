@@ -224,12 +224,36 @@ export const AIAssistantScreen: React.FC = () => {
 
         {/* Error / save banners */}
         {!!error && (
-          <View style={[styles.banner, { backgroundColor: theme.colors.error.background }]}>
-            <Icon name="alert-circle-outline" size={ms(16)} color={colors.error.main} />
-            <Text variant="caption" style={[styles.bannerText, { color: colors.error.dark }]}>
-              {error}
-            </Text>
-          </View>
+          /no api key/i.test(error) ? (
+            // Missing-key error: show inline setup instructions + a shortcut to
+            // AI Settings, so the user can fix it without leaving the chat.
+            <View style={[styles.keyHelp, { backgroundColor: theme.colors.error.background, borderColor: colors.error.main }]}>
+              <View style={styles.keyHelpRow}>
+                <Icon name="key-alert-outline" size={ms(16)} color={colors.error.main} />
+                <Text variant="caption" style={[styles.bannerText, { color: colors.error.dark }]}>
+                  {error}
+                </Text>
+              </View>
+              <Text variant="captionSmall" color="secondary" style={styles.keyHelpSteps}>
+                To set up your API key: tap “Open AI settings” → under Provider API keys, paste your key for this model’s provider → Save. Then ask your question again. (Or pick a different model you already have a key for.)
+              </Text>
+              <TouchableOpacity
+                style={[styles.keyHelpBtn, { backgroundColor: colors.primary.main }]}
+                onPress={() => (navigation as any).navigate('AISettings')}
+                activeOpacity={0.85}
+              >
+                <Icon name="cog-outline" size={ms(14)} color="#FFFFFF" />
+                <Text variant="caption" color="white" style={styles.keyHelpBtnText}>Open AI settings</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={[styles.banner, { backgroundColor: theme.colors.error.background }]}>
+              <Icon name="alert-circle-outline" size={ms(16)} color={colors.error.main} />
+              <Text variant="caption" style={[styles.bannerText, { color: colors.error.dark }]}>
+                {error}
+              </Text>
+            </View>
+          )
         )}
         {saveError && (
           <TouchableOpacity
@@ -358,6 +382,26 @@ const styles = StyleSheet.create({
     borderRadius: ms(10),
   },
   bannerText: { marginLeft: spacing.sm, flex: 1 },
+  keyHelp: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: ms(10),
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  keyHelpRow: { flexDirection: 'row', alignItems: 'center' },
+  keyHelpSteps: { marginTop: spacing.xs, lineHeight: ms(17) },
+  keyHelpBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: ms(6),
+    borderRadius: ms(16),
+  },
+  keyHelpBtnText: { marginLeft: spacing.xs, fontWeight: '600' },
   bottomArea: { paddingHorizontal: spacing.md, paddingTop: spacing.xs },
   dashPill: {
     alignSelf: 'center',
