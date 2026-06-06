@@ -8,6 +8,7 @@ import { setWidgetLoggedIn, reloadWidget } from '../native/WidgetModule';
 import { normaliseUserRole } from '../utils/permissions';
 import { setDynamicBaseUrl, resetBaseUrl } from '../api/axiosInstance';
 import { useWorkspaceStore } from './workspaceStore';
+import { useNotificationStore } from './notificationStore';
 import { tearDownSupabase } from '../services/supabase/supabaseClient';
 
 interface AuthState {
@@ -117,6 +118,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       // Reset workspace store so stale tenant doesn't persist across logins
       useWorkspaceStore.getState().reset();
+
+      // Clear cached FCM token so next login fetches a fresh one
+      useNotificationStore.getState().setFcmToken(null);
 
       set({
         user: null,

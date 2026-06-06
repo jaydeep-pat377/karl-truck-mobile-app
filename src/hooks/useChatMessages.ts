@@ -255,10 +255,12 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
 
-    // Only poll as fallback when realtime is not connected
-    if (!isRealtimeConnected) {
-      pollingIntervalRef.current = setInterval(pollForNewMessages, 5000);
-    }
+    // Always poll as a safety net — fast when realtime is down, slow when connected.
+    // Realtime WebSocket can drop silently without firing CHANNEL_ERROR/CLOSED,
+    // leaving isRealtimeConnected stale. A slow background poll ensures messages
+    // still appear even if the WebSocket dies.
+    const pollInterval = isRealtimeConnected ? 15000 : 5000;
+    pollingIntervalRef.current = setInterval(pollForNewMessages, pollInterval);
 
     return () => {
       if (channel) {
@@ -272,13 +274,14 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     };
   }, [orderId, roomId, supabaseUserId, addMessage, incrementUnreadCount, currentRoomId, isConfigured, queryClient, pollForNewMessages]);
 
-  // Stop polling when realtime connects, start when it disconnects
+  // Adjust poll interval when realtime status changes
   useEffect(() => {
-    if (isRealtimeConnected && pollingIntervalRef.current) {
+    if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    } else if (!isRealtimeConnected && !pollingIntervalRef.current && orderId && isConfigured) {
-      pollingIntervalRef.current = setInterval(pollForNewMessages, 5000);
+    }
+    if (orderId && isConfigured) {
+      const pollInterval = isRealtimeConnected ? 15000 : 5000;
+      pollingIntervalRef.current = setInterval(pollForNewMessages, pollInterval);
     }
   }, [isRealtimeConnected, orderId, isConfigured, pollForNewMessages]);
 
