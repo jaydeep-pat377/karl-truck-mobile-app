@@ -3,8 +3,10 @@ import 'react-native-url-polyfill/auto';
 import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 import { AppState, AppStateStatus } from 'react-native';
 
-const NOTIFICATION_URL = 'https://tabpplqpetdgruqmliix.supabase.co';
-const NOTIFICATION_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhYnBwbHFwZXRkZ3J1cW1saWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0NzMxNTgsImV4cCI6MjA4MjA0OTE1OH0.JqG84aRxD88qT1rlY_Rbe2r8QSX9U_ksP3IV9RqYSZg';
+import { NOTIFICATION_SUPABASE_URL, NOTIFICATION_SUPABASE_ANON_KEY } from '@env';
+
+const NOTIFICATION_URL = NOTIFICATION_SUPABASE_URL;
+const NOTIFICATION_KEY = NOTIFICATION_SUPABASE_ANON_KEY;
 
 const notificationSupabase: SupabaseClient = createClient(NOTIFICATION_URL, NOTIFICATION_KEY, {
   auth: {

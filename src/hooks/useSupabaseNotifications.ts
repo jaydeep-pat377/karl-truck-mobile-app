@@ -7,8 +7,10 @@ import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import 'react-native-url-polyfill/auto';
 import { NOTIFICATION_SUPABASE_URL, NOTIFICATION_SUPABASE_ANON_KEY } from '@env';
 import { buildNotifKey, claimNotification } from '../utils/notificationDedup';
+import { notificationService } from '../api/services/notificationService';
 
 const CHANNEL_ID = 'truckast_heads_up';
+const PAGE_SIZE = 20;
 
 const supabase = createClient(NOTIFICATION_SUPABASE_URL, NOTIFICATION_SUPABASE_ANON_KEY, {
   auth: {
@@ -74,6 +76,8 @@ export interface Notification {
   priority: number;
   created_at: string;
   tenant_id: number;
+  order_code?: string | null;
+  order_date?: string | null;
   isNew?: boolean;
 }
 
@@ -119,6 +123,12 @@ interface UseSupabaseNotificationsProps {
   onNewNotification?: (notification: NotificationItem) => void;
 }
 
+interface PaginationState {
+  page: number;
+  totalPages: number;
+  total: number;
+}
+
 interface UseSupabaseNotificationsReturn {
 
   notifications: Notification[];
@@ -126,9 +136,12 @@ interface UseSupabaseNotificationsReturn {
   notificationItems: NotificationItem[];
   unreadCount: number;
   isLoading: boolean;
+  isLoadingMore: boolean;
   isConnected: boolean;
   error: string | null;
+  hasMore: boolean;
   refetch: () => Promise<void>;
+  loadMore: () => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
 
@@ -146,8 +159,10 @@ export function useSupabaseNotifications({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationItems, setNotificationItems] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<PaginationState | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const reconnectAttempts = useRef(0);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
@@ -259,33 +274,88 @@ export function useSupabaseNotifications({
     setIsLoading(true);
     setError(null);
 
+    if (__DEV__) {
+      console.log('[useSupabaseNotifications] Fetching notifications for userId:', userId);
+    }
+
     try {
-      const { data, error: fetchError } = await supabase
-        .from('notification_queue')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const response = await notificationService.getNotificationHistory({
+        page: 1,
+        limit: PAGE_SIZE,
+      });
 
-      if (fetchError) {
-        setError(fetchError.message);
-        return;
+      if (__DEV__) {
+        console.log('[useSupabaseNotifications] API response:', JSON.stringify({
+          success: response.success,
+          total: response.data?.total,
+          page: response.data?.page,
+          count: response.data?.notifications?.length,
+          message: response.message,
+        }));
       }
 
-
-      let filteredData = data || [];
-      if (tenantId) {
-        filteredData = filteredData.filter(
-          (n) => n.tenant_id === null || n.tenant_id === tenantId
-        );
+      if (response.success && response.data) {
+        const items = (response.data.notifications || []).map((n: any) => ({
+          ...n,
+          id: String(n.id),
+        }));
+        setNotifications(items);
+        setPagination({
+          page: response.data.page,
+          totalPages: response.data.totalPages,
+          total: response.data.total,
+        });
+      } else {
+        setError(response.message || 'Failed to fetch notifications');
       }
-      setNotifications(filteredData);
     } catch (err: any) {
-      setError(err.message);
+      if (__DEV__) {
+        console.error('[useSupabaseNotifications] Fetch error:', err);
+      }
+      setError(err.message || 'Failed to fetch notifications');
     } finally {
       setIsLoading(false);
     }
-  }, [userId, tenantId]);
+  }, [userId]);
+
+
+  const loadMore = useCallback(async () => {
+    if (!userId || !pagination || isLoadingMore) return;
+    if (pagination.page >= pagination.totalPages) return;
+
+    setIsLoadingMore(true);
+
+    try {
+      const nextPage = pagination.page + 1;
+      const response = await notificationService.getNotificationHistory({
+        page: nextPage,
+        limit: PAGE_SIZE,
+      });
+
+      if (response.success && response.data) {
+        const newItems = (response.data.notifications || []).map((n: any) => ({
+          ...n,
+          id: String(n.id),
+        }));
+
+        setNotifications((prev) => {
+          const existingIds = new Set(prev.map((n) => n.id));
+          const deduped = newItems.filter((n: Notification) => !existingIds.has(n.id));
+          return [...prev, ...deduped];
+        });
+
+        setPagination({
+          page: response.data.page,
+          totalPages: response.data.totalPages,
+          total: response.data.total,
+        });
+      }
+    } catch (err: any) {
+      if (__DEV__) console.error('[useSupabaseNotifications] Error loading more:', err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [userId, pagination, isLoadingMore]);
 
 
   const handleReconnect = useCallback(() => {
@@ -330,6 +400,7 @@ export function useSupabaseNotifications({
         (payload) => {
           const newNotification = {
             ...payload.new as Notification,
+            id: String((payload.new as any).id),
             isNew: true,
           };
 
@@ -346,10 +417,8 @@ export function useSupabaseNotifications({
             return [newNotification, ...prev];
           });
 
-          // The same chat message also arrives via FCM
-          // (notificationService.displayChatNotification). Whichever path
-          // gets here first owns the OS banner — the other one drops via
-          // the shared content key.
+          setPagination((prev) => prev ? { ...prev, total: prev.total + 1 } : prev);
+
           const displayKey = buildNotifKey({
             title: newNotification.subject,
             body: newNotification.body,
@@ -384,7 +453,10 @@ export function useSupabaseNotifications({
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          const updatedNotification = payload.new as Notification;
+          const updatedNotification = {
+            ...payload.new as Notification,
+            id: String((payload.new as any).id),
+          };
 
           setNotifications((prev) =>
             prev.map((n) =>
@@ -475,24 +547,15 @@ export function useSupabaseNotifications({
       return;
     }
 
-
+    // Optimistic update
     setNotifications((prev) =>
       prev.map((n) => (n.id === id || n.queue_uuid === id ? { ...n, status: 'delivered' } : n))
     );
 
     try {
-      const { error: updateError } = await supabase
-        .from('notification_queue')
-        .update({ status: 'delivered' })
-        .eq('queue_uuid', notification.queue_uuid);
-
-      if (updateError) {
-        console.error('[useSupabaseNotifications] Failed to mark as read:', updateError);
-
-        fetchNotifications();
-      }
+      await notificationService.markAsRead(notification.queue_uuid);
     } catch (err) {
-      console.error('[useSupabaseNotifications] Exception marking as read:', err);
+      console.error('[useSupabaseNotifications] Failed to mark as read:', err);
       fetchNotifications();
     }
   }, [notifications, fetchNotifications]);
@@ -501,27 +564,16 @@ export function useSupabaseNotifications({
   const markAllAsRead = useCallback(async () => {
     if (!userId) return;
 
-    const unreadIds = notifications
-      .filter((n) => n.status !== 'delivered' && n.status !== 'read')
-      .map((n) => n.queue_uuid);
+    const hasUnread = notifications.some((n) => n.status !== 'delivered' && n.status !== 'read');
+    if (!hasUnread) return;
 
-    if (unreadIds.length === 0) return;
-
-
+    // Optimistic update
     setNotifications((prev) => prev.map((n) => ({ ...n, status: 'delivered' })));
 
     try {
-      const { error: updateError } = await supabase
-        .from('notification_queue')
-        .update({ status: 'delivered' })
-        .in('queue_uuid', unreadIds);
-
-      if (updateError) {
-        console.error('[useSupabaseNotifications] Failed to mark all as read:', updateError);
-        fetchNotifications();
-      }
+      await notificationService.markAllAsRead();
     } catch (err) {
-      console.error('[useSupabaseNotifications] Exception marking all as read:', err);
+      console.error('[useSupabaseNotifications] Failed to mark all as read:', err);
       fetchNotifications();
     }
   }, [userId, notifications, fetchNotifications]);
@@ -531,14 +583,19 @@ export function useSupabaseNotifications({
     (n) => n.status !== 'read' && n.status !== 'delivered'
   ).length;
 
+  const hasMore = pagination ? pagination.page < pagination.totalPages : false;
+
   return {
     notifications,
     notificationItems,
     unreadCount,
     isLoading,
+    isLoadingMore,
     isConnected,
     error,
+    hasMore,
     refetch: fetchNotifications,
+    loadMore,
     markAsRead,
     markAllAsRead,
     reconnect,

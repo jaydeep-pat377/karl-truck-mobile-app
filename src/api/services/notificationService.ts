@@ -115,6 +115,17 @@ export const notificationService = {
     );
   },
 
+  getNotificationHistory: async (params: { page?: number; limit?: number }): Promise<NotificationQueueResponse> => {
+    const queryParams = new URLSearchParams({
+      page: String(params.page || 1),
+      limit: String(params.limit || 20),
+    });
+
+    return apiClient.get<NotificationQueueResponse>(
+      `${API_ENDPOINTS.NOTIFICATIONS.RECENT}?${queryParams.toString()}`
+    );
+  },
+
   getNotifications: async (userId: string, tenantId: number, page = 1, limit = 50): Promise<AppNotification[]> => {
     const response = await notificationService.getNotificationQueue({
       user_id: userId,
@@ -128,6 +139,14 @@ export const notificationService = {
     }
 
     return [];
+  },
+
+  markAsRead: async (queueUuid: string): Promise<void> => {
+    await apiClient.put(`${API_ENDPOINTS.NOTIFICATIONS.MARK_READ}/${queueUuid}`);
+  },
+
+  markAllAsRead: async (): Promise<void> => {
+    await apiClient.put(API_ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ);
   },
 };
 

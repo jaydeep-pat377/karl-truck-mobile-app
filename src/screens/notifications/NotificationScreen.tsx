@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Card, Icon, EmptyViewWithPreset } from '../../components/common';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,7 @@ import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useAuthStore } from '../../store/authStore';
 import { MainTabParamList } from '../../navigation/types';
 import { useSupabaseNotifications, Notification } from '../../hooks/useSupabaseNotifications';
+import { navigateFromNotification } from '../../services/navigationService';
 
 const getNotificationIcon = (eventCode: string): string => {
   const code = eventCode?.toUpperCase() || '';
@@ -66,16 +67,19 @@ export const NotificationScreen: React.FC = () => {
   const { user } = useAuthStore();
 
   const themeColors = isDark ? colors.dark : colors.light;
-  const tenantId = user?.metadata?.tenant?.tenant_id ?? 1;
+  const tenantId = user?.metadata?.tenant?.tenant_id ?? null;
 
 
   const {
     notifications,
     unreadCount,
     isLoading,
+    isLoadingMore,
     isConnected,
     error,
+    hasMore,
     refetch,
+    loadMore,
     markAsRead,
     markAllAsRead,
   } = useSupabaseNotifications({
@@ -86,6 +90,23 @@ export const NotificationScreen: React.FC = () => {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Auto-refetch when screen comes into focus (picks up new notifications from FCM/backend)
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
+  // Listen for incoming FCM messages and refetch list in real-time
+  useEffect(() => {
+    const messaging = require('@react-native-firebase/messaging').default;
+    const unsubscribe = messaging().onMessage(() => {
+      // New FCM message received while on this screen — refetch to show it
+      refetch();
+    });
+    return unsubscribe;
+  }, [refetch]);
+
   const handleGoBack = () => {
     navigation.navigate('Home');
   };
@@ -95,6 +116,41 @@ export const NotificationScreen: React.FC = () => {
     await refetch();
     setIsRefreshing(false);
   }, [refetch]);
+
+  const handleEndReached = useCallback(() => {
+    if (hasMore && !isLoadingMore) {
+      loadMore();
+    }
+  }, [hasMore, isLoadingMore, loadMore]);
+
+  const renderFooter = useCallback(() => {
+    if (!isLoadingMore) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={colors.primary.main} />
+      </View>
+    );
+  }, [isLoadingMore]);
+
+  const handleNotificationPress = useCallback((item: Notification) => {
+    const navData = {
+      event_code: item.event_code,
+      entity_type: item.entity_type,
+      entity_id: item.entity_id != null ? String(item.entity_id) : '',
+      order_id: item.entity_type === 'order' && item.entity_id ? String(item.entity_id) : '',
+      order_code: item.order_code || (item.entity_type === 'order' && item.entity_id ? String(item.entity_id) : ''),
+      order_date: item.order_date || '',
+    };
+    if (__DEV__) {
+      console.log('[NotificationScreen] Tapped notification:', JSON.stringify({
+        id: item.id,
+        subject: item.subject,
+        ...navData,
+      }));
+    }
+    markAsRead(item.id);
+    navigateFromNotification(navData);
+  }, [markAsRead]);
 
   const renderNotification = ({ item }: { item: Notification }) => {
     const isRead = item.status === 'read' || item.status === 'delivered';
@@ -107,7 +163,7 @@ export const NotificationScreen: React.FC = () => {
           !isRead && { borderLeftWidth: 4, borderLeftColor: colors.primary.main },
           isNew && styles.newNotificationCard,
         ]}
-        onPress={() => markAsRead(item.id)}
+        onPress={() => handleNotificationPress(item)}
       >
         <View style={styles.notificationContent}>
           <View
@@ -229,6 +285,7 @@ export const NotificationScreen: React.FC = () => {
               subtitle={t('notifications.noNotifications')}
             />
           }
+          ListFooterComponent={renderFooter}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -237,6 +294,8 @@ export const NotificationScreen: React.FC = () => {
               tintColor={colors.primary.main}
             />
           }
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.3}
           initialNumToRender={8}
           maxToRenderPerBatch={5}
           windowSize={5}
@@ -358,6 +417,10 @@ const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  footerLoader: {
+    paddingVertical: 16,
     alignItems: 'center',
   },
 });

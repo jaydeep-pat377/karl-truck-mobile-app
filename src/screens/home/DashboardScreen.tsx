@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useEffect, useState } from 'react';
+import React, { useCallback, useMemo, useEffect, useState, useRef } from 'react';
 import {
   View,
   ScrollView,
@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { Text, Icon } from '../../components/common';
 import {
@@ -321,6 +321,18 @@ const DashboardScreen: React.FC = () => {
     enabled: true,
     onUpdate: refetch,
   });
+
+  // Refetch dashboard when screen comes back into focus (e.g. after reading notifications)
+  const isFirstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return;
+      }
+      refetch();
+    }, [refetch])
+  );
 
   const formattedTimezoneDate = currentUserTimezone?.current_time || '';
 

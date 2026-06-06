@@ -40,6 +40,10 @@ export const API_ENDPOINTS = {
   },
   NOTIFICATIONS: {
     QUEUE: '/notification-queue',
+    HISTORY: '/notifications/history',
+    RECENT: '/notifications/recent',
+    MARK_READ: '/notifications/read',
+    MARK_ALL_READ: '/notifications/read-all',
   },
   ANNOUNCEMENTS: {
     ME: '/announcements/me',

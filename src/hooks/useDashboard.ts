@@ -38,7 +38,7 @@ export const useDashboard = (params?: UseDashboardParams) => {
       }
       return undefined;
     },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
     gcTime: 10 * 60 * 1000,
     retry: 1,
     refetchOnMount: true,
