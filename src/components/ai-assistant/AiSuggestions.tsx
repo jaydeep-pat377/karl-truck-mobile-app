@@ -13,19 +13,24 @@ interface Props {
 
 export const AiSuggestions: React.FC<Props> = ({ onPick }) => {
   const theme = useAppTheme();
-  // Role-aware starter questions from the backend (producer vs contractor),
-  // falling back to the static list if the request fails.
-  const [suggestions, setSuggestions] = React.useState<string[]>(AI_SUGGESTIONS);
+  // Role-aware starter questions from the backend (producer vs contractor).
+  // Start as null and show placeholder cards until the fetch resolves, so
+  // contractors never see the producer list flash before theirs loads. The
+  // static list is used only as an error fallback.
+  const [suggestions, setSuggestions] = React.useState<string[] | null>(null);
   React.useEffect(() => {
     let active = true;
     aiAssistantService
       .getSuggestions()
       .then((r) => {
-        if (active && Array.isArray(r?.suggestions) && r.suggestions.length) {
-          setSuggestions(r.suggestions);
-        }
+        if (!active) return;
+        setSuggestions(
+          Array.isArray(r?.suggestions) && r.suggestions.length ? r.suggestions : AI_SUGGESTIONS,
+        );
       })
-      .catch(() => {/* keep static fallback */});
+      .catch(() => {
+        if (active) setSuggestions(AI_SUGGESTIONS);
+      });
     return () => {
       active = false;
     };
@@ -42,22 +47,32 @@ export const AiSuggestions: React.FC<Props> = ({ onPick }) => {
         Pick a prompt or type your own question about Truckast operations
       </Text>
       <View style={styles.grid}>
-        {suggestions.map((s) => (
-          <TouchableOpacity
-            key={s}
-            style={[
-              styles.card,
-              { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
-            ]}
-            activeOpacity={0.7}
-            onPress={() => onPick(s)}
-          >
-            <Icon name="lightning-bolt-outline" size={ms(14)} color={theme.colors.primary.main} />
-            <Text variant="caption" color="primary" style={styles.cardText}>
-              {s}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {suggestions === null
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.colors.card, borderColor: theme.colors.border, opacity: 0.4 },
+                ]}
+              />
+            ))
+          : suggestions.map((s) => (
+              <TouchableOpacity
+                key={s}
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+                ]}
+                activeOpacity={0.7}
+                onPress={() => onPick(s)}
+              >
+                <Icon name="lightning-bolt-outline" size={ms(14)} color={theme.colors.primary.main} />
+                <Text variant="caption" color="primary" style={styles.cardText}>
+                  {s}
+                </Text>
+              </TouchableOpacity>
+            ))}
       </View>
     </View>
   );
