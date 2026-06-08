@@ -46,7 +46,10 @@
       "Bash(psql_file='/Users/admin/Desktop/Truckast-python-scrapper-api/src/services/orderService.js')",
       "Bash(./gradlew assembleRelease)",
       "Bash(adb uninstall:*)",
-      "Bash(adb install:*)"
+      "Bash(adb install:*)",
+      "Bash(ipconfig)",
+      "Bash(netstat -ano)",
+      "Bash(tee C:/Users/ADMIN/AppData/Local/Temp/tsc_after.txt)"
     ]
   }
 }
