@@ -71,7 +71,8 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     queryKey: ['chatMessages', orderId],
     queryFn: () => chatService.getMessages(orderId),
     enabled: !!orderId && isConfigured,
-    staleTime: 30 * 1000,
+    staleTime: 5 * 1000,
+    refetchInterval: 5000,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
@@ -231,8 +232,15 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
                 supabase.removeChannel(channel);
                 channel = null;
               }
+              // Reconnect after 5 seconds
+              setTimeout(() => setupSubscription(), 5000);
             } else if (status === 'CLOSED') {
               setIsRealtimeConnected(false);
+              if (channel) {
+                supabase.removeChannel(channel);
+                channel = null;
+              }
+              setTimeout(() => setupSubscription(), 5000);
             }
           });
       } catch (error) {
