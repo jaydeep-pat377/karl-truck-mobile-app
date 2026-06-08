@@ -12,11 +12,20 @@ import {
   Modal,
   Pressable,
   PermissionsAndroid,
+  NativeModules,
 } from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
 // TEMP: pointed at local no-op stub while Nitro autolink is broken — see _stubs/audioRecorderPlayer.ts
 import AudioRecorderPlayer from '../../_stubs/audioRecorderPlayer';
 import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
+
+// The native Voice module is not present in every runtime (web, or a build
+// where the module isn't linked). When it's missing, calling into Voice —
+// especially Voice.removeAllListeners(), which writes directly to the null
+// native module — throws "Cannot set property 'onSpeechStart' of null" and
+// surfaces as an unhandled promise rejection. Gate all Voice usage on this.
+const isVoiceAvailable =
+  Platform.OS !== 'web' && !!NativeModules.Voice;
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Icon, Text } from '../common';
@@ -141,6 +150,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
   // Speech recognition event handlers
   useEffect(() => {
+    if (!isVoiceAvailable) return;
+
     const onSpeechResults = (e: SpeechResultsEvent) => {
       if (e.value && e.value.length > 0) {
         const text = e.value[0] || '';
@@ -172,7 +183,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     Voice.onSpeechEnd = onSpeechEnd;
 
     return () => {
-      Voice.destroy().then(Voice.removeAllListeners);
+      Voice.destroy()
+        .then(() => Voice.removeAllListeners())
+        .catch(() => {});
     };
   }, []);
 
@@ -248,6 +261,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, []);
 
   const startSpeechRecognition = useCallback(async () => {
+    if (!isVoiceAvailable) return;
     try {
       setTranscribedText('');
       transcribedTextRef.current = '';
@@ -260,6 +274,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, []);
 
   const stopSpeechRecognition = useCallback(async () => {
+    if (!isVoiceAvailable) {
+      setIsTranscribing(false);
+      return;
+    }
     try {
       await Voice.stop();
     } catch (error) {

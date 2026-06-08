@@ -105,6 +105,17 @@ export const ChatRoomScreen: React.FC = () => {
   const { typingUsers, setTyping } = useTypingIndicator(roomId);
   const themeColors = isDark ? colors.dark : colors.light;
 
+  // When opened from a deep link / notification the chat can be the only
+  // route on the stack, so goBack() has nowhere to land and React Navigation
+  // warns "GO_BACK was not handled". Fall back to the Orders tab in that case.
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Main' as never, { screen: 'Orders' } as never);
+    }
+  }, [navigation]);
+
   // Stop any playing audio when leaving this screen
   useEffect(() => {
     return () => {
@@ -303,7 +314,7 @@ export const ChatRoomScreen: React.FC = () => {
         <StatusBar backgroundColor={themeColors.background} barStyle={isDark ? 'light-content' : 'dark-content'} />
         <ChatHeader
           title={roomName}
-          onBack={() => navigation.goBack()}
+          onBack={handleBack}
           orderDate={orderDate}
           customerName={customerName}
           projectName={projectName}
@@ -393,7 +404,7 @@ export const ChatRoomScreen: React.FC = () => {
       >
         <ChatHeader
           title={roomName}
-          onBack={() => navigation.goBack()}
+          onBack={handleBack}
           orderDate={orderDate}
           customerName={customerName}
           projectName={projectName}
