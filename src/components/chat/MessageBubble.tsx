@@ -101,8 +101,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
     if (!message.attachments || !Array.isArray(message.attachments)) {
       return [];
     }
-    return message.attachments
-      .map((attachment: Attachment | string) => {
+    return (message.attachments as Array<Attachment | string>)
+      .map((attachment) => {
         if (typeof attachment === 'string') return attachment;
         return attachment.url || attachment.file_url || attachment.image_url || attachment.path || null;
       })

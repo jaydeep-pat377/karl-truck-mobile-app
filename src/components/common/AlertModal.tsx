@@ -121,7 +121,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
                   <Icon
                     name="close"
                     size={ms(20)}
-                    color={theme.colors.text.secondary}
+                    color={theme.colors.textSecondary}
                   />
                 </TouchableOpacity>
               )}

@@ -598,6 +598,7 @@ export interface OrderDetailsOrder {
   graphs?: OrderGraphs;
   realtime_order_updates?: RealtimeOrderUpdates;
   delay_details?: DelayDetailItem[];
+  delivery_progress?: DeliveryProgress;
 }
 
 export interface OrderDetailsApiData {

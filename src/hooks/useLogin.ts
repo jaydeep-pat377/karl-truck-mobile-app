@@ -88,8 +88,8 @@ export const useLogin = () => {
         userEmail: exchangeResponse.data?.user?.email,
         hasAccessToken: !!exchangeResponse.data?.accessToken,
         hasRefreshToken: !!exchangeResponse.data?.refreshToken,
-        backendUrl: exchangeResponse.data?.user?.metadata?.tenant?.tenant_backend_url,
-        tenant: exchangeResponse.data?.tenant,
+        backendUrl: (exchangeResponse.data?.user?.metadata?.tenant as any)?.tenant_backend_url,
+        tenant: (exchangeResponse.data as any)?.tenant,
         timezone: exchangeResponse.data?.timezone,
       }, null, 2));
       console.log('[useLogin] ====== FEDERATED LOGIN END ======');
@@ -120,7 +120,7 @@ export const useLogin = () => {
         // it as "Invalid API key" on every realtime/query call.
         const nestedConfig =
           (response.data.user?.metadata?.tenant as any)?.supabase_config || {};
-        const pickKey = (top: string | undefined, nested: string | undefined): string | null => {
+        const pickKey = (top: string | null | undefined, nested: string | null | undefined): string | null => {
           const fromTop = decryptValue(top);
           if (fromTop) return fromTop;
           const fromNestedDecrypted = decryptValue(nested);

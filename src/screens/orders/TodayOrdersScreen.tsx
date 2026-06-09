@@ -341,7 +341,8 @@ export const TodayOrdersScreen: React.FC = () => {
         type: 'error',
         title: t('chat.errors.chatErrorTitle'),
         message: errorMessage,
-        duration: 4000,
+        autoDismiss: true,
+        autoDismissTimeout: 4000,
       });
     } finally {
       setChatLoadingOrderId(null);

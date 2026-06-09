@@ -60,7 +60,7 @@ export const colors = {
     5: '#F2F2F2',
     3: '#F7F7F7',
     light: '#F4F4F4',
-  },
+  } as { [shade: number]: string; light: string },
   progress: {
     trackLight: '#E8E8E8',
     trackDark: '#3A3A3A',
@@ -113,6 +113,7 @@ export const colors = {
     text: {
       primary: '#FFFFFF',
       secondary: '#BFBFBF',
+      tertiary: '#999999',
       disabled: '#808080',
       hint: '#999999',
     },
@@ -126,6 +127,7 @@ export const colors = {
     text: {
       primary: '#000000',
       secondary: '#585957',
+      tertiary: '#808080',
       disabled: '#BFBFBF',
       hint: '#808080',
     },
@@ -495,6 +497,7 @@ export const colors = {
     black04: 'rgba(0,0,0,0.04)',
     black05: 'rgba(0,0,0,0.05)',
     black06: 'rgba(0,0,0,0.06)',
+    black08: 'rgba(0,0,0,0.08)',
     black10: 'rgba(0,0,0,0.1)',
     black15: 'rgba(0,0,0,0.15)',
     black20: 'rgba(0,0,0,0.2)',
@@ -785,8 +788,8 @@ export const colors = {
     segmentColor: '#6b7280',
   },
   detailHeader: {
-    light: ['#FFFFFF', '#F8F8F8', '#F0F0F0'] as const,
-    dark: ['#3A3A3A', '#2A2A2A', '#1E1E1E'] as const,
+    light: ['#FFFFFF', '#F8F8F8', '#F0F0F0'],
+    dark: ['#3A3A3A', '#2A2A2A', '#1E1E1E'],
   },
   evaporationSeverity: {
     low: '#22C55E',
@@ -795,7 +798,7 @@ export const colors = {
     critical: '#DC2626',
   },
   qrModal: {
-    gradient: ['#7c3aed', '#6d28d9', '#4338ca'] as const,
+    gradient: ['#7c3aed', '#6d28d9', '#4338ca'],
     text: '#1e1b4b',
     loader: '#7c3aed',
     bodyBg: '#f8fafc',

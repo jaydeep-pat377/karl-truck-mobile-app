@@ -181,7 +181,9 @@ interface OrderCodeCardProps {
   showTruck?: boolean;
 }
 
-const OrderCodeCard: React.FC<OrderCodeCardProps> = ({ orderCode, onPress, showTruck }) => (
+const OrderCodeCard: React.FC<OrderCodeCardProps> = ({ orderCode, onPress, showTruck }) => {
+  const { t } = useTranslation();
+  return (
   <View style={styles.orderCodeCard}>
     <View style={styles.orderCodeContent}>
       <View style={styles.barcodeSection}>
@@ -206,7 +208,8 @@ const OrderCodeCard: React.FC<OrderCodeCardProps> = ({ orderCode, onPress, showT
       <Icon name="chevron-right" size={ms(16)} color={colors.light.text.hint} />
     </TouchableOpacity>
   </View>
-);
+  );
+};
 
 export const ProductCodeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();

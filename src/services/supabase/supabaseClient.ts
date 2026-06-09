@@ -220,6 +220,9 @@ AppState.addEventListener('change', (state: AppStateStatus) => {
   }
 });
 
-_supabase?.realtime.connect();
+// Cast away the `null` control-flow narrowing here: _supabase is only assigned
+// inside the init functions (called later), so at module-eval TS narrows it to
+// null. The optional chain keeps this null-safe at runtime.
+(_supabase as SupabaseClient | null)?.realtime.connect();
 
 export default supabase;

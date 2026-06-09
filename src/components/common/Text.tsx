@@ -15,6 +15,7 @@ type TextVariant =
   | 'captionSmall'
   | 'label'
   | 'button'
+  | 'buttonLarge'
   | 'buttonSmall'
   | 'temperatureLarge'
   | 'temperatureMedium'

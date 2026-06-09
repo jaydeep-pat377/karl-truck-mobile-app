@@ -259,7 +259,7 @@ export const EvaporationListScreen: React.FC = () => {
 
   const handleSettings = useCallback(() => {
     setMenuVisible(false);
-    navigation.navigate('Main' as never, { screen: 'Settings' } as never);
+    (navigation.navigate as any)('Main', { screen: 'Settings' });
   }, [navigation]);
 
   const menuItems = [

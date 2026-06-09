@@ -781,6 +781,7 @@ export const WeatherScreen: React.FC = () => {
   }, [navigation]);
 
   const handleEvaporationPress = useCallback(() => {
+    if (!weather) return;
     navigation.navigate('EvaporationList', {
       locationName: weather.location,
       date: weather.orderDate,
@@ -812,6 +813,7 @@ export const WeatherScreen: React.FC = () => {
   }, []);
 
   const handleShare = useCallback(async () => {
+    if (!weather) return;
     try {
       await Share.share({
         message: `Weather Update for ${weather.location}\nTemperature: ${weather.temperature}°${weather.temperatureUnit}\nCondition: ${weather.condition}\nMax: ${weather.maxTemp}° | Min: ${weather.minTemp}°`,

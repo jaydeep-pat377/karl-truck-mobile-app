@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon } from '../../components/common';
@@ -86,7 +86,7 @@ interface ProcessedMessage extends Message {
 export const ChatRoomScreen: React.FC = () => {
   const { t } = useTranslation();
   const route = useRoute<RouteParams>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { isDark } = useTheme();
   const { user } = useAuthStore();
   const insets = useSafeAreaInsets();
@@ -112,7 +112,7 @@ export const ChatRoomScreen: React.FC = () => {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.navigate('Main' as never, { screen: 'Orders' } as never);
+      navigation.navigate('Main', { screen: 'Orders' });
     }
   }, [navigation]);
 

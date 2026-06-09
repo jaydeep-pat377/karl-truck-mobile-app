@@ -61,7 +61,7 @@ const statusFilters = [
   { id: 'Canceled', label: 'Canceled', icon: 'close-circle-outline' },
 ] as const;
 
-type StatusFilterId = typeof statusFilters[number]['id'];
+type StatusFilterId = typeof statusFilters[number]['id'] | 'all';
 
 const sortOptions = [
   { id: 'date_asc', label: 'Date (Oldest First)', icon: 'sort-calendar-ascending' },
@@ -605,7 +605,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
         return { ...prev, statuses: ['all'] };
       }
 
-      let newStatuses = prev.statuses.filter(s => s !== 'all');
+      let newStatuses: StatusFilterId[] = prev.statuses.filter(s => s !== 'all');
 
       if (newStatuses.includes(statusId)) {
         newStatuses = newStatuses.filter(s => s !== statusId);
@@ -904,8 +904,8 @@ export const OrderListScreen: React.FC = () => {
     while (parent) {
       const state = parent.getState?.();
       const ordersRoute = state?.routes?.find((r: any) => r.name === 'Orders');
-      if (ordersRoute?.params?._timestamp) {
-        return ordersRoute.params as typeof route.params;
+      if ((ordersRoute?.params as Record<string, any> | undefined)?._timestamp) {
+        return ordersRoute!.params as typeof route.params;
       }
       parent = parent.getParent?.();
     }
@@ -1685,7 +1685,8 @@ export const OrderListScreen: React.FC = () => {
         type: 'error',
         title: t('chat.errors.chatErrorTitle'),
         message: errorMessage,
-        duration: 4000,
+        autoDismiss: true,
+        autoDismissTimeout: 4000,
       });
     } finally {
       setChatLoadingOrderId(null);

@@ -21,6 +21,7 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 export interface TrucksOnJobWebViewProps {
   scheduledLoads: ScheduledLoadItem[];
   isDark: boolean;
+  height?: number;
 }
 
 interface TruckState {

@@ -105,7 +105,7 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
     setIsLoading(true);
     try {
 
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise<void>(resolve => setTimeout(resolve, 1500));
 
       if (code === '123456') {
         if (isPasswordReset) {
@@ -130,7 +130,7 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
 
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise<void>(resolve => setTimeout(resolve, 1000));
       setResendTimer(RESEND_TIMEOUT);
       setCanResend(false);
       setOtp(Array(OTP_LENGTH).fill(''));
@@ -194,7 +194,7 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
           {otp.map((digit, index) => (
             <TextInput
               key={index}
-              ref={(ref) => (inputRefs.current[index] = ref)}
+              ref={(ref) => { inputRefs.current[index] = ref; }}
               style={[
                 styles.otpInput,
                 {

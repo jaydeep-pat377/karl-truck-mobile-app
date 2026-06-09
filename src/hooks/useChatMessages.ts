@@ -46,7 +46,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
   const [realtimeMessages, setRealtimeMessages] = useState<Message[]>([]);
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMessageTimeRef = useRef<string | null>(null);
 
   useEffect(() => {

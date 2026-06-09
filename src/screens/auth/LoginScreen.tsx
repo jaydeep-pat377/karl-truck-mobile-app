@@ -66,7 +66,7 @@ const AnimatedInput: React.FC<{
   autoCapitalize?: 'none' | 'sentences';
   returnKeyType?: 'next' | 'done';
   onSubmitEditing?: () => void;
-  inputRef?: React.RefObject<TextInput>;
+  inputRef?: React.RefObject<TextInput | null>;
   isDark: boolean;
 }> = ({
   value,

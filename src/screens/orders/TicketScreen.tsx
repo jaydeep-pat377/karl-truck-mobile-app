@@ -25,7 +25,7 @@ import { fontFamily } from '../../theme/typography';
 import { spacing, ms } from '../../utils/responsive';
 import { WeatherIcon } from '../../utils/weatherIcon';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
-import { RootStackParamList } from '../../navigation/types';
+import { RootStackParamList, TicketStatusType } from '../../navigation/types';
 import { useTicketsByOrder, useRealtimeTickets, useOrderDetails } from '../../hooks';
 import { ApiTicketStatus, TicketByOrderItem } from '../../types/ticket';
 import { DeliveryProgress, DeliveryProgressSegment } from '../../types/order';
@@ -389,6 +389,7 @@ interface WeatherData {
   weather_condition?: string;
   weather_description?: string;
   weather_icon?: string;
+  concrete_evaporation_level?: string | null;
 }
 
 interface OrderHeaderProps {
@@ -571,7 +572,7 @@ const OrderHeader: React.FC<OrderHeaderProps> = ({
             <>
               <View style={[styles.headerWeatherDot, { backgroundColor: themeColors.text.hint }]} />
               <Text style={[styles.headerWeatherInfoText, { color: themeColors.text.secondary }]}>
-                {Math.round(weatherData.temperature_fahrenheit)}°F
+                {Math.round(weatherData.temperature_fahrenheit!)}°F
               </Text>
             </>
           )}
@@ -1559,7 +1560,7 @@ export const TicketScreen: React.FC = () => {
       orderCode: orderCode,
       orderDate: orderDate,
       ticketCode: ticket.ticketNumber,
-      status: ticket.status,
+      status: ticket.status as TicketStatusType,
       statusDisplay: ticket.statusDisplay,
       statusColor: statusColor,
       statusColors: apiStatusColors,

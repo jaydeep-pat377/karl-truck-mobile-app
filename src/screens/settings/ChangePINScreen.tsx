@@ -90,7 +90,7 @@ export const ChangePINScreen: React.FC = () => {
     if (step === 'verify') {
 
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise<void>(resolve => setTimeout(resolve, 500));
       setIsLoading(false);
 
       if (pin === '1234') {
@@ -120,7 +120,7 @@ export const ChangePINScreen: React.FC = () => {
       if (pin === newPIN) {
 
         setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise<void>(resolve => setTimeout(resolve, 1000));
         setIsLoading(false);
 
         showSuccess(

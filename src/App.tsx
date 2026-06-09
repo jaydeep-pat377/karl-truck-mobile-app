@@ -189,7 +189,7 @@ const AppContentWithSplash: React.FC<AppContentProps> = ({ onReady }) => {
             },
           }}
         >
-          <RootNavigator isAuthenticated={true} />
+          <RootNavigator />
         </NavigationContainer>
       </NotificationProvider>
       {isHandlingDeepLink && <SplashScreen />}

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, forwardRef } from 'react';
 import {
   View,
   TextInput,
@@ -21,7 +21,7 @@ interface InputProps extends TextInputProps {
   isPassword?: boolean;
 }
 
-export const Input: React.FC<InputProps> = ({
+export const Input = forwardRef<TextInput, InputProps>(({
   label,
   error,
   hint,
@@ -31,7 +31,7 @@ export const Input: React.FC<InputProps> = ({
   isPassword = false,
   style,
   ...props
-}) => {
+}, ref) => {
   const theme = useAppTheme();
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -80,6 +80,7 @@ export const Input: React.FC<InputProps> = ({
           />
         )}
         <TextInput
+          ref={ref}
           style={inputStyle}
           placeholderTextColor={theme.colors.textHint}
           onFocus={() => setIsFocused(true)}
@@ -125,7 +126,9 @@ export const Input: React.FC<InputProps> = ({
       )}
     </View>
   );
-};
+});
+
+Input.displayName = 'Input';
 
 const styles = StyleSheet.create({
   container: {

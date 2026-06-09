@@ -22,7 +22,7 @@ import { Text, TopGradientBackground, TruckLoader, Icon, AlertModal } from '../.
 import YellowTruck from '../../assets/svgs/yellowTruck.svg';
 import Isolation_Mode from '../../assets/svgs/Isolation_Mode.svg';
 import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
-import { Order, OrderCreatedItem } from '../../types';
+import { Order, OrderCreatedItem, RealtimeOrderUpdateItem } from '../../types';
 import { colors } from '../../theme/colors';
 import { getStatusColor, getStatusLabel } from '../../utils/statusUtils';
 import { fontFamily } from '../../theme/typography';
@@ -270,6 +270,17 @@ const getMockOrder = (orderId: string): Order => ({
   updatedAt: '2024-01-17T10:30:00Z',
 });
 
+interface ScheduleAssociatedProduct {
+  order_product_id?: string | number;
+  product_id?: string | number;
+  item_code?: string;
+  description?: string;
+  is_mix?: boolean;
+  ordered_qty?: number | string;
+  delivered_qty?: number | string;
+  order_qty_unit?: string;
+}
+
 const mockJobData = {
   elapsedTime: '12:08',
   deliveredVolume: 11.77,
@@ -277,7 +288,13 @@ const mockJobData = {
   orderedVolume: 11.75,
   remainingVolume: 2.33,
   estimatedFinish: '04:30PM',
-  temperature: 28,
+  hasWeatherData: true,
+  temperature: 28 as number | null,
+  windSpeed: 8 as number | null,
+  humidity: 45 as number | null,
+  weatherDescription: 'Partly Cloudy',
+  weatherIcon: null as string | null,
+  evaporationRate: null as number | null,
   siteName: 'Dagmar Construction Inc',
   plantName: 'Greenwood',
   plantCode: '303',
@@ -328,11 +345,12 @@ const mockJobData = {
   ],
   displayDate: '07 Nov 2025',
   estimatedFinishTime: '04:30PM',
+  scheduledTime: '08:00',
   scheduleRate: 8,
   avgWaitingMinutes: 15,
   avgPouringMinutes: 45,
   avgWashoutMinutes: 10,
-  scheduleDetails: [] as Array<any>,
+  scheduleDetails: [] as ScheduleDetailItem[],
   scheduledLoads: [] as Array<any>,
 };
 
@@ -1085,6 +1103,7 @@ interface ScheduleDetailItem {
   job_wash_time?: number;
   truck_type_name?: string;
   start_time?: string;
+  associated_products?: ScheduleAssociatedProduct[];
 }
 
 interface ScheduledLoadItem {
@@ -1806,7 +1825,7 @@ export const OrderDetailsScreen: React.FC = () => {
       id: orderDetails.order_id,
       orderCode: orderDetails.order_code,
       customerName: orderDetails.customer_name,
-      projectName: orderDetails.project_name,
+      projectName: orderDetails.project_name ?? undefined,
       deliveryAddress: orderDetails.delivery_address,
       scheduledDate: orderDetails.order_date,
       scheduledTime: orderDetails.start_time,
@@ -2527,7 +2546,7 @@ export const OrderDetailsScreen: React.FC = () => {
                 </Text>
                 {jobData.scheduleDetails && jobData.scheduleDetails.length > 0 ? (
                   <View style={styles.productScheduleInfo}>
-                    {jobData.scheduleDetails.map((schedule, index) => (
+                    {jobData.scheduleDetails.map((schedule: ScheduleDetailItem, index: number) => (
                       <View key={schedule.schedule_id || index} style={index > 0 ? styles.productScheduleItem : undefined}>
                         <View style={styles.productScheduleRow}>
                           <Text style={[styles.productScheduleLabel, { color: themeColors.text.secondary }]}>
@@ -2602,7 +2621,9 @@ export const OrderDetailsScreen: React.FC = () => {
             const orderCreatedItem = orderDetails.realtime_order_updates.items.find(
               (item): item is OrderCreatedItem => item.change_type === 'order_created'
             );
-            const updateItems = orderDetails.realtime_order_updates.items.filter(item => item.change_type !== 'order_created');
+            const updateItems = orderDetails.realtime_order_updates.items.filter(
+              (item): item is RealtimeOrderUpdateItem => item.change_type !== 'order_created'
+            );
 
             return (
               <View style={[styles.orderUpdatesSection, { backgroundColor: themeColors.card }]}>

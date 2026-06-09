@@ -99,7 +99,7 @@ export const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
 
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise<void>(resolve => setTimeout(resolve, 2000));
       navigation?.navigate('VerifyOTP', { email, mode: 'signup' });
     } catch (error) {
       setErrors({ general: t('auth.signup.signupFailed') });

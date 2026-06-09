@@ -49,7 +49,18 @@
       "Bash(adb install:*)",
       "Bash(ipconfig)",
       "Bash(netstat -ano)",
-      "Bash(tee C:/Users/ADMIN/AppData/Local/Temp/tsc_after.txt)"
+      "Bash(tee C:/Users/ADMIN/AppData/Local/Temp/tsc_after.txt)",
+      "Bash(sed -n '1,15p' src/assets/svgs/index.ts)",
+      "Bash(sed -n '373,397p' src/api/services/qrService.ts)",
+      "Bash(sed -n '78,95p' src/api/endpoints.ts)",
+      "Bash(sed -n '17,21p' src/hooks/useSSOLogin.ts)",
+      "Bash(sed -n '76,82p' src/hooks/useSSOLogin.ts)",
+      "Bash(sed -n '50,62p' src/navigation/types.ts)",
+      "Bash(sed -n '218,265p' src/navigation/types.ts)",
+      "Bash(sed -n '1684,1692p' src/screens/orders/OrderListScreen.tsx)",
+      "Bash(sed -n '340,348p' src/screens/orders/TodayOrdersScreen.tsx)",
+      "Bash(sed -n '185,235p' src/App.tsx)",
+      "Bash(sed -n '255,262p' src/App.tsx)"
     ]
   }
 }

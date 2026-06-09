@@ -249,7 +249,6 @@ export const OrderRequestListScreen: React.FC = () => {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.filterTabsContainer}
       style={styles.filterTabsScroll}
-      clipsToBounds={false}
     >
       {FILTER_TABS.map((tab) => {
         const isActive = activeFilter === tab.key;

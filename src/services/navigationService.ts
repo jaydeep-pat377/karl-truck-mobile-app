@@ -13,7 +13,10 @@ export function navigate<T extends keyof RootStackParamList>(
 ): void {
   if (navigationRef.isReady()) {
 
-    navigationRef.navigate(name, params);
+    // RN's navigate() has a conditional-tuple overload that doesn't unify with
+    // a generic (name, params) call site; cast through any (args are typed by
+    // this function's own generic signature).
+    (navigationRef.navigate as any)(name, params);
   } else {
 
     console.warn('[NavigationService] Navigation not ready, queuing:', name);

@@ -196,7 +196,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       // encrypted nested, then raw nested.
       const nestedConfig =
         (exchangeResponse.data.user?.metadata?.tenant as any)?.supabase_config || {};
-      const pickKey = (top: string | undefined, nested: string | undefined): string | null => {
+      const pickKey = (top: string | null | undefined, nested: string | null | undefined): string | null => {
         const fromTop = decryptValue(top);
         if (fromTop) return fromTop;
         const fromNestedDecrypted = decryptValue(nested);

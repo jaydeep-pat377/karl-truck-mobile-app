@@ -55,9 +55,9 @@ export const useAuth = (): UseAuthReturn => {
         const response = await authService.login(credentials, federatedResponse.data.code, federatedResponse.data.client_secret);
 
         await setAuth(
-          response.user,
-          response.access_token,
-          response.refresh_token
+          response.data.user,
+          response.data.accessToken,
+          response.data.refreshToken
         );
       } catch (err) {
         const axiosError = err as AxiosError<ApiErrorResponse>;

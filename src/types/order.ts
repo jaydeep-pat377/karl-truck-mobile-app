@@ -57,6 +57,7 @@ export interface Order {
   plantDetails?: PlantDetails;
   scheduledDate: string;
   scheduledTime: string;
+  displayDate?: string;
   status: OrderStatus;
   productType: string;
   productMix?: string;

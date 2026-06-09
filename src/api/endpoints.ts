@@ -90,4 +90,10 @@ export const API_ENDPOINTS = {
     GET: '/user-preferences',
     SET: '/user-preferences',
   },
+  SCAN_HISTORY: {
+    LIST: '/scan-history',
+    SAVE: '/scan-history',
+    DELETE: '/scan-history',
+    CLEAR: '/scan-history',
+  },
 } as const;

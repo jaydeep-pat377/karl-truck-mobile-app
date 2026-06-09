@@ -14,6 +14,8 @@ import { FrameSvg } from '../../assets/svgs/FrameSvg';
 
 interface SplashScreenProps {
 
+  message?: string;
+
   appName?: string;
 
   primaryColor?: string;
