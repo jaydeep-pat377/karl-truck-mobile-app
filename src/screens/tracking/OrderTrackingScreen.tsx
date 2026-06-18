@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { Text, Icon, TruckLoader } from '../../components/common';
 import { CementMixerPin } from '../../components/map/CementMixerPin';
 import { colors } from '../../theme/colors';
+import { getVolumeUnit } from '../../utils/units';
 import { fontFamily } from '../../theme/typography';
 import { ms } from '../../utils/responsive';
 import { useOrderTracking, useDirections } from '../../hooks';
@@ -611,7 +612,7 @@ export const OrderTrackingScreen: React.FC = () => {
               <Text style={[styles.qtyText, { color: isDark ? colors.common.white : colors.common.black }]} numberOfLines={1}>
                 {fmtQty(ticket.load_qty)}
               </Text>
-              <Text style={[styles.qtyUnit, { color: isDark ? colors.common.white : colors.common.black }]}>CY</Text>
+              <Text style={[styles.qtyUnit, { color: isDark ? colors.common.white : colors.common.black }]}>{getVolumeUnit()}</Text>
             </View>
             {ticket.timestamps?.eta_at_job && ['loading', 'loaded', 'to_job'].includes(ticket.status) && (
               <View style={[styles.etaChip, { backgroundColor: isDark ? `${colors.common.white}15` : `${colors.common.black}10` }]}>

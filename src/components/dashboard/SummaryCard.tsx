@@ -5,6 +5,7 @@ import { CircularProgress } from './CircularProgress';
 import { colors } from '../../theme/colors';
 import { ms } from '../../utils/responsive';
 import { fontFamily } from '../../theme/typography';
+import { getVolumeUnit } from '../../utils/units';
 
 export interface SummaryCardData {
   id: string;
@@ -56,7 +57,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({ data, onPress }) => {
         <Text style={styles.quantityText} numberOfLines={1}>
           <Text style={styles.deliveredQty}>{formatQty(data.deliveredQty)}</Text>
           <Text style={styles.ofText}> OF </Text>
-          <Text style={styles.totalQty}>{formatQty(data.totalQty)} CY</Text>
+          <Text style={styles.totalQty}>{formatQty(data.totalQty)} {getVolumeUnit()}</Text>
         </Text>
 
         <Text style={styles.statsText} numberOfLines={1}>

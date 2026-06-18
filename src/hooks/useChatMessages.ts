@@ -11,13 +11,13 @@ import { playMessageSound } from '../utils/notificationSound';
 
 interface UseChatMessagesProps {
   chatId?: number;
-  orderId: number;
+  orderId: string | number;
 }
 
 interface RawChatMessage {
   id: number;
-  chat_id: number;
-  order_id: number;
+  chat_id: string | number;
+  order_id: string | number;
   sender_id: string;
   sender_name: string;
   sender_role: string;
@@ -47,6 +47,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const pollingIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMessageTimeRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -143,6 +144,18 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
+    // Single-flight reconnect: a flaky WebSocket can fire CHANNEL_ERROR/CLOSED
+    // repeatedly. Without this guard each error queued another setTimeout →
+    // setupSubscription(), stacking overlapping channels + reconnect timers,
+    // which storms the JS thread (messages + setState) and freezes the UI.
+    const scheduleReconnect = () => {
+      if (reconnectTimerRef.current) return; // a reconnect is already pending
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        setupSubscription();
+      }, 5000);
+    };
+
     const setupSubscription = () => {
       try {
         channel = supabase
@@ -232,15 +245,15 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
                 supabase.removeChannel(channel);
                 channel = null;
               }
-              // Reconnect after 5 seconds
-              setTimeout(() => setupSubscription(), 5000);
+              // Reconnect after 5 seconds (single-flight — see scheduleReconnect)
+              scheduleReconnect();
             } else if (status === 'CLOSED') {
               setIsRealtimeConnected(false);
               if (channel) {
                 supabase.removeChannel(channel);
                 channel = null;
               }
-              setTimeout(() => setupSubscription(), 5000);
+              scheduleReconnect();
             }
           });
       } catch (error) {
@@ -277,6 +290,10 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
+      }
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
       }
       subscription.remove();
     };

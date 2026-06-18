@@ -28,6 +28,7 @@ import { getStatusColor, getStatusLabel } from '../../utils/statusUtils';
 import { fontFamily } from '../../theme/typography';
 import { ms } from '../../utils/responsive';
 import { WeatherIcon } from '../../utils/weatherIcon';
+import { getVolumeUnit } from '../../utils/units';
 import { RootStackParamList, OrdersStackParamList } from '../../navigation/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useOrderDetails, useAlert } from '../../hooks';
@@ -251,9 +252,9 @@ const getMockOrder = (orderId: string): Order => ({
   displayDate: '07 Nov 2025',
   status: 'IN_PROCESS',
   productType: '3CCC608',
-  productMix: '+406 BR | 256.00 CY',
+  productMix: `+406 BR | 256.00 ${getVolumeUnit()}`,
   quantity: 256,
-  unit: 'CY',
+  unit: getVolumeUnit(),
   deliveredQuantity: 27,
   remainingQuantity: 18,
   totalLoads: 6,
@@ -305,10 +306,10 @@ const mockJobData = {
   avgSpacing: '45 min',
   status: 'In Progress',
   statusPills: [
-    { label: 'Loading', value: 186, unit: 'CY', active: false, icon: 'truck-loading' },
-    { label: 'To Job', value: 148, unit: 'CY', active: false, icon: 'truck-fast' },
-    { label: 'At Job', value: 112, unit: 'CY', active: true, icon: 'map-marker' },
-    { label: 'Pouring', value: 64, unit: 'CY', active: false, icon: 'water' },
+    { label: 'Loading', value: 186, unit: getVolumeUnit(), active: false, icon: 'truck-loading' },
+    { label: 'To Job', value: 148, unit: getVolumeUnit(), active: false, icon: 'truck-fast' },
+    { label: 'At Job', value: 112, unit: getVolumeUnit(), active: true, icon: 'map-marker' },
+    { label: 'Pouring', value: 64, unit: getVolumeUnit(), active: false, icon: 'water' },
   ],
   pourSpeedData: [
     { time: '08:00', delivered: 10, poured: 5, ordered: 8 },
@@ -758,7 +759,7 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
           numberOfLines={1}
           style={[styles.deliveryCyValueText, { color: themeColors.text.primary }]}
         >
-          {orderedQty.toFixed(2)} CY
+          {orderedQty.toFixed(2)} {getVolumeUnit()}
         </Text>
       </View>
 
@@ -794,7 +795,7 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
             ) : (
               <>
                 <Text style={[styles.deliveryTooltipText, { color: themeColors.text.primary }]}>
-                  {progressStatusLabel(tooltipKey || '')}: {segmentQtyMap[tooltipKey || '']?.toFixed(2) ?? '0.00'} CY
+                  {progressStatusLabel(tooltipKey || '')}: {segmentQtyMap[tooltipKey || '']?.toFixed(2) ?? '0.00'} {getVolumeUnit()}
                 </Text>
               </>
             )}
@@ -924,11 +925,11 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
               <Text style={[styles.psInfoItemLabel, { color: themeColors.text.hint }]}>{t('orders.delivered')}</Text>
             </View>
             <Text style={[styles.psInfoItemValue, { color: colors.success.main }]}>
-              {(deliveredQty ?? 0).toFixed(1)} CY
+              {(deliveredQty ?? 0).toFixed(1)} {getVolumeUnit()}
             </Text>
             {scheduleRate ? (
               <Text style={[styles.psInfoItemSubValue, { color: themeColors.text.hint }]}>
-                {t('orders.rate')}: {scheduleRate} CY/hr
+                {t('orders.rate')}: {scheduleRate} {getVolumeUnit()}/hr
               </Text>
             ) : null}
           </View>
@@ -939,7 +940,7 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
               <Text style={[styles.psInfoItemLabel, { color: themeColors.text.hint }]}>{t('orders.poured')}</Text>
             </View>
             <Text style={[styles.psInfoItemValue, { color: colors.info.main }]}>
-              {(pouredQty ?? 0).toFixed(1)} CY
+              {(pouredQty ?? 0).toFixed(1)} {getVolumeUnit()}
             </Text>
           </View>
         </View>
@@ -1667,7 +1668,7 @@ const SmartChart: React.FC<SmartChartProps> = ({
                 {t('orders.ordered')}
               </Text>
               <Text style={[styles.tooltipDataValue, { color: themeColors.text.primary }]}>
-                {tooltipInfo?.ordered || '18.5 CY/HR'}
+                {tooltipInfo?.ordered || `18.5 ${getVolumeUnit()}/HR`}
               </Text>
             </View>
 
@@ -1832,10 +1833,10 @@ export const OrderDetailsScreen: React.FC = () => {
       status: orderDetails.status as Order['status'],
       productType: orderDetails.products?.[0]?.item_code || 'N/A',
       productMix: orderDetails.products?.length > 0
-        ? `${formatQty(orderDetails.ticket_delivered_qty ?? orderDetails.delivered_qty ?? 0)}/${formatQty(orderDetails.ordered_qty ?? 0)} CY`
+        ? `${formatQty(orderDetails.ticket_delivered_qty ?? orderDetails.delivered_qty ?? 0)}/${formatQty(orderDetails.ordered_qty ?? 0)} ${getVolumeUnit()}`
         : '',
       quantity: orderDetails.ordered_qty,
-      unit: 'CY',
+      unit: getVolumeUnit(),
       deliveredQuantity: orderDetails.ticket_delivered_qty ?? orderDetails.delivered_qty,
       remainingQuantity: orderDetails.remaining_qty,
       totalLoads: orderDetails.tickets?.length || 0,
@@ -2186,7 +2187,7 @@ export const OrderDetailsScreen: React.FC = () => {
   }, [navigation, orderCode, orderDate, order.status, order.scheduledTime]);
 
   const handleProductPress = useCallback((product: ProductCardItem) => {
-    showInfo(t('orders.productDetails'), `${t('orders.product')}: ${product.itemCode}\n${t('orders.quantity')}: ${product.orderedQty.toFixed(2)} CY`);
+    showInfo(t('orders.productDetails'), `${t('orders.product')}: ${product.itemCode}\n${t('orders.quantity')}: ${product.orderedQty.toFixed(2)} ${getVolumeUnit()}`);
   }, [showInfo, t]);
 
   const menuItems = [
@@ -2419,7 +2420,7 @@ export const OrderDetailsScreen: React.FC = () => {
                   <Text style={[styles.metricValue, { color: themeColors.text.primary }]} numberOfLines={1} adjustsFontSizeToFit>
                     {formatQty(jobData.deliveredVolume)}
                   </Text>
-                  <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>CY</Text>
+                  <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>{getVolumeUnit()}</Text>
                 </View>
                 <Text style={[styles.metricLabel, { color: themeColors.text.hint }]}>{t('orders.delivered')}</Text>
               </View>
@@ -2430,7 +2431,7 @@ export const OrderDetailsScreen: React.FC = () => {
                 progress={order.progress ?? 0}
                 isDark={isDark}
                 unitValue={formatQty(jobData.pouredVolume)}
-                unit="CY"
+                unit={getVolumeUnit()}
               />
 
               <View style={styles.metricItem}>
@@ -2438,7 +2439,7 @@ export const OrderDetailsScreen: React.FC = () => {
                   <Text style={[styles.metricValue, { color: themeColors.text.primary }]} numberOfLines={1} adjustsFontSizeToFit>
                     {formatQty(jobData.orderedVolume)}
                   </Text>
-                  <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>CY</Text>
+                  <Text style={[styles.metricUnit, { color: themeColors.text.secondary }]}>{getVolumeUnit()}</Text>
                 </View>
                 <Text style={[styles.metricLabel, { color: themeColors.text.hint }]}>{t('orders.ordered')}</Text>
               </View>
@@ -2561,7 +2562,7 @@ export const OrderDetailsScreen: React.FC = () => {
                             {t('orders.product')}
                           </Text>
                           <Text style={[styles.productScheduleValue, { color: themeColors.text.primary }]} numberOfLines={1}>
-                            {schedule.item_code} {schedule.schedule_qty} CY
+                            {schedule.item_code} {schedule.schedule_qty} {getVolumeUnit()}
                           </Text>
                         </View>
                         {schedule.associated_products && schedule.associated_products.length > 0 && (

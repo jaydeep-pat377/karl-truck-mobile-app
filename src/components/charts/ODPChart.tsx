@@ -50,6 +50,7 @@ import Svg, {
 import { moderateScale as ms } from 'react-native-size-matters';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { colors } from '../../theme/colors';
+import { getVolumeUnit } from '../../utils/units';
 import { fontFamily } from '../../theme/typography';
 import type {
   ODPBucket,
@@ -347,7 +348,7 @@ const ODPChartSvg: React.FC<ODPChartSvgProps> = ({
         textAnchor="middle"
         transform={`rotate(-90, 14, ${PAD_TOP + innerH / 2})`}
       >
-        {viewMode === 'cy' ? 'CY' : 'Loads'}
+        {viewMode === 'cy' ? getVolumeUnit() : 'Loads'}
       </SvgText>
 
       {/* ---------------- X-axis: baseline + boundary ticks & labels ----- */}
@@ -603,9 +604,9 @@ const ODPTooltipCard: React.FC<ODPTooltipCardProps> = ({
 
   const valueText = (cy: number, count: number) => {
     if (viewMode === 'cy') {
-      return `${fmtQty(cy)} CY${count > 0 ? ` (${count} ${loadWord(count)})` : ''}`;
+      return `${fmtQty(cy)} ${getVolumeUnit()}${count > 0 ? ` (${count} ${loadWord(count)})` : ''}`;
     }
-    return `${count} ${loadWord(count)} · ${fmtQty(cy)} CY`;
+    return `${count} ${loadWord(count)} · ${fmtQty(cy)} ${getVolumeUnit()}`;
   };
 
   const deliveredTotalCY = bucket.delivered + bucket.delivered_carry_in;
@@ -678,7 +679,7 @@ const ODPTooltipCard: React.FC<ODPTooltipCardProps> = ({
             <Text
               style={[styles.tooltipSub, { color: COLOR_CARRYOVER_STROKE }]}
             >
-              ↓ {fmtQty(r.carryIn)} CY from backlog
+              ↓ {fmtQty(r.carryIn)} {getVolumeUnit()} from backlog
             </Text>
           )}
         </View>
@@ -829,7 +830,7 @@ export const ODPChart: React.FC<ODPChartProps> = ({ data, isDark }) => {
                 },
               ]}
             >
-              CY
+              {getVolumeUnit()}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -882,7 +883,7 @@ export const ODPChart: React.FC<ODPChartProps> = ({ data, isDark }) => {
             iconColor="#10b981"
             bgColor="#10b98115"
             label="Rate"
-            value={`${rate.toFixed(2)} CY/HR`}
+            value={`${rate.toFixed(2)} ${getVolumeUnit()}/HR`}
           />
         )}
         {scheduledQty > 0 && (
@@ -892,7 +893,7 @@ export const ODPChart: React.FC<ODPChartProps> = ({ data, isDark }) => {
             iconColor="#a855f7"
             bgColor="#a855f715"
             label="Scheduled"
-            value={`${scheduledQty.toFixed(2)} CY`}
+            value={`${scheduledQty.toFixed(2)} ${getVolumeUnit()}`}
           />
         )}
         {numberOfLoads > 0 && (
@@ -912,7 +913,7 @@ export const ODPChart: React.FC<ODPChartProps> = ({ data, isDark }) => {
             iconColor="#ef4444"
             bgColor="#ef444415"
             label="Load Size"
-            value={`${loadQty.toFixed(2)} CY`}
+            value={`${loadQty.toFixed(2)} ${getVolumeUnit()}`}
           />
         )}
       </View>

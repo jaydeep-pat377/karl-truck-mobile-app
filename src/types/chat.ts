@@ -2,7 +2,7 @@
 
 export interface OrderChat {
   id: number;
-  order_id: number;
+  order_id: string | number;
   created_at: string;
   updated_at?: string;
   last_message_at?: string;
@@ -11,8 +11,8 @@ export interface OrderChat {
 
 export interface ChatMessage {
   id: number;
-  chat_id: number;
-  order_id: number;
+  chat_id: string | number;
+  order_id: string | number;
   sender_id: string;
   sender_name: string;
   sender_role: string;
@@ -26,7 +26,7 @@ export interface ChatMessage {
 
 export interface ChatReadStatus {
   user_id: string;
-  order_id: number;
+  order_id: string | number;
   last_read_at: string;
   created_at: string;
   updated_at?: string;
@@ -37,7 +37,7 @@ export interface ChatRoom {
   name: string;
   description?: string;
   type: 'order';
-  order_id: number;
+  order_id: string | number;
   created_at: string;
   updated_at?: string;
   is_active: boolean;
@@ -54,8 +54,8 @@ export interface ChatRoom {
 export interface Message {
   id: string;
   room_id: string;
-  chat_id: number;
-  order_id: number;
+  chat_id: string | number;
+  order_id: string | number;
   sender_id: string;
   sender_name: string;
   sender_role: string;
@@ -88,12 +88,12 @@ export interface TypingUser {
 }
 
 export interface CreateRoomPayload {
-  order_id: number;
+  order_id: string | number;
 }
 
 export interface SendMessagePayload {
-  chat_id: number;
-  order_id: number;
+  chat_id: string | number;
+  order_id: string | number;
   content: string;
   message_type?: 'text' | 'image' | 'audio' | 'system';
   attachments?: unknown[];

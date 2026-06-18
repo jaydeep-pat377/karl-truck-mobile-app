@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { ChatRoom, Message, TypingUser } from '../types/chat';
 
 export interface ChatToastData {
-  orderId: number;
+  orderId: string | number;
   orderCode: string;
   senderName: string;
   messagePreview: string;

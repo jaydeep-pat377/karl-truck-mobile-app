@@ -19,6 +19,7 @@ import { fontFamily } from '../../theme/typography';
 import { ms, breakpoint, isSmallDevice } from '../../utils/responsive';
 import { WeatherIcon } from '../../utils/weatherIcon';
 import { getStatusColor } from '../../utils/statusUtils';
+import { getVolumeUnit } from '../../utils/units';
 import { TicketTrackingStatus } from '../../types';
 import Svg, { Defs, Pattern, Line, Rect } from 'react-native-svg';
 
@@ -638,7 +639,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
                     numberOfLines={1}
                     style={[styles.cyValueText, { color: themeColors.text.primary }]}
                   >
-                    {orderedQty.toFixed(2)} CY
+                    {orderedQty.toFixed(2)} {getVolumeUnit()}
                   </Text>
                 </View>
 

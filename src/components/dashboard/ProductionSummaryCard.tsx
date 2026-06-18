@@ -6,6 +6,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
 import { ms, spacing } from '../../utils/responsive';
 import { fontFamily } from '../../theme/typography';
+import { getVolumeUnit } from '../../utils/units';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - (spacing.lg * 2);
@@ -127,7 +128,10 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
     onPress?: () => void
   ) => {
     const itemProgress = item.totalQty > 0 ? (item.deliveredQty / item.totalQty) * 100 : 0;
-    const itemProgressPercent = Math.round(itemProgress);
+    // Match the web summary card (company-summary-card.tsx): show 2 decimals,
+    // capped at 100. Rounding to an integer hid small but real progress (e.g.
+    // 19.00 / 3,881.64 = 0.49% was shown as "0%").
+    const itemProgressPercent = Math.min(itemProgress, 100).toFixed(2);
 
     const getIcon = () => {
       switch (type) {
@@ -213,7 +217,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
           <View style={styles.productionHeader}>
             <Text style={[styles.productionTitle, { color: themeColors.text.primary }]}>{t('dashboard.production')}</Text>
             <Text style={[styles.productionQty, { color: themeColors.text.secondary }]} numberOfLines={1}>
-              {formatQty(item.deliveredQty)} {t('dashboard.of')} {formatQty(item.totalQty)} CY
+              {formatQty(item.deliveredQty)} {t('dashboard.of')} {formatQty(item.totalQty)} {getVolumeUnit()}
             </Text>
           </View>
 
@@ -233,7 +237,7 @@ export const ProductionSummaryCard: React.FC<ProductionSummaryProps> = ({
             <View style={styles.deliveredRow}>
               <View style={[styles.deliveredDot, { backgroundColor: colors.dashboard.statGreen }]} />
               <Text style={[styles.deliveredText, { color: themeColors.text.secondary }]}>
-                {t('dashboard.delivered')}: {formatQty(item.deliveredQty)} CY
+                {t('dashboard.delivered')}: {formatQty(item.deliveredQty)} {getVolumeUnit()}
               </Text>
             </View>
             <Text style={[styles.percentText, { color: themeColors.text.primary }]}>{itemProgressPercent}%</Text>

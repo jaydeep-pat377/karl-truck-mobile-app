@@ -1,8 +1,9 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect } from 'react';
 import { dashboardService, DashboardDateFilter } from '../api/services/dashboardService';
 import { DashboardApiResponse, DashboardData, ActiveDeliveryOrder } from '../types/dashboard';
 import { AxiosError } from 'axios';
+import { useAuthStore } from '../store/authStore';
 
 interface ApiErrorResponse {
   success?: boolean;
@@ -46,6 +47,15 @@ export const useDashboard = (params?: UseDashboardParams) => {
 
   const firstPageData: DashboardData | null =
     query.data?.pages[0]?.success ? query.data.pages[0].data : null;
+
+  // Keep the tenant volume unit (m³ for CBM, CY for US) in sync from the dashboard
+  // response so unit labels update without requiring a re-login.
+  useEffect(() => {
+    const vu = (firstPageData as unknown as { volume_unit?: string } | null)?.volume_unit;
+    if (vu && useAuthStore.getState().volumeUnit !== vu) {
+      useAuthStore.setState({ volumeUnit: vu });
+    }
+  }, [firstPageData]);
 
   const allDeliveryOrders: ActiveDeliveryOrder[] = useMemo(() => {
     if (!query.data?.pages) return [];

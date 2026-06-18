@@ -23,6 +23,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, TruckLoader, AlertModal } from '../../components/common';
 import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { colors } from '../../theme/colors';
+import { getVolumeUnit } from '../../utils/units';
 import { fontFamily } from '../../theme/typography';
 import { ms, vs } from '../../utils/responsive';
 import { WeatherIcon } from '../../utils/weatherIcon';
@@ -2004,7 +2005,7 @@ export const TicketDetailScreen: React.FC = () => {
                 <Text
                   style={[styles.loadInfoValue, { color: isDark ? colors.common.white : colors.grey[85] }]}
                   numberOfLines={1}>
-                  {loadQty != null ? `${loadQty} CY` : '-'}
+                  {loadQty != null ? `${loadQty} ${getVolumeUnit()}` : '-'}
                 </Text>
               </View>
             </View>
@@ -2020,7 +2021,7 @@ export const TicketDetailScreen: React.FC = () => {
               <DetailRow label={t('orders.description')} value={productInfo.name} isDark={isDark} />
               <DetailRow label={t('orders.type')} value={productInfo.isMix ? t('orders.mixDesign') : t('orders.product')} isDark={isDark} isLast={!loadQty} />
               {loadQty !== undefined && loadQty !== null && (
-                <DetailRow label={t('orders.loadAmount')} value={`${loadQty} CY`} isDark={isDark} isLast />
+                <DetailRow label={t('orders.loadAmount')} value={`${loadQty} ${getVolumeUnit()}`} isDark={isDark} isLast />
               )}
             </SectionCard>
           )}

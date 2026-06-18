@@ -17,6 +17,7 @@ interface AuthState {
   refreshToken: string | null;
   appPermissions: string[];
   showRegion: boolean;
+  volumeUnit: string; // tenant volume unit (e.g. 'CY' for US, 'm³' for CBM)
   isAuthenticated: boolean;
   isLoading: boolean;
   isInitialized: boolean;
@@ -41,6 +42,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   refreshToken: null,
   appPermissions: [],
   showRegion: true,
+  volumeUnit: 'CY',
   isAuthenticated: false,
   isLoading: false,
   isInitialized: false,
@@ -226,7 +228,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (response.success && response.data?.permissions) {
         const permissions = response.data.permissions;
         const showRegion = response.data?.showRegion !== false;
-        set({ appPermissions: permissions, showRegion });
+        const volumeUnit = response.data?.volume_unit || 'CY';
+        set({ appPermissions: permissions, showRegion, volumeUnit });
         await AsyncStorage.setItem(STORAGE_KEYS.APP_PERMISSIONS, JSON.stringify(permissions));
       }
     } catch (error) {

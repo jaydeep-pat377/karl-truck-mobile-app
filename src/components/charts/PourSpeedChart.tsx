@@ -26,6 +26,7 @@ import Svg, {
 import { moderateScale as ms } from 'react-native-size-matters';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../theme/colors';
+import { getVolumeUnit } from '../../utils/units';
 import { fontFamily } from '../../theme/typography';
 
 const SHADOWS = {
@@ -451,7 +452,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
             <Icon name="speedometer" size={ms(14)} color={colors.info.main} />
             <View style={styles.statTextContainer}>
               <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>{t('charts.rate')}</Text>
-              <Text style={[styles.statValue, { color: colors.info.main }]}>{scheduleRate} CY/HR</Text>
+              <Text style={[styles.statValue, { color: colors.info.main }]}>{scheduleRate} {getVolumeUnit()}/HR</Text>
             </View>
           </View>
           {scheduledQty > 0 && (
@@ -459,7 +460,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
               <Icon name="calendar-check" size={ms(14)} color={colors.info.main} />
               <View style={styles.statTextContainer}>
                 <Text style={[styles.statLabel, { color: themeColors.text.hint }]}>{t('charts.scheduled')}</Text>
-                <Text style={[styles.statValue, { color: colors.info.main }]}>{scheduledQty.toFixed(2)} CY</Text>
+                <Text style={[styles.statValue, { color: colors.info.main }]}>{scheduledQty.toFixed(2)} {getVolumeUnit()}</Text>
               </View>
             </View>
           )}
@@ -478,7 +479,7 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                 textAnchor="end"
                 fontFamily={fontFamily.medium}
               >
-                CY/HR
+                {getVolumeUnit()}/HR
               </SvgText>
               {yAxisValues.map((value, i) => {
                 const y = getY(value);
@@ -644,12 +645,12 @@ export const PourSpeedChart: React.FC<PourSpeedChartProps> = ({
                       <View style={styles.tooltipRow}>
                         <View style={[styles.tooltipDot, { backgroundColor: tooltip.color }]} />
                         <Text style={styles.tooltipLabel}>{tooltip.label}</Text>
-                        <Text style={styles.tooltipValue}>{tooltip.value.toFixed(2)} CY/HR</Text>
+                        <Text style={styles.tooltipValue}>{tooltip.value.toFixed(2)} {getVolumeUnit()}/HR</Text>
                       </View>
                       {tooltip.loadQty != null && (
                         <View style={[styles.tooltipRow, { marginLeft: ms(12) }]}>
                           <Text style={styles.tooltipLabel}>{t('charts.loadQty')}</Text>
-                          <Text style={styles.tooltipValue}>{tooltip.loadQty.toFixed(2)} CY</Text>
+                          <Text style={styles.tooltipValue}>{tooltip.loadQty.toFixed(2)} {getVolumeUnit()}</Text>
                         </View>
                       )}
                       {tooltip.actualSpacing != null && (

@@ -23,6 +23,7 @@ import type { DateFilter, QuickLaunchAction, Advertisement, RegionData, CompanyD
 import { useTheme } from '../../contexts/ThemeContext';
 import { colors } from '../../theme/colors';
 import { ms, spacing, fontSizes, iconSizes } from '../../utils/responsive';
+import { getVolumeUnit } from '../../utils/units';
 import { useResponsive } from '../../hooks/useResponsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useDashboard } from '../../hooks/useDashboard';
@@ -708,7 +709,7 @@ const DashboardScreen: React.FC = () => {
                 <Text style={[styles.deliveryStatValue, { color: themeColors.text.primary }]}>
                   {formatQty(item.orderedQty)}
                 </Text>
-                <Text style={[styles.deliveryStatUnit, { color: themeColors.text.primary }]}> CY</Text>
+                <Text style={[styles.deliveryStatUnit, { color: themeColors.text.primary }]}> {getVolumeUnit()}</Text>
               </View>
               <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>{t('dashboard.ordered')}</Text>
             </View>
@@ -718,7 +719,7 @@ const DashboardScreen: React.FC = () => {
                 <Text style={[styles.deliveryStatValue, { color: colors.dashboard.statGreen }]}>
                   {formatQty(item.deliveredQty)}
                 </Text>
-                <Text style={[styles.deliveryStatUnit, { color: colors.dashboard.statGreen }]}> CY</Text>
+                <Text style={[styles.deliveryStatUnit, { color: colors.dashboard.statGreen }]}> {getVolumeUnit()}</Text>
               </View>
               <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>{t('dashboard.poured')}</Text>
             </View>
@@ -728,7 +729,7 @@ const DashboardScreen: React.FC = () => {
                 <Text style={[styles.deliveryStatValue, { color: colors.dashboard.statYellow }]}>
                   {formatQty(item.remainingQty)}
                 </Text>
-                <Text style={[styles.deliveryStatUnit, { color: colors.dashboard.statYellow }]}> CY</Text>
+                <Text style={[styles.deliveryStatUnit, { color: colors.dashboard.statYellow }]}> {getVolumeUnit()}</Text>
               </View>
               <Text style={[styles.deliveryStatLabel, { color: themeColors.text.hint }]}>{t('dashboard.remaining')}</Text>
             </View>
@@ -771,7 +772,7 @@ const DashboardScreen: React.FC = () => {
                 numberOfLines={1}
                 style={[styles.deliveryCyValueText, { color: themeColors.text.primary }]}
               >
-                {orderedQty.toFixed(2)} CY
+                {orderedQty.toFixed(2)} {getVolumeUnit()}
               </Text>
             </View>
 

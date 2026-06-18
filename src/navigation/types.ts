@@ -55,7 +55,7 @@ export type MainTabParamList = {
 export type ChatStackParamList = {
   ChatList: undefined;
   ChatRoom: ChatRoomScreenParams;
-  CreateChatRoom: { orderId?: number } | undefined;
+  CreateChatRoom: { orderId?: string | number } | undefined;
 };
 
 export type OrdersStackParamList = {
@@ -225,7 +225,7 @@ export type ChatRoomScreenParams = {
   roomId: string;
   roomName: string;
   chatId: number;
-  orderId: number;
+  orderId: string | number;
   orderDate?: string;
   customerName?: string;
   projectName?: string;

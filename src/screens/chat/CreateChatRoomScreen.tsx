@@ -38,8 +38,8 @@ export const CreateChatRoomScreen: React.FC = () => {
   const themeColors = isDark ? colors.dark : colors.light;
 
   const handleCreate = useCallback(async () => {
-    const orderIdNum = parseInt(orderId.trim(), 10);
-    if (!orderId.trim() || isNaN(orderIdNum)) {
+    const trimmedOrderId = orderId.trim();
+    if (!trimmedOrderId) {
       setError(t('chat.orderIdRequired', 'Order ID is required'));
       return;
     }
@@ -48,7 +48,8 @@ export const CreateChatRoomScreen: React.FC = () => {
     setIsCreating(true);
 
     try {
-      const room = await getOrCreateRoom(orderIdNum);
+      // order IDs are varchar (UUID) for most tenants — pass the string as-is.
+      const room = await getOrCreateRoom(trimmedOrderId);
 
       navigation.replace('ChatRoom', {
         roomId: room.id,

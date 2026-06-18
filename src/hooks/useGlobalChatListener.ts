@@ -7,7 +7,7 @@ import { useAuthStore } from '../store/authStore';
 interface RawChatMessage {
   id: number;
   chat_id: number;
-  order_id: number;
+  order_id: string | number;
   sender_id: string;
   sender_name: string;
   sender_role: string;

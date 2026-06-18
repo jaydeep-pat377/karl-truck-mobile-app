@@ -47,7 +47,7 @@ const checkSupabase = async () => {
 interface RawChatMessage {
   id: number;
   chat_id: number;
-  order_id: number;
+  order_id: string | number;
   sender_id: string;
   sender_name: string;
   sender_role: string;
@@ -78,7 +78,7 @@ const detectMessageType = (attachments: unknown[]): 'text' | 'image' | 'audio' =
 
 interface OrderChat {
   id: number;
-  order_id: number;
+  order_id: string | number;
   created_at: string;
   updated_at: string | null;
   last_message_at: string | null;
@@ -119,7 +119,7 @@ export const chatService = {
     }
   },
 
-  getOrCreateRoom: async (orderId: number): Promise<ChatRoom> => {
+  getOrCreateRoom: async (orderId: string | number): Promise<ChatRoom> => {
     const sb = await checkSupabase();
 
     const { data: chatId, error: rpcError } = await sb.rpc('ensure_chat_exists', {
@@ -183,7 +183,7 @@ export const chatService = {
   },
 
   getMessages: async (
-    orderId: number,
+    orderId: string | number,
     limit = 50,
     before?: string
   ): Promise<Message[]> => {
@@ -235,7 +235,7 @@ export const chatService = {
       }));
   },
 
-  uploadImage: async (image: ImageAttachment, orderId: number): Promise<UploadedAttachment> => {
+  uploadImage: async (image: ImageAttachment, orderId: string | number): Promise<UploadedAttachment> => {
     await checkSupabase();
     const user = useAuthStore.getState().user;
     if (!user) throw new Error('Not authenticated');
@@ -304,7 +304,7 @@ export const chatService = {
     });
   },
 
-  uploadImages: async (images: ImageAttachment[], orderId: number): Promise<UploadedAttachment[]> => {
+  uploadImages: async (images: ImageAttachment[], orderId: string | number): Promise<UploadedAttachment[]> => {
     const uploadPromises = images.map(image => chatService.uploadImage(image, orderId));
     return Promise.all(uploadPromises);
   },
@@ -400,7 +400,7 @@ export const chatService = {
     }
   },
 
-  uploadAudio: async (audio: AudioAttachment, orderId: number): Promise<UploadedAttachment> => {
+  uploadAudio: async (audio: AudioAttachment, orderId: string | number): Promise<UploadedAttachment> => {
     await checkSupabase();
     const user = useAuthStore.getState().user;
     if (!user) throw new Error('Not authenticated');
@@ -501,7 +501,7 @@ export const chatService = {
     }
   },
 
-  markAsRead: async (orderId: number): Promise<boolean> => {
+  markAsRead: async (orderId: string | number): Promise<boolean> => {
     try {
       const res = await apiClient.post<{ success: boolean }>(
         API_ENDPOINTS.CHAT.MARK_READ,
@@ -514,7 +514,7 @@ export const chatService = {
     }
   },
 
-  getUnreadCount: async (orderId: number): Promise<number> => {
+  getUnreadCount: async (orderId: string | number): Promise<number> => {
     const sb = await checkSupabase();
     const user = useAuthStore.getState().user;
 
@@ -568,7 +568,7 @@ export const chatService = {
   },
 
   subscribeToMessages: (
-    orderId: number,
+    orderId: string | number,
     onMessage: (message: Message) => void
   ) => {
     if (!isSupabaseConfigured() || !supabaseAdmin) return null;

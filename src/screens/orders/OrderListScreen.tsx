@@ -28,6 +28,7 @@ import { OrderStatusTabs } from '../../components/dashboard';
 import type { OrderStatusFilter, OrderStatusCount } from '../../components/dashboard';
 import { Order, ApiOrder, OrdersQueryParams, WeatherCondition, TicketTrackingStatus } from '../../types';
 import { colors } from '../../theme/colors';
+import { getVolumeUnit } from '../../utils/units';
 import { fontFamily } from '../../theme/typography';
 import { spacing, ms, iconSizes, wp, hp } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
@@ -166,7 +167,7 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     status: mapOrderStatus(apiOrder.status),
     productType: productCode,
     quantity: apiOrder.ordered_qty,
-    unit: 'CY',
+    unit: getVolumeUnit(),
     deliveredQuantity: apiOrder.delivered_qty,
     remainingQuantity: apiOrder.remaining_qty,
     totalLoads,
@@ -1258,7 +1259,7 @@ export const OrderListScreen: React.FC = () => {
       navigation.navigate('ChatRoom', {
         roomId: room.id,
         roomName: `Order #${toast.orderCode}`,
-        chatId: room.id ? Number(room.id) : orderId,
+        chatId: room.id ? Number(room.id) : 0,
         orderId: orderId,
         orderDate: order?.order_date,
         customerName: order?.customer_name,
@@ -1658,11 +1659,12 @@ export const OrderListScreen: React.FC = () => {
     setChatLoadingOrderId(order.id);
     markRoomAsRead(order.id);
     setApiUnreadCounts(prev => ({ ...prev, [order.id]: 0 }));
-    const parsedId = parseInt(order.id, 10);
-    if (!isNaN(parsedId)) chatService.markAsRead(parsedId);
+    // order.id is the order's UUID (varchar) — pass it through as-is. (It used to
+    // be parseInt'd, which produced NaN → "Invalid order ID" for UUID tenants.)
+    const orderId = order.id;
+    if (orderId) chatService.markAsRead(orderId);
     try {
-      const orderId = parsedId;
-      if (isNaN(orderId)) {
+      if (!orderId) {
         throw new Error('Invalid order ID');
       }
 
@@ -1671,7 +1673,7 @@ export const OrderListScreen: React.FC = () => {
       navigation.navigate('ChatRoom', {
         roomId: room.id,
         roomName: `Order #${order.orderCode}`,
-        chatId: room.id ? Number(room.id) : orderId,
+        chatId: room.id ? Number(room.id) : 0,
         orderId: orderId,
         orderDate: order.scheduledDate,
         customerName: order.customerName,

@@ -16,6 +16,7 @@ import { Text, TopGradientBackground, TruckLoader, Icon } from '../../components
 import { ScheduledLoadsBottomSheet } from '../../components/orders';
 import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { colors } from '../../theme/colors';
+import { getVolumeUnit } from '../../utils/units';
 import { fontFamily } from '../../theme/typography';
 import { ms, spacing } from '../../utils/responsive';
 import { RootStackParamList } from '../../navigation/types';
@@ -363,7 +364,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
             itemCode: primaryProduct.item_code || '',
             description: primaryProduct.description || '',
             quantity: primaryProduct.quantity || 0,
-            quantityUnit: 'CY',
+            quantityUnit: getVolumeUnit(),
             slump: primaryProduct.slump || '-',
             scheduleNumber: primaryProduct.schedule_number || '-',
             startTime: primaryProduct.start_time || '',
@@ -673,7 +674,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 <View style={styles.productSlumpRow}>
                   <Icon name="scale" size={ms(10)} color={colors.primary.main} />
                   <Text style={[styles.productInfoBadgeText, { color: colors.primary.main }]}>
-                    {t('orders.orderQty')}: {jobData.orderedVolume} CY
+                    {t('orders.orderQty')}: {jobData.orderedVolume} {getVolumeUnit()}
                   </Text>
                 </View>
               )}
@@ -696,7 +697,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                   <Text style={[styles.infoItemLabel, { color: themeColors.text.hint }]}>{t('orders.deliveredQty')}</Text>
                 </View>
                 <Text style={[styles.infoItemValue, { color: colors.success.main }]}>
-                  {formatQty(jobData.scheduledDelvQty ?? 0)} CY
+                  {formatQty(jobData.scheduledDelvQty ?? 0)} {getVolumeUnit()}
                 </Text>
                 <Text style={[styles.infoItemSubValue, { color: themeColors.text.secondary }]}>
                   {t('orders.poured')} {jobData.pouredPercent}%
@@ -730,7 +731,7 @@ export const OrderProductDetailsScreen: React.FC = () => {
                 <Icon name="speedometer" size={14} color={colors.primary.main} />
                 <Text style={[styles.timingLabel, { color: themeColors.text.hint }]}>{t('orders.schedRate')}</Text>
                 <Text style={[styles.timingValue, { color: themeColors.text.primary }]}>
-                  {jobData.scheduledRate > 0 ? `${jobData.scheduledRate} CY/HR` : '-'}
+                  {jobData.scheduledRate > 0 ? `${jobData.scheduledRate} ${getVolumeUnit()}/HR` : '-'}
                 </Text>
               </View>
               <View style={[styles.timingDivider, { backgroundColor: themeColors.border }]} />

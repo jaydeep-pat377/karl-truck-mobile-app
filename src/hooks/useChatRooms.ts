@@ -7,8 +7,8 @@ import { ChatRoom, Message } from '../types/chat';
 
 interface RawChatMessage {
   id: number;
-  chat_id: number;
-  order_id: number;
+  chat_id: string | number;
+  order_id: string | number;
   sender_id: string;
   sender_name: string;
   sender_role: string;
@@ -119,7 +119,7 @@ export const useChatRooms = () => {
     };
   }, [addRoom, updateRoom, queryClient, isConfigured, query.data]);
 
-  const getOrCreateRoom = async (orderId: number): Promise<ChatRoom> => {
+  const getOrCreateRoom = async (orderId: string | number): Promise<ChatRoom> => {
     return chatService.getOrCreateRoom(orderId);
   };
 

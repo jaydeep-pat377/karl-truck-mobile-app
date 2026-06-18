@@ -20,6 +20,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, ScreenContainer, ScreenHeader, TruckLoader } from '../../components/common';
 import { EmptyView } from '../../components/common/EmptyView';
 import { colors } from '../../theme/colors';
+import { getVolumeUnit } from '../../utils/units';
 import { fontFamily } from '../../theme/typography';
 import { spacing, ms, vs } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
@@ -536,7 +537,7 @@ export const OrderRequestListScreen: React.FC = () => {
                     }}
                     numberOfLines={1}
                   >
-                    {Number(item.quantity).toFixed(2)} CY
+                    {Number(item.quantity).toFixed(2)} {getVolumeUnit()}
                   </Text>
                 </View>
               )}

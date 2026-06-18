@@ -20,6 +20,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, TruckLoader } from '../../components/common';
 import { OrderCard } from '../../components/orders';
 import { colors } from '../../theme/colors';
+import { getVolumeUnit } from '../../utils/units';
 import { fontFamily } from '../../theme/typography';
 import { ms, spacing } from '../../utils/responsive';
 import { useOrders, useChatRooms, useGlobalAlert } from '../../hooks';
@@ -93,7 +94,7 @@ const mapApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     status: mapOrderStatus(apiOrder.status),
     productType: productCode,
     quantity: apiOrder.ordered_qty,
-    unit: 'CY',
+    unit: getVolumeUnit(),
     deliveredQuantity: apiOrder.delivered_qty,
     remainingQuantity: apiOrder.remaining_qty,
     totalLoads,
@@ -317,8 +318,10 @@ export const TodayOrdersScreen: React.FC = () => {
   const handleChat = useCallback(async (order: Order) => {
     setChatLoadingOrderId(order.id);
     try {
-      const orderId = parseInt(order.id, 10);
-      if (isNaN(orderId)) {
+      // order.id is the order's UUID (varchar) — pass it through as-is (was
+      // parseInt'd, which produced NaN → "Invalid order ID" for UUID tenants).
+      const orderId = order.id;
+      if (!orderId) {
         throw new Error('Invalid order ID');
       }
 
@@ -327,7 +330,7 @@ export const TodayOrdersScreen: React.FC = () => {
       navigation.navigate('ChatRoom', {
         roomId: room.id,
         roomName: `Order #${order.orderCode}`,
-        chatId: room.id ? Number(room.id) : orderId,
+        chatId: room.id ? Number(room.id) : 0,
         orderId: orderId,
         orderDate: order.scheduledDate,
         customerName: order.customerName,

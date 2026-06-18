@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text, Icon, ScreenContainer, ScreenHeader, Button } from '../../components/common';
 import { colors } from '../../theme/colors';
+import { getVolumeUnit } from '../../utils/units';
 import { spacing, ms } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import {
@@ -214,7 +215,7 @@ const isDifferentDay = (a: string, b: string): boolean => {
 
 const computeTruckRate = (truckSpacing: number | null): string => {
   if (!truckSpacing || truckSpacing <= 0) return '-';
-  return `${(60 / truckSpacing).toFixed(1)} CY/HR`;
+  return `${(60 / truckSpacing).toFixed(1)} ${getVolumeUnit()}/HR`;
 };
 
 // ---------------------------------------------------------------------------
@@ -419,7 +420,7 @@ const ProductRow: React.FC<ProductRowProps> = ({ label, code, name, quantity, sl
           <View style={productRowStyles.detailsRow}>
             {quantity != null && (
               <Text variant="caption" style={{ color: secondaryColor }}>
-                {Number(quantity).toFixed(2)} CY
+                {Number(quantity).toFixed(2)} {getVolumeUnit()}
               </Text>
             )}
             {slump ? (
@@ -1426,7 +1427,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
               <QuickStatCard
                 icon="package-variant"
                 label={t('product.quantity')}
-                value={order.quantity ? `${Number(order.quantity).toFixed(2)} CY` : '0.00 CY'}
+                value={order.quantity ? `${Number(order.quantity).toFixed(2)} ${getVolumeUnit()}` : `0.00 ${getVolumeUnit()}`}
                 bgColor={colors.orderRequestSection.products}
                 isDark={isDark}
               />

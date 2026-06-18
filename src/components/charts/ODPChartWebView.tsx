@@ -66,6 +66,7 @@ import {
   type WebReducerBucket,
 } from '../../utils/odpWebReducer';
 import { colors } from '../../theme/colors';
+import { getVolumeUnit } from '../../utils/units';
 import { fontFamily } from '../../theme/typography';
 
 // Bundled React + Recharts UMD builds (see src/assets/odpVendor/*.ts).
@@ -528,7 +529,7 @@ export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
             iconColor="#10b981"
             bgColor="#10b98115"
             label="Rate"
-            value={`${rate.toFixed(2)} CY/HR`}
+            value={`${rate.toFixed(2)} ${getVolumeUnit()}/HR`}
           />
         )}
         {scheduledQty > 0 && (
@@ -538,7 +539,7 @@ export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
             iconColor="#a855f7"
             bgColor="#a855f715"
             label="Scheduled"
-            value={`${scheduledQty.toFixed(2)} CY`}
+            value={`${scheduledQty.toFixed(2)} ${getVolumeUnit()}`}
           />
         )}
         {numberOfLoads > 0 && (
@@ -558,7 +559,7 @@ export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
             iconColor="#ef4444"
             bgColor="#ef444415"
             label="Load Size"
-            value={`${loadQty.toFixed(2)} CY`}
+            value={`${loadQty.toFixed(2)} ${getVolumeUnit()}`}
           />
         )}
       </View>
@@ -603,7 +604,7 @@ export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
                 },
               ]}
             >
-              CY
+              {getVolumeUnit()}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -840,7 +841,7 @@ const FixedYAxis: React.FC<FixedYAxisProps> = ({
           textAnchor="middle"
           transform={`rotate(-90, 12, ${plotTop + plotHeight / 2})`}
         >
-          {viewMode === 'cy' ? 'CY' : 'Loads'}
+          {viewMode === 'cy' ? getVolumeUnit() : 'Loads'}
         </SvgText>
 
         {/* Tick labels — numeric, right-aligned to the column edge. */}
@@ -1067,9 +1068,9 @@ function ODPTooltip(props){
   function valueText(cy, count){
     var loadWord = count === 1 ? 'load' : 'loads';
     if(VIEW_MODE === 'loads'){
-      return count + ' ' + loadWord + ' · ' + fmtQty(cy) + ' CY';
+      return count + ' ' + loadWord + ' · ' + fmtQty(cy) + ' ' + getVolumeUnit();
     }
-    return fmtQty(cy) + ' CY' + (count > 0 ? ' (' + count + ' ' + loadWord + ')' : '');
+    return fmtQty(cy) + ' ' + getVolumeUnit() + (count > 0 ? ' (' + count + ' ' + loadWord + ')' : '');
   }
 
   var deliveredTotal = bucket.deliveredCarryIn + bucket.delivered;
@@ -1109,7 +1110,7 @@ function ODPTooltip(props){
         ),
         r.carryIn > 0
           ? e('div',{style:{marginLeft:20, fontSize:10, color:'${textSecondary}', paddingBottom:2}},
-              '↓ ' + fmtQty(r.carryIn) + ' CY from backlog (poured > delivered)')
+              '↓ ' + fmtQty(r.carryIn) + ' ' + getVolumeUnit() + ' from backlog (poured > delivered)')
           : null
       );
     })

@@ -13,6 +13,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { Text, Icon } from '../../components/common';
 import { colors } from '../../theme/colors';
+import { getVolumeUnit } from '../../utils/units';
 import { fontFamily } from '../../theme/typography';
 import { ms, vs, responsive } from '../../utils/responsive';
 import { RootStackParamList } from '../../navigation/types';
@@ -55,9 +56,9 @@ const mockData = {
       status: 'Delayed',
       statusColor: colors.productStatus.danger,
       spacing: '5 Min',
-      pourRate: '120.00 CY/HR',
+      pourRate: `120.00 ${getVolumeUnit()}/HR`,
       location: 'Greenwood 303',
-      productCode: 'SCCA60 (OOOT CLASS) | 4.00 IN | 290.00 CY',
+      productCode: `SCCA60 (OOOT CLASS) | 4.00 IN | 290.00 ${getVolumeUnit()}`,
     },
     {
       id: '2',
@@ -69,9 +70,9 @@ const mockData = {
       status: 'In Progress',
       statusColor: colors.productStatus.safe,
       spacing: '5 Min',
-      pourRate: '120.00 CY/HR',
+      pourRate: `120.00 ${getVolumeUnit()}/HR`,
       location: 'Greenwood 303',
-      productCode: 'SCCA60 (OOOT CLASS) | 4.00 IN | 290.00 CY',
+      productCode: `SCCA60 (OOOT CLASS) | 4.00 IN | 290.00 ${getVolumeUnit()}`,
     },
   ],
   orderCodes: [
@@ -79,7 +80,7 @@ const mockData = {
       id: '1',
       code: '5528301 (4000 PSI BLD NB3)',
       slump: '4.00 IN',
-      quantity: '10.50 CY',
+      quantity: `10.50 ${getVolumeUnit()}`,
       type: 'Concrete',
       typeColor: colors.productStatus.safe,
     },
@@ -87,7 +88,7 @@ const mockData = {
       id: '2',
       code: '6988301 (4000 PSI BLD NB3)',
       slump: '4.00 IN',
-      quantity: '10.50 CY',
+      quantity: `10.50 ${getVolumeUnit()}`,
       type: 'Associated Product',
       typeColor: colors.productStatus.info,
     },

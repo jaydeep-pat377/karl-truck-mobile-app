@@ -24,6 +24,7 @@ import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { spacing, ms } from '../../utils/responsive';
 import { WeatherIcon } from '../../utils/weatherIcon';
+import { getVolumeUnit } from '../../utils/units';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { RootStackParamList, TicketStatusType } from '../../navigation/types';
 import { useTicketsByOrder, useRealtimeTickets, useOrderDetails } from '../../hooks';
@@ -780,7 +781,7 @@ const TicketDeliveryProgressBar: React.FC<TicketDeliveryProgressBarProps> = ({
           numberOfLines={1}
           style={[styles.ticketCyValueText, { color: themeColors.text.primary }]}
         >
-          {orderedQty.toFixed(2)} CY
+          {orderedQty.toFixed(2)} {getVolumeUnit()}
         </Text>
       </View>
 
@@ -815,7 +816,7 @@ const TicketDeliveryProgressBar: React.FC<TicketDeliveryProgressBarProps> = ({
               })
             ) : (
               <Text style={[styles.ticketTooltipText, { color: themeColors.text.primary }]}>
-                {PROGRESS_STATUSES_LABELED.find(s => s.key === tooltipKey)?.label}: {segmentQtyMap[tooltipKey || '']?.toFixed(2) ?? '0.00'} CY
+                {PROGRESS_STATUSES_LABELED.find(s => s.key === tooltipKey)?.label}: {segmentQtyMap[tooltipKey || '']?.toFixed(2) ?? '0.00'} {getVolumeUnit()}
               </Text>
             )}
           </View>
@@ -1433,7 +1434,7 @@ export const TicketScreen: React.FC = () => {
         truckName: `Truck ${truckCode || 'N/A'}`,
         loadQuantity: ticket.running_qty ?? 0,
         totalOrderQuantity: ticket.ordered_qty ?? 0,
-        unit: 'CY',
+        unit: getVolumeUnit(),
         status: ticket.status || 'ticketed',
         statusDisplay: getDisplayStatus(ticket.status, ticket.status_display),
         statusTime: ticket.status_time,
