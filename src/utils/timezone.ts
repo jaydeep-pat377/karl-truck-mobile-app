@@ -106,7 +106,14 @@ export function formatTimeInTz(
   if (!timeInput) return '';
   try {
     const date = typeof timeInput === 'string' ? new Date(timeInput) : timeInput;
-    if (isNaN(date.getTime())) return String(timeInput);
+    if (isNaN(date.getTime())) {
+      // Unparseable date — still append TZ abbreviation if requested
+      if (showTzAbbr) {
+        const abbr = getTzAbbreviation(ianaCode);
+        if (abbr && !String(timeInput).includes(abbr)) return `${String(timeInput)} ${abbr}`;
+      }
+      return String(timeInput);
+    }
 
     const options: Intl.DateTimeFormatOptions = {
       timeZone: ianaCode,

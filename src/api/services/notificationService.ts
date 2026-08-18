@@ -1,6 +1,7 @@
 import apiClient from '../apiClient';
 import { API_ENDPOINTS } from '../endpoints';
 import { AppNotification } from '../../types/notification';
+import { useAuthStore } from '../../store/authStore';
 
 export interface NotificationQueueParams {
   user_id: string;
@@ -116,13 +117,15 @@ export const notificationService = {
   },
 
   getNotificationHistory: async (params: { page?: number; limit?: number }): Promise<NotificationQueueResponse> => {
+    const user = useAuthStore.getState().user;
     const queryParams = new URLSearchParams({
       page: String(params.page || 1),
       limit: String(params.limit || 20),
     });
+    if (user?.id) queryParams.append('user_id', user.id);
 
     return apiClient.get<NotificationQueueResponse>(
-      `${API_ENDPOINTS.NOTIFICATIONS.RECENT}?${queryParams.toString()}`
+      `${API_ENDPOINTS.NOTIFICATIONS.HISTORY}?${queryParams.toString()}`
     );
   },
 

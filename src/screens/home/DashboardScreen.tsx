@@ -39,6 +39,8 @@ import Svg, { Defs, Pattern, Line, Rect } from 'react-native-svg';
 import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { WorkspaceSwitcher } from '../../components/workspace';
 import { AiAssistantFab } from '../../components/ai-assistant';
+import { useTimezoneStore } from '../../store/timezoneStore';
+import { getTzAbbreviation } from '../../utils/timezone';
 
 const getSegmentColor = (status: string): string => {
   const statusColorMap: Record<string, string> = {
@@ -275,6 +277,10 @@ const DashboardScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
   const showRegion = useAuthStore((state) => state.showRegion);
+  const userTz = useTimezoneStore((s) => s.timezone);
+  const companyTz = useTimezoneStore((s) => s.companyTimezone);
+  const dashTzAbbr = getTzAbbreviation(userTz.iana_code);
+  const isTzMismatch = companyTz && companyTz.id !== userTz.id;
 
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
   const [isFilterChanging, setIsFilterChanging] = useState(false);
@@ -677,7 +683,7 @@ const DashboardScreen: React.FC = () => {
                 ]}
               >
                 <Icon name="clock-outline" size={ms(9)} color={themeColors.text.hint} />
-                <Text style={[styles.deliveryTime, { color: themeColors.text.hint }]}>{item.startTime}</Text>
+                <Text style={[styles.deliveryTime, { color: themeColors.text.hint }]}>{item.startTime !== 'N/A' ? `${item.startTime} ${dashTzAbbr}` : item.startTime}</Text>
               </View>
             </View>
             <View style={[styles.deliveryStatusBadge, { backgroundColor: `${cardTierColor}15` }]}>
@@ -924,6 +930,14 @@ const DashboardScreen: React.FC = () => {
                 <Icon name="clock-outline" size={ms(12)} color={themeColors.text.secondary} />
                 <Text style={[styles.timezoneText, { color: themeColors.text.secondary }]}>
                   {formattedTimezoneDate}
+                </Text>
+              </View>
+            )}
+            {isTzMismatch && (
+              <View style={styles.tzMismatchContainer}>
+                <Icon name="swap-horizontal" size={ms(10)} color={colors.primary.main} />
+                <Text style={[styles.tzMismatchText, { color: colors.primary.main }]}>
+                  Company: {companyTz!.display_name} ({getTzAbbreviation(companyTz!.iana_code)})
                 </Text>
               </View>
             )}
@@ -1242,6 +1256,16 @@ const createStyles = (
     },
     timezoneText: {
       fontSize: ms(11),
+      fontFamily: fontFamily.medium,
+    },
+    tzMismatchContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginTop: ms(1),
+      gap: ms(3),
+    },
+    tzMismatchText: {
+      fontSize: ms(9),
       fontFamily: fontFamily.medium,
     },
     scrollView: {

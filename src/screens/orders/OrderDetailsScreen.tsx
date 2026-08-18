@@ -28,6 +28,8 @@ import { getStatusColor, getStatusLabel } from '../../utils/statusUtils';
 import { fontFamily } from '../../theme/typography';
 import { ms } from '../../utils/responsive';
 import { WeatherIcon } from '../../utils/weatherIcon';
+import { useTimezoneStore } from '../../store/timezoneStore';
+import { formatDateInTz, getTzAbbreviation } from '../../utils/timezone';
 import { getVolumeUnit } from '../../utils/units';
 import { RootStackParamList, OrdersStackParamList } from '../../navigation/types';
 import { useQueryClient } from '@tanstack/react-query';
@@ -856,17 +858,21 @@ const ProductScheduleCard: React.FC<ProductScheduleCardProps> = ({
   const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
 
+  const userTzIana = useTimezoneStore((s) => s.timezone.iana_code);
+  const tzAbbr = getTzAbbreviation(userTzIana);
+
   const formatDateOnly = (dateStr: string) => {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return `${date.getDate()} ${date.toLocaleString('en-US', { month: 'short' })} ${date.getFullYear()}`;
+    return formatDateInTz(dateStr, userTzIana, 'medium');
   };
 
   const formattedDate = displayDate || formatDateOnly(scheduleDate);
 
+  const appendTz = (time: string) => time && !time.includes(tzAbbr) ? `${time} ${tzAbbr}` : time;
+
   const scheduleDisplay = estimatedFinish
-    ? `${scheduleTime || t('common.notAvailable')} - ${estimatedFinish}`
-    : scheduleTime || t('common.notAvailable');
+    ? `${appendTz(scheduleTime) || t('common.notAvailable')} - ${appendTz(estimatedFinish)}`
+    : appendTz(scheduleTime) || t('common.notAvailable');
 
   const hasAverages = (avgWaitingMinutes ?? 0) > 0 || (avgPouringMinutes ?? 0) > 0 || (avgWashoutMinutes ?? 0) > 0;
 
@@ -1203,7 +1209,7 @@ const ProductSKUDetailsCard: React.FC<ProductSKUDetailsCardProps> = ({
                 <View style={[styles.skuScheduleItemWide, { backgroundColor: isDark ? themeColors.cardElevated : colors.grey[3] }]}>
                   <Icon name="clock-start" size={ms(18)} color={colors.primary.main} />
                   <Text style={[styles.skuScheduleItemValue, { color: themeColors.text.primary }]}>
-                    {schedule.start_time}
+                    {schedule.start_time} {getTzAbbreviation(useTimezoneStore.getState().timezone.iana_code)}
                   </Text>
                   <Text style={[styles.skuScheduleItemLabel, { color: themeColors.text.secondary }]}>{t('orders.startTime')}</Text>
                 </View>
@@ -1659,7 +1665,7 @@ const SmartChart: React.FC<SmartChartProps> = ({
             <View style={styles.tooltipDateRow}>
               <Icon name="calendar" size={8} color={colors.primary.main} />
               <Text style={[styles.tooltipDateText, { color: themeColors.text.primary }]}>
-                {formatTooltipDate()} • {pickPoint.data.time}
+                {formatTooltipDate()} • {pickPoint.data.time} {getTzAbbreviation(useTimezoneStore.getState().timezone.iana_code)}
               </Text>
             </View>
 
@@ -1744,6 +1750,8 @@ export const OrderDetailsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const themeColors = isDark ? colors.dark : colors.light;
   const { alertState, hideAlert, showError, showInfo } = useAlert();
+  const mainTzIana = useTimezoneStore((s) => s.timezone.iana_code);
+  const mainTzAbbr = getTzAbbreviation(mainTzIana);
   const [showLoadsSheet, setShowLoadsSheet] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -1870,7 +1878,7 @@ export const OrderDetailsScreen: React.FC = () => {
       pouredVolume: orderDetails.ticket_poured_qty ?? orderDetails.delivered_qty ?? 0,
       orderedVolume: orderDetails.ordered_qty ?? 0,
       remainingVolume: orderDetails.remaining_qty ?? 0,
-      estimatedFinish: orderDetails.estimated_finish_time || 'N/A',
+      estimatedFinish: orderDetails.estimated_finish_time ? `${orderDetails.estimated_finish_time} ${mainTzAbbr}` : 'N/A',
       hasWeatherData: !!orderDetails.weather_data,
       temperature: orderDetails.weather_data?.temperature_fahrenheit ?? null,
       windSpeed: orderDetails.weather_data?.wind_speed_mph || null,
@@ -2196,8 +2204,9 @@ export const OrderDetailsScreen: React.FC = () => {
   ];
 
   const formatScheduleDate = (dateStr: string, timeStr: string) => {
-    const date = new Date(dateStr);
-    return `${timeStr} • ${date.getDate()} ${date.toLocaleString('en-US', { month: 'short' })} ${date.getFullYear()}`;
+    const datePart = formatDateInTz(dateStr, mainTzIana, 'medium');
+    const timePart = timeStr && !timeStr.includes(mainTzAbbr) ? `${timeStr} ${mainTzAbbr}` : timeStr;
+    return `${timePart} • ${datePart}`;
   };
 
   const pourSpeedChartData = useMemo(() => jobData.pourSpeedData, [jobData.pourSpeedData]);
@@ -2337,7 +2346,7 @@ export const OrderDetailsScreen: React.FC = () => {
             <View style={styles.headerChipsRow}>
               <View style={[styles.headerChip, { backgroundColor: isDark ? colors.common.white + '20' : colors.common.black + '15' }]}>
                 <Icon name="file-document-outline" size={12} color={isDark ? colors.common.white : colors.grey[80]} />
-                <Text style={[styles.headerChipText, { color: isDark ? colors.common.white : colors.grey[80] }]}>{order.orderCode}{order.displayDate ? ` | ${order.displayDate}` : ''}{order.scheduledTime ? ` | ${order.scheduledTime}` : ''}</Text>
+                <Text style={[styles.headerChipText, { color: isDark ? colors.common.white : colors.grey[80] }]}>{order.orderCode}{order.displayDate ? ` | ${order.displayDate}` : ''}{order.scheduledTime ? ` | ${order.scheduledTime} ${mainTzAbbr}` : ''}</Text>
               </View>
             </View>
 
@@ -2554,7 +2563,7 @@ export const OrderDetailsScreen: React.FC = () => {
                             {t('orders.startTime')}
                           </Text>
                           <Text style={[styles.productScheduleValue, { color: themeColors.text.primary }]}>
-                            {jobData.scheduledTime || t('common.notAvailable')}
+                            {jobData.scheduledTime ? `${jobData.scheduledTime} ${mainTzAbbr}` : t('common.notAvailable')}
                           </Text>
                         </View>
                         <View style={styles.productScheduleRow}>
@@ -2661,7 +2670,7 @@ export const OrderDetailsScreen: React.FC = () => {
                           <View style={styles.orderUpdateMeta}>
                             <Icon name="clock-outline" size={ms(12)} color={themeColors.text.hint} />
                             <Text style={[styles.orderUpdateTime, { color: themeColors.text.hint }]}>
-                              {update.changed_at}
+                              {update.changed_at} {mainTzAbbr}
                             </Text>
                           </View>
                         </View>
@@ -2683,7 +2692,7 @@ export const OrderDetailsScreen: React.FC = () => {
                         </Text>
                       </View>
                       <Text style={[styles.orderCreatedTime, { color: themeColors.text.hint }]}>
-                        {orderCreatedItem.created}
+                        {orderCreatedItem.created} {mainTzAbbr}
                       </Text>
                     </View>
 

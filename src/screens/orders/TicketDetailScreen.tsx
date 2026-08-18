@@ -32,7 +32,7 @@ import { useTicketDetails, useAlert } from '../../hooks';
 import { ApiTicketStatus, VerifiJson, FreshWeatherData } from '../../types/ticket';
 import { ticketService } from '../../api/services/ticketService';
 import { useTimezoneStore } from '../../store/timezoneStore';
-import { formatTimeInTz } from '../../utils/timezone';
+import { formatTimeInTz, getTzAbbreviation } from '../../utils/timezone';
 import { encryptQRPayload } from '../../api/services/qrService';
 
 type TicketDetailRouteProp = RouteProp<RootStackParamList, 'TicketDetail'>;
@@ -437,6 +437,7 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, duratio
   const pendingTextColor = isDark ? colors.grey[40] : colors.grey[50];
   const timeTextColor = isDark ? colors.grey[40] : colors.grey[60];
   const durationColor = isDark ? colors.grey[50] : colors.grey[50];
+  const tlTzAbbr = getTzAbbreviation(useTimezoneStore((s) => s.timezone.iana_code));
 
   const getTimeForStep = (key: string): string | null => {
     const timeMap: Record<string, string | null | undefined> = {
@@ -450,7 +451,8 @@ const VerticalTimeline: React.FC<VerticalTimelineProps> = ({ timestamps, duratio
       to_plant: timestamps.toPlant,
       at_plant: timestamps.atPlant,
     };
-    return timeMap[key] || null;
+    const val = timeMap[key] || null;
+    return val ? `${val} ${tlTzAbbr}` : null;
   };
 
   const getDurationForStep = (key: string): string | number | null => {
@@ -1254,7 +1256,7 @@ export const TicketDetailScreen: React.FC = () => {
   const formatEtaTime = (etaString: string | null | undefined): string => {
     if (!etaString) return '';
     // 12hr in user's selected timezone, no TZ chip
-    return formatTimeInTz(etaString, userTzIana, false, false);
+    return formatTimeInTz(etaString, userTzIana, false, true);
   };
 
   const formattedEta = formatEtaTime(etaAtJob);
@@ -1649,7 +1651,7 @@ export const TicketDetailScreen: React.FC = () => {
           const hasEta = !!eta;
           const etaAge = eta?.calculatedAt ? Math.floor((Date.now() - new Date(eta.calculatedAt).getTime()) / 60000) : 0;
           const isStale = etaAge > 30;
-          const etaArrival = eta?.arrivalTime ? formatTimeInTz(eta.arrivalTime, userTzIana, false, false) : '--';
+          const etaArrival = eta?.arrivalTime ? formatTimeInTz(eta.arrivalTime, userTzIana, false, true) : '--';
           const orangeColor = colors.eta.main;
 
           const handleEtaCalc = async (force = false) => {

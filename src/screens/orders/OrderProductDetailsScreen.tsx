@@ -22,6 +22,8 @@ import { ms, spacing } from '../../utils/responsive';
 import { RootStackParamList } from '../../navigation/types';
 import { useOrderDetails, useScheduledLoads, useAlert } from '../../hooks';
 import { getStatusLabel } from '../../utils/statusUtils';
+import { useTimezoneStore } from '../../store/timezoneStore';
+import { formatDateInTz, getTzAbbreviation } from '../../utils/timezone';
 import { WeatherIcon } from '../../utils/weatherIcon';
 
 type OrderProductDetailsRouteProp = RouteProp<RootStackParamList, 'OrderProductDetails'>;
@@ -423,10 +425,12 @@ export const OrderProductDetailsScreen: React.FC = () => {
     }
   }, []);
 
+  const prodTzIana = useTimezoneStore((s) => s.timezone.iana_code);
+  const prodTzAbbr = getTzAbbreviation(prodTzIana);
+
   const formatDateOnly = (dateStr: string) => {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return `${date.getDate()} ${date.toLocaleString('en-US', { month: 'short' })} ${date.getFullYear()}`;
+    return formatDateInTz(dateStr, prodTzIana, 'medium');
   };
 
   if (isLoading) {
@@ -500,9 +504,10 @@ export const OrderProductDetailsScreen: React.FC = () => {
   const schedule = jobData.scheduleDetails[0];
   const statusText = getStatusLabel(status || 'NORMAL');
 
+  const appendProdTz = (t: string) => t && !t.includes(prodTzAbbr) ? `${t} ${prodTzAbbr}` : t;
   const scheduleDisplay = jobData.estimatedFinishTime
-    ? `${jobData.scheduleTime || t('common.notAvailable')} - ${jobData.estimatedFinishTime}`
-    : jobData.scheduleTime || t('common.notAvailable');
+    ? `${appendProdTz(jobData.scheduleTime) || t('common.notAvailable')} - ${appendProdTz(jobData.estimatedFinishTime)}`
+    : appendProdTz(jobData.scheduleTime) || t('common.notAvailable');
 
   const formattedDate = formatDateOnly(jobData.displayDate);
 

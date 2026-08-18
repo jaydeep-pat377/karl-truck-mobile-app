@@ -60,7 +60,31 @@
       "Bash(sed -n '1684,1692p' src/screens/orders/OrderListScreen.tsx)",
       "Bash(sed -n '340,348p' src/screens/orders/TodayOrdersScreen.tsx)",
       "Bash(sed -n '185,235p' src/App.tsx)",
-      "Bash(sed -n '255,262p' src/App.tsx)"
+      "Bash(sed -n '255,262p' src/App.tsx)",
+      "Read(//Users/admin/Documents/**)",
+      "Read(//Users/admin/**)",
+      "Bash(kill:*)",
+      "Bash(kubectl port-forward:*)",
+      "Bash(PGPASSWORD='5BzwPzaedI8FrJpJA7HXSz2P022dXa2dgngPlfHllIuIRgeWEON1hWFs6xaQloMP' psql -h localhost -p 5433 -U auth_app -d central_auth -c \"SELECT count\\(*\\) FROM public.users;\" 2>&1)",
+      "Bash(kubectl get:*)",
+      "Bash(PGPASSWORD='5BzwPzaedI8FrJpJA7HXSz2P022dXa2dgngPlfHllIuIRgeWEON1hWFs6xaQloMP' psql -h 127.0.0.1 -p 5433 -U auth_app -d central_auth -c \"SELECT count\\(*\\) FROM public.auth_codes WHERE consumed_at IS NULL AND expires_at > NOW\\(\\);\" 2>&1)",
+      "Bash(PGPASSWORD='5BzwPzaedI8FrJpJA7HXSz2P022dXa2dgngPlfHllIuIRgeWEON1hWFs6xaQloMP' psql -h 127.0.0.1 -p 5433 -U auth_app -d central_auth -c \"SELECT 1;\" 2>&1)",
+      "Bash(while true:*)",
+      "Bash(do kubectl:*)",
+      "Bash(python3 -m json.tool)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjIwNWZjYTQwLTgzY2EtNDI2Ny05OWY0LTc3YmQxYTk2MjI0ZCIsImVtYWlsIjoiamF5ZGVlcC5wYXR0QGdtYWlsLmNvbSIsInBob25lIjoiIiwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzg3MDMzNzI3LCJleHAiOjE3ODcwNDA5MjcsImF1ZCI6InRydWNrYXN0LWNsaWVudCIsImlzcyI6InRydWNrYXN0LWFwaSJ9.9VUHjD83Kcpd8MkoKD5DKGPYwZXdYzlnSvjeBxkI7Gc\" __NEW_LINE_f8fb05f4b3a99e39__ echo \"=== 1. GET /health ===\" curl -s http://192.168.1.4:3000/health)",
+      "Bash(PGPASSWORD='RCT18SvgiisQQybwI3wGzK21' psql -h 127.0.0.1 -p 5434 -U truckast_dev_rw -d dolese -c \"SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE '%notif%';\" 2>&1)",
+      "Bash(PGPASSWORD='RCT18SvgiisQQybwI3wGzK21' psql -h 127.0.0.1 -p 5434 -U truckast_dev_rw -d dolese -c \"SELECT id, iana_code, display_name, abbreviation, utc_offset, dst_offset FROM timezones ORDER BY id;\" 2>&1)",
+      "Bash(PGPASSWORD='RCT18SvgiisQQybwI3wGzK21' psql -h 127.0.0.1 -p 5434 -U truckast_dev_rw -d dolese -c \"\n-- Find a chat room with recent messages\nSELECT cm.order_id, cm.chat_id, cm.sender_id, cm.sender_name, cm.message_text, cm.created_at\nFROM chat_messages cm\nORDER BY cm.created_at DESC LIMIT 3;\n\" 2>&1)",
+      "Bash(PGPASSWORD='RCT18SvgiisQQybwI3wGzK21' psql -h 127.0.0.1 -p 5434 -U truckast_dev_rw -d dolese -c \"\nINSERT INTO chat_messages \\(order_id, chat_id, sender_id, sender_name, sender_role, message_text, attachments, is_deleted, timeline_visible, created_at, updated_at\\)\nVALUES \\(405588, 448, '41f7ae25-485d-4127-be4d-3967725c20ef', 'Hardik', 'admin', 'Test push notification from local backend!', '[]'::jsonb, false, true, NOW\\(\\), NOW\\(\\)\\)\nRETURNING id, order_id, message_text, created_at;\n\" 2>&1)",
+      "Bash(PGPASSWORD='RCT18SvgiisQQybwI3wGzK21' psql -h 127.0.0.1 -p 5434 -U truckast_dev_rw -d dolese -c \"\nINSERT INTO chat_messages \\(order_id, chat_id, sender_id, sender_name, sender_role, message_text, attachments, is_deleted, timeline_visible, created_at, updated_at\\)\nVALUES \\(405588, 448, '41f7ae25-485d-4127-be4d-3967725c20ef', 'Hardik', 'admin', 'Hello! Testing push notification 🔔', '[]'::jsonb, false, true, NOW\\(\\), NOW\\(\\)\\)\nRETURNING id;\n\" 2>&1)",
+      "Bash(PGPASSWORD='RCT18SvgiisQQybwI3wGzK21' psql -h 127.0.0.1 -p 5434 -U truckast_dev_rw -d dolese -c \"\n-- Check if user exists in users table\nSELECT id, email, full_name FROM users WHERE id = '205fca40-83ca-4267-99f4-77bd1a96224d' OR email = 'jaydeep.patt@gmail.com' LIMIT 2;\n\" 2>&1)",
+      "Bash(PGPASSWORD='RCT18SvgiisQQybwI3wGzK21' psql -h 127.0.0.1 -p 5434 -U truckast_dev_rw -d dolese -c \"\n-- Get existing device tokens\nSELECT user_id, device_token, device_type, is_active FROM user_devices WHERE user_id = '1188e9c5-9d45-45ee-baa0-ee38b1e6f46a' AND is_active = true ORDER BY last_active_at DESC LIMIT 5;\n\" 2>&1)",
+      "Bash(PGPASSWORD='RCT18SvgiisQQybwI3wGzK21' psql -h 127.0.0.1 -p 5434 -U truckast_dev_rw -d dolese -c \"\nSELECT user_id, LEFT\\(device_token, 40\\) as token, device_type, is_active, created_at \nFROM user_devices \nWHERE user_id = '1188e9c5-9d45-45ee-baa0-ee38b1e6f46a' AND is_active = true \nORDER BY last_active_at DESC LIMIT 5;\n\" 2>&1)",
+      "Bash(adb connect:*)",
+      "Bash(adb pair:*)",
+      "Bash(PGPASSWORD='RCT18SvgiisQQybwI3wGzK21' psql -h 127.0.0.1 -p 5434 -U truckast_dev_rw -d dolese -c \"\nSELECT LEFT\\(device_token, 40\\) as token, device_type, is_active, created_at \nFROM user_devices \nWHERE user_id = '1188e9c5-9d45-45ee-baa0-ee38b1e6f46a' AND is_active = true \nORDER BY created_at DESC LIMIT 5;\n\" 2>&1)",
+      "Bash(PGPASSWORD='RCT18SvgiisQQybwI3wGzK21' psql -h 127.0.0.1 -p 5434 -U truckast_dev_rw -d dolese -c \"\nINSERT INTO chat_messages \\(order_id, chat_id, sender_id, sender_name, sender_role, message_text, attachments, is_deleted, timeline_visible, created_at, updated_at\\)\nVALUES \\(405588, 448, '41f7ae25-485d-4127-be4d-3967725c20ef', 'Hardik', 'admin', 'Hey! Can you check order 40501? 🔔', '[]'::jsonb, false, true, NOW\\(\\), NOW\\(\\)\\)\nRETURNING id;\n\" 2>&1)"
     ]
   }
 }

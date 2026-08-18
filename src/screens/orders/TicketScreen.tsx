@@ -28,6 +28,8 @@ import { getVolumeUnit } from '../../utils/units';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { RootStackParamList, TicketStatusType } from '../../navigation/types';
 import { useTicketsByOrder, useRealtimeTickets, useOrderDetails } from '../../hooks';
+import { useTimezoneStore } from '../../store/timezoneStore';
+import { formatDateInTz, getTzAbbreviation } from '../../utils/timezone';
 import { ApiTicketStatus, TicketByOrderItem } from '../../types/ticket';
 import { DeliveryProgress, DeliveryProgressSegment } from '../../types/order';
 import { useTranslation } from 'react-i18next';
@@ -278,6 +280,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, onMapPress, is
   const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
   const status = statusConfig[ticket.status] || statusConfig.pending;
+  const tzAbbr = getTzAbbreviation(useTimezoneStore((s) => s.timezone.iana_code));
 
   return (
     <View
@@ -317,7 +320,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onPress, onMapPress, is
                   styles.timeText,
                   { color: isDark ? colors.ticket.ui.dark.timeText : colors.ticket.ui.light.timeText },
                 ]}>
-                {ticket.statusTime || ticket.scheduledTime}
+                {(ticket.statusTime || ticket.scheduledTime) ? `${ticket.statusTime || ticket.scheduledTime} ${tzAbbr}` : ''}
               </Text>
             </View>
           </View>
@@ -1379,8 +1382,11 @@ export const TicketScreen: React.FC = () => {
     onUpdate: refetch,
   });
 
+  const userTzIana = useTimezoneStore((s) => s.timezone.iana_code);
+  const tzAbbr = getTzAbbreviation(userTzIana);
+
   const displayDate = order?.order_date
-    ? new Date(order.order_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+    ? formatDateInTz(order.order_date, userTzIana, 'medium')
     : 'Order';
   const deliveryAddress = order?.delivery_address || 'Loading...';
 

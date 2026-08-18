@@ -20,6 +20,8 @@ import { ms, breakpoint, isSmallDevice } from '../../utils/responsive';
 import { WeatherIcon } from '../../utils/weatherIcon';
 import { getStatusColor } from '../../utils/statusUtils';
 import { getVolumeUnit } from '../../utils/units';
+import { useTimezoneStore } from '../../store/timezoneStore';
+import { formatDateInTz, getTzAbbreviation } from '../../utils/timezone';
 import { TicketTrackingStatus } from '../../types';
 import Svg, { Defs, Pattern, Line, Rect } from 'react-native-svg';
 
@@ -423,12 +425,11 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   const totalSegmentQty = Object.values(segmentQtyMap).reduce((sum, q) => sum + q, 0);
   const remainingQty = Math.max(0, orderedQty - totalSegmentQty);
 
+  const userTzIana = useTimezoneStore((s) => s.timezone.iana_code);
+  const tzAbbr = getTzAbbreviation(userTzIana);
+
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
+    return formatDateInTz(dateStr, userTzIana, 'medium');
   };
 
   const getEvaporationRate = () => {
@@ -525,7 +526,7 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
               variant="captionSmall"
               numberOfLines={1}
               style={[styles.dateTime, { color: isDark ? themeColors.text.hint : colors.grey[80], fontSize: ms(headerSizes.dateTimeFont) }]}>
-              {formatDate(order.scheduledDate)} {order.scheduledTime}
+              {formatDate(order.scheduledDate)} {order.scheduledTime} {tzAbbr}
             </Text>
             {weatherData && weatherData.temperature !== null && (
               <TouchableOpacity

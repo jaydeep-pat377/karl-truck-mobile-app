@@ -166,7 +166,9 @@ export const TimezoneSwitcherModal: React.FC<TimezoneSwitcherModalProps> = ({
                     )}
                   </View>
                   <Text variant="caption" color="secondary" style={{ marginTop: ms(2) }}>
-                    {item.current_time || `${abbr} — UTC ${item.utc_offset}`}
+                    {item.current_time || `${abbr}`}
+                    {'  '}
+                    <Text variant="captionSmall" color="hint">(UTC{item.current_utc_offset || item.utc_offset})</Text>
                   </Text>
                 </View>
 

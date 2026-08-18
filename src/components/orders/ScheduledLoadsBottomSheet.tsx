@@ -7,6 +7,8 @@ import ConcreteTruck from '../../assets/svgs/concreteTruck.svg';
 import { ms, spacing } from '../../utils/responsive';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
+import { useTimezoneStore } from '../../store/timezoneStore';
+import { getTzAbbreviation } from '../../utils/timezone';
 
 export interface ScheduledLoadItem {
   load_number: number;
@@ -99,6 +101,16 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
   const { t } = useTranslation();
   const { isDark } = useTheme();
   const themeColors = isDark ? colors.dark : colors.light;
+  const slTzAbbr = getTzAbbreviation(useTimezoneStore((s) => s.timezone.iana_code));
+  const appendTz = (time: string) => time && time !== '--:--' ? `${time} ${slTzAbbr}` : time;
+  const TimeTz: React.FC<{ time: string; color: string }> = ({ time, color }) => {
+    if (!time || time === '--:--') return <Text style={[styles.loadTimeBlockValue, { color }]}>--:--</Text>;
+    return (
+      <Text style={[styles.loadTimeBlockValue, { color }]} numberOfLines={1}>
+        {time}{' '}<Text style={{ fontSize: ms(9), fontFamily: fontFamily.regular }}>{slTzAbbr}</Text>
+      </Text>
+    );
+  };
   const LOAD_STATUS_CONFIG = useMemo(() => buildLoadStatusConfig(t), [t]);
 
   // Use API summary counts if provided, otherwise calculate from loaded items
@@ -183,9 +195,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
         }]}>
           <View style={styles.loadTimeBlock}>
             <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>{t('scheduledLoads.scheduled')}</Text>
-            <Text style={[styles.loadTimeBlockValue, { color: themeColors.text.primary }]}>
-              {load.scheduled_time || '--:--'}
-            </Text>
+            <TimeTz time={load.scheduled_time || '--:--'} color={themeColors.text.primary} />
           </View>
 
           <View style={styles.loadTimeArrow}>
@@ -194,9 +204,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
 
           <View style={styles.loadTimeBlock}>
             <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>{t('tracking.statuses.atJob')}</Text>
-            <Text style={[styles.loadTimeBlockValue, { color: themeColors.text.primary }]}>
-              {load.actual_on_job_time || load.scheduled_on_job_time || '--:--'}
-            </Text>
+            <TimeTz time={load.actual_on_job_time || load.scheduled_on_job_time || '--:--'} color={themeColors.text.primary} />
           </View>
 
           <View style={styles.loadTimeArrow}>
@@ -205,9 +213,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
 
           <View style={styles.loadTimeBlock}>
             <Text style={[styles.loadTimeBlockLabel, { color: isDark ? colors.grey[40] : themeColors.text.hint }]}>{t('scheduledLoads.unload')}</Text>
-            <Text style={[styles.loadTimeBlockValue, { color: themeColors.text.primary }]}>
-              {load.actual_unload_time || load.scheduled_fin_pour_time || '--:--'}
-            </Text>
+            <TimeTz time={load.actual_unload_time || load.scheduled_fin_pour_time || '--:--'} color={themeColors.text.primary} />
           </View>
         </View>
 
@@ -222,7 +228,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                   borderColor: isDark ? colors.grey[50] : colors.grey[15]
                 }]}>
                   <Icon name="car-wash" size={ms(12)} color={isDark ? colors.grey[25] : colors.grey[60]} />
-                  <Text style={[styles.loadInfoTagText, { color: isDark ? colors.grey[15] : colors.grey[80] }]}>{load.actual_wash_time}</Text>
+                  <Text style={[styles.loadInfoTagText, { color: isDark ? colors.grey[15] : colors.grey[80] }]}>{appendTz(load.actual_wash_time!)}</Text>
                 </View>
               </View>
             )}
@@ -235,7 +241,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
                   borderColor: isDark ? colors.grey[50] : colors.grey[15]
                 }]}>
                   <Icon name="keyboard-return" size={ms(12)} color={isDark ? colors.grey[25] : colors.grey[60]} />
-                  <Text style={[styles.loadInfoTagText, { color: isDark ? colors.grey[15] : colors.grey[80] }]}>{load.actual_at_plant_time}</Text>
+                  <Text style={[styles.loadInfoTagText, { color: isDark ? colors.grey[15] : colors.grey[80] }]}>{appendTz(load.actual_at_plant_time!)}</Text>
                 </View>
               </View>
             )}
@@ -243,7 +249,7 @@ export const ScheduledLoadsBottomSheet: React.FC<ScheduledLoadsBottomSheetProps>
         )}
       </View>
     );
-  }, [isDark, themeColors]);
+  }, [isDark, themeColors, slTzAbbr]);
 
   const renderFooter = useCallback(() => {
     if (!isFetchingNextPage) return null;

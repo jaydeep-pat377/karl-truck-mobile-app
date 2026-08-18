@@ -12,6 +12,8 @@ import { useAuthStore } from '../../store/authStore';
 import { MainTabParamList } from '../../navigation/types';
 import { useSupabaseNotifications, Notification } from '../../hooks/useSupabaseNotifications';
 import { navigateFromNotification } from '../../services/navigationService';
+import { useTimezoneStore } from '../../store/timezoneStore';
+import { formatDateTimeInTz } from '../../utils/timezone';
 
 const getNotificationIcon = (eventCode: string): string => {
   const code = eventCode?.toUpperCase() || '';
@@ -39,7 +41,7 @@ const getStatusColor = (status: string): string => {
   }
 };
 
-const formatTimeAgo = (dateString: string): string => {
+const formatTimeAgo = (dateString: string, ianaCode?: string): string => {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -52,6 +54,9 @@ const formatTimeAgo = (dateString: string): string => {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
 
+  if (ianaCode) {
+    return formatDateTimeInTz(dateString, ianaCode, true);
+  }
   return date.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -65,6 +70,7 @@ export const NotificationScreen: React.FC = () => {
   const { isDark } = useTheme();
   const { t } = useTranslation();
   const { user } = useAuthStore();
+  const notifTzIana = useTimezoneStore((s) => s.timezone.iana_code);
 
   const themeColors = isDark ? colors.dark : colors.light;
   const tenantId = user?.metadata?.tenant?.tenant_id ?? null;
@@ -209,7 +215,7 @@ export const NotificationScreen: React.FC = () => {
               {item.body}
             </Text>
             <Text style={styles.timeText}>
-              {isNew ? t('notifications.justArrived') : formatTimeAgo(item.created_at)}
+              {isNew ? t('notifications.justArrived') : formatTimeAgo(item.created_at, notifTzIana)}
               {item.priority >= 8 && ` • ${t('notifications.highPriority')}`}
             </Text>
           </View>

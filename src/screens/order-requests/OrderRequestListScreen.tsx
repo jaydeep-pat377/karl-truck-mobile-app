@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useTimezoneStore } from '../../store/timezoneStore';
+import { getTzAbbreviation } from '../../utils/timezone';
 import {
   View,
   StyleSheet,
@@ -100,25 +101,24 @@ const FILTER_TABS: {
 const getOrderCode = (order: OrderEntity): string =>
   `OE-${order.id.slice(0, 6).toUpperCase()}`;
 
-const formatTime = (timeStr: string): string => {
+const formatTime = (timeStr: string, tzAbbr?: string): string => {
   if (!timeStr) return '';
   try {
-    // If already formatted with AM/PM (e.g. "12:40 PM PDT"), strip any
-    // trailing TZ abbreviation so the chip is hidden everywhere except the
-    // dashboard subtitle.
+    let result = timeStr;
     if (/AM|PM/i.test(timeStr)) {
-      // Strip trailing TZ abbreviation (e.g. "03:37 PM PDT" → "03:37 PM")
-      // but keep AM/PM itself
-      return timeStr.replace(/\s+(?!AM|PM)[A-Z]{2,5}$/i, '');
+      // Strip any existing TZ abbreviation before appending the correct one
+      result = timeStr.replace(/\s+(?!AM|PM)[A-Z]{2,5}$/i, '');
+    } else {
+      // Handle "HH:mm" or "HH:mm:ss" 24-hour format
+      const parts = timeStr.split(':');
+      let hours = parseInt(parts[0], 10);
+      const minutes = parts[1] || '00';
+      if (isNaN(hours)) return timeStr;
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      result = `${hours}:${minutes} ${ampm}`;
     }
-    // Handle "HH:mm" or "HH:mm:ss" 24-hour format
-    const parts = timeStr.split(':');
-    let hours = parseInt(parts[0], 10);
-    const minutes = parts[1] || '00';
-    if (isNaN(hours)) return timeStr;
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
-    return `${hours}:${minutes} ${ampm}`;
+    return tzAbbr ? `${result} ${tzAbbr}` : result;
   } catch {
     return timeStr;
   }
@@ -170,6 +170,7 @@ export const OrderRequestListScreen: React.FC = () => {
   const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
   const { timezone } = useTimezoneStore();
+  const reqTzAbbr = getTzAbbreviation(timezone.iana_code);
   // Web has no role checks on the list page — list and create button are always visible
 
   const [activeFilter, setActiveFilter] = useState<OrderRequestStatusFilter>('all');
@@ -513,7 +514,7 @@ export const OrderRequestListScreen: React.FC = () => {
                   numberOfLines={1}
                 >
                   {formatDate(item.on_job_date)}
-                  {item.on_job_time ? `, ${formatTime(item.on_job_time)}` : ''}
+                  {item.on_job_time ? `, ${formatTime(item.on_job_time, reqTzAbbr)}` : ''}
                 </Text>
               </View>
               {item.quantity != null && (

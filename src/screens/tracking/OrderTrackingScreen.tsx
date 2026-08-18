@@ -28,6 +28,8 @@ import { getVolumeUnit } from '../../utils/units';
 import { fontFamily } from '../../theme/typography';
 import { ms } from '../../utils/responsive';
 import { useOrderTracking, useDirections } from '../../hooks';
+import { useTimezoneStore } from '../../store/timezoneStore';
+import { getTzAbbreviation } from '../../utils/timezone';
 import { TrackingTicket } from '../../types/orderTracking';
 import { MAPBOX_ACCESS_TOKEN } from '@env';
 
@@ -243,6 +245,7 @@ export const OrderTrackingScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const themeColors = isDark ? colors.dark : colors.light;
+  const trackTzAbbr = getTzAbbreviation(useTimezoneStore((s) => s.timezone.iana_code));
   const cameraRef = useRef<Mapbox.Camera>(null);
   const flatListRef = useRef<FlatList<TrackingTicket>>(null);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -569,7 +572,7 @@ export const OrderTrackingScreen: React.FC = () => {
                 <>
                   <Icon name="clock-outline" size={ms(9)} color={themeColors.text.hint} />
                   <Text style={[styles.statusTime, { color: themeColors.text.hint }]}>
-                    {ticket.timestamps[ticket.status as keyof typeof ticket.timestamps]}
+                    {ticket.timestamps[ticket.status as keyof typeof ticket.timestamps]} {trackTzAbbr}
                   </Text>
                 </>
               )}
@@ -618,7 +621,7 @@ export const OrderTrackingScreen: React.FC = () => {
               <View style={[styles.etaChip, { backgroundColor: isDark ? `${colors.common.white}15` : `${colors.common.black}10` }]}>
                 <Icon name="clock-fast" size={ms(9)} color={isDark ? colors.common.white : colors.common.black} />
                 <Text style={[styles.etaText, { color: isDark ? colors.common.white : colors.common.black }]} numberOfLines={1}>
-                  ETA {ticket.timestamps.eta_at_job}
+                  ETA {ticket.timestamps.eta_at_job} {trackTzAbbr}
                 </Text>
               </View>
             )}
@@ -626,7 +629,7 @@ export const OrderTrackingScreen: React.FC = () => {
               <View style={[styles.timeChip, { backgroundColor: isDark ? `${colors.common.white}15` : `${colors.common.black}10` }]}>
                 <Icon name="water" size={ms(9)} color={isDark ? colors.common.white : colors.common.black} />
                 <Text style={[styles.timeText, { color: isDark ? colors.common.white : colors.common.black }]} numberOfLines={1}>
-                  {ticket.timestamps.pouring}
+                  {ticket.timestamps.pouring} {trackTzAbbr}
                 </Text>
               </View>
             )}

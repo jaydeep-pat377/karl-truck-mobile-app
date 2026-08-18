@@ -7,7 +7,7 @@ import { ms, spacing } from '../../utils/responsive';
 import { Message } from '../../types/chat';
 import { VoiceMessagePlayer } from './VoiceMessagePlayer';
 import { useTimezoneStore } from '../../store/timezoneStore';
-import { formatTimeInTz } from '../../utils/timezone';
+import { formatTimeInTz, getTzAbbreviation } from '../../utils/timezone';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -33,9 +33,20 @@ interface Attachment {
   path?: string;
 }
 
-// 12hr in the user's selected timezone, no TZ chip
-const formatTime = (dateString: string, ianaCode: string) => {
-  return formatTimeInTz(dateString, ianaCode, false, false);
+// Simple 12hr format — no Intl dependency
+const formatTime12h = (dateString: string): string => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const h12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    return `${h12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+  } catch {
+    return dateString;
+  }
 };
 
 const getInitials = (name: string) => {
@@ -59,7 +70,7 @@ interface MessageBubbleProps {
 const BUBBLE_RADIUS = ms(16);
 const BUBBLE_RADIUS_SMALL = ms(4);
 
-export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
+export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   isOwnMessage,
   showAvatar = true,
@@ -144,8 +155,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   const avatarBg = isOwnMessage ? colors.primary.main : colors.secondary.main;
   const senderColor = isOwnMessage ? colors.primary.main : colors.secondary.main;
   const initials = getInitials(message.sender_name);
-  const userTzIana = useTimezoneStore((s) => s.timezone.iana_code);
-  const formattedTime = formatTime(message.created_at, userTzIana);
+  const tz = useTimezoneStore((s) => s.timezone);
+  const tzLabel = tz.current_abbreviation || tz.abbreviation || 'NO_TZ';
+  const rawTime = formatTime12h(message.created_at);
+  const formattedTime = `${rawTime} ${tzLabel}`;
 
   if (message.message_type === 'system') {
     return (
@@ -246,7 +259,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
 
               <View style={styles.metaRow}>
                 <Text style={[styles.time, { color: timeColor }]}>
-                  {formattedTime}
+                  {rawTime}
+                </Text>
+                <Text style={[styles.time, { color: timeColor, fontSize: ms(9) }]}>
+                  {tzLabel}
                 </Text>
                 {isOwnMessage && deliveryStatus === 'sending' && (
                   <View style={styles.statusIcon}>
@@ -283,7 +299,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
       )}
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -345,7 +361,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: ms(6),
     paddingTop: ms(6),
     paddingBottom: ms(2),
-    minWidth: ms(70),
+    minWidth: ms(100),
     ...Platform.select({
       ios: {
         shadowColor: colors.common.black,

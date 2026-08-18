@@ -26,8 +26,7 @@ export const ChatRoomCard: React.FC<ChatRoomCardProps> = React.memo(({ room, onP
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
     if (days === 0) {
-      // 12hr in user's selected timezone, no TZ chip
-      return formatTimeInTz(date, userTzIana, false, false);
+      return formatTimeInTz(date, userTzIana, false, true);
     } else if (days === 1) {
       return 'Yesterday';
     } else if (days < 7) {
