@@ -1,7 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { RealtimeChannel } from '@supabase/supabase-js';
-import { supabaseAdmin } from '../services/supabase/supabaseClient';
+import { getSocket } from '../services/socketClient';
 
 const DEBOUNCE_MS = 60000;
 
@@ -14,7 +13,6 @@ export function useRealtimeOrders({
   enabled = true,
   onUpdate,
 }: UseRealtimeOrdersOptions) {
-  const channelRef = useRef<RealtimeChannel | null>(null);
   const onUpdateRef = useRef(onUpdate);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastCalledRef = useRef<number>(0);
@@ -23,17 +21,14 @@ export function useRealtimeOrders({
     onUpdateRef.current = onUpdate;
   }, [onUpdate]);
 
-  // Immediate on first change, then debounce subsequent changes within 1 second
   const debouncedUpdate = useCallback(() => {
     const now = Date.now();
     const timeSinceLastCall = now - lastCalledRef.current;
 
     if (timeSinceLastCall >= DEBOUNCE_MS) {
-      // First change or enough time passed — update immediately
       lastCalledRef.current = now;
       onUpdateRef.current?.();
     } else {
-      // Within debounce window — schedule update at end of window
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
@@ -45,35 +40,23 @@ export function useRealtimeOrders({
     }
   }, []);
 
-  // Realtime WebSocket subscription on orders table
   useEffect(() => {
     if (!enabled) return;
 
-    const channel = supabaseAdmin
-      .channel('orders-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders',
-        },
-        (payload) => {
-          console.log('[RealtimeOrders] Order change detected:', payload.eventType);
-          debouncedUpdate();
-        },
-      )
-      .subscribe((status) => {
-        console.log('[RealtimeOrders] Subscription status:', status);
-      });
+    const socket = getSocket();
+    if (!socket) return;
 
-    channelRef.current = channel;
+    socket.emit('join:orders');
+
+    const handleOrderChange = () => {
+      console.log('[RealtimeOrders] Order change detected via Socket.io');
+      debouncedUpdate();
+    };
+
+    socket.on('orders:change', handleOrderChange);
 
     return () => {
-      if (channelRef.current) {
-        supabaseAdmin.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      socket.off('orders:change', handleOrderChange);
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;

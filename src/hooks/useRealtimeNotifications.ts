@@ -1,8 +1,8 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { notificationSupabase } from '../lib/notification-client';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { getSocket } from '../services/socketClient';
+import { notificationService } from '../api/services/notificationService';
 
 export interface RealtimeNotificationItem {
   id: string;
@@ -72,19 +72,14 @@ export function useRealtimeNotifications({
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
 
-  const channelRef = useRef<RealtimeChannel | null>(null);
   const onNewNotificationRef = useRef(onNewNotification);
-
 
   useEffect(() => {
     onNewNotificationRef.current = onNewNotification;
   }, [onNewNotification]);
 
-
-
-
   const fetchInitial = useCallback(async () => {
-    if (!userId || !notificationSupabase) {
+    if (!userId) {
       setIsLoading(false);
       return;
     }
@@ -92,26 +87,23 @@ export function useRealtimeNotifications({
     setIsLoading(true);
 
     try {
-      const { data, error } = await notificationSupabase
-        .from('notification_queue')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const response = await notificationService.getNotificationHistory({
+        page: 1,
+        limit: 50,
+      });
 
-      if (error) throw error;
+      if (response.success && response.data) {
+        let items = (response.data.notifications || []).map(mapRow);
 
-      let items = (data || []).map(mapRow);
+        if (tenantId) {
+          items = items.filter(
+            (n) => n.tenantId === null || n.tenantId === tenantId,
+          );
+        }
 
-
-      if (tenantId) {
-        items = items.filter(
-          (n) => n.tenantId === null || n.tenantId === tenantId
-        );
+        setNotifications(items);
+        setUnreadCount(items.filter((n) => !n.read).length);
       }
-
-      setNotifications(items);
-      setUnreadCount(items.filter((n) => !n.read).length);
     } catch (err) {
       console.error('[RealtimeNotifications] Failed to fetch:', err);
     } finally {
@@ -119,92 +111,63 @@ export function useRealtimeNotifications({
     }
   }, [userId, tenantId]);
 
-
-
-
+  // Initial fetch + Socket.io subscription
   useEffect(() => {
-    if (!userId || !notificationSupabase || !enabled) {
-      return;
-    }
+    if (!userId || !enabled) return;
 
     fetchInitial();
 
-    const channelName = `notifications:${userId}:${tenantId || 'all'}`;
-    const channel = notificationSupabase
-      .channel(channelName)
+    const socket = getSocket();
+    if (!socket) return;
 
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notification_queue',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload: any) => {
-          const newItem = mapRow(payload.new);
+    socket.emit('join:notifications', { user_id: userId });
 
-          if (
-            tenantId &&
-            newItem.tenantId !== null &&
-            newItem.tenantId !== tenantId
-          ) {
-            return;
-          }
+    const handleInsert = (payload: any) => {
+      const newItem = mapRow(payload.new || payload);
 
+      if (tenantId && newItem.tenantId !== null && newItem.tenantId !== tenantId) {
+        return;
+      }
 
-          setNotifications((prev) => {
-            if (prev.some((n) => n.id === newItem.id)) return prev;
-            return [newItem, ...prev];
-          });
-
-          if (!newItem.read) {
-            setUnreadCount((prev) => prev + 1);
-          }
-
-
-          onNewNotificationRef.current?.(newItem);
-        }
-      )
-
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notification_queue',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload: any) => {
-          const updated = mapRow(payload.new);
-
-          setNotifications((prev) => {
-            const newList = prev.map((n) =>
-              n.id === updated.id ? updated : n
-            );
-            setUnreadCount(newList.filter((n) => !n.read).length);
-            return newList;
-          });
-        }
-      )
-      .subscribe((status) => {
-        setIsConnected(status === 'SUBSCRIBED');
+      setNotifications((prev) => {
+        if (prev.some((n) => n.id === newItem.id)) return prev;
+        return [newItem, ...prev];
       });
 
-    channelRef.current = channel;
+      if (!newItem.read) {
+        setUnreadCount((prev) => prev + 1);
+      }
+
+      onNewNotificationRef.current?.(newItem);
+    };
+
+    const handleUpdate = (payload: any) => {
+      const updated = mapRow(payload.new || payload);
+      setNotifications((prev) => {
+        const newList = prev.map((n) => (n.id === updated.id ? updated : n));
+        setUnreadCount(newList.filter((n) => !n.read).length);
+        return newList;
+      });
+    };
+
+    const handleConnect = () => setIsConnected(true);
+    const handleDisconnect = () => setIsConnected(false);
+
+    socket.on('notifications:new', handleInsert);
+    socket.on('notifications:update', handleUpdate);
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    setIsConnected(socket.connected);
 
     return () => {
-      if (channelRef.current) {
-        notificationSupabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-        setIsConnected(false);
-      }
+      socket.off('notifications:new', handleInsert);
+      socket.off('notifications:update', handleUpdate);
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
     };
   }, [userId, tenantId, enabled, fetchInitial]);
 
-
-
-
+  // Refetch on app resume
   useEffect(() => {
     const handleAppState = (state: AppStateStatus) => {
       if (state === 'active' && userId && enabled) {
@@ -215,57 +178,34 @@ export function useRealtimeNotifications({
     return () => subscription.remove();
   }, [fetchInitial, userId, enabled]);
 
-
-
-
   const markAsRead = useCallback(
     async (notificationId: string) => {
-
       const notification = notifications.find((n) => n.id === notificationId);
       if (!notification || notification.read) return;
 
-
       setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notificationId ? { ...n, read: true } : n
-        )
+        prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)),
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
 
       try {
-        if (!notificationSupabase) return;
-        const { error } = await notificationSupabase
-          .from('notification_queue')
-          .update({ status: 'delivered' })
-          .eq('queue_uuid', notificationId);
-
-        if (error) throw error;
+        await notificationService.markAsRead(notificationId);
       } catch (err) {
         console.error('[RealtimeNotifications] Failed to mark as read:', err);
         fetchInitial();
       }
     },
-    [notifications, fetchInitial]
+    [notifications, fetchInitial],
   );
 
-
-
-
   const markAllAsRead = useCallback(async () => {
-    if (!userId || !notificationSupabase) return;
-
+    if (!userId) return;
 
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
 
     try {
-      const { error } = await notificationSupabase
-        .from('notification_queue')
-        .update({ status: 'delivered' })
-        .eq('user_id', userId)
-        .in('status', ['pending', 'sent']);
-
-      if (error) throw error;
+      await notificationService.markAllAsRead();
     } catch (err) {
       console.error('[RealtimeNotifications] Failed to mark all as read:', err);
       fetchInitial();

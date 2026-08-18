@@ -7,8 +7,7 @@ import { TenantListItem } from '../types/user';
 import { authService } from '../api/services/authService';
 import { setDynamicBaseUrl, normalizeBackendUrl } from '../api/axiosInstance';
 import { notificationService } from '../services/notificationService';
-import { decryptValue } from '../utils/encryption';
-import { initializeTenantSupabase } from '../services/supabase/supabaseClient';
+import { connectSocket } from '../services/socketClient';
 import { FORCE_BACKEND_URL } from '@env';
 
 const PALETTE = [
@@ -189,56 +188,10 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
         throw new Error(exchangeResponse.message || 'Code exchange failed');
       }
 
-      // Step 3b: Swap Supabase to target tenant's project BEFORE setAuth.
-      // Tenants return supabase_config in two shapes (top-level encrypted
-      // vs nested under user.metadata.tenant.supabase_config). See
-      // useLogin.ts for the same logic — fall through encrypted top,
-      // encrypted nested, then raw nested.
-      const nestedConfig =
-        (exchangeResponse.data.user?.metadata?.tenant as any)?.supabase_config || {};
-      const pickKey = (top: string | null | undefined, nested: string | null | undefined): string | null => {
-        const fromTop = decryptValue(top);
-        if (fromTop) return fromTop;
-        const fromNestedDecrypted = decryptValue(nested);
-        if (fromNestedDecrypted) return fromNestedDecrypted;
-        return nested || top || null;
-      };
-      const tenantUrl =
-        exchangeResponse.data.user?.metadata?.tenant?.tenant_supabase_url ||
-        nestedConfig.SUPABASE_URL ||
-        null;
-      const anonKey = pickKey(
-        exchangeResponse.data.supabase_config?.SUPABASE_ANON_KEY,
-        nestedConfig.SUPABASE_ANON_KEY,
-      );
-      const serviceKey = pickKey(
-        exchangeResponse.data.supabase_config?.SUPABASE_SERVICE_ROLE_KEY,
-        nestedConfig.SUPABASE_SERVICE_ROLE_KEY,
-      );
-
-      if (tenantUrl && anonKey) {
-        await AsyncStorage.multiSet([
-          [STORAGE_KEYS.SUPABASE_URL, tenantUrl],
-          [STORAGE_KEYS.SUPABASE_ANON_KEY, anonKey],
-          [STORAGE_KEYS.SUPABASE_SERVICE_ROLE_KEY, serviceKey || ''],
-        ]);
-
-        const stored = await AsyncStorage.multiGet([
-          STORAGE_KEYS.SUPABASE_URL,
-          STORAGE_KEYS.SUPABASE_ANON_KEY,
-          STORAGE_KEYS.SUPABASE_SERVICE_ROLE_KEY,
-        ]);
-        console.log('[workspaceStore] AsyncStorage stored Supabase creds (post-switch):');
-        stored.forEach(([k, v]) =>
-          console.log(`  ${k} = ${v ? v.slice(0, 60) + (v.length > 60 ? '…' : '') : v}`),
-        );
-
-        initializeTenantSupabase(tenantUrl, anonKey, serviceKey || anonKey);
-      } else {
-        console.warn(
-          '[workspaceStore] switchTenant: missing tenant URL or ANON_KEY decryption failed — keeping previous Supabase client',
-          { hasUrl: !!tenantUrl, hasAnonKey: !!anonKey },
-        );
+      // Step 3b: Connect Socket.io to the new tenant's backend
+      const savedBackendUrl = await AsyncStorage.getItem(STORAGE_KEYS.BACKEND_URL);
+      if (savedBackendUrl) {
+        connectSocket(savedBackendUrl);
       }
 
       // Step 4: Update auth store with new credentials

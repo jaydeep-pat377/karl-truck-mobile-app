@@ -12,7 +12,7 @@ import { useAuthStore } from './store/authStore';
 
 import { SplashScreen } from './components/common';
 
-import { initializeSupabaseAuth, restoreTenantSupabaseFromStorage } from './services/supabase/supabaseClient';
+import { restoreSocketFromStorage } from './services/socketClient';
 
 import { i18nReady } from './locales';
 
@@ -203,14 +203,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
     i18nReady.then(() => setIsI18nReady(true));
-    // Restore tenant Supabase credentials (if a session is cached) BEFORE
-    // initializing auth, so the anon user-id store and any early consumers
-    // hit the correct tenant project.
+    // Restore Socket.io connection from cached backend URL
     (async () => {
-      await restoreTenantSupabaseFromStorage();
-      const session = await initializeSupabaseAuth();
-      if (session) {
-        console.log('@@@@@@ Supabase auth initialized successfully');
+      const socket = await restoreSocketFromStorage();
+      if (socket) {
+        console.log('[App] Socket.io connection restored');
       }
     })();
   }, []);

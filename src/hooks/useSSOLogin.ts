@@ -29,8 +29,7 @@ import { useTimezoneStore } from '../store/timezoneStore';
 import { setDynamicBaseUrl, normalizeBackendUrl } from '../api/axiosInstance';
 import { STORAGE_KEYS } from '../utils/storage';
 import { DeviceInfo } from '../types/user';
-import { decryptValue } from '../utils/encryption';
-import { initializeTenantSupabase } from '../services/supabase/supabaseClient';
+import { connectSocket } from '../services/socketClient';
 import { notificationService } from '../services/notificationService';
 import {
   FEDERATED_AUTH_URL,
@@ -127,32 +126,10 @@ async function setupSessionFromResponse(
       responseData.timezone, responseData.company_timezone);
   }
 
-  const nestedConfig =
-    (responseData.user?.metadata?.tenant as any)?.supabase_config || {};
-  const pickKey = (top: string | undefined, nested: string | undefined): string | null => {
-    const fromTop = decryptValue(top);
-    if (fromTop) return fromTop;
-    const fromNestedDecrypted = decryptValue(nested);
-    if (fromNestedDecrypted) return fromNestedDecrypted;
-    return nested || top || null;
-  };
-  const tenantUrl =
-    responseData.user?.metadata?.tenant?.tenant_supabase_url ||
-    nestedConfig.SUPABASE_URL || null;
-  const anonKey = pickKey(
-    responseData.supabase_config?.SUPABASE_ANON_KEY,
-    nestedConfig.SUPABASE_ANON_KEY);
-  const serviceKey = pickKey(
-    responseData.supabase_config?.SUPABASE_SERVICE_ROLE_KEY,
-    nestedConfig.SUPABASE_SERVICE_ROLE_KEY);
-
-  if (tenantUrl && anonKey) {
-    await AsyncStorage.multiSet([
-      [STORAGE_KEYS.SUPABASE_URL, tenantUrl],
-      [STORAGE_KEYS.SUPABASE_ANON_KEY, anonKey],
-      [STORAGE_KEYS.SUPABASE_SERVICE_ROLE_KEY, serviceKey || ''],
-    ]);
-    initializeTenantSupabase(tenantUrl, anonKey, serviceKey || anonKey);
+  // Connect Socket.io to the tenant backend for realtime
+  const savedBackendUrl = await AsyncStorage.getItem(STORAGE_KEYS.BACKEND_URL);
+  if (savedBackendUrl) {
+    connectSocket(savedBackendUrl);
   }
 
   await setAuth(responseData.user, responseData.accessToken, responseData.refreshToken);

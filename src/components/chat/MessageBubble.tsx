@@ -109,7 +109,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
       .filter((url): url is string => {
         if (!url) return false;
         return IMAGE_REGEX.test(url) ||
-          url.includes('/storage/') || url.includes('supabase') || message.message_type === 'image';
+          url.includes('/storage/') || message.message_type === 'image';
       });
   }, [message.message_type, message.attachments]);
 

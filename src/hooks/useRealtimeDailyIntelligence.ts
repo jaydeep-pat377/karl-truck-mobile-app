@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { RealtimeChannel } from '@supabase/supabase-js';
-import { supabaseAdmin } from '../services/supabase/supabaseClient';
+import apiClient from '../api/apiClient';
+import { API_ENDPOINTS } from '../api/endpoints';
 import { DailyIntelligenceData, DailyIntelligenceScope } from '../types/dailyIntelligence';
 
 interface UseRealtimeDailyIntelligenceOptions {
@@ -31,6 +31,8 @@ const getTodayDateCDT = (): string => {
   return `${year}-${month}-${day}`;
 };
 
+const POLL_INTERVAL = 60000; // Poll every 60s instead of Supabase realtime
+
 export function useRealtimeDailyIntelligence({
   reportDate,
   scope = 'company',
@@ -42,53 +44,41 @@ export function useRealtimeDailyIntelligence({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const channelRef = useRef<RealtimeChannel | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const effectiveDate = reportDate || getTodayDateCDT();
 
-  // Use supabaseAdmin (service role) for data fetch — bypasses RLS
   const fetchDailyIntelligence = useCallback(
     async (showLoading = true) => {
       if (!enabled) return;
 
-      if (showLoading) {
-        setIsLoading(true);
-      }
+      if (showLoading) setIsLoading(true);
 
       try {
-        let query = supabaseAdmin
-          .from('daily_intelligence')
-          .select('*')
-          .eq('report_date', effectiveDate)
-          .eq('company_code', 'ALL');
+        const params: Record<string, any> = {
+          report_date: effectiveDate,
+        };
+        if (scope === 'plant' && plantCode) params.plant_code = plantCode;
+        if (scope === 'region' && regionName) params.region_name = regionName;
 
-        if (scope === 'company') {
-          query = query.is('plant_code', null).is('region_name', null);
-        } else if (scope === 'plant' && plantCode) {
-          query = query.eq('plant_code', plantCode);
-        } else if (scope === 'region' && regionName) {
-          query = query.is('plant_code', null).eq('region_name', regionName);
+        const res = await apiClient.get<{ success: boolean; data: any }>(
+          API_ENDPOINTS.DAILY_INTELLIGENCE.GET,
+          { params },
+        );
+
+        if (res.success && res.data) {
+          setData(res.data);
+          setLastUpdate(new Date());
+          setError(null);
         } else {
-          query = query.is('plant_code', null).is('region_name', null);
+          setData(null);
         }
-
-        const { data: row, error: fetchError } = await query.maybeSingle();
-
-        if (fetchError) {
-          throw new Error(fetchError.message);
-        }
-
-        setData(row);
-        setLastUpdate(new Date());
-        setError(null);
       } catch (err) {
         const errorObj = err instanceof Error ? err : new Error('Failed to fetch daily intelligence');
         setError(errorObj);
         console.error('Daily intelligence fetch error:', errorObj.message);
       } finally {
-        if (showLoading) {
-          setIsLoading(false);
-        }
+        if (showLoading) setIsLoading(false);
       }
     },
     [effectiveDate, scope, plantCode, regionName, enabled],
@@ -99,57 +89,21 @@ export function useRealtimeDailyIntelligence({
     fetchDailyIntelligence(true);
   }, [fetchDailyIntelligence]);
 
-  // Realtime WebSocket subscription
+  // Polling instead of Supabase realtime
   useEffect(() => {
     if (!enabled) return;
 
-    const channel = supabaseAdmin
-      .channel(`daily-intelligence-${effectiveDate}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'daily_intelligence',
-        },
-        (payload) => {
-          const newRow = payload.new as DailyIntelligenceData;
-
-          // Client-side filter: only react to changes for our date + scope
-          if (newRow.report_date && String(newRow.report_date) !== effectiveDate) {
-            return;
-          }
-
-          let shouldUpdate = false;
-
-          if (payload.eventType === 'DELETE') {
-            shouldUpdate = true;
-          } else if (scope === 'company' && !newRow.plant_code && !newRow.region_name) {
-            shouldUpdate = true;
-          } else if (scope === 'plant' && newRow.plant_code === plantCode) {
-            shouldUpdate = true;
-          } else if (scope === 'region' && newRow.region_name === regionName) {
-            shouldUpdate = true;
-          }
-
-          if (shouldUpdate) {
-            fetchDailyIntelligence(false);
-          }
-        },
-      )
-      .subscribe((status) => {
-        console.log('[DailyIntelligence] Realtime subscription status:', status);
-      });
-
-    channelRef.current = channel;
+    pollRef.current = setInterval(() => {
+      fetchDailyIntelligence(false);
+    }, POLL_INTERVAL);
 
     return () => {
-      if (channelRef.current) {
-        supabaseAdmin.removeChannel(channelRef.current);
-        channelRef.current = null;
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
       }
     };
-  }, [effectiveDate, scope, plantCode, regionName, enabled, fetchDailyIntelligence]);
+  }, [enabled, fetchDailyIntelligence]);
 
   // Reconnect on app resume
   useEffect(() => {

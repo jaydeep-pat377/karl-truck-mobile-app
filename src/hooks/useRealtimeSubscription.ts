@@ -1,11 +1,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { RealtimeChannel } from '@supabase/supabase-js';
-import {
-  subscribeToNotifications,
-  unsubscribeFromNotifications,
-} from '../lib/notification-client';
+import { getSocket } from '../services/socketClient';
 import { useNotificationStore } from '../store/notificationStore';
 import { AppNotification } from '../types/notification';
 import { buildNotifKey, claimNotification } from '../utils/notificationDedup';
@@ -71,7 +67,6 @@ export function useRealtimeSubscription({
   enabled = true,
 }: UseRealtimeSubscriptionProps): UseRealtimeSubscriptionReturn {
   const [isConnected, setIsConnected] = useState(false);
-  const channelRef = useRef<RealtimeChannel | null>(null);
   const onNewNotificationRef = useRef(onNewNotification);
   const { addNotification } = useNotificationStore();
 
@@ -82,68 +77,59 @@ export function useRealtimeSubscription({
 
 
   const subscribe = useCallback(() => {
-    if (!userId || !enabled) {
-      return;
-    }
+    if (!userId || !enabled) return;
 
+    const socket = getSocket();
+    if (!socket) return;
 
-    if (channelRef.current) {
-      unsubscribeFromNotifications(channelRef.current);
-      channelRef.current = null;
-    }
+    socket.emit('join:notifications', { user_id: userId });
 
-
-    const channel = subscribeToNotifications(
-      userId,
-      tenantId,
-
-      (payload) => {
-        const notification = mapRowToNotification(payload.new);
-        const notifTenantId = payload.new.tenant_id;
-        if (tenantId && notifTenantId !== null && notifTenantId !== tenantId) {
-          return;
-        }
-        // The same content can arrive via FCM (notificationService.onMessage).
-        // Claim the store-add and the display path separately so the in-app
-        // bell list and the OS banner each surface exactly once.
-        const storeKey = buildNotifKey({
-          title: notification.title,
-          body: notification.body,
-          entityType: payload.new.entity_type,
-          entityId: payload.new.entity_id,
-        });
-        if (claimNotification(`store:${storeKey}`)) {
-          addNotification(notification);
-        }
-        onNewNotificationRef.current?.(notification);
-      },
-
-      (status) => {
-        setIsConnected(status === 'SUBSCRIBED');
+    const handleNotification = (payload: any) => {
+      const row = payload.new || payload;
+      const notification = mapRowToNotification(row);
+      const notifTenantId = row.tenant_id;
+      if (tenantId && notifTenantId !== null && notifTenantId !== tenantId) {
+        return;
       }
-    );
 
-    channelRef.current = channel;
+      const storeKey = buildNotifKey({
+        title: notification.title,
+        body: notification.body,
+        entityType: row.entity_type,
+        entityId: row.entity_id,
+      });
+      if (claimNotification(`store:${storeKey}`)) {
+        addNotification(notification);
+      }
+      onNewNotificationRef.current?.(notification);
+    };
+
+    socket.on('notifications:new', handleNotification);
+    setIsConnected(socket.connected);
+
+    const handleConnect = () => setIsConnected(true);
+    const handleDisconnect = () => setIsConnected(false);
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+
+    return () => {
+      socket.off('notifications:new', handleNotification);
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+    };
   }, [userId, tenantId, enabled, addNotification]);
 
 
   useEffect(() => {
-    subscribe();
-
-    return () => {
-      if (channelRef.current) {
-        unsubscribeFromNotifications(channelRef.current);
-        channelRef.current = null;
-        setIsConnected(false);
-      }
-    };
+    const cleanup = subscribe();
+    return () => cleanup?.();
   }, [subscribe]);
 
 
   useEffect(() => {
     const handleAppState = (state: AppStateStatus) => {
       if (state === 'active' && userId && enabled) {
-        setTimeout(subscribe, 500);
+        setTimeout(() => subscribe(), 500);
       }
     };
     const subscription = AppState.addEventListener('change', handleAppState);

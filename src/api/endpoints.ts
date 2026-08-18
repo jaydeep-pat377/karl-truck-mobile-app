@@ -71,9 +71,17 @@ export const API_ENDPOINTS = {
     DELETE: '/email-templates',
   },
   CHAT: {
+    ROOMS: '/chat/rooms',
+    MESSAGES: '/chat/messages',
+    SEND_MESSAGE: '/chat/messages',
     READ_STATUS: '/chat/read-status',
     UNREAD_COUNTS: '/chat/unread-counts',
     MARK_READ: '/chat/mark-read',
+    USER: '/chat/user',
+  },
+  DAILY_INTELLIGENCE: {
+    GET: '/daily-intelligence',
+    ODP: '/daily-intelligence/odp',
   },
   QR: {
     VERIFY: '/qr/verify',

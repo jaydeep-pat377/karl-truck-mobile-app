@@ -1,29 +1,14 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { AppState, AppStateStatus, Platform, PermissionsAndroid } from 'react-native';
-import { createClient, RealtimeChannel } from '@supabase/supabase-js';
+import { AppState, AppStateStatus, Platform } from 'react-native';
 import notifee, { AndroidImportance, AndroidVisibility } from '@notifee/react-native';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
-import 'react-native-url-polyfill/auto';
-import { NOTIFICATION_SUPABASE_URL, NOTIFICATION_SUPABASE_ANON_KEY } from '@env';
+import { getSocket } from '../services/socketClient';
 import { buildNotifKey, claimNotification } from '../utils/notificationDedup';
 import { notificationService } from '../api/services/notificationService';
 
 const CHANNEL_ID = 'truckast_heads_up';
 const PAGE_SIZE = 20;
-
-const supabase = createClient(NOTIFICATION_SUPABASE_URL, NOTIFICATION_SUPABASE_ANON_KEY, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-    detectSessionInUrl: false,
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
-  },
-});
 
 const EVENT_CODE_MAP: Record<string, 'order' | 'truck' | 'alert' | 'info'> = {
   ORDER_CREATED: 'order',
@@ -119,7 +104,6 @@ interface UseSupabaseNotificationsProps {
   userId: string | null;
   tenantId: number | null;
   enabled?: boolean;
-
   onNewNotification?: (notification: NotificationItem) => void;
 }
 
@@ -130,9 +114,7 @@ interface PaginationState {
 }
 
 interface UseSupabaseNotificationsReturn {
-
   notifications: Notification[];
-
   notificationItems: NotificationItem[];
   unreadCount: number;
   isLoading: boolean;
@@ -144,11 +126,8 @@ interface UseSupabaseNotificationsReturn {
   loadMore: () => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
-
   reconnect: () => void;
 }
-
-const MAX_RECONNECT_ATTEMPTS = 5;
 
 export function useSupabaseNotifications({
   userId,
@@ -163,23 +142,17 @@ export function useSupabaseNotifications({
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationState | null>(null);
-  const channelRef = useRef<RealtimeChannel | null>(null);
   const reconnectAttempts = useRef(0);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
-  const subscribeRef = useRef<() => void>(() => { });
-  const fetchRef = useRef<() => Promise<void>>(async () => { });
   const onNewNotificationRef = useRef(onNewNotification);
-
 
   useEffect(() => {
     onNewNotificationRef.current = onNewNotification;
   }, [onNewNotification]);
 
-
   useEffect(() => {
     setNotificationItems(notifications.map(mapRowToNotificationItem));
   }, [notifications]);
-
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -193,30 +166,23 @@ export function useSupabaseNotifications({
     return () => clearInterval(interval);
   }, []);
 
-
   const requestNotificationPermission = useCallback(async (): Promise<boolean> => {
     try {
       const settings = await notifee.requestPermission();
-      const authorized = settings.authorizationStatus >= 1;
-      return authorized;
-    } catch (error) {
+      return settings.authorizationStatus >= 1;
+    } catch {
       return false;
     }
   }, []);
-
 
   useEffect(() => {
     requestNotificationPermission();
   }, [requestNotificationPermission]);
 
-
   const showLocalNotification = useCallback(async (notification: Notification) => {
-    if (appStateRef.current !== 'active') {
-      return;
-    }
+    if (appStateRef.current !== 'active') return;
 
     try {
-
       if (Platform.OS === 'android') {
         await notifee.createChannel({
           id: CHANNEL_ID,
@@ -258,12 +224,10 @@ export function useSupabaseNotifications({
           },
         },
       });
-
     } catch (err) {
       console.error('[useSupabaseNotifications] Failed to show local notification:', err);
     }
   }, []);
-
 
   const fetchNotifications = useCallback(async () => {
     if (!userId) {
@@ -274,25 +238,11 @@ export function useSupabaseNotifications({
     setIsLoading(true);
     setError(null);
 
-    if (__DEV__) {
-      console.log('[useSupabaseNotifications] Fetching notifications for userId:', userId);
-    }
-
     try {
       const response = await notificationService.getNotificationHistory({
         page: 1,
         limit: PAGE_SIZE,
       });
-
-      if (__DEV__) {
-        console.log('[useSupabaseNotifications] API response:', JSON.stringify({
-          success: response.success,
-          total: response.data?.total,
-          page: response.data?.page,
-          count: response.data?.notifications?.length,
-          message: response.message,
-        }));
-      }
 
       if (response.success && response.data) {
         const items = (response.data.notifications || []).map((n: any) => ({
@@ -309,15 +259,11 @@ export function useSupabaseNotifications({
         setError(response.message || 'Failed to fetch notifications');
       }
     } catch (err: any) {
-      if (__DEV__) {
-        console.error('[useSupabaseNotifications] Fetch error:', err);
-      }
       setError(err.message || 'Failed to fetch notifications');
     } finally {
       setIsLoading(false);
     }
   }, [userId]);
-
 
   const loadMore = useCallback(async () => {
     if (!userId || !pagination || isLoadingMore) return;
@@ -357,133 +303,86 @@ export function useSupabaseNotifications({
     }
   }, [userId, pagination, isLoadingMore]);
 
-
-  const handleReconnect = useCallback(() => {
-    if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
-      return;
-    }
-
-    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-    reconnectAttempts.current++;
-
-    setTimeout(() => {
-      if (userId && enabled) {
-        subscribeRef.current();
-        fetchRef.current();
-      }
-    }, delay);
-  }, [userId, enabled]);
-
-
+  // Socket.io subscription for realtime notifications
   const subscribe = useCallback(() => {
-    if (!userId || !enabled) {
-      return;
-    }
+    if (!userId || !enabled) return;
 
+    const socket = getSocket();
+    if (!socket) return;
 
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-    }
+    socket.emit('join:notifications', { user_id: userId });
 
-    const channelName = `notifications:${userId}:${tenantId ?? 'global'}`;
+    const handleInsert = (payload: any) => {
+      const newNotification = {
+        ...(payload.new || payload) as Notification,
+        id: String((payload.new || payload).id),
+        isNew: true,
+      };
 
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notification_queue',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          const newNotification = {
-            ...payload.new as Notification,
-            id: String((payload.new as any).id),
-            isNew: true,
-          };
+      if (tenantId && newNotification.tenant_id !== null && newNotification.tenant_id !== tenantId) {
+        return;
+      }
 
-
-          if (tenantId && newNotification.tenant_id !== null && newNotification.tenant_id !== tenantId) {
-            return;
-          }
-
-
-          setNotifications((prev) => {
-            if (prev.some((n) => n.id === newNotification.id)) {
-              return prev;
-            }
-            return [newNotification, ...prev];
-          });
-
-          setPagination((prev) => prev ? { ...prev, total: prev.total + 1 } : prev);
-
-          const displayKey = buildNotifKey({
-            title: newNotification.subject,
-            body: newNotification.body,
-            entityType: newNotification.entity_type,
-            entityId: newNotification.entity_id,
-          });
-          if (claimNotification(`display:${displayKey}`)) {
-            showLocalNotification(newNotification);
-          }
-
-
-          if (onNewNotificationRef.current) {
-            onNewNotificationRef.current(mapRowToNotificationItem(newNotification));
-          }
-
-
-          setTimeout(() => {
-            setNotifications((prev) =>
-              prev.map((n) =>
-                n.id === newNotification.id ? { ...n, isNew: false } : n
-              )
-            );
-          }, 5000);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notification_queue',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          const updatedNotification = {
-            ...payload.new as Notification,
-            id: String((payload.new as any).id),
-          };
-
-          setNotifications((prev) =>
-            prev.map((n) =>
-              n.id === updatedNotification.id ? updatedNotification : n
-            )
-          );
-        }
-      )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          reconnectAttempts.current = 0;
-          setIsConnected(true);
-          setError(null);
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          setIsConnected(false);
-          if (err) {
-            setError(String(err));
-          }
-          handleReconnect();
-        } else if (status === 'CLOSED') {
-          setIsConnected(false);
-        }
+      setNotifications((prev) => {
+        if (prev.some((n) => n.id === newNotification.id)) return prev;
+        return [newNotification, ...prev];
       });
 
-    channelRef.current = channel;
-  }, [userId, tenantId, enabled, showLocalNotification, handleReconnect]);
+      setPagination((prev) => prev ? { ...prev, total: prev.total + 1 } : prev);
 
+      const displayKey = buildNotifKey({
+        title: newNotification.subject,
+        body: newNotification.body,
+        entityType: newNotification.entity_type,
+        entityId: newNotification.entity_id,
+      });
+      if (claimNotification(`display:${displayKey}`)) {
+        showLocalNotification(newNotification);
+      }
+
+      if (onNewNotificationRef.current) {
+        onNewNotificationRef.current(mapRowToNotificationItem(newNotification));
+      }
+
+      setTimeout(() => {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === newNotification.id ? { ...n, isNew: false } : n)),
+        );
+      }, 5000);
+    };
+
+    const handleUpdate = (payload: any) => {
+      const updatedNotification = {
+        ...(payload.new || payload) as Notification,
+        id: String((payload.new || payload).id),
+      };
+
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === updatedNotification.id ? updatedNotification : n)),
+      );
+    };
+
+    socket.on('notifications:new', handleInsert);
+    socket.on('notifications:update', handleUpdate);
+    setIsConnected(socket.connected);
+
+    const handleConnect = () => {
+      reconnectAttempts.current = 0;
+      setIsConnected(true);
+      setError(null);
+    };
+    const handleDisconnect = () => setIsConnected(false);
+
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+
+    return () => {
+      socket.off('notifications:new', handleInsert);
+      socket.off('notifications:update', handleUpdate);
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+    };
+  }, [userId, tenantId, enabled, showLocalNotification]);
 
   const reconnect = useCallback(() => {
     if (userId && enabled) {
@@ -493,27 +392,13 @@ export function useSupabaseNotifications({
     }
   }, [userId, enabled, subscribe, fetchNotifications]);
 
-
-  useEffect(() => {
-    subscribeRef.current = subscribe;
-    fetchRef.current = fetchNotifications;
-  }, [subscribe, fetchNotifications]);
-
-
   useEffect(() => {
     if (userId && enabled) {
       fetchNotifications();
-      subscribe();
+      const cleanup = subscribe();
+      return () => cleanup?.();
     }
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
   }, [userId, enabled, fetchNotifications, subscribe]);
-
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
@@ -527,7 +412,6 @@ export function useSupabaseNotifications({
     return () => subscription.remove();
   }, [userId, enabled, subscribe, fetchNotifications]);
 
-
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
       if (state.isConnected && userId && enabled) {
@@ -539,17 +423,12 @@ export function useSupabaseNotifications({
     return () => unsubscribe();
   }, [userId, enabled, subscribe, fetchNotifications]);
 
-
   const markAsRead = useCallback(async (id: string) => {
-
     const notification = notifications.find((n) => n.id === id || n.queue_uuid === id);
-    if (!notification || notification.status === 'delivered' || notification.status === 'read') {
-      return;
-    }
+    if (!notification || notification.status === 'delivered' || notification.status === 'read') return;
 
-    // Optimistic update
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id || n.queue_uuid === id ? { ...n, status: 'delivered' } : n))
+      prev.map((n) => (n.id === id || n.queue_uuid === id ? { ...n, status: 'delivered' } : n)),
     );
 
     try {
@@ -560,14 +439,12 @@ export function useSupabaseNotifications({
     }
   }, [notifications, fetchNotifications]);
 
-
   const markAllAsRead = useCallback(async () => {
     if (!userId) return;
 
     const hasUnread = notifications.some((n) => n.status !== 'delivered' && n.status !== 'read');
     if (!hasUnread) return;
 
-    // Optimistic update
     setNotifications((prev) => prev.map((n) => ({ ...n, status: 'delivered' })));
 
     try {
@@ -578,9 +455,8 @@ export function useSupabaseNotifications({
     }
   }, [userId, notifications, fetchNotifications]);
 
-
   const unreadCount = notifications.filter(
-    (n) => n.status !== 'read' && n.status !== 'delivered'
+    (n) => n.status !== 'read' && n.status !== 'delivered',
   ).length;
 
   const hasMore = pagination ? pagination.page < pagination.totalPages : false;

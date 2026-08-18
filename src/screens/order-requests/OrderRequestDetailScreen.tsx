@@ -33,7 +33,7 @@ import {
 import { orderRequestService } from '../../api/services/orderRequestService';
 import { OrderEntity, OrderEntityMessage, ORDER_STATUS_LABELS } from '../../types/orderRequest';
 import { useAuthStore } from '../../store/authStore';
-import { supabaseAdmin } from '../../services/supabase/supabaseClient';
+import apiClient from '../../api/apiClient';
 import { RootStackParamList } from '../../navigation/types';
 import { getUserPermissions, getSenderRole } from '../../utils/permissions';
 
@@ -972,14 +972,12 @@ export const OrderRequestDetailScreen: React.FC = () => {
   // Fetch creator name
   React.useEffect(() => {
     if (order?.user_id) {
-      supabaseAdmin
-        .from('users')
-        .select('full_name')
-        .eq('id', order.user_id)
-        .single()
-        .then(({ data }) => {
-          if (data?.full_name) setCreatorName(data.full_name);
-        });
+      apiClient
+        .get<{ success: boolean; data: { name: string } }>(`/chat/user/${order.user_id}`)
+        .then((res) => {
+          if (res.success && res.data?.name) setCreatorName(res.data.name);
+        })
+        .catch(() => {});
     }
   }, [order?.user_id]);
 

@@ -56,7 +56,7 @@ export const ChatListScreen: React.FC = () => {
             Setup Required
           </Text>
           <Text variant="body" color="hint" style={styles.emptySubtitle}>
-            Chat feature requires Supabase configuration. Please add SUPABASE_URL and SUPABASE_ANON_KEY to your environment variables.
+            Chat feature requires a backend connection. Please check your network and try again.
           </Text>
         </View>
       </SafeAreaView>

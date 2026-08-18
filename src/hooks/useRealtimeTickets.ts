@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { RealtimeChannel } from '@supabase/supabase-js';
-import { supabaseAdmin } from '../services/supabase/supabaseClient';
+import { getSocket } from '../services/socketClient';
 
 interface UseRealtimeTicketsOptions {
   orderCode: string;
@@ -14,8 +13,6 @@ export function useRealtimeTickets({
   enabled = true,
   onUpdate,
 }: UseRealtimeTicketsOptions) {
-  const ticketsChannelRef = useRef<RealtimeChannel | null>(null);
-  const productsChannelRef = useRef<RealtimeChannel | null>(null);
   const onUpdateRef = useRef(onUpdate);
 
   useEffect(() => {
@@ -25,62 +22,29 @@ export function useRealtimeTickets({
   useEffect(() => {
     if (!enabled || !orderCode) return;
 
-    // Channel 1: Ticket changes (same as web)
-    const ticketsChannel = supabaseAdmin
-      .channel(`tickets-${orderCode}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tickets',
-        },
-        (payload) => {
-          const row = payload.new as Record<string, any>;
+    const socket = getSocket();
+    if (!socket) return;
 
-          // Client-side filter by order_code
-          if (row?.order_code && row.order_code !== orderCode) {
-            return;
-          }
+    socket.emit('join:tickets', { order_code: orderCode });
 
-          console.log('[RealtimeTickets] Ticket change detected, refetching...');
-          onUpdateRef.current?.();
-        },
-      )
-      .subscribe((status) => {
-        console.log('[RealtimeTickets] Tickets channel:', status);
-      });
+    const handleTicketChange = (payload: any) => {
+      const row = payload?.new || payload;
+      if (row?.order_code && row.order_code !== orderCode) return;
+      console.log('[RealtimeTickets] Ticket change detected, refetching...');
+      onUpdateRef.current?.();
+    };
 
-    // Channel 2: Ticket product changes (same as web)
-    const productsChannel = supabaseAdmin
-      .channel(`ticket-products-${orderCode}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'ticket_products',
-        },
-        (payload) => {
-          onUpdateRef.current?.();
-        },
-      )
-      .subscribe((status) => {
-        console.log('[RealtimeTickets] Products channel:', status);
-      });
+    const handleProductChange = () => {
+      onUpdateRef.current?.();
+    };
 
-    ticketsChannelRef.current = ticketsChannel;
-    productsChannelRef.current = productsChannel;
+    socket.on('tickets:change', handleTicketChange);
+    socket.on('ticket_products:change', handleProductChange);
 
     return () => {
-      if (ticketsChannelRef.current) {
-        supabaseAdmin.removeChannel(ticketsChannelRef.current);
-        ticketsChannelRef.current = null;
-      }
-      if (productsChannelRef.current) {
-        supabaseAdmin.removeChannel(productsChannelRef.current);
-        productsChannelRef.current = null;
-      }
+      socket.emit('leave:tickets', { order_code: orderCode });
+      socket.off('tickets:change', handleTicketChange);
+      socket.off('ticket_products:change', handleProductChange);
     };
   }, [orderCode, enabled]);
 

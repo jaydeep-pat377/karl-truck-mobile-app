@@ -4,7 +4,7 @@ import { AppState, AppStateStatus } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { chatService, ImageAttachment, AudioAttachment } from '../api/services/chatService';
 import { useChatStore } from '../store/chatStore';
-import { supabaseAdmin as supabase, isSupabaseConfigured } from '../services/supabase/supabaseClient';
+import { getSocket } from '../services/socketClient';
 import { Message } from '../types/chat';
 import { useAuthStore } from '../store/authStore';
 import { playMessageSound } from '../utils/notificationSound';
@@ -14,25 +14,9 @@ interface UseChatMessagesProps {
   orderId: string | number;
 }
 
-interface RawChatMessage {
-  id: number;
-  chat_id: string | number;
-  order_id: string | number;
-  sender_id: string;
-  sender_name: string;
-  sender_role: string;
-  message_text: string | null;
-  attachments: unknown[];
-  created_at: string;
-  updated_at: string | null;
-  is_deleted: boolean;
-  timeline_visible: boolean;
-}
-
 export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const isConfigured = isSupabaseConfigured();
   const roomId = String(orderId);
   const {
     setMessages,
@@ -44,21 +28,11 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
   } = useChatStore();
 
   const [realtimeMessages, setRealtimeMessages] = useState<Message[]>([]);
-  const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const pollingIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMessageTimeRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (user?.id) {
-      setSupabaseUserId(user.id);
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (!isConfigured) return;
-
     setCurrentRoom(roomId);
     markRoomAsRead(roomId);
 
@@ -66,12 +40,12 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       setCurrentRoom(null);
       setRealtimeMessages([]);
     };
-  }, [roomId, setCurrentRoom, markRoomAsRead, isConfigured]);
+  }, [roomId, setCurrentRoom, markRoomAsRead]);
 
   const query = useQuery({
     queryKey: ['chatMessages', orderId],
     queryFn: () => chatService.getMessages(orderId),
-    enabled: !!orderId && isConfigured,
+    enabled: !!orderId,
     staleTime: 5 * 1000,
     refetchInterval: 5000,
     refetchOnMount: true,
@@ -81,7 +55,6 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
   useEffect(() => {
     if (query.data) {
       setMessages(roomId, query.data);
-
       if (query.data.length > 0) {
         const latestMsg = query.data[query.data.length - 1];
         lastMessageTimeRef.current = latestMsg.created_at;
@@ -91,275 +64,180 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
   const mergedMessages = useMemo(() => {
     const messageMap = new Map<string, Message>();
-
     (query.data || []).forEach((msg) => messageMap.set(msg.id, msg));
     realtimeMessages.forEach((msg) => messageMap.set(msg.id, msg));
-
     return Array.from(messageMap.values()).sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     );
   }, [query.data, realtimeMessages]);
 
   const pollForNewMessages = useCallback(async () => {
-    if (!orderId || !isConfigured) return;
+    if (!orderId) return;
 
     try {
       const messages = await chatService.getMessages(orderId, 20);
       if (messages.length > 0) {
         const latestMessage = messages[messages.length - 1];
-
         if (lastMessageTimeRef.current && latestMessage.created_at > lastMessageTimeRef.current) {
           const newMessages = messages.filter(
             (msg) =>
               msg.created_at > (lastMessageTimeRef.current || '') &&
-              msg.sender_id !== supabaseUserId
+              msg.sender_id !== user?.id,
           );
-
           if (newMessages.length > 0) {
             if (currentRoomId !== roomId) {
               playMessageSound();
             }
-
             newMessages.forEach((msg) => {
               setRealtimeMessages((prev) => {
-                if (prev.some((m) => m.id === msg.id)) {
-                  return prev;
-                }
+                if (prev.some((m) => m.id === msg.id)) return prev;
                 return [...prev, msg];
               });
               addMessage(roomId, msg);
             });
           }
         }
-
         lastMessageTimeRef.current = latestMessage.created_at;
       }
     } catch (err) {
       console.log('[Chat Poll] Error:', err);
     }
-  }, [orderId, roomId, supabaseUserId, addMessage, isConfigured, currentRoomId]);
+  }, [orderId, roomId, user?.id, addMessage, currentRoomId]);
 
+  // Socket.io realtime subscription
   useEffect(() => {
-    if (!orderId || !isConfigured || !supabase) return;
+    if (!orderId) return;
 
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const socket = getSocket();
+    if (!socket) return;
 
-    // Single-flight reconnect: a flaky WebSocket can fire CHANNEL_ERROR/CLOSED
-    // repeatedly. Without this guard each error queued another setTimeout →
-    // setupSubscription(), stacking overlapping channels + reconnect timers,
-    // which storms the JS thread (messages + setState) and freezes the UI.
-    const scheduleReconnect = () => {
-      if (reconnectTimerRef.current) return; // a reconnect is already pending
-      reconnectTimerRef.current = setTimeout(() => {
-        reconnectTimerRef.current = null;
-        setupSubscription();
-      }, 5000);
-    };
+    socket.emit('join:chat', { order_id: orderId });
 
-    const setupSubscription = () => {
+    const handleChatMessage = (payload: any) => {
       try {
-        channel = supabase
-          .channel(`chat-order-${orderId}-${Date.now()}`)
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'chat_messages',
-              filter: `order_id=eq.${orderId}`,
-            },
-            (payload) => {
-              try {
-                if (payload.eventType !== 'INSERT') {
-                  return;
-                }
+        const msg = payload.new || payload;
 
-                const msg = payload.new as RawChatMessage;
+        if (user?.id && msg.sender_id === user.id) return;
+        if (msg.is_deleted) return;
 
+        const attachments = msg.attachments || [];
+        let messageType: 'text' | 'image' | 'audio' = 'text';
+        if (attachments.length > 0) {
+          const first = attachments[0] as any;
+          const aType = (first?.type || '') as string;
+          const aUrl = (first?.url || first?.file_url || first?.path || '') as string;
+          if (aType.includes('audio') || /\.(m4a|mp4|mp3|wav|aac|ogg)($|\?)/i.test(aUrl) || first?.duration != null) {
+            messageType = 'audio';
+          } else if (aType.includes('image') || /\.(jpg|jpeg|png|gif|webp|bmp)($|\?)/i.test(aUrl)) {
+            messageType = 'image';
+          }
+        }
 
-                if (supabaseUserId && msg.sender_id === supabaseUserId) {
-                  return;
-                }
+        const newMessage: Message = {
+          id: String(msg.id),
+          room_id: String(msg.order_id),
+          chat_id: msg.chat_id,
+          order_id: msg.order_id,
+          sender_id: msg.sender_id,
+          sender_name: msg.sender_name || 'User',
+          sender_role: msg.sender_role || 'contractor',
+          content: msg.message_text || msg.content || '',
+          message_type: messageType,
+          attachments,
+          created_at: msg.created_at,
+          is_deleted: msg.is_deleted,
+          timeline_visible: msg.timeline_visible,
+        };
 
-                if (msg.is_deleted) {
-                  return;
-                }
+        setRealtimeMessages((prev) => {
+          if (prev.some((m) => m.id === newMessage.id)) return prev;
+          return [...prev, newMessage];
+        });
+        addMessage(roomId, newMessage);
 
-                const attachments = msg.attachments || [];
-                let messageType: 'text' | 'image' | 'audio' = 'text';
-                if (attachments.length > 0) {
-                  const first = attachments[0] as any;
-                  const aType = (first?.type || '') as string;
-                  const aUrl = (first?.url || first?.file_url || first?.path || '') as string;
-                  if (aType.includes('audio') || /\.(m4a|mp4|mp3|wav|aac|ogg)($|\?)/i.test(aUrl) || first?.duration != null) {
-                    messageType = 'audio';
-                  } else if (aType.includes('image') || /\.(jpg|jpeg|png|gif|webp|bmp)($|\?)/i.test(aUrl)) {
-                    messageType = 'image';
-                  }
-                }
-
-                const newMessage: Message = {
-                  id: String(msg.id),
-                  room_id: String(msg.order_id),
-                  chat_id: msg.chat_id,
-                  order_id: msg.order_id,
-                  sender_id: msg.sender_id,
-                  sender_name: msg.sender_name || 'User',
-                  sender_role: msg.sender_role || 'contractor',
-                  content: msg.message_text || '',
-                  message_type: messageType,
-                  attachments,
-                  created_at: msg.created_at,
-                  is_deleted: msg.is_deleted,
-                  timeline_visible: msg.timeline_visible,
-                };
-
-                setRealtimeMessages((prev) => {
-                  if (prev.some((m) => m.id === newMessage.id)) {
-                    return prev;
-                  }
-                  return [...prev, newMessage];
-                });
-
-                addMessage(roomId, newMessage);
-
-
-                if (currentRoomId !== roomId) {
-                  incrementUnreadCount(roomId);
-                  playMessageSound();
-                }
-
-                lastMessageTimeRef.current = msg.created_at;
-              } catch (payloadError) {
-                console.warn('[Chat] Error processing realtime payload:', payloadError);
-              }
-            }
-          )
-          .subscribe((status, err) => {
-            if (status === 'SUBSCRIBED') {
-              setIsRealtimeConnected(true);
-            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || err) {
-              setIsRealtimeConnected(false);
-
-              if (channel) {
-                supabase.removeChannel(channel);
-                channel = null;
-              }
-              // Reconnect after 5 seconds (single-flight — see scheduleReconnect)
-              scheduleReconnect();
-            } else if (status === 'CLOSED') {
-              setIsRealtimeConnected(false);
-              if (channel) {
-                supabase.removeChannel(channel);
-                channel = null;
-              }
-              scheduleReconnect();
-            }
-          });
-      } catch (error) {
-        console.warn('[Chat] Failed to setup realtime, using polling:', error);
-        setIsRealtimeConnected(false);
+        if (currentRoomId !== roomId) {
+          incrementUnreadCount(roomId);
+          playMessageSound();
+        }
+        lastMessageTimeRef.current = msg.created_at;
+      } catch (payloadError) {
+        console.warn('[Chat] Error processing realtime payload:', payloadError);
       }
     };
 
-    setupSubscription();
+    const handleConnect = () => setIsRealtimeConnected(true);
+    const handleDisconnect = () => setIsRealtimeConnected(false);
+
+    socket.on('chat:message', handleChatMessage);
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    setIsRealtimeConnected(socket.connected);
 
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
         queryClient.invalidateQueries({ queryKey: ['chatMessages', orderId] });
-
-        if (channel) {
-          channel.subscribe();
-        }
       }
     };
-
     const subscription = AppState.addEventListener('change', handleAppStateChange);
 
-    // Always poll as a safety net — fast when realtime is down, slow when connected.
-    // Realtime WebSocket can drop silently without firing CHANNEL_ERROR/CLOSED,
-    // leaving isRealtimeConnected stale. A slow background poll ensures messages
-    // still appear even if the WebSocket dies.
+    // Polling as safety net
     const pollInterval = isRealtimeConnected ? 15000 : 5000;
     pollingIntervalRef.current = setInterval(pollForNewMessages, pollInterval);
 
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
+      socket.emit('leave:chat', { order_id: orderId });
+      socket.off('chat:message', handleChatMessage);
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
       }
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current);
-        reconnectTimerRef.current = null;
-      }
       subscription.remove();
     };
-  }, [orderId, roomId, supabaseUserId, addMessage, incrementUnreadCount, currentRoomId, isConfigured, queryClient, pollForNewMessages]);
+  }, [orderId, roomId, user?.id, addMessage, incrementUnreadCount, currentRoomId, queryClient, pollForNewMessages]);
 
   // Adjust poll interval when realtime status changes
   useEffect(() => {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
     }
-    if (orderId && isConfigured) {
+    if (orderId) {
       const pollInterval = isRealtimeConnected ? 15000 : 5000;
       pollingIntervalRef.current = setInterval(pollForNewMessages, pollInterval);
     }
-  }, [isRealtimeConnected, orderId, isConfigured, pollForNewMessages]);
+  }, [isRealtimeConnected, orderId, pollForNewMessages]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, images, audio }: { content: string; images?: ImageAttachment[]; audio?: AudioAttachment }) => {
-      try {
-        if (audio) {
-          return chatService.sendVoiceMessage(
-            {
-              chat_id: chatId || orderId,
-              order_id: orderId,
-              content: content || '',
-            },
-            audio
-          );
-        }
-        if (images && images.length > 0) {
-          const result = await chatService.sendMessageWithImages(
-            {
-              chat_id: chatId || orderId,
-              order_id: orderId,
-              content,
-            },
-            images
-          );
-          return result;
-        }
-        return chatService.sendMessage({
-          chat_id: chatId || orderId,
-          order_id: orderId,
-          content,
-        });
-      } catch (error) {
-        throw error;
+      if (audio) {
+        return chatService.sendVoiceMessage(
+          { chat_id: chatId || orderId, order_id: orderId, content: content || '' },
+          audio,
+        );
       }
+      if (images && images.length > 0) {
+        return chatService.sendMessageWithImages(
+          { chat_id: chatId || orderId, order_id: orderId, content },
+          images,
+        );
+      }
+      return chatService.sendMessage({
+        chat_id: chatId || orderId,
+        order_id: orderId,
+        content,
+      });
     },
     onMutate: async ({ content, images, audio }) => {
       let senderName = 'Unknown';
-      if (user?.fullName) {
-        senderName = user.fullName;
-      } else if (user?.firstName || user?.lastName) {
-        senderName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
-      } else if (user?.email) {
-        senderName = user.email.split('@')[0];
-      }
+      if (user?.fullName) senderName = user.fullName;
+      else if (user?.firstName || user?.lastName) senderName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+      else if (user?.email) senderName = user.email.split('@')[0];
 
       let senderRole = 'contractor';
       const role = (user?.role || '').toLowerCase();
-      if (role === 'admin' || role === 'administrator') {
-        senderRole = 'admin';
-      } else if (role === 'producer' || role === 'concrete_producer' || role === 'plant') {
-        senderRole = 'concrete_producer';
-      }
+      if (role === 'admin' || role === 'administrator') senderRole = 'admin';
+      else if (role === 'producer' || role === 'concrete_producer' || role === 'plant') senderRole = 'concrete_producer';
 
       const optimisticAttachments = audio
         ? [{ url: audio.uri, type: audio.type, name: audio.name, duration: audio.duration }]
@@ -394,14 +272,13 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     onSuccess: (newMessage) => {
       setRealtimeMessages((prev) =>
         prev.map((m) =>
-          m.id.startsWith('temp-') && m.content === newMessage.content ? newMessage : m
-        )
+          m.id.startsWith('temp-') && m.content === newMessage.content ? newMessage : m,
+        ),
       );
     },
     onError: (error: any) => {
       setRealtimeMessages((prev) => prev.filter((m) => !m.id.startsWith('temp-')));
       queryClient.invalidateQueries({ queryKey: ['chatMessages', orderId] });
-
       Toast.show({
         type: 'error',
         text1: 'Failed to Send',
@@ -418,7 +295,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     (content: string, images?: ImageAttachment[], audio?: AudioAttachment) => {
       return sendMessageMutation.mutateAsync({ content, images, audio });
     },
-    [sendMessageMutation]
+    [sendMessageMutation],
   );
 
   const deleteMessageMutation = useMutation({
@@ -430,14 +307,8 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
 
   const loadMore = useCallback(async () => {
     if (mergedMessages.length === 0) return;
-
     const oldestMessage = mergedMessages[0];
-    const olderMessages = await chatService.getMessages(
-      orderId,
-      50,
-      oldestMessage.created_at
-    );
-
+    const olderMessages = await chatService.getMessages(orderId, 50, oldestMessage.created_at);
     if (olderMessages.length > 0) {
       setMessages(roomId, [...olderMessages, ...mergedMessages]);
     }

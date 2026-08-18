@@ -15,9 +15,6 @@ export const STORAGE_KEYS = {
   CURRENT_TENANT: 'currentTenant',
   TIMEZONE: 'timezone',
   COMPANY_TIMEZONE: 'companyTimezone',
-  SUPABASE_URL: 'supabaseUrl',
-  SUPABASE_ANON_KEY: 'supabaseAnonKey',
-  SUPABASE_SERVICE_ROLE_KEY: 'supabaseServiceRoleKey',
 } as const;
 
 export const storageUtils = {

@@ -1,11 +1,11 @@
-import { supabaseAdmin, isSupabaseConfigured, ensureAuthenticated } from '../../services/supabase/supabaseClient';
 import apiClient from '../apiClient';
 import { API_ENDPOINTS } from '../endpoints';
 import { ChatRoom, Message, SendMessagePayload } from '../../types/chat';
 import { useAuthStore } from '../../store/authStore';
 import { Platform } from 'react-native';
-import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from '@env';
 import { getSenderRole } from '../../utils/permissions';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '../../utils/storage';
 
 export interface ImageAttachment {
   uri: string;
@@ -32,33 +32,6 @@ export interface UploadedAttachment {
   duration?: number;
 }
 
-const STORAGE_BUCKET = 'order-chat-images';
-
-const checkSupabase = async () => {
-  if (!isSupabaseConfigured() || !supabaseAdmin) {
-    throw new Error('Supabase is not configured');
-  }
-
-  await ensureAuthenticated();
-
-  return supabaseAdmin;
-};
-
-interface RawChatMessage {
-  id: number;
-  chat_id: number;
-  order_id: string | number;
-  sender_id: string;
-  sender_name: string;
-  sender_role: string;
-  message_text: string | null;
-  attachments: unknown[];
-  created_at: string;
-  updated_at: string | null;
-  is_deleted: boolean;
-  timeline_visible: boolean;
-}
-
 const detectMessageType = (attachments: unknown[]): 'text' | 'image' | 'audio' => {
   if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
     return 'text';
@@ -76,246 +49,86 @@ const detectMessageType = (attachments: unknown[]): 'text' | 'image' | 'audio' =
   return 'text';
 };
 
-interface OrderChat {
-  id: number;
-  order_id: string | number;
-  created_at: string;
-  updated_at: string | null;
-  last_message_at: string | null;
-  is_active: boolean;
+function mapRawToMessage(msg: any): Message {
+  return {
+    id: String(msg.id),
+    room_id: String(msg.order_id),
+    chat_id: msg.chat_id,
+    order_id: msg.order_id,
+    sender_id: msg.sender_id,
+    sender_name: msg.sender_name || 'User',
+    sender_role: msg.sender_role || 'contractor',
+    content: msg.message_text || msg.content || '',
+    message_type: detectMessageType(msg.attachments || []),
+    attachments: msg.attachments || [],
+    created_at: msg.created_at,
+    is_deleted: msg.is_deleted,
+    timeline_visible: msg.timeline_visible,
+  };
 }
 
 export const chatService = {
-
   getRooms: async (): Promise<ChatRoom[]> => {
-    if (!isSupabaseConfigured() || !supabaseAdmin) {
-      return [];
-    }
-
     try {
-      await ensureAuthenticated();
-
-      const { data, error } = await supabaseAdmin
-        .from('order_chats')
-        .select('*')
-        .eq('is_active', true)
-        .order('last_message_at', { ascending: false, nullsFirst: false });
-
-      if (error) {
-        return [];
-      }
-
-      return (data as OrderChat[] || []).map((chat) => ({
+      const res = await apiClient.get<{ success: boolean; data: any[] }>(
+        API_ENDPOINTS.CHAT.ROOMS,
+      );
+      if (!res.success || !res.data) return [];
+      return res.data.map((chat: any) => ({
         id: String(chat.id),
-        name: `Order #${chat.order_id}`,
+        name: chat.name || `Order #${chat.order_id}`,
         type: 'order' as const,
         order_id: chat.order_id,
         created_at: chat.created_at,
         is_active: chat.is_active,
         last_message_at: chat.last_message_at || undefined,
+        last_message_preview: chat.last_message_preview || undefined,
       }));
     } catch (err) {
+      console.error('[chatService] getRooms error:', err);
       return [];
     }
   },
 
   getOrCreateRoom: async (orderId: string | number): Promise<ChatRoom> => {
-    const sb = await checkSupabase();
-
-    const { data: chatId, error: rpcError } = await sb.rpc('ensure_chat_exists', {
-      p_order_id: orderId,
-    });
-
-    if (!rpcError && chatId) {
-
-      return {
-        id: String(chatId),
-        name: `Order #${orderId}`,
-        type: 'order',
-        order_id: orderId,
-        created_at: new Date().toISOString(),
-        is_active: true,
-      };
+    const res = await apiClient.get<{ success: boolean; data: any }>(
+      `${API_ENDPOINTS.CHAT.ROOMS}/${orderId}`,
+    );
+    if (!res.success || !res.data) {
+      throw new Error('Failed to get or create chat room');
     }
-
-    const { data: existingChat, error: findError } = await sb
-      .from('order_chats')
-      .select('*')
-      .eq('order_id', orderId)
-      .single();
-
-    if (existingChat && !findError) {
-      const chat = existingChat as OrderChat;
-      return {
-        id: String(chat.id),
-        name: `Order #${chat.order_id}`,
-        type: 'order',
-        order_id: chat.order_id,
-        created_at: chat.created_at,
-        is_active: chat.is_active,
-        last_message_at: chat.last_message_at || undefined,
-      };
-    }
-
-    const { data: newChat, error: createError } = await sb
-      .from('order_chats')
-      .insert({
-        order_id: orderId,
-        is_active: true,
-      })
-      .select()
-      .single();
-
-    if (createError) {
-      console.error('Create chat room error:', createError);
-      throw new Error(`Failed to create chat room: ${createError.message}`);
-    }
-
-    const chat = newChat as OrderChat;
+    const chat = res.data;
     return {
       id: String(chat.id),
-      name: `Order #${chat.order_id}`,
+      name: chat.name || `Order #${orderId}`,
       type: 'order',
-      order_id: chat.order_id,
+      order_id: chat.order_id || orderId,
       created_at: chat.created_at,
-      is_active: chat.is_active,
+      is_active: chat.is_active !== false,
+      last_message_at: chat.last_message_at || undefined,
     };
   },
 
   getMessages: async (
     orderId: string | number,
     limit = 50,
-    before?: string
+    before?: string,
   ): Promise<Message[]> => {
-    const sb = await checkSupabase();
+    const params: Record<string, any> = { limit };
+    if (before) params.before = before;
 
-    let query = sb
-      .from('chat_messages')
-      .select('*')
-      .eq('order_id', orderId)
-      .or('is_deleted.eq.false,is_deleted.is.null')
-      .order('created_at', { ascending: false })
-      .limit(limit);
+    const res = await apiClient.get<{ success: boolean; data: any[] }>(
+      `${API_ENDPOINTS.CHAT.MESSAGES}/${orderId}`,
+      { params },
+    );
 
-    if (before) {
-      query = query.lt('created_at', before);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Get messages error:', error);
-      console.error('Error code:', error.code);
-      console.error('Error details:', error.details);
-
-      if (error.code === '42P01') {
-        throw new Error('chat_messages table does not exist.');
-      } else if (error.code === '42501') {
-        throw new Error('Permission denied. Check RLS policies on chat_messages table.');
-      }
-      throw error;
-    }
-
-    return ((data as RawChatMessage[]) || [])
-      .reverse()
-      .map((msg) => ({
-        id: String(msg.id),
-        room_id: String(msg.order_id),
-        chat_id: msg.chat_id,
-        order_id: msg.order_id,
-        sender_id: msg.sender_id,
-        sender_name: msg.sender_name || 'User',
-        sender_role: msg.sender_role || 'contractor',
-        content: msg.message_text || '',
-        message_type: detectMessageType(msg.attachments),
-        attachments: msg.attachments || [],
-        created_at: msg.created_at,
-        is_deleted: msg.is_deleted,
-        timeline_visible: msg.timeline_visible,
-      }));
-  },
-
-  uploadImage: async (image: ImageAttachment, orderId: string | number): Promise<UploadedAttachment> => {
-    await checkSupabase();
-    const user = useAuthStore.getState().user;
-    if (!user) throw new Error('Not authenticated');
-
-    const timestamp = Date.now();
-    const fileExt = image.name.split('.').pop() || 'jpg';
-    const fileName = `${orderId}/${user.id}/${timestamp}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${fileName}`;
-
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-
-      xhr.timeout = 60000;
-
-      xhr.onload = () => {
-
-        if (xhr.status >= 200 && xhr.status < 300) {
-          const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${fileName}`;
-          resolve({
-            url: publicUrl,
-            type: image.type,
-            name: image.name,
-            width: image.width,
-            height: image.height,
-          });
-        } else {
-          reject(new Error(`Upload failed: ${xhr.status} - ${xhr.responseText || 'Server error'}`));
-        }
-      };
-
-      xhr.onerror = () => {
-        reject(new Error('Network request failed - please check your internet connection'));
-      };
-
-      xhr.ontimeout = () => {
-        reject(new Error('Upload timeout - please try again'));
-      };
-
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-        }
-      };
-
-      xhr.open('POST', uploadUrl);
-      xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`);
-      xhr.setRequestHeader('x-upsert', 'true');
-
-      const formData = new FormData();
-
-      let fileUri = image.uri;
-
-      if (Platform.OS === 'ios' && !fileUri.startsWith('file://')) {
-        fileUri = `file://${fileUri}`;
-      }
-
-      const fileData: any = {
-        uri: fileUri,
-        type: image.type || 'image/jpeg',
-        name: fileName.split('/').pop() || `image_${timestamp}.jpg`,
-      };
-      formData.append('file', fileData);
-
-      xhr.send(formData);
-    });
-  },
-
-  uploadImages: async (images: ImageAttachment[], orderId: string | number): Promise<UploadedAttachment[]> => {
-    const uploadPromises = images.map(image => chatService.uploadImage(image, orderId));
-    return Promise.all(uploadPromises);
+    if (!res.success || !res.data) return [];
+    return res.data.map(mapRawToMessage);
   },
 
   sendMessage: async (payload: SendMessagePayload): Promise<Message> => {
-    const sb = await checkSupabase();
     const user = useAuthStore.getState().user;
     if (!user) throw new Error('Not authenticated');
-
-    const senderId = user.id;
-    if (!senderId) throw new Error('Could not get user ID');
 
     let userName = 'Unknown';
     if (user.fullName) {
@@ -323,93 +136,48 @@ export const chatService = {
     } else if (user.firstName || user.lastName) {
       userName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
     } else if (user.email) {
-
       userName = user.email.split('@')[0];
     }
 
     const userRole = getSenderRole(user);
 
-    let chatId = payload.chat_id;
-    if (!chatId || chatId === payload.order_id) {
-      const room = await chatService.getOrCreateRoom(payload.order_id);
-      chatId = parseInt(room.id, 10);
-    }
-
     const messageData = {
-      chat_id: chatId,
       order_id: payload.order_id,
-      sender_id: senderId,
+      chat_id: payload.chat_id,
+      content: payload.content || '',
       sender_name: userName,
       sender_role: userRole,
-      message_text: payload.content || '',
       attachments: payload.attachments || [],
-      is_deleted: false,
+      message_type: payload.message_type || 'text',
       timeline_visible: payload.timeline_visible !== false,
     };
 
-    const { data, error } = await sb
-      .from('chat_messages')
-      .insert(messageData)
-      .select()
-      .single();
+    const res = await apiClient.post<{ success: boolean; data: any }>(
+      API_ENDPOINTS.CHAT.SEND_MESSAGE,
+      messageData,
+    );
 
-    if (error) {
-      if (error.code === '42P01') {
-        throw new Error('chat_messages table does not exist.');
-      } else if (error.code === '42501') {
-        throw new Error('Permission denied. Check RLS policies on chat_messages table.');
-      } else if (error.code === '23503') {
-        throw new Error('Foreign key violation. Chat room may not exist.');
-      } else if (error.code === '23514') {
-        throw new Error('Message must have content or attachments.');
-      } else if (error.message?.includes('JWT')) {
-        throw new Error('Authentication error. Please try logging out and back in.');
-      }
-      throw error;
+    if (!res.success || !res.data) {
+      throw new Error('Failed to send message');
     }
 
-    const msg = data as RawChatMessage;
-    return {
-      id: String(msg.id),
-      room_id: String(msg.order_id),
-      chat_id: msg.chat_id,
-      order_id: msg.order_id,
-      sender_id: msg.sender_id,
-      sender_name: msg.sender_name,
-      sender_role: msg.sender_role,
-      content: msg.message_text || '',
-      message_type: detectMessageType(msg.attachments),
-      attachments: msg.attachments || [],
-      created_at: msg.created_at,
-      is_deleted: msg.is_deleted,
-      timeline_visible: msg.timeline_visible,
-    };
+    return mapRawToMessage(res.data);
   },
 
-  testConnection: async (): Promise<boolean> => {
-    try {
-      const response = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        },
-      });
-      return response.ok;
-    } catch (error) {
-      return false;
-    }
-  },
-
-  uploadAudio: async (audio: AudioAttachment, orderId: string | number): Promise<UploadedAttachment> => {
-    await checkSupabase();
+  uploadImage: async (image: ImageAttachment, orderId: string | number): Promise<UploadedAttachment> => {
     const user = useAuthStore.getState().user;
     if (!user) throw new Error('Not authenticated');
 
+    const backendUrl = await AsyncStorage.getItem(STORAGE_KEYS.BACKEND_URL);
+    if (!backendUrl) throw new Error('Backend URL not configured');
+
+    const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
     const timestamp = Date.now();
-    const fileExt = audio.name.split('.').pop() || 'm4a';
+    const fileExt = image.name.split('.').pop() || 'jpg';
     const fileName = `${orderId}/${user.id}/${timestamp}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${fileName}`;
+    const uploadUrl = `${backendUrl}/chat/upload`;
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -417,95 +185,141 @@ export const chatService = {
 
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${fileName}`;
-          resolve({
-            url: publicUrl,
-            type: audio.type,
-            name: audio.name,
-            duration: audio.duration,
-          });
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve({
+              url: response.data?.url || response.url || '',
+              type: image.type,
+              name: image.name,
+              width: image.width,
+              height: image.height,
+            });
+          } catch {
+            reject(new Error('Invalid upload response'));
+          }
         } else {
           reject(new Error(`Upload failed: ${xhr.status} - ${xhr.responseText || 'Server error'}`));
         }
       };
 
-      xhr.onerror = () => {
-        reject(new Error('Network request failed - please check your internet connection'));
-      };
-
-      xhr.ontimeout = () => {
-        reject(new Error('Upload timeout - please try again'));
-      };
+      xhr.onerror = () => reject(new Error('Network request failed'));
+      xhr.ontimeout = () => reject(new Error('Upload timeout'));
 
       xhr.open('POST', uploadUrl);
-      xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`);
-      xhr.setRequestHeader('x-upsert', 'true');
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
+
+      const formData = new FormData();
+      let fileUri = image.uri;
+      if (Platform.OS === 'ios' && !fileUri.startsWith('file://')) {
+        fileUri = `file://${fileUri}`;
+      }
+      formData.append('file', {
+        uri: fileUri,
+        type: image.type || 'image/jpeg',
+        name: fileName.split('/').pop() || `image_${timestamp}.jpg`,
+      } as any);
+      formData.append('order_id', String(orderId));
+
+      xhr.send(formData);
+    });
+  },
+
+  uploadImages: async (images: ImageAttachment[], orderId: string | number): Promise<UploadedAttachment[]> => {
+    return Promise.all(images.map(image => chatService.uploadImage(image, orderId)));
+  },
+
+  uploadAudio: async (audio: AudioAttachment, orderId: string | number): Promise<UploadedAttachment> => {
+    const user = useAuthStore.getState().user;
+    if (!user) throw new Error('Not authenticated');
+
+    const backendUrl = await AsyncStorage.getItem(STORAGE_KEYS.BACKEND_URL);
+    if (!backendUrl) throw new Error('Backend URL not configured');
+
+    const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    const timestamp = Date.now();
+    const fileExt = audio.name.split('.').pop() || 'm4a';
+    const fileName = `${orderId}/${user.id}/${timestamp}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+    const uploadUrl = `${backendUrl}/chat/upload`;
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.timeout = 60000;
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve({
+              url: response.data?.url || response.url || '',
+              type: audio.type,
+              name: audio.name,
+              duration: audio.duration,
+            });
+          } catch {
+            reject(new Error('Invalid upload response'));
+          }
+        } else {
+          reject(new Error(`Upload failed: ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network request failed'));
+      xhr.ontimeout = () => reject(new Error('Upload timeout'));
+
+      xhr.open('POST', uploadUrl);
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
 
       const formData = new FormData();
       let fileUri = audio.uri;
       if (Platform.OS === 'ios' && !fileUri.startsWith('file://')) {
         fileUri = `file://${fileUri}`;
       }
-
-      const fileData: any = {
+      formData.append('file', {
         uri: fileUri,
         type: audio.type || 'audio/m4a',
         name: fileName.split('/').pop() || `voice_${timestamp}.m4a`,
-      };
-      formData.append('file', fileData);
+      } as any);
+      formData.append('order_id', String(orderId));
+
       xhr.send(formData);
     });
   },
 
   sendVoiceMessage: async (
     payload: SendMessagePayload,
-    audio: AudioAttachment
+    audio: AudioAttachment,
   ): Promise<Message> => {
-    try {
-      const isConnected = await chatService.testConnection();
-      if (!isConnected) {
-        throw new Error('Cannot connect to storage server. Please check your internet connection.');
-      }
-      const uploadedAudio = await chatService.uploadAudio(audio, payload.order_id);
-      const result = await chatService.sendMessage({
-        ...payload,
-        message_type: 'audio',
-        attachments: [uploadedAudio],
-      });
-      return result;
-    } catch (error) {
-      throw error;
-    }
+    const uploadedAudio = await chatService.uploadAudio(audio, payload.order_id);
+    return chatService.sendMessage({
+      ...payload,
+      message_type: 'audio',
+      attachments: [uploadedAudio],
+    });
   },
 
   sendMessageWithImages: async (
     payload: SendMessagePayload,
-    images: ImageAttachment[]
+    images: ImageAttachment[],
   ): Promise<Message> => {
-
-    try {
-
-      const isConnected = await chatService.testConnection();
-      if (!isConnected) {
-        throw new Error('Cannot connect to storage server. Please check your internet connection.');
-      }
-      const uploadedAttachments = await chatService.uploadImages(images, payload.order_id);
-      const result = await chatService.sendMessage({
-        ...payload,
-        message_type: images.length > 0 && !payload.content ? 'image' : 'text',
-        attachments: uploadedAttachments,
-      });
-      return result;
-    } catch (error) {
-      throw error;
-    }
+    const uploadedAttachments = await chatService.uploadImages(images, payload.order_id);
+    return chatService.sendMessage({
+      ...payload,
+      message_type: images.length > 0 && !payload.content ? 'image' : 'text',
+      attachments: uploadedAttachments,
+    });
   },
 
   markAsRead: async (orderId: string | number): Promise<boolean> => {
     try {
       const res = await apiClient.post<{ success: boolean }>(
         API_ENDPOINTS.CHAT.MARK_READ,
-        { order_id: orderId }
+        { order_id: orderId },
       );
       return res.success;
     } catch (error) {
@@ -515,140 +329,25 @@ export const chatService = {
   },
 
   getUnreadCount: async (orderId: string | number): Promise<number> => {
-    const sb = await checkSupabase();
-    const user = useAuthStore.getState().user;
-
-    if (!user?.id) {
+    try {
+      const res = await apiClient.get<{ success: boolean; data: { counts: Record<string, number> } }>(
+        API_ENDPOINTS.CHAT.UNREAD_COUNTS,
+        { params: { order_ids: String(orderId) } },
+      );
+      if (res.success && res.data?.counts) {
+        return res.data.counts[String(orderId)] || 0;
+      }
+      return 0;
+    } catch (error) {
+      console.error('[chatService] getUnreadCount error:', error);
       return 0;
     }
-
-    const userId = user.id;
-
-    const { data: readStatus } = await sb
-      .from('chat_read_status')
-      .select('last_read_at')
-      .eq('user_id', userId)
-      .eq('order_id', orderId)
-      .single();
-
-    const lastReadAt = readStatus?.last_read_at;
-
-    let query = sb
-      .from('chat_messages')
-      .select('id', { count: 'exact' })
-      .eq('order_id', orderId)
-      .eq('is_deleted', false)
-      .neq('sender_id', userId);
-
-    if (lastReadAt) {
-      query = query.gt('created_at', lastReadAt);
-    }
-
-    const { count, error } = await query;
-
-    if (error) {
-      console.error('Get unread count error:', error);
-      return 0;
-    }
-
-    return count || 0;
   },
 
   deleteMessage: async (messageId: string): Promise<void> => {
-    const sb = await checkSupabase();
-    const { error } = await sb
-      .from('chat_messages')
-      .update({ is_deleted: true })
-      .eq('id', parseInt(messageId, 10));
-
-    if (error) {
-      console.error('Delete message error:', error);
-      throw error;
-    }
+    await apiClient.delete(`${API_ENDPOINTS.CHAT.MESSAGES}/${messageId}`);
   },
 
-  subscribeToMessages: (
-    orderId: string | number,
-    onMessage: (message: Message) => void
-  ) => {
-    if (!isSupabaseConfigured() || !supabaseAdmin) return null;
-
-    const channel = supabaseAdmin
-      .channel(`order-chat:${orderId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `order_id=eq.${orderId}`,
-        },
-        (payload) => {
-          const msg = payload.new as RawChatMessage;
-          onMessage({
-            id: String(msg.id),
-            room_id: String(msg.order_id),
-            chat_id: msg.chat_id,
-            order_id: msg.order_id,
-            sender_id: msg.sender_id,
-            sender_name: msg.sender_name || 'User',
-            sender_role: msg.sender_role || 'contractor',
-            content: msg.message_text || '',
-            message_type: detectMessageType(msg.attachments),
-            attachments: msg.attachments || [],
-            created_at: msg.created_at,
-            is_deleted: msg.is_deleted,
-            timeline_visible: msg.timeline_visible,
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `order_id=eq.${orderId}`,
-        },
-        (payload) => {
-          const msg = payload.new as RawChatMessage;
-          onMessage({
-            id: String(msg.id),
-            room_id: String(msg.order_id),
-            chat_id: msg.chat_id,
-            order_id: msg.order_id,
-            sender_id: msg.sender_id,
-            sender_name: msg.sender_name || 'User',
-            sender_role: msg.sender_role || 'contractor',
-            content: msg.message_text || '',
-            message_type: detectMessageType(msg.attachments),
-            attachments: msg.attachments || [],
-            created_at: msg.created_at,
-            is_deleted: msg.is_deleted,
-            timeline_visible: msg.timeline_visible,
-          });
-        }
-      )
-      .subscribe((status, err) => {
-        if (err) {
-          console.error(`Chat subscription error:`, err);
-        }
-      });
-
-    return channel;
-  },
-
-  unsubscribeFromMessages: async (
-    channel: ReturnType<typeof supabaseAdmin.channel>
-  ) => {
-    if (channel && supabaseAdmin) {
-      await supabaseAdmin.removeChannel(channel);
-    }
-  },
-
-  /**
-   * Get unread message counts per order from backend API.
-   */
   getUnreadCounts: async (orderIds?: string[]): Promise<{ counts: Record<string, number>; total_unread: number }> => {
     try {
       const params: Record<string, string> = {};
@@ -657,7 +356,7 @@ export const chatService = {
       }
       const res = await apiClient.get<{ success: boolean; data: { counts: Record<string, number>; total_unread: number } }>(
         API_ENDPOINTS.CHAT.UNREAD_COUNTS,
-        { params }
+        { params },
       );
       return res.success ? res.data : { counts: {}, total_unread: 0 };
     } catch (error) {
@@ -665,7 +364,6 @@ export const chatService = {
       return { counts: {}, total_unread: 0 };
     }
   },
-
 };
 
 export default chatService;
