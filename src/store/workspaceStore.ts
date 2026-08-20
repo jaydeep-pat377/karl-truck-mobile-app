@@ -8,6 +8,7 @@ import { authService } from '../api/services/authService';
 import { setDynamicBaseUrl, normalizeBackendUrl } from '../api/axiosInstance';
 import { notificationService } from '../services/notificationService';
 import { connectSocket } from '../services/socketClient';
+import { queryClient } from '../lib/queryClient';
 import { FORCE_BACKEND_URL } from '@env';
 
 const PALETTE = [
@@ -193,6 +194,13 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       if (savedBackendUrl) {
         connectSocket(savedBackendUrl);
       }
+
+      // Clear all cached data from previous tenant
+      queryClient.clear();
+      const { useNotificationStore } = require('./notificationStore');
+      const { useChatStore } = require('./chatStore');
+      useNotificationStore.getState().clearAll();
+      useChatStore.getState().clearChat();
 
       // Step 4: Update auth store with new credentials
       const { user, accessToken, refreshToken, timezone, company_timezone } = exchangeResponse.data;

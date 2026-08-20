@@ -1,7 +1,7 @@
 // Chat messages reach the device through two independent paths:
 //   1. FCM push (notificationService.onMessage → displayChatNotification)
 //   2. notification_queue realtime INSERT (useRealtimeSubscription /
-//      useSupabaseNotifications)
+//      useNotificationQueue)
 // Both paths add the message to the in-app bell list AND raise an OS
 // notification. Without dedup, the user sees the same chat twice in both
 // places (banner + list entry). The previous per-path "is this a chat row?"

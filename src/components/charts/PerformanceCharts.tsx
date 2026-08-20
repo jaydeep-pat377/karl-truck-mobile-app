@@ -41,10 +41,10 @@ export interface PerformanceChartsProps {
   useHighchartsWebView?: boolean;
 
   /**
-   * Order identifiers used to fetch ODP chart data DIRECTLY from Supabase
-   * (bypassing the scraper API). When all three are provided, the ODP
-   * chart reads the same rows the web reads, guaranteeing value parity.
-   * See `ODPChartWebView` and `src/services/odpSupabaseFetcher.ts`.
+   * Order identifiers used to fetch ODP chart data directly from the
+   * backend API. When all three are provided, the ODP chart reads the
+   * same rows the web reads, guaranteeing value parity.
+   * See `ODPChartWebView` and `src/services/odpFetcher.ts`.
    */
   orderCode?: string;
   orderDate?: string;

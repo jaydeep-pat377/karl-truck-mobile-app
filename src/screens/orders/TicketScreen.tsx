@@ -1375,7 +1375,7 @@ export const TicketScreen: React.FC = () => {
   const { orderDetails } = useOrderDetails({ order_code: orderCode, order_date: orderDate });
   const weatherData = orderDetails?.weather_data || null;
 
-  // Supabase Realtime: auto-refetch tickets when changes detected
+  // Realtime: auto-refetch tickets when changes detected
   useRealtimeTickets({
     orderCode,
     enabled: !!orderCode,

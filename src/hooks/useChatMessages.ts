@@ -212,18 +212,18 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     mutationFn: async ({ content, images, audio }: { content: string; images?: ImageAttachment[]; audio?: AudioAttachment }) => {
       if (audio) {
         return chatService.sendVoiceMessage(
-          { chat_id: chatId || orderId, order_id: orderId, content: content || '' },
+          { chat_id: chatId || undefined, order_id: orderId, content: content || '' },
           audio,
         );
       }
       if (images && images.length > 0) {
         return chatService.sendMessageWithImages(
-          { chat_id: chatId || orderId, order_id: orderId, content },
+          { chat_id: chatId || undefined, order_id: orderId, content },
           images,
         );
       }
       return chatService.sendMessage({
-        chat_id: chatId || orderId,
+        chat_id: chatId || undefined,
         order_id: orderId,
         content,
       });
@@ -252,7 +252,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
       const optimisticMessage: Message = {
         id: `temp-${Date.now()}`,
         room_id: roomId,
-        chat_id: chatId || orderId,
+        chat_id: chatId || undefined,
         order_id: orderId,
         sender_id: user?.id || '',
         sender_name: senderName,

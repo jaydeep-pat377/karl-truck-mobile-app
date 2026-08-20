@@ -10,7 +10,7 @@ import { spacing, ms } from '../../utils/responsive';
 import { TAB_BAR_HEIGHT } from '../../components/navigation';
 import { useAuthStore } from '../../store/authStore';
 import { MainTabParamList } from '../../navigation/types';
-import { useSupabaseNotifications, Notification } from '../../hooks/useSupabaseNotifications';
+import { useNotificationQueue, Notification } from '../../hooks/useNotificationQueue';
 import { navigateFromNotification } from '../../services/navigationService';
 import { useTimezoneStore } from '../../store/timezoneStore';
 import { formatDateTimeInTz } from '../../utils/timezone';
@@ -88,7 +88,7 @@ export const NotificationScreen: React.FC = () => {
     loadMore,
     markAsRead,
     markAllAsRead,
-  } = useSupabaseNotifications({
+  } = useNotificationQueue({
     userId: user?.id || null,
     tenantId,
     enabled: !!user?.id,

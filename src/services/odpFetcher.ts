@@ -1,5 +1,5 @@
 /**
- * ODP data fetcher - uses backend API instead of direct Supabase queries.
+ * ODP data fetcher - uses backend API.
  */
 
 import apiClient from '../api/apiClient';
@@ -15,7 +15,7 @@ import type { ODPRawForReducer } from '../types/ticket';
  *
  * @returns An `ODPRawForReducer` payload or null on failure.
  */
-export async function fetchOdpRawFromSupabase(
+export async function fetchOdpRaw(
   orderCode: string,
   orderDate: string,
   orderId: number | string,
@@ -25,9 +25,8 @@ export async function fetchOdpRawFromSupabase(
       API_ENDPOINTS.DAILY_INTELLIGENCE.ODP,
       {
         params: {
-          order_code: orderCode,
+          order_ids: String(orderId),
           order_date: orderDate,
-          order_id: orderId,
         },
       },
     );

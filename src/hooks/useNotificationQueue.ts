@@ -6,6 +6,7 @@ import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { getSocket } from '../services/socketClient';
 import { buildNotifKey, claimNotification } from '../utils/notificationDedup';
 import { notificationService } from '../api/services/notificationService';
+import { useNotificationStore } from '../store/notificationStore';
 
 const CHANNEL_ID = 'truckast_heads_up';
 const PAGE_SIZE = 20;
@@ -100,7 +101,7 @@ export function mapRowToNotificationItem(row: Notification): NotificationItem {
   };
 }
 
-interface UseSupabaseNotificationsProps {
+interface UseNotificationQueueProps {
   userId: string | null;
   tenantId: number | null;
   enabled?: boolean;
@@ -113,7 +114,7 @@ interface PaginationState {
   total: number;
 }
 
-interface UseSupabaseNotificationsReturn {
+interface UseNotificationQueueReturn {
   notifications: Notification[];
   notificationItems: NotificationItem[];
   unreadCount: number;
@@ -129,12 +130,12 @@ interface UseSupabaseNotificationsReturn {
   reconnect: () => void;
 }
 
-export function useSupabaseNotifications({
+export function useNotificationQueue({
   userId,
   tenantId,
   enabled = true,
   onNewNotification,
-}: UseSupabaseNotificationsProps): UseSupabaseNotificationsReturn {
+}: UseNotificationQueueProps): UseNotificationQueueReturn {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationItems, setNotificationItems] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -225,7 +226,7 @@ export function useSupabaseNotifications({
         },
       });
     } catch (err) {
-      console.error('[useSupabaseNotifications] Failed to show local notification:', err);
+      console.error('[useNotificationQueue] Failed to show local notification:', err);
     }
   }, []);
 
@@ -297,7 +298,7 @@ export function useSupabaseNotifications({
         });
       }
     } catch (err: any) {
-      if (__DEV__) console.error('[useSupabaseNotifications] Error loading more:', err);
+      if (__DEV__) console.error('[useNotificationQueue] Error loading more:', err);
     } finally {
       setIsLoadingMore(false);
     }
@@ -434,7 +435,7 @@ export function useSupabaseNotifications({
     try {
       await notificationService.markAsRead(notification.queue_uuid);
     } catch (err) {
-      console.error('[useSupabaseNotifications] Failed to mark as read:', err);
+      console.error('[useNotificationQueue] Failed to mark as read:', err);
       fetchNotifications();
     }
   }, [notifications, fetchNotifications]);
@@ -450,7 +451,7 @@ export function useSupabaseNotifications({
     try {
       await notificationService.markAllAsRead();
     } catch (err) {
-      console.error('[useSupabaseNotifications] Failed to mark all as read:', err);
+      console.error('[useNotificationQueue] Failed to mark all as read:', err);
       fetchNotifications();
     }
   }, [userId, notifications, fetchNotifications]);
@@ -458,6 +459,25 @@ export function useSupabaseNotifications({
   const unreadCount = notifications.filter(
     (n) => n.status !== 'read' && n.status !== 'delivered',
   ).length;
+
+  // Sync unread count to the global notification store (drives badge count)
+  useEffect(() => {
+    const store = useNotificationStore.getState();
+    if (store.unreadCount !== unreadCount) {
+      store.setNotifications(
+        notifications.map((n) => ({
+          id: String(n.id),
+          type: 'system' as const,
+          title: n.subject || '',
+          body: n.body || '',
+          priority: 'medium' as const,
+          isRead: n.status === 'read' || n.status === 'delivered',
+          data: { queue_uuid: n.queue_uuid, event_code: n.event_code },
+          createdAt: n.created_at,
+        })),
+      );
+    }
+  }, [unreadCount, notifications]);
 
   const hasMore = pagination ? pagination.page < pagination.totalPages : false;
 
@@ -478,4 +498,4 @@ export function useSupabaseNotifications({
   };
 }
 
-export default useSupabaseNotifications;
+export default useNotificationQueue;

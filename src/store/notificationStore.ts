@@ -56,6 +56,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   },
 
   markAsRead: (id: string) => {
+    const notification = get().notifications.find(n => n.id === id);
     const updated = get().notifications.map(n =>
       n.id === id ? { ...n, isRead: true } : n,
     );
@@ -63,6 +64,11 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
       notifications: updated,
       unreadCount: updated.filter(n => !n.isRead).length,
     });
+    // Sync to backend
+    const queueUuid = (notification?.data as any)?.queue_uuid;
+    if (queueUuid) {
+      notificationService.markAsRead(queueUuid).catch(() => {});
+    }
   },
 
   markAllAsRead: () => {
@@ -71,6 +77,8 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
       notifications: updated,
       unreadCount: 0,
     });
+    // Sync to backend
+    notificationService.markAllAsRead().catch(() => {});
   },
 
   clearAll: () => {

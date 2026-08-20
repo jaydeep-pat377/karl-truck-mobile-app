@@ -126,10 +126,9 @@ export function NotificationProvider({
 
 
   const refetch = useCallback(async () => {
-
-
-
-
+    if (userId && tenantId) {
+      await useNotificationStore.getState().fetchNotifications(userId, tenantId);
+    }
   }, [userId, tenantId]);
 
 

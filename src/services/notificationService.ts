@@ -2,6 +2,7 @@ import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messag
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 import { Platform } from 'react-native';
 import { useNotificationStore } from '../store/notificationStore';
+import { useAuthStore } from '../store/authStore';
 import { AppNotification, NotificationType } from '../types/notification';
 import { navigateFromNotification, navigateToTab } from './navigationService';
 import { ensureCorrectTenant } from './deepLinkService';
@@ -212,9 +213,9 @@ class NotificationService {
       async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
         const data = remoteMessage.data || {};
 
-        // Same content can arrive on this device via the Supabase
+        // Same content can arrive on this device via the
         // notification_queue realtime path (see useRealtimeSubscription /
-        // useSupabaseNotifications). Whichever path observes the (title,
+        // useNotificationQueue). Whichever path observes the (title,
         // body, entity) tuple first owns the bell-list entry; the other
         // path drops the event. Display dedup happens separately inside
         // displayChatNotification / displayNotification.
@@ -254,6 +255,17 @@ class NotificationService {
           eventCodeStr.includes('MESSAGE');
 
         if (isChatMessage) {
+          // Don't show notification for own messages
+          const currentUserId = useAuthStore.getState().user?.id;
+          if (data.sender_id && currentUserId && data.sender_id === currentUserId) {
+            return;
+          }
+          // Increment chat unread count so badge shows immediately on order list
+          const chatOrderId = data.order_id as string | undefined;
+          if (chatOrderId) {
+            const { useChatStore } = require('../store/chatStore');
+            useChatStore.getState().incrementUnreadCount(String(chatOrderId));
+          }
           await this.displayChatNotification(
             fcmTitle || 'New message',
             fcmBody,

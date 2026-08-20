@@ -26,6 +26,9 @@ export const useGlobalChatListener = () => {
     const socket = getSocket();
     if (!socket) return;
 
+    // Join the orders room to receive chat:message broadcasts
+    socket.emit('join:orders');
+
     const handleChatMessage = (payload: any) => {
       try {
         const msg = payload.new || payload;

@@ -39,7 +39,7 @@ export const API_ENDPOINTS = {
     LIST: '/trucks',
   },
   NOTIFICATIONS: {
-    QUEUE: '/notification-queue',
+    QUEUE: '/notifications/history',
     HISTORY: '/notifications/history',
     RECENT: '/notifications/recent',
     MARK_READ: '/notifications/read',

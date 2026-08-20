@@ -144,6 +144,7 @@ export const chatService = {
     const messageData = {
       order_id: payload.order_id,
       chat_id: payload.chat_id,
+      sender_id: user.id,
       content: payload.content || '',
       sender_name: userName,
       sender_role: userRole,

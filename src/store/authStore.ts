@@ -9,7 +9,9 @@ import { normaliseUserRole } from '../utils/permissions';
 import { setDynamicBaseUrl, resetBaseUrl } from '../api/axiosInstance';
 import { useWorkspaceStore } from './workspaceStore';
 import { useNotificationStore } from './notificationStore';
+import { useChatStore } from './chatStore';
 import { disconnectSocket } from '../services/socketClient';
+import { queryClient } from '../lib/queryClient';
 
 interface AuthState {
   user: User | null;
@@ -108,8 +110,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       // Reset workspace store so stale tenant doesn't persist across logins
       useWorkspaceStore.getState().reset();
 
-      // Clear cached FCM token so next login fetches a fresh one
-      useNotificationStore.getState().setFcmToken(null);
+      // Clear all cached data so next login starts fresh
+      useNotificationStore.getState().clearAll();
+      useChatStore.getState().clearChat();
+      queryClient.clear();
 
       set({
         user: null,

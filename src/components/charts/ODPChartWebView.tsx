@@ -15,8 +15,8 @@
  *
  * Data pipeline:
  *   1. If `orderCode` + `orderDate` + `orderId` props are provided, we
- *      fetch the raw tickets + schedules DIRECTLY from Supabase
- *      (`odpSupabaseFetcher`) — same queries the web runs, guaranteed
+ *      fetch the raw tickets + schedules directly from the backend API
+ *      (`odpFetcher`) — same queries the web runs, guaranteed
  *      byte-identical input.
  *   2. Otherwise we fall back to `data.raw_for_reducer` from the backend
  *      scraper API.
@@ -59,7 +59,7 @@ import Svg, { Text as SvgText, Line as SvgLine } from 'react-native-svg';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { moderateScale as ms } from 'react-native-size-matters';
 import type { ODPGraphData, ODPRawForReducer } from '../../types/ticket';
-import { fetchOdpRawFromSupabase } from '../../services/odpSupabaseFetcher';
+import { fetchOdpRaw } from '../../services/odpFetcher';
 import {
   runWebReducer,
   computeWebYMax,
@@ -113,13 +113,13 @@ type ViewMode = 'cy' | 'loads';
 
 // ---------------------------------------------------------------------------
 // computeXAxisDomainFromRaw — derives the xAxisDomain directly from the
-// Supabase-fetched raw data, mirroring the web's pourSpeedXAxisDomain
+// directly-fetched raw data, mirroring the web's pourSpeedXAxisDomain
 // computation (performance-charts.tsx:2938-2983).
 //
 // Why: The parent's xAxisDomain prop is computed from the backend API's
 // pour_speed data, which may be stale for in-progress orders (cached up
 // to 2 min via React Query staleTime). Meanwhile the ODP raw data is
-// fetched fresh from Supabase. If new trucks arrived/poured after the
+// fetched fresh from the backend. If new trucks arrived/poured after the
 // API call, the API-derived domain won't extend far enough and the
 // reducer will silently drop the latest buckets. Computing the domain
 // from the same raw data the reducer consumes eliminates this mismatch.
@@ -211,11 +211,11 @@ export interface ODPChartWebViewProps {
   isDark: boolean;
   /**
    * When `orderCode` + `orderDate` + `orderId` are provided, the chart
-   * fetches its raw input (tickets + product schedules) DIRECTLY from
-   * Supabase instead of using the scraper API's `raw_for_reducer`
+   * fetches its raw input (tickets + product schedules) directly from
+   * the backend API instead of using the scraper API's `raw_for_reducer`
    * payload. This guarantees the mobile sees byte-identical data to
-   * what the web reads from Supabase, bypassing any possible backend
-   * SQL drift. See `src/services/odpSupabaseFetcher.ts`.
+   * what the web reads from the database, bypassing any possible backend
+   * SQL drift. See `src/services/odpFetcher.ts`.
    *
    * If any of these props are missing the chart falls back to
    * `data.raw_for_reducer` (backend-relayed) — same as before.
@@ -293,76 +293,76 @@ export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
 }) => {
   const themeColors = isDark ? colors.dark : colors.light;
 
-  // ----- Direct Supabase fetch (preferred when order identifiers are
+  // ----- Direct backend fetch (preferred when order identifiers are
   //       passed). Guarantees byte-identical input to the web reducer.
-  const [supabaseRaw, setSupabaseRaw] = useState<ODPRawForReducer | null>(null);
-  const [supabaseFetched, setSupabaseFetched] = useState<boolean>(false);
+  const [directRaw, setDirectRaw] = useState<ODPRawForReducer | null>(null);
+  const [directFetched, setDirectFetched] = useState<boolean>(false);
   const canUseDirectFetch = !!(orderCode && orderDate && orderId);
 
-  // Re-fetch from Supabase when the parent's API data refreshes (e.g.
-  // user pulls to refresh). Without this, the Supabase data is fetched
+  // Re-fetch from the backend when the parent's API data refreshes (e.g.
+  // user pulls to refresh). Without this, the data is fetched
   // once and never updated — for in-progress orders, this causes the
   // chart to show stale values while the web (with realtime subscriptions)
   // shows the latest data.
   const prevDataRef = useRef(data);
   const [fetchKey, setFetchKey] = useState(0);
   useEffect(() => {
-    if (data && data !== prevDataRef.current && supabaseFetched) {
+    if (data && data !== prevDataRef.current && directFetched) {
       prevDataRef.current = data;
       setFetchKey((k) => k + 1);
     }
-  }, [data, supabaseFetched]);
+  }, [data, directFetched]);
 
   useEffect(() => {
     if (!canUseDirectFetch) {
-      setSupabaseRaw(null);
-      setSupabaseFetched(false);
+      setDirectRaw(null);
+      setDirectFetched(false);
       return;
     }
     let cancelled = false;
-    setSupabaseFetched(false);
-    fetchOdpRawFromSupabase(orderCode!, orderDate!, orderId!)
+    setDirectFetched(false);
+    fetchOdpRaw(orderCode!, orderDate!, orderId!)
       .then((raw) => {
         if (cancelled) return;
-        setSupabaseRaw(raw);
-        setSupabaseFetched(true);
+        setDirectRaw(raw);
+        setDirectFetched(true);
       })
       .catch((err) => {
         if (cancelled) return;
         // eslint-disable-next-line no-console
         console.warn(
-          '[ODPChartWebView] Direct Supabase fetch failed, falling back to backend raw_for_reducer:',
+          '[ODPChartWebView] Direct fetch failed, falling back to backend raw_for_reducer:',
           err instanceof Error ? err.message : String(err),
         );
-        setSupabaseRaw(null);
-        setSupabaseFetched(true);
+        setDirectRaw(null);
+        setDirectFetched(true);
       });
     return () => {
       cancelled = true;
     };
     // fetchKey changes when the parent API data refreshes (pull-to-refresh),
-    // triggering a re-fetch from Supabase so the chart shows fresh data.
+    // triggering a re-fetch so the chart shows fresh data.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canUseDirectFetch, orderCode, orderDate, orderId, fetchKey]);
 
-  // ----- Effective raw data: prefer Supabase, fall back to backend. -----
+  // ----- Effective raw data: prefer direct fetch, fall back to backend. -----
   const effectiveRaw: ODPRawForReducer | null = useMemo(() => {
-    if (canUseDirectFetch && supabaseFetched) {
-      return supabaseRaw ?? data?.raw_for_reducer ?? null;
+    if (canUseDirectFetch && directFetched) {
+      return directRaw ?? data?.raw_for_reducer ?? null;
     }
     return data?.raw_for_reducer ?? null;
-  }, [canUseDirectFetch, supabaseFetched, supabaseRaw, data?.raw_for_reducer]);
+  }, [canUseDirectFetch, directFetched, directRaw, data?.raw_for_reducer]);
 
-  // ----- Effective xAxisDomain: when we have fresh Supabase data,
+  // ----- Effective xAxisDomain: when we have fresh directly-fetched data,
   //       compute domain from it and merge with the parent's API-derived
   //       domain, taking the WIDER of the two. This ensures in-progress
-  //       orders always show the latest buckets (Supabase may have newer
+  //       orders always show the latest buckets (direct fetch may have newer
   //       tickets than the API's pour_speed snapshot). -----
   const effectiveXAxisDomain = useMemo<
     [number, number] | undefined
   >(() => {
-    if (canUseDirectFetch && supabaseFetched && supabaseRaw) {
-      const selfDomain = computeXAxisDomainFromRaw(supabaseRaw);
+    if (canUseDirectFetch && directFetched && directRaw) {
+      const selfDomain = computeXAxisDomainFromRaw(directRaw);
       if (selfDomain && xAxisDomain) {
         // Take the wider of the two domains so no bucket is dropped
         return [
@@ -373,7 +373,7 @@ export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
       return selfDomain ?? xAxisDomain;
     }
     return xAxisDomain;
-  }, [canUseDirectFetch, supabaseFetched, supabaseRaw, xAxisDomain]);
+  }, [canUseDirectFetch, directFetched, directRaw, xAxisDomain]);
 
   // ----- Run the reducer on RN side (byte-for-byte web port). -----
   // This produces `WebReducerBucket[]` with snake_case field names.
@@ -482,7 +482,7 @@ export const ODPChartWebView: React.FC<ODPChartWebViewProps> = ({
   // ----- Info-pill values (metadata from the first mix schedule).
   // These mirror what the web shows in the chart-card header. Values come
   // from the backend payload so we don't need to introspect the raw
-  // Supabase schedule.
+  // raw schedule data.
   const spacingMin = data?.truck_space ?? 0;
   const rate = data?.schedule_rate ?? 0;
   const scheduledQty = data?.schedule_qty ?? 0;

@@ -100,7 +100,7 @@ function dispatchWhenReady(
 }
 
 export function navigateFromNotification(data: Record<string, string | unknown>): void {
-  // Normalize field names — handle both snake_case (FCM) and camelCase (Supabase/notifee)
+  // Normalize field names — handle both snake_case (FCM) and camelCase (notifee)
   const eventCode = ((data.event_code || data.eventCode) as string)?.toUpperCase() || '';
   const orderId = (data.order_id || data.orderId || data.entity_id || data.entityId) as string;
   const orderCode = (data.order_code || data.orderCode) as string;

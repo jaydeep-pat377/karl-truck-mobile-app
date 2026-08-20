@@ -149,7 +149,12 @@ export const notificationService = {
   },
 
   markAllAsRead: async (): Promise<void> => {
-    await apiClient.put(API_ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ);
+    const user = useAuthStore.getState().user;
+    const tenantId = user?.metadata?.tenant?.tenant_id;
+    await apiClient.put(API_ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ, {
+      user_id: user?.id,
+      tenant_id: tenantId,
+    });
   },
 };
 

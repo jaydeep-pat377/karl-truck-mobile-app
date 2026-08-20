@@ -5,7 +5,7 @@
  * the ported AI engine. Auth reuses the app's existing JWT (attached by the
  * axios interceptor for thread CRUD, and read from storage for the streaming
  * XHR). This is why history/persistence "just work" — the backend resolves the
- * Supabase user id from the same token the rest of the app uses.
+ * User id from the same token the rest of the app uses.
  *
  * Streaming uses XMLHttpRequest (React Native's fetch can't read a response
  * body incrementally). We poll `responseText` on each `onprogress` tick and

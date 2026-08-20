@@ -2614,7 +2614,7 @@ export const OrderDetailsScreen: React.FC = () => {
               isDark={isDark}
               useHighchartsWebView={true}
               // Forward order identifiers so ODPChartWebView can fetch raw
-              // ticket + schedule rows DIRECTLY from Supabase, guaranteeing
+              // ticket + schedule rows from the backend API, guaranteeing
               // byte-identical input to the web's HourlyODPChart reducer.
               orderCode={orderCode}
               orderDate={orderDate}

@@ -31,7 +31,7 @@ const getTodayDateCDT = (): string => {
   return `${year}-${month}-${day}`;
 };
 
-const POLL_INTERVAL = 60000; // Poll every 60s instead of Supabase realtime
+const POLL_INTERVAL = 60000; // Poll every 60s
 
 export function useRealtimeDailyIntelligence({
   reportDate,
@@ -89,7 +89,7 @@ export function useRealtimeDailyIntelligence({
     fetchDailyIntelligence(true);
   }, [fetchDailyIntelligence]);
 
-  // Polling instead of Supabase realtime
+  // Periodic polling for updates
   useEffect(() => {
     if (!enabled) return;
 

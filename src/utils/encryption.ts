@@ -5,17 +5,6 @@ import CryptoJS from 'crypto-js';
 import { Buffer } from 'buffer';
 import { ENCRYPTION_KEY } from '@env';
 
-export interface EncryptedSupabaseConfig {
-  SUPABASE_URL: string | null;
-  SUPABASE_ANON_KEY: string | null;
-  SUPABASE_SERVICE_ROLE_KEY: string | null;
-}
-
-export interface DecryptedSupabaseConfig {
-  SUPABASE_URL: string | null;
-  SUPABASE_ANON_KEY: string | null;
-  SUPABASE_SERVICE_ROLE_KEY: string | null;
-}
 
 let cachedKey: Uint8Array | null = null;
 let cachedAdminKey: Uint8Array | null = null;
@@ -51,7 +40,7 @@ const ENCRYPTED_FORMAT = /^[0-9a-f]+:[0-9a-f]+:[0-9a-f]+$/i;
 /**
  * AES-256-GCM encrypt a string. Output matches the backend's
  * `iv(hex):authTag(hex):ciphertext(hex)` format. Used to encrypt sensitive
- * values (Supabase URL / keys) before persisting to AsyncStorage so they're
+ * values before persisting to AsyncStorage so they're
  * not at rest in plaintext on the device.
  *
  * Note: ENCRYPTION_KEY lives in the bundle, so this is defense-in-depth, not
@@ -125,15 +114,3 @@ export const decryptValue = (encrypted: string | null | undefined): string | nul
   }
 };
 
-export const decryptSupabaseConfig = (
-  config: EncryptedSupabaseConfig | null | undefined,
-): DecryptedSupabaseConfig => {
-  if (!config) {
-    return { SUPABASE_URL: null, SUPABASE_ANON_KEY: null, SUPABASE_SERVICE_ROLE_KEY: null };
-  }
-  return {
-    SUPABASE_URL: decryptValue(config.SUPABASE_URL),
-    SUPABASE_ANON_KEY: decryptValue(config.SUPABASE_ANON_KEY),
-    SUPABASE_SERVICE_ROLE_KEY: decryptValue(config.SUPABASE_SERVICE_ROLE_KEY),
-  };
-};

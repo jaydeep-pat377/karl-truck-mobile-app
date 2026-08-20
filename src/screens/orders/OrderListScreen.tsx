@@ -1198,39 +1198,57 @@ export const OrderListScreen: React.FC = () => {
     return map;
   }, [apiOrders]);
 
-  // Fetch persisted unread counts from API when orders load
-  const [apiUnreadCounts, setApiUnreadCounts] = useState<Record<string, number>>({});
-  const fetchUnreadCounts = useCallback(async () => {
+  // Chat unread counts — fetched from API on load and on every screen focus.
+  // The store's realtime counts (from Socket.io) are additive on top.
+  const [chatCounts, setChatCounts] = useState<Record<string, number>>({});
+
+  const fetchChatCounts = useCallback(async () => {
     if (apiOrders.length === 0) return;
-    const orderIds = apiOrders.map(o => o.order_id);
-    const result = await chatService.getUnreadCounts(orderIds);
-    if (result.counts) {
-      const mapped: Record<string, number> = {};
-      Object.entries(result.counts).forEach(([orderId, count]) => {
-        mapped[String(orderId)] = count;
-      });
-      setApiUnreadCounts(mapped);
+    try {
+      const orderIds = apiOrders.map(o => o.order_id);
+      const result = await chatService.getUnreadCounts(orderIds);
+      if (result.counts) {
+        const mapped: Record<string, number> = {};
+        Object.entries(result.counts).forEach(([orderId, count]) => {
+          mapped[String(orderId)] = count as number;
+        });
+        setChatCounts(mapped);
+        // Clear store's realtime counts — API is now the source of truth.
+        // This prevents double-counting (FCM increment + API count).
+        const store = useChatStore.getState();
+        orderIds.forEach(id => {
+          if (store.unreadCounts[id] !== undefined) {
+            store.markRoomAsRead(id);
+          }
+        });
+      }
+    } catch (e) {
+      // Keep previous counts on error
     }
   }, [apiOrders]);
 
+  // Fetch on initial load and whenever orders change
   useEffect(() => {
-    fetchUnreadCounts();
-  }, [fetchUnreadCounts]);
+    fetchChatCounts();
+  }, [fetchChatCounts]);
 
-  // Merge API unread counts with real-time counts from store
+  // Re-fetch every time screen comes into focus (returning from chat, other tabs)
+  useFocusEffect(
+    useCallback(() => {
+      fetchChatCounts();
+    }, [fetchChatCounts])
+  );
+
+  // Final counts: API base + any realtime increments from Socket.io
   const mergedUnreadCounts = useMemo(() => {
-    const merged: Record<string, number> = { ...apiUnreadCounts };
+    const merged: Record<string, number> = { ...chatCounts };
     Object.entries(unreadCounts).forEach(([orderId, count]) => {
-      // If store has been explicitly marked as read (0), use 0
-      // Otherwise add real-time count on top of API count
-      if (count === 0 && unreadCounts.hasOwnProperty(orderId)) {
-        merged[orderId] = 0;
-      } else {
+      if (count > 0) {
         merged[orderId] = (merged[orderId] || 0) + count;
       }
     });
     return merged;
-  }, [apiUnreadCounts, unreadCounts]);
+  }, [chatCounts, unreadCounts]);
 
   // Watch for new chat toast from store
   const lastToastTimestampRef = useRef(0);
@@ -1250,7 +1268,7 @@ export const OrderListScreen: React.FC = () => {
 
   const handleChatToastPress = useCallback(async (toast: ChatToastData) => {
     markRoomAsRead(String(toast.orderId));
-    setApiUnreadCounts(prev => ({ ...prev, [String(toast.orderId)]: 0 }));
+    setChatCounts(prev => ({ ...prev, [String(toast.orderId)]: 0 }));
     chatService.markAsRead(toast.orderId);
     const orderId = toast.orderId;
     try {
@@ -1426,11 +1444,11 @@ export const OrderListScreen: React.FC = () => {
     try {
       await fetchAppPermissions();
       await refetch();
-      fetchUnreadCounts();
+      fetchChatCounts();
     } finally {
       setIsManualRefreshing(false);
     }
-  }, [refetch, fetchAppPermissions, fetchUnreadCounts]);
+  }, [refetch, fetchAppPermissions, fetchChatCounts]);
 
   const handleLoadMore = useCallback(() => {
 
@@ -1658,7 +1676,7 @@ export const OrderListScreen: React.FC = () => {
   const handleChat = useCallback(async (order: Order) => {
     setChatLoadingOrderId(order.id);
     markRoomAsRead(order.id);
-    setApiUnreadCounts(prev => ({ ...prev, [order.id]: 0 }));
+    setChatCounts(prev => ({ ...prev, [order.id]: 0 }));
     // order.id is the order's UUID (varchar) — pass it through as-is. (It used to
     // be parseInt'd, which produced NaN → "Invalid order ID" for UUID tenants.)
     const orderId = order.id;
