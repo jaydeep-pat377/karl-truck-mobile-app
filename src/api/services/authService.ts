@@ -1,5 +1,6 @@
 import axios from 'axios';
 import apiClient from '../apiClient';
+import { axiosInstance } from '../axiosInstance';
 import { API_ENDPOINTS } from '../endpoints';
 import { LoginRequest, LoginResponse, FederatedLoginResponse, ExchangeCodeRequest, User, TenantListItem, SwitchTenantResponseData } from '../../types/user';
 import { FEDERATED_AUTH_URL } from '@env';
@@ -57,7 +58,7 @@ export const authService = {
    */
   federatedLogin: async (email: string, password: string): Promise<FederatedLoginResponse> => {
     const url = `${FEDERATED_URL}/federated-auth/login`;
-    const body = { email, password };
+    const body = { email: email.trim().toLowerCase(), password };
     console.log(`[API Request] POST ${url}`);
     console.log('[API Request] Body:', JSON.stringify({ email: body.email, password: '***' }, null, 2));
     try {
@@ -81,9 +82,28 @@ export const authService = {
 
   /**
    * Step 2: Exchange code — sends code + client_secret + device_info, returns user + tokens.
+   * Uses raw axios with the dynamic baseURL to avoid axiosInstance interceptor issues.
    */
   exchangeCode: async (request: ExchangeCodeRequest): Promise<LoginResponse> => {
-    return apiClient.post<LoginResponse>(API_ENDPOINTS.AUTH.EXCHANGE_CODE, request);
+    const baseURL = axiosInstance.defaults.baseURL || '';
+    const url = `${baseURL}${API_ENDPOINTS.AUTH.EXCHANGE_CODE}`;
+    console.log(`[API Request] POST ${url}`);
+    try {
+      const response = await axios.post<LoginResponse>(
+        url,
+        request,
+        { headers: { 'Content-Type': 'application/json' } },
+      );
+      console.log(`[API Response] POST ${url} — Status: ${response.status}`);
+      return response.data;
+    } catch (error: any) {
+      console.error(`[API Error] POST ${url} — Status: ${error?.response?.status}`);
+      console.error('[API Error] Message:', error?.message);
+      if (error?.response?.data) {
+        console.error('[API Error] Data:', JSON.stringify(error.response.data, null, 2));
+      }
+      throw error;
+    }
   },
 
   /**

@@ -53,10 +53,10 @@ export function useRealtimeOrders({
       debouncedUpdate();
     };
 
-    socket.on('orders:change', handleOrderChange);
+    socket.on('orders:changed', handleOrderChange);
 
     return () => {
-      socket.off('orders:change', handleOrderChange);
+      socket.off('orders:changed', handleOrderChange);
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;

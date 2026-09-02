@@ -2106,6 +2106,13 @@ export const OrderListScreen: React.FC = () => {
         onApply={handleApplyFilters}
         isDark={isDark}
       />
+
+      <ChatMessageToast
+        data={chatToastData}
+        visible={chatToastVisible}
+        onDismiss={handleChatToastDismiss}
+        onPress={handleChatToastPress}
+      />
     </SafeAreaView>
   );
 };

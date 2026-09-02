@@ -25,7 +25,7 @@ export function useRealtimeTickets({
     const socket = getSocket();
     if (!socket) return;
 
-    socket.emit('join:tickets', { order_code: orderCode });
+    socket.emit('join:tickets', orderCode);
 
     const handleTicketChange = (payload: any) => {
       const row = payload?.new || payload;
@@ -38,13 +38,11 @@ export function useRealtimeTickets({
       onUpdateRef.current?.();
     };
 
-    socket.on('tickets:change', handleTicketChange);
-    socket.on('ticket_products:change', handleProductChange);
+    socket.on('tickets:changed', handleTicketChange);
 
     return () => {
-      socket.emit('leave:tickets', { order_code: orderCode });
-      socket.off('tickets:change', handleTicketChange);
-      socket.off('ticket_products:change', handleProductChange);
+      socket.emit('leave:tickets', orderCode);
+      socket.off('tickets:changed', handleTicketChange);
     };
   }, [orderCode, enabled]);
 

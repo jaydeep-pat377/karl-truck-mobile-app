@@ -311,7 +311,7 @@ export function useNotificationQueue({
     const socket = getSocket();
     if (!socket) return;
 
-    socket.emit('join:notifications', { user_id: userId });
+    socket.emit('join:notifications', userId);
 
     const handleInsert = (payload: any) => {
       const newNotification = {
@@ -363,8 +363,7 @@ export function useNotificationQueue({
       );
     };
 
-    socket.on('notifications:new', handleInsert);
-    socket.on('notifications:update', handleUpdate);
+    socket.on('notification:new', handleInsert);
     setIsConnected(socket.connected);
 
     const handleConnect = () => {
@@ -378,8 +377,7 @@ export function useNotificationQueue({
     socket.on('disconnect', handleDisconnect);
 
     return () => {
-      socket.off('notifications:new', handleInsert);
-      socket.off('notifications:update', handleUpdate);
+      socket.off('notification:new', handleInsert);
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
     };

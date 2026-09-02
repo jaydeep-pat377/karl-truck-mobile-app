@@ -3,6 +3,7 @@ import { AppState, AppStateStatus } from 'react-native';
 import { getSocket } from '../services/socketClient';
 import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
+import { playMessageSound } from '../utils/notificationSound';
 
 export const useGlobalChatListener = () => {
   const { user } = useAuthStore();
@@ -40,7 +41,19 @@ export const useGlobalChatListener = () => {
         const messageRoomId = String(msg.order_id);
         if (currentRoomIdRef.current === messageRoomId) return;
 
-        useChatStore.getState().incrementUnreadCount(messageRoomId);
+        const store = useChatStore.getState();
+        store.incrementUnreadCount(messageRoomId);
+
+        // Trigger chat toast on the order list screen
+        store.setLatestToast({
+          orderId: msg.order_id,
+          orderCode: msg.order_code || '',
+          senderName: msg.sender_name || 'Someone',
+          messagePreview: msg.message_text || msg.content || 'New message',
+          timestamp: Date.now(),
+        });
+
+        playMessageSound();
       } catch (error) {
         console.error('[GlobalChatListener] Error:', error);
       }

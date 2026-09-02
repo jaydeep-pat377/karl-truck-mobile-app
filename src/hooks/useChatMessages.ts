@@ -111,7 +111,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     const socket = getSocket();
     if (!socket) return;
 
-    socket.emit('join:chat', { order_id: orderId });
+    socket.emit('join:chat', orderId);
 
     const handleChatMessage = (payload: any) => {
       try {
@@ -185,7 +185,7 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     pollingIntervalRef.current = setInterval(pollForNewMessages, pollInterval);
 
     return () => {
-      socket.emit('leave:chat', { order_id: orderId });
+      socket.emit('leave:chat', orderId);
       socket.off('chat:message', handleChatMessage);
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);

@@ -120,7 +120,7 @@ export function useRealtimeNotifications({
     const socket = getSocket();
     if (!socket) return;
 
-    socket.emit('join:notifications', { user_id: userId });
+    socket.emit('join:notifications', userId);
 
     const handleInsert = (payload: any) => {
       const newItem = mapRow(payload.new || payload);
@@ -153,15 +153,13 @@ export function useRealtimeNotifications({
     const handleConnect = () => setIsConnected(true);
     const handleDisconnect = () => setIsConnected(false);
 
-    socket.on('notifications:new', handleInsert);
-    socket.on('notifications:update', handleUpdate);
+    socket.on('notification:new', handleInsert);
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
     setIsConnected(socket.connected);
 
     return () => {
-      socket.off('notifications:new', handleInsert);
-      socket.off('notifications:update', handleUpdate);
+      socket.off('notification:new', handleInsert);
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
     };

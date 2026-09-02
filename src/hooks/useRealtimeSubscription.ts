@@ -82,7 +82,7 @@ export function useRealtimeSubscription({
     const socket = getSocket();
     if (!socket) return;
 
-    socket.emit('join:notifications', { user_id: userId });
+    socket.emit('join:notifications', userId);
 
     const handleNotification = (payload: any) => {
       const row = payload.new || payload;
@@ -104,7 +104,7 @@ export function useRealtimeSubscription({
       onNewNotificationRef.current?.(notification);
     };
 
-    socket.on('notifications:new', handleNotification);
+    socket.on('notification:new', handleNotification);
     setIsConnected(socket.connected);
 
     const handleConnect = () => setIsConnected(true);
@@ -113,7 +113,7 @@ export function useRealtimeSubscription({
     socket.on('disconnect', handleDisconnect);
 
     return () => {
-      socket.off('notifications:new', handleNotification);
+      socket.off('notification:new', handleNotification);
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
     };
