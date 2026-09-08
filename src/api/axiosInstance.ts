@@ -2,6 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse, CanceledE
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { API_BASE_URL, API_TIMEOUT } from '@env';
+import { API_ENDPOINTS } from './endpoints';
 import { STORAGE_KEYS } from '../utils/storage';
 import { alertService } from '../services/alertService';
 import { useAuthStore } from '../store/authStore';
@@ -21,30 +22,18 @@ const processRefreshQueue = (error: any, token: string | null) => {
 };
 
 const PUBLIC_ENDPOINTS = [
-  '/auth/login',
+  API_ENDPOINTS.AUTH.LOGIN,
   '/auth/mobile/login',
-  '/auth/mobile/exchange-code',
+  API_ENDPOINTS.AUTH.EXCHANGE_CODE,
   '/auth/register',
-  '/auth/forgot-password',
+  API_ENDPOINTS.AUTH.FORGOT_PASSWORD,
   '/auth/reset-password',
   '/auth/verify-otp',
   '/auth/resend-otp',
-  '/auth/refresh',
+  API_ENDPOINTS.AUTH.REFRESH,
 ];
 
-const SILENT_ERROR_ENDPOINTS = [
-  '/auth/login',
-  '/auth/mobile/login',
-  '/auth/mobile/exchange-code',
-  '/auth/register',
-  '/auth/verify-otp',
-  '/auth/me',
-  '/auth/refresh',
-  '/announcements/me',
-  '/weather',
-  '/eta',
-  '/short-urls/resolve',
-];
+const SILENT_ERROR_ENDPOINTS: string[] = [];
 
 const isPublicEndpoint = (url: string | undefined): boolean => {
   if (!url) return false;
@@ -196,7 +185,7 @@ axiosInstance.interceptors.response.use(
         const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
         if (refreshToken) {
-          const refreshUrl = `${axiosInstance.defaults.baseURL}/auth/refresh`;
+          const refreshUrl = `${axiosInstance.defaults.baseURL}${API_ENDPOINTS.AUTH.REFRESH}`;
 
           const response = await axios.post(
             refreshUrl,

@@ -46,10 +46,8 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     queryKey: ['chatMessages', orderId],
     queryFn: () => chatService.getMessages(orderId),
     enabled: !!orderId,
-    staleTime: 5 * 1000,
-    refetchInterval: 5000,
+    staleTime: 30 * 1000,
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
   });
 
   useEffect(() => {
@@ -180,9 +178,10 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
     };
     const subscription = AppState.addEventListener('change', handleAppStateChange);
 
-    // Polling as safety net
-    const pollInterval = isRealtimeConnected ? 15000 : 5000;
-    pollingIntervalRef.current = setInterval(pollForNewMessages, pollInterval);
+    // Polling as safety net (only when socket is disconnected)
+    if (!isRealtimeConnected) {
+      pollingIntervalRef.current = setInterval(pollForNewMessages, 15000);
+    }
 
     return () => {
       socket.emit('leave:chat', orderId);
@@ -201,10 +200,10 @@ export const useChatMessages = ({ chatId, orderId }: UseChatMessagesProps) => {
   useEffect(() => {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
     }
-    if (orderId) {
-      const pollInterval = isRealtimeConnected ? 15000 : 5000;
-      pollingIntervalRef.current = setInterval(pollForNewMessages, pollInterval);
+    if (orderId && !isRealtimeConnected) {
+      pollingIntervalRef.current = setInterval(pollForNewMessages, 15000);
     }
   }, [isRealtimeConnected, orderId, pollForNewMessages]);
 

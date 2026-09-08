@@ -54,7 +54,7 @@ export const useOrderTracking = (
     queryFn: ({ pageParam = 1 }) => orderService.getOrderTracking(orderId, { page: pageParam, limit }),
     enabled: enabled && !!orderId,
     refetchInterval,
-    staleTime: 10000,
+    staleTime: 30000,
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       const pagination = lastPage?.data?.pagination;

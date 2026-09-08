@@ -32,10 +32,10 @@ export const useTrucks = (params?: Omit<TrucksQueryParams, 'page'>) => {
       }
       return undefined;
     },
-    staleTime: 30 * 1000,
+    staleTime: 60 * 1000,
     retry: 2,
     refetchOnMount: true,
-    refetchInterval: 30 * 1000,
+    refetchInterval: 60 * 1000,
   });
 
   const trucks: Truck[] = useMemo(() => {

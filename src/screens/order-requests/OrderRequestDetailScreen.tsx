@@ -34,6 +34,7 @@ import { orderRequestService } from '../../api/services/orderRequestService';
 import { OrderEntity, OrderEntityMessage, ORDER_STATUS_LABELS } from '../../types/orderRequest';
 import { useAuthStore } from '../../store/authStore';
 import apiClient from '../../api/apiClient';
+import { API_ENDPOINTS } from '../../api/endpoints';
 import { RootStackParamList } from '../../navigation/types';
 import { getUserPermissions, getSenderRole } from '../../utils/permissions';
 
@@ -973,7 +974,7 @@ export const OrderRequestDetailScreen: React.FC = () => {
   React.useEffect(() => {
     if (order?.user_id) {
       apiClient
-        .get<{ success: boolean; data: { name: string } }>(`/chat/user/${order.user_id}`)
+        .get<{ success: boolean; data: { name: string } }>(`${API_ENDPOINTS.CHAT.USER}/${order.user_id}`)
         .then((res) => {
           if (res.success && res.data?.name) setCreatorName(res.data.name);
         })

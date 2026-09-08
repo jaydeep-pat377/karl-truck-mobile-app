@@ -15,6 +15,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient from '../apiClient';
 import axiosInstance from '../axiosInstance';
+import { API_ENDPOINTS } from '../endpoints';
 import { STORAGE_KEYS } from '../../utils/storage';
 import { consumeSSEBuffer } from '../../lib/ai/streamParser';
 import type {
@@ -90,7 +91,7 @@ export function streamChat(options: StreamChatOptions): StreamChatHandle {
       }
 
       xhr = new XMLHttpRequest();
-      xhr.open('POST', `${base}/ai/dashboard-chat`);
+      xhr.open('POST', `${base}${API_ENDPOINTS.AI.DASHBOARD_CHAT}`);
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.setRequestHeader('Accept', 'text/event-stream');
       if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
@@ -185,12 +186,12 @@ export function streamChat(options: StreamChatOptions): StreamChatHandle {
 
 export const aiAssistantService = {
   listThreads: async (): Promise<ChatThreadSummary[]> => {
-    const data = await apiClient.get<{ threads: ChatThreadSummary[] }>('/ai/threads');
+    const data = await apiClient.get<{ threads: ChatThreadSummary[] }>(API_ENDPOINTS.AI.THREADS);
     return data.threads ?? [];
   },
 
   getThread: async (id: string): Promise<ChatThread | null> => {
-    const data = await apiClient.get<{ thread: ChatThread }>(`/ai/threads/${id}`);
+    const data = await apiClient.get<{ thread: ChatThread }>(`${API_ENDPOINTS.AI.THREADS}/${id}`);
     return data.thread ?? null;
   },
 
@@ -198,15 +199,15 @@ export const aiAssistantService = {
     id: string,
     messages: Record<string, unknown>[],
   ): Promise<void> => {
-    await apiClient.patch(`/ai/threads/${id}`, { messages });
+    await apiClient.patch(`${API_ENDPOINTS.AI.THREADS}/${id}`, { messages });
   },
 
   deleteThread: async (id: string): Promise<void> => {
-    await apiClient.delete(`/ai/threads/${id}`);
+    await apiClient.delete(`${API_ENDPOINTS.AI.THREADS}/${id}`);
   },
 
   verifyWidget: async (payload: VerifyWidgetPayload): Promise<VerifyResult> => {
-    return apiClient.post<VerifyResult>('/ai/verify-widget', payload);
+    return apiClient.post<VerifyResult>(API_ENDPOINTS.AI.VERIFY_WIDGET, payload);
   },
 
   /* ---- Saved & shared dashboards ---- */
@@ -214,7 +215,7 @@ export const aiAssistantService = {
     owned: SavedDashboardSummary[];
     shared: SharedDashboardRow[];
   }> => {
-    return apiClient.get('/ai/dashboards');
+    return apiClient.get(API_ENDPOINTS.AI.DASHBOARDS);
   },
 
   saveDashboard: async (payload: {
@@ -224,7 +225,7 @@ export const aiAssistantService = {
     threadId?: string | null;
   }): Promise<SavedDashboardSummary> => {
     const data = await apiClient.post<{ dashboard: SavedDashboardSummary }>(
-      '/ai/dashboards',
+      API_ENDPOINTS.AI.DASHBOARDS,
       payload,
     );
     return data.dashboard;
@@ -232,30 +233,30 @@ export const aiAssistantService = {
 
   getDashboard: async (id: string): Promise<SavedDashboardFull | null> => {
     const data = await apiClient.get<{ dashboard: SavedDashboardFull }>(
-      `/ai/dashboards/${id}`,
+      `${API_ENDPOINTS.AI.DASHBOARDS}/${id}`,
     );
     return data.dashboard ?? null;
   },
 
   deleteDashboard: async (id: string): Promise<void> => {
-    await apiClient.delete(`/ai/dashboards/${id}`);
+    await apiClient.delete(`${API_ENDPOINTS.AI.DASHBOARDS}/${id}`);
   },
 
   /* ---- AI configuration (admin) ---- */
   getConfig: async (): Promise<AiConfigPayload> => {
-    return apiClient.get<AiConfigPayload>('/ai/config');
+    return apiClient.get<AiConfigPayload>(API_ENDPOINTS.AI.CONFIG);
   },
 
   // Role-aware starter questions (producer vs contractor). Backend derives the
   // role from the auth token; the caller falls back to a static list on error.
   getSuggestions: async (): Promise<{ userType: string; suggestions: string[] }> => {
-    return apiClient.get<{ userType: string; suggestions: string[] }>('/ai/suggestions');
+    return apiClient.get<{ userType: string; suggestions: string[] }>(API_ENDPOINTS.AI.SUGGESTIONS);
   },
 
   updateConfig: async (
     payload: AiConfigUpdate,
   ): Promise<{ ok: boolean; config?: unknown }> => {
-    return apiClient.put('/ai/config', payload);
+    return apiClient.put(API_ENDPOINTS.AI.CONFIG, payload);
   },
 
   getConfigUsage: async (from?: string, to?: string): Promise<AiUsagePayload> => {
@@ -263,7 +264,7 @@ export const aiAssistantService = {
     if (from) params.push(`from=${encodeURIComponent(from)}`);
     if (to) params.push(`to=${encodeURIComponent(to)}`);
     const suffix = params.length ? `?${params.join('&')}` : '';
-    return apiClient.get<AiUsagePayload>(`/ai/config/usage${suffix}`);
+    return apiClient.get<AiUsagePayload>(`${API_ENDPOINTS.AI.CONFIG_USAGE}${suffix}`);
   },
 
   /* ---- Widget Info raw rows, cell explain, empty-state hint ---- */
@@ -273,15 +274,15 @@ export const aiAssistantService = {
     order?: { column: string; ascending?: boolean };
     limit?: number;
   }): Promise<{ columns: string[]; rows: Record<string, unknown>[] }> => {
-    return apiClient.post('/ai/raw-rows', body);
+    return apiClient.post(API_ENDPOINTS.AI.RAW_ROWS, body);
   },
 
   explainCell: async (body: Record<string, unknown>): Promise<{ explanation: string }> => {
-    return apiClient.post('/ai/explain-cell', body);
+    return apiClient.post(API_ENDPOINTS.AI.EXPLAIN_CELL, body);
   },
 
   emptyHint: async (body: Record<string, unknown>): Promise<{ hint: string }> => {
-    return apiClient.post('/ai/empty-hint', body);
+    return apiClient.post(API_ENDPOINTS.AI.EMPTY_HINT, body);
   },
 
   recordFeedback: async (body: {
@@ -289,7 +290,7 @@ export const aiAssistantService = {
     rating: 'up' | 'down';
     comment?: string | null;
   }): Promise<{ success: boolean }> => {
-    return apiClient.post('/ai/feedback', body);
+    return apiClient.post(API_ENDPOINTS.AI.FEEDBACK, body);
   },
 
   /* ---- Dashboard sharing ---- */
@@ -300,7 +301,7 @@ export const aiAssistantService = {
     publicToken: string | null;
     isPublic: boolean;
   }> => {
-    return apiClient.get(`/ai/dashboards/${id}/share`);
+    return apiClient.get(`${API_ENDPOINTS.AI.DASHBOARDS}/${id}/share`);
   },
 
   applyShare: async (
@@ -310,11 +311,11 @@ export const aiAssistantService = {
       | { action: 'generateLink' }
       | { action: 'revokeLink' },
   ): Promise<any> => {
-    return apiClient.post(`/ai/dashboards/${id}/share`, body);
+    return apiClient.post(`${API_ENDPOINTS.AI.DASHBOARDS}/${id}/share`, body);
   },
 
   revokeShare: async (id: string, sharedWithUserId: string): Promise<void> => {
-    await apiClient.delete(`/ai/dashboards/${id}/share`, { data: { sharedWithUserId } });
+    await apiClient.delete(`${API_ENDPOINTS.AI.DASHBOARDS}/${id}/share`, { data: { sharedWithUserId } });
   },
 
   /* ---- Widget comments (on saved dashboards) ---- */
@@ -332,18 +333,18 @@ export const aiAssistantService = {
     }>;
   }> => {
     const suffix = widgetId ? `?widgetId=${encodeURIComponent(widgetId)}` : '';
-    return apiClient.get(`/ai/dashboards/${id}/comments${suffix}`);
+    return apiClient.get(`${API_ENDPOINTS.AI.DASHBOARDS}/${id}/comments${suffix}`);
   },
 
   addComment: async (
     id: string,
     body: { widgetId: string; body: string; parentId?: string | null },
   ): Promise<any> => {
-    return apiClient.post(`/ai/dashboards/${id}/comments`, body);
+    return apiClient.post(`${API_ENDPOINTS.AI.DASHBOARDS}/${id}/comments`, body);
   },
 
   deleteComment: async (id: string, commentId: string): Promise<void> => {
-    await apiClient.delete(`/ai/dashboards/${id}/comments/${commentId}`);
+    await apiClient.delete(`${API_ENDPOINTS.AI.DASHBOARDS}/${id}/comments/${commentId}`);
   },
 };
 

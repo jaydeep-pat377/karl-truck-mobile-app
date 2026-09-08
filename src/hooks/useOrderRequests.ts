@@ -109,8 +109,8 @@ export const useOrderRequestMessages = (id: string) => {
     queryKey: ['orderRequestMessages', id],
     queryFn: () => orderRequestService.getMessages(id),
     enabled: !!id,
-    staleTime: 10 * 1000,
-    refetchInterval: 10 * 1000,
+    staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000,
     retry: 1,
   });
 

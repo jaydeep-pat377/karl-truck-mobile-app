@@ -31,7 +31,7 @@ const getTodayDateCDT = (): string => {
   return `${year}-${month}-${day}`;
 };
 
-const POLL_INTERVAL = 60000; // Poll every 60s
+const POLL_INTERVAL = 120000; // Poll every 120s
 
 export function useRealtimeDailyIntelligence({
   reportDate,
