@@ -99,6 +99,14 @@ function dispatchWhenReady(
   setTimeout(() => dispatchWhenReady(action, retries - 1), 500);
 }
 
+// Dedup guard: prevent the same notification tap from navigating twice.
+// Both messaging().onNotificationOpenedApp and notifee.onForegroundEvent
+// fire for the same tap, causing a double-navigation. This drops the
+// second call if it arrives within 2 seconds of the first.
+let _lastNavKey = '';
+let _lastNavTs = 0;
+const NAV_DEDUP_MS = 2000;
+
 export function navigateFromNotification(data: Record<string, string | unknown>): void {
   // Normalize field names — handle both snake_case (FCM) and camelCase (notifee)
   const eventCode = ((data.event_code || data.eventCode) as string)?.toUpperCase() || '';
@@ -108,6 +116,16 @@ export function navigateFromNotification(data: Record<string, string | unknown>)
   const ticketCode = (data.ticket_code || data.ticketCode) as string;
   const chatId = (data.chat_id || data.chatId) as string;
   const roomId = (data.room_id || data.roomId) as string;
+
+  // Dedup: skip if same notification tapped within 2s
+  const navKey = `${eventCode}:${orderId || orderCode}:${chatId || roomId}`;
+  const now = Date.now();
+  if (navKey === _lastNavKey && now - _lastNavTs < NAV_DEDUP_MS) {
+    console.log('[NavFromNotif] DEDUP — skipping duplicate navigation for', navKey);
+    return;
+  }
+  _lastNavKey = navKey;
+  _lastNavTs = now;
 
   console.log('[NavFromNotif] eventCode=', eventCode, 'orderId=', orderId, 'orderCode=', orderCode, 'orderDate=', orderDate);
 
