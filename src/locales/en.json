@@ -919,6 +919,8 @@
     "etaAtJob": "ETA at Job",
     "timeline": "Timeline",
     "viewTicket": "View Ticket",
+    "downloadPdf": "Download PDF",
+    "pdfDownloaded": "PDF downloaded successfully",
     "share": "Share",
     "sharing": "Sharing...",
     "copy": "Copy",
@@ -1002,6 +1004,8 @@
     "notAuthorizedMsg": "You are not authorized to view this ticket",
     "somethingWentWrong": "Something went wrong",
     "unableToScan": "Unable to scan",
+    "d3TicketTitle": "D3 Platform Ticket",
+    "d3TicketMsg": "This QR code belongs to the D3 platform. Opening in browser...",
     "scanQR": "Scan QR",
     "scanQRCode": "Scan QR Code"
   },

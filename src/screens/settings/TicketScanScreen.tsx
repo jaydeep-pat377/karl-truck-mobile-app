@@ -22,10 +22,12 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuthStore } from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import { spacing, ms } from '../../utils/responsive';
-import { isTKQR, isTKPipeQR } from '../../utils/qrDetection';
+import { isTruckastQR } from '../../utils/qrDetection';
 import { verifyQRPayload } from '../../api/services/qrService';
 import { saveScanRecord, getScanHistory } from '../../utils/scanStorage';
-import type { ScanRecord } from '../../types/qrScan';
+import { generateTicketPdf } from '../../utils/ticketPdf';
+import ReactNativeBlobUtil from 'react-native-blob-util';
+import type { ScanRecord, TKTicketData } from '../../types/qrScan';
 import { SettingsStackParamList } from '../../navigation/SettingsNavigator';
 
 type FeedbackState = 'idle' | 'success' | 'error' | 'processing';
@@ -220,10 +222,7 @@ export const TicketScanScreen: React.FC = () => {
           timestamp: Date.now(),
         };
 
-        const isTK = isTKQR(data);
-        const isPipe = isTKPipeQR(data);
-
-        if (isTK || isPipe) {
+        if (isTruckastQR(data)) {
           setFeedbackState('processing');
 
           const result = await verifyQRPayload(data, (user as any)?.userRole);
@@ -243,7 +242,14 @@ export const TicketScanScreen: React.FC = () => {
           }
 
           if (result.status === 'error') {
-            showErrorSheet(t('ticketScan.unableToScan'), result.message || t('ticketScan.verificationFailed'), 'alert-circle-outline');
+            // D3 external QR — offer to open in browser
+            if (result.d3Url) {
+              showErrorSheet(t('ticketScan.d3TicketTitle'), result.message || t('ticketScan.d3TicketMsg'), 'open-in-new');
+              // Open in browser after a short delay
+              setTimeout(() => { Linking.openURL(result.d3Url!).catch(() => {}); }, 1500);
+            } else {
+              showErrorSheet(t('ticketScan.unableToScan'), result.message || t('ticketScan.verificationFailed'), 'alert-circle-outline');
+            }
             return;
           }
 
@@ -255,11 +261,46 @@ export const TicketScanScreen: React.FC = () => {
           scanRecord.verified = result.status;
           if (result.qrData) scanRecord.tkData = result.qrData;
           if (result.apiData) scanRecord.apiData = result.apiData;
+          if (result.pdfUrl) scanRecord.pdfUrl = result.pdfUrl;
+          if (result.trackingUrl) scanRecord.trackingUrl = result.trackingUrl;
 
           showFeedback('success');
           await saveScanRecord(scanRecord);
           setHistoryCount(prev => prev + 1);
 
+          // For ticket scans, open PDF directly
+          if (result.qrData?.kind === 'ticket') {
+            const ticketCode = (scanRecord.tkData as TKTicketData)?.ticketCode || 'ticket';
+            scanCooldownRef.current = true;
+            navTimeoutRef.current = setTimeout(async () => {
+              navTimeoutRef.current = null;
+              try {
+                // Try server/D3 PDF first (download to local file)
+                if (result.pdfUrl) {
+                  const fileName = `ticket-${ticketCode}.pdf`;
+                  const filePath = `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/${fileName}`;
+                  const res = await ReactNativeBlobUtil.config({ fileCache: true, path: filePath }).fetch('GET', result.pdfUrl);
+                  const status = res.info()?.status;
+                  if (status && status >= 200 && status < 300 && (await ReactNativeBlobUtil.fs.stat(filePath)).size > 100) {
+                    navigation.navigate('PdfViewer', { filePath, title: `Ticket #${ticketCode}` });
+                    return;
+                  }
+                }
+                // Fallback: generate local PDF
+                if (result.apiData || scanRecord.tkData) {
+                  const filePath = await generateTicketPdf(scanRecord);
+                  navigation.navigate('PdfViewer', { filePath, title: `Ticket #${ticketCode}` });
+                  return;
+                }
+                navigation.navigate('ScanDetails', { scan: scanRecord });
+              } catch {
+                navigation.navigate('ScanDetails', { scan: scanRecord });
+              }
+            }, 650);
+            return;
+          }
+
+          // Other scans (truck, no tracking URL) → ScanDetails
           scanCooldownRef.current = true;
           navTimeoutRef.current = setTimeout(() => {
             navTimeoutRef.current = null;

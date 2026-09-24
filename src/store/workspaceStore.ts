@@ -158,8 +158,11 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       const forced = FORCE_BACKEND_URL && FORCE_BACKEND_URL.trim().length > 0
         ? `${normalizeBackendUrl(FORCE_BACKEND_URL)}/api`
         : null;
+      const resolvedBackendUrl = tenant.backend_url
+        || workspace.backendUrl
+        || `https://${workspace.subdomain}-api.truckast.ai`;
       const newBackendUrl = forced
-        ?? `${normalizeBackendUrl(tenant.backend_url)}/api`;
+        ?? `${normalizeBackendUrl(resolvedBackendUrl)}/api`;
       if (forced) {
         console.log(`[workspaceStore] FORCE_BACKEND_URL override active: ${forced} (tenant.backend_url: ${tenant.backend_url})`);
       }

@@ -237,6 +237,57 @@ export const ScanDetailsScreen: React.FC = () => {
     } finally { setDownloading(false); }
   }, [scan, navigation, showConfirm, hideConfirm, t]);
 
+  const handleDownloadPdf = useCallback(async () => {
+    const pdfUrl = scan.pdfUrl;
+    if (!pdfUrl) return;
+    setDownloading(true);
+    try {
+      const ticketCode = (scan.tkData as TKTicketData)?.ticketCode || 'ticket';
+      const fileName = `ticket-${ticketCode}.pdf`;
+
+      // Try server PDF first
+      let downloaded = false;
+      try {
+        const config = Platform.select({
+          android: {
+            fileCache: true,
+            addAndroidDownloads: {
+              useDownloadManager: true,
+              notification: true,
+              mime: 'application/pdf',
+              title: fileName,
+              description: `Downloading ${fileName}`,
+              path: `${ReactNativeBlobUtil.fs.dirs.DownloadDir}/${fileName}`,
+            },
+          },
+          ios: {
+            fileCache: true,
+            path: `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/${fileName}`,
+          },
+        })!;
+        const res = await ReactNativeBlobUtil.config(config).fetch('GET', pdfUrl);
+        const status = res.info()?.status;
+        if (status && status >= 200 && status < 300) {
+          if (Platform.OS === 'ios') {
+            ReactNativeBlobUtil.ios.openDocument(res.path());
+          }
+          downloaded = true;
+          showToast(t('scanDetails.pdfDownloaded'));
+        }
+      } catch { /* server PDF failed, fall back to local */ }
+
+      // Fall back to local PDF generation
+      if (!downloaded && scan.tkData) {
+        const filePath = await generateTicketPdf(scan);
+        navigation.navigate('PdfViewer', { filePath, title: `Ticket ${ticketCode}` });
+      } else if (!downloaded) {
+        showConfirm({ icon: 'alert-circle-outline', iconBg: colors.warning.main, title: t('common.error'), message: 'Failed to download PDF', buttons: [{ text: t('common.ok'), onPress: hideConfirm }] });
+      }
+    } catch (err) {
+      showConfirm({ icon: 'alert-circle-outline', iconBg: colors.warning.main, title: t('common.error'), message: err instanceof Error ? err.message : 'Failed to download PDF', buttons: [{ text: t('common.ok'), onPress: hideConfirm }] });
+    } finally { setDownloading(false); }
+  }, [scan, navigation, showToast, showConfirm, hideConfirm, t]);
+
   const handleSharePdf = useCallback(async () => {
     if (!scan.tkData) return;
     setSharing(true);
@@ -422,10 +473,16 @@ export const ScanDetailsScreen: React.FC = () => {
           )}
 
           <View style={st.actions}>
+            {isTicket && scan.pdfUrl && (
+              <TouchableOpacity style={[st.actionBtn, st.primaryAction]} onPress={handleDownloadPdf} disabled={downloading} activeOpacity={0.8}>
+                {downloading ? <ActivityIndicator size="small" color={colors.primary.contrast} style={st.actionIcon} /> : <Icon name="download-outline" size={18} color={colors.primary.contrast} style={st.actionIcon} />}
+                <Text style={st.actionTextPrimary}>{downloading ? t('common.loading') : t('scanDetails.downloadPdf')}</Text>
+              </TouchableOpacity>
+            )}
             {isTicket && (
-              <TouchableOpacity style={[st.actionBtn, st.primaryAction]} onPress={handleViewPdf} disabled={downloading} activeOpacity={0.8}>
-                {downloading ? <ActivityIndicator size="small" color={colors.primary.contrast} style={st.actionIcon} /> : <Icon name="eye-outline" size={18} color={colors.primary.contrast} style={st.actionIcon} />}
-                <Text style={st.actionTextPrimary}>{downloading ? t('common.loading') : t('scanDetails.viewTicket')}</Text>
+              <TouchableOpacity style={[st.actionBtn, scan.pdfUrl ? st.secondaryAction : st.primaryAction]} onPress={handleViewPdf} disabled={downloading} activeOpacity={0.8}>
+                {downloading && !scan.pdfUrl ? <ActivityIndicator size="small" color={scan.pdfUrl ? themed.tc.text.primary : colors.primary.contrast} style={st.actionIcon} /> : <Icon name="eye-outline" size={18} color={scan.pdfUrl ? themed.tc.text.primary : colors.primary.contrast} style={st.actionIcon} />}
+                <Text style={scan.pdfUrl ? st.actionTextSecondary : st.actionTextPrimary}>{t('scanDetails.viewTicket')}</Text>
               </TouchableOpacity>
             )}
             {isTicket && (

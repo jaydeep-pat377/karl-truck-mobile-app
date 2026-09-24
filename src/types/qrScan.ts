@@ -191,6 +191,8 @@ export interface ScanRecord {
   fullTicket?: FullTicket;
   orderCode?: string;
   verified?: VerificationStatus;
+  pdfUrl?: string;
+  trackingUrl?: string;
 }
 
 export interface Pagination {

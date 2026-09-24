@@ -105,6 +105,20 @@ const SegmentStripes: React.FC<{ color: string; patternId: string }> = React.mem
 
 const FALLBACK_SEGMENT_COLOR = colors.fallback.segmentColor;
 
+const TRACKING_STATUS_COLORS: Record<string, string> = {
+  loading: colors.trackingStatus.loading,
+  loaded: colors.trackingStatus.loaded,
+  to_job: colors.trackingStatus.toJob,
+  at_job: colors.trackingStatus.atJob,
+  on_job: colors.trackingStatus.atJob,
+  pouring: colors.trackingStatus.pouring,
+  poured: colors.trackingStatus.poured,
+  washing: colors.trackingStatus.washing,
+  to_plant: colors.trackingStatus.toPlant,
+  at_plant: colors.trackingStatus.atPlant,
+  remaining: colors.trackingStatus.remaining,
+};
+
 const PROGRESS_STATUSES = [
   { key: 'loading', colorKey: 'loading', label: 'Loading' },
   { key: 'to_job', colorKey: 'to_job', label: 'To Job' },
@@ -643,7 +657,7 @@ const DashboardScreen: React.FC = () => {
       const apiSeg = (item.deliveryProgress?.segments || []).find(
         (s) => s.status === status.key
       );
-      return apiSeg?.color || FALLBACK_SEGMENT_COLOR;
+      return apiSeg?.color || TRACKING_STATUS_COLORS[status.colorKey] || FALLBACK_SEGMENT_COLOR;
     });
 
     const formatQty = (qty: number | null | undefined): string => {

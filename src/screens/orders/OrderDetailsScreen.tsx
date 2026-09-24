@@ -136,6 +136,20 @@ const ALLOWED_PROGRESS_STATUSES = ['loading', 'to_job', 'at_job', 'pouring', 're
 
 const FALLBACK_SEGMENT_COLOR = colors.fallback.segmentColor;
 
+const TRACKING_STATUS_COLORS: Record<string, string> = {
+  loading: colors.trackingStatus.loading,
+  loaded: colors.trackingStatus.loaded,
+  to_job: colors.trackingStatus.toJob,
+  at_job: colors.trackingStatus.atJob,
+  on_job: colors.trackingStatus.atJob,
+  pouring: colors.trackingStatus.pouring,
+  poured: colors.trackingStatus.poured,
+  washing: colors.trackingStatus.washing,
+  to_plant: colors.trackingStatus.toPlant,
+  at_plant: colors.trackingStatus.atPlant,
+  remaining: colors.trackingStatus.remaining,
+};
+
 // Same 5-segment progress bar as OrderCard / web
 const PROGRESS_STATUSES = [
   { key: 'loading', colorKey: 'loading', label: 'Loading' },
@@ -672,7 +686,7 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
 
   const segmentColors = PROGRESS_STATUSES.map(status => {
     const apiSeg = segments.find((s: any) => s.status === status.key);
-    return apiSeg?.color || FALLBACK_SEGMENT_COLOR;
+    return apiSeg?.color || TRACKING_STATUS_COLORS[status.colorKey] || FALLBACK_SEGMENT_COLOR;
   });
 
   // Tooltip state

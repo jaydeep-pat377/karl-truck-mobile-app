@@ -36,9 +36,23 @@ import { useTranslation } from 'react-i18next';
 
 const FALLBACK_COLOR = colors.fallback.segmentColor;
 
+const TRACKING_STATUS_COLORS: Record<string, string> = {
+  loading: colors.trackingStatus.loading,
+  loaded: colors.trackingStatus.loaded,
+  to_job: colors.trackingStatus.toJob,
+  at_job: colors.trackingStatus.atJob,
+  on_job: colors.trackingStatus.atJob,
+  pouring: colors.trackingStatus.pouring,
+  poured: colors.trackingStatus.poured,
+  washing: colors.trackingStatus.washing,
+  to_plant: colors.trackingStatus.toPlant,
+  at_plant: colors.trackingStatus.atPlant,
+  remaining: colors.trackingStatus.remaining,
+};
+
 const getSegmentColor = (status: string, apiColors?: Record<string, string> | null): string => {
   if (apiColors?.[status.toLowerCase()]) return apiColors[status.toLowerCase()];
-  return FALLBACK_COLOR;
+  return TRACKING_STATUS_COLORS[status.toLowerCase()] || FALLBACK_COLOR;
 };
 
 // getStatusDisplayLabel moved inside TicketScreen component to use translations
@@ -188,7 +202,7 @@ function buildStatusConfig(
   const config = {} as Record<TicketStatus, StatusConfig>;
   for (const [key, meta] of Object.entries(STATUS_META_ICONS)) {
     const isCancelled = key === 'cancelled' || key === 'voided';
-    const c = isCancelled ? CANCELLED_COLOR : (apiColors?.[key] || FALLBACK_COLOR);
+    const c = isCancelled ? CANCELLED_COLOR : (apiColors?.[key] || TRACKING_STATUS_COLORS[key] || FALLBACK_COLOR);
     config[key as TicketStatus] = {
       label: statusLabels[key as TicketStatus] || key.toUpperCase(),
       icon: meta.icon,
@@ -715,7 +729,7 @@ const TicketDeliveryProgressBar: React.FC<TicketDeliveryProgressBarProps> = ({
 
   const segmentColors = PROGRESS_STATUS_KEYS.map(status => {
     const apiSeg = segments.find((s: any) => s.status === status.key);
-    return apiSeg?.color || FALLBACK_COLOR;
+    return apiSeg?.color || TRACKING_STATUS_COLORS[status.colorKey] || FALLBACK_COLOR;
   });
 
   // Tooltip state
@@ -1422,7 +1436,7 @@ export const TicketScreen: React.FC = () => {
   }, []);
 
   const allTickets = useMemo(
-    () => (apiTickets || []).map((ticket: TicketByOrderItem): DeliveryTicket => {
+    () => (apiTickets || []).map((ticket: TicketByOrderItem, index: number): DeliveryTicket => {
 
       const truckCode = typeof ticket.truck === 'string'
         ? ticket.truck
@@ -1434,7 +1448,7 @@ export const TicketScreen: React.FC = () => {
         : null;
 
       return {
-        id: ticket.ticket_code || '',
+        id: ticket.ticket_id || `${ticket.ticket_code}-${index}`,
         ticketNumber: ticket.ticket_code || '',
         truckId: truckCode,
         truckName: `Truck ${truckCode || 'N/A'}`,

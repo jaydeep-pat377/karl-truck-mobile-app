@@ -392,9 +392,9 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
   // Status label — same logic as web's getCardStatus → getOrderStatusCategory
   const statusLabel = t(getStatusLabelKey(order));
 
-  // Use progress_bar_colors from API (system-level config), fall back to static defaults
+  // Use progress_bar_colors from API (system-level config), fall back to per-status tracking colors
   const segmentColors = PROGRESS_STATUSES.map(status => {
-    return progressBarColors?.[status.colorKey] || FALLBACK_SEGMENT_COLOR;
+    return progressBarColors?.[status.colorKey] || getSegmentColor(status.colorKey);
   });
 
   // Tooltip state

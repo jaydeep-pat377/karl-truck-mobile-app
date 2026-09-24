@@ -137,7 +137,7 @@ export const DelayDetailsTable: React.FC<DelayDetailsTableProps> = ({
             <Text style={[styles.infoLabel, { color: colors.primary.main }]} numberOfLines={1}>{t('delayDetails.load')}</Text>
             <Text style={[styles.infoValue, { color: colors.primary.main }]} numberOfLines={1}>{item.load_order}</Text>
           </View>
-          {item.load_qty && (
+          {item.load_qty != null && item.load_qty !== '' && (
             <View style={[styles.infoBadge, { backgroundColor: isDark ? colors.grey[60] : colors.grey[10] }]}>
               <Text style={[styles.infoLabel, { color: themeColors.textSecondary }]} numberOfLines={1}>{t('delayDetails.qty')}</Text>
               <Text style={[styles.infoValue, { color: themeColors.text }]} numberOfLines={1}>{item.load_qty}</Text>

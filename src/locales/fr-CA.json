@@ -880,6 +880,8 @@
     "etaAtJob": "HEA au chantier",
     "timeline": "Chronologie",
     "viewTicket": "Voir le billet",
+    "downloadPdf": "Télécharger PDF",
+    "pdfDownloaded": "PDF téléchargé avec succès",
     "share": "Partager",
     "sharing": "Partage en cours...",
     "copy": "Copier",
@@ -963,6 +965,8 @@
     "notAuthorizedMsg": "Vous n'êtes pas autorisé à voir ce billet",
     "somethingWentWrong": "Une erreur est survenue",
     "unableToScan": "Impossible de numériser",
+    "d3TicketTitle": "Billet de la plateforme D3",
+    "d3TicketMsg": "Ce code QR appartient à la plateforme D3. Ouverture dans le navigateur...",
     "scanQR": "Scanner QR",
     "scanQRCode": "Scanner le code QR"
   },

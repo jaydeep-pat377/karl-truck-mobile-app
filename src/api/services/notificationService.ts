@@ -118,11 +118,15 @@ export const notificationService = {
 
   getNotificationHistory: async (params: { page?: number; limit?: number }): Promise<NotificationQueueResponse> => {
     const user = useAuthStore.getState().user;
+    const tenantId = user?.metadata?.tenant?.tenant_id
+      ?? (user as any)?.tenant_id
+      ?? (user as any)?.tenantId;
     const queryParams = new URLSearchParams({
       page: String(params.page || 1),
       limit: String(params.limit || 20),
     });
     if (user?.id) queryParams.append('user_id', user.id);
+    if (tenantId != null) queryParams.append('tenant_id', String(tenantId));
 
     return apiClient.get<NotificationQueueResponse>(
       `${API_ENDPOINTS.NOTIFICATIONS.HISTORY}?${queryParams.toString()}`

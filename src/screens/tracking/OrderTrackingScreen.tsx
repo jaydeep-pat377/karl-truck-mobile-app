@@ -219,6 +219,22 @@ const STATUS_ICONS: Record<string, { icon: string; label: string }> = {
 const FALLBACK_STATUS_COLOR = colors.fallback.segmentColor;
 const CANCELLED_COLOR = colors.trackingStatus.cancelled;
 
+const TRACKING_STATUS_COLORS: Record<string, string> = {
+  pending: colors.trackingStatus.pending,
+  ticketed: colors.trackingStatus.ticketed,
+  loading: colors.trackingStatus.loading,
+  loaded: colors.trackingStatus.loaded,
+  to_job: colors.trackingStatus.toJob,
+  at_job: colors.trackingStatus.atJob,
+  on_job: colors.trackingStatus.atJob,
+  pouring: colors.trackingStatus.pouring,
+  poured: colors.trackingStatus.poured,
+  washing: colors.trackingStatus.washing,
+  to_plant: colors.trackingStatus.toPlant,
+  at_plant: colors.trackingStatus.atPlant,
+  remaining: colors.trackingStatus.remaining,
+};
+
 /** Build status config using only dynamic API colors from database */
 function buildStatusConfig(
   apiColors?: Record<string, string | undefined> | null
@@ -227,7 +243,7 @@ function buildStatusConfig(
   for (const [key, meta] of Object.entries(STATUS_ICONS)) {
     const isCancelled = key === 'cancelled' || key === 'voided';
     config[key] = {
-      color: isCancelled ? CANCELLED_COLOR : (apiColors?.[key] || FALLBACK_STATUS_COLOR),
+      color: isCancelled ? CANCELLED_COLOR : (apiColors?.[key] || TRACKING_STATUS_COLORS[key] || FALLBACK_STATUS_COLOR),
       icon: meta.icon,
       label: meta.label,
     };

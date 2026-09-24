@@ -53,7 +53,13 @@ function fmtTime(v: string | null | undefined): string {
     s = s.replace(/[+-]\d{2}(:\d{2})?$/, '');
     s = s.replace(/Z$/, '');
     const match = s.match(/[T ](\d{2}):(\d{2})/);
-    if (match) return `${match[1]}:${match[2]}`;
+    if (match) {
+      const h = parseInt(match[1], 10);
+      const m = match[2];
+      const period = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 === 0 ? 12 : h % 12;
+      return `${h12}:${m}${period}`;
+    }
     const bareMatch = s.match(/^(\d{1,2}):(\d{2})/);
     if (bareMatch) {
       let h = parseInt(bareMatch[1], 10);
@@ -64,8 +70,12 @@ function fmtTime(v: string | null | undefined): string {
         if (isPM && h < 12) h += 12;
         if (!isPM && h === 12) h = 0;
       }
-      return `${String(h).padStart(2, '0')}:${m}`;
+      const period = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 === 0 ? 12 : h % 12;
+      return `${h12}:${m}${period}`;
     }
+    // Already formatted (e.g. "04:30 AM")
+    if (/\d{1,2}:\d{2}\s*(AM|PM)/i.test(s)) return s;
     return '';
   } catch {
     return '';
@@ -182,24 +192,28 @@ export function buildFullTicketFromApi(
   };
 }
 
+// ── Colours (CBM / Votorantim palette) ──
 const P = {
   white: [255, 255, 255] as [number, number, number],
   dark: [15, 23, 42] as [number, number, number],
+  body: [51, 65, 85] as [number, number, number],
   lbl: [100, 116, 139] as [number, number, number],
-  bdr: [203, 213, 225] as [number, number, number],
-  bg: [248, 250, 252] as [number, number, number],
   muted: [148, 163, 184] as [number, number, number],
-  cautionBg: [254, 243, 199] as [number, number, number],
-  cautionBdr: [251, 191, 36] as [number, number, number],
-  cautionTxt: [146, 64, 14] as [number, number, number],
-  red: [220, 38, 38] as [number, number, number],
+  bdr: [203, 213, 225] as [number, number, number],
+  rowAlt: [241, 245, 249] as [number, number, number],
+  rowWhite: [255, 255, 255] as [number, number, number],
+  caution: [220, 38, 38] as [number, number, number],
+  prodHead: [153, 27, 46] as [number, number, number],
+  blueBar: [29, 78, 216] as [number, number, number],
+  redBar: [220, 38, 38] as [number, number, number],
+  noteBg: [248, 250, 252] as [number, number, number],
 };
 
-const lblS = {fontSize: 5, fontStyle: 'normal' as const, textColor: P.lbl, cellPadding: {top: 0.6, bottom: 0, left: 2, right: 2}, minCellHeight: 3.0};
-const valS = {fontSize: 7.5, fontStyle: 'bold' as const, textColor: P.dark, cellPadding: {top: 0.2, bottom: 1.0, left: 2, right: 2}, minCellHeight: 4.0};
-const tbl = {theme: 'grid' as const, styles: {lineColor: P.bdr, lineWidth: 0.2, cellPadding: 1.0, fontSize: 6.5, textColor: P.dark}};
+const tbl = {theme: 'grid' as const, styles: {lineColor: P.bdr, lineWidth: 0.2, cellPadding: 1.4, fontSize: 7, textColor: P.dark}};
+const lbl = {fontSize: 7, fontStyle: 'normal' as const, textColor: P.lbl, fillColor: P.rowAlt, cellPadding: {top: 1.6, bottom: 1.6, left: 2.5, right: 2.5}};
+const val = {fontSize: 7.5, fontStyle: 'bold' as const, textColor: P.dark, fillColor: P.rowAlt, cellPadding: {top: 1.6, bottom: 1.6, left: 2.5, right: 2.5}};
 
-function buildJsPdf(ticket: FullTicket, orderCode?: string | null, qrDataUrl?: string | null, qrSubtitle?: string | null): any {
+function buildJsPdf(ticket: FullTicket, orderCode?: string | null, qrDataUrl?: string | null, tenantName?: string | null, tenantSubdomain?: string | null): any {
   const jsPDF = getJsPDF();
   const autoTable = getAutoTable();
   const doc = new jsPDF({orientation: 'portrait', unit: 'mm', format: 'letter'});
@@ -214,98 +228,172 @@ function buildJsPdf(ticket: FullTicket, orderCode?: string | null, qrDataUrl?: s
   const weatherStr = weather ? `${weather.temperature_fahrenheit.toFixed(1)}\u00b0F ${weather.weather_description}` : '';
   const products = ticket.ticket_products || [];
   const now = new Date().toLocaleString('en-US');
+  const company = (tenantName || 'Truckast').toUpperCase();
   const lastY = () => (doc as any).lastAutoTable.finalY as number;
-  function banner(title: string, by: number): number { doc.setFillColor(120, 184, 41); doc.rect(ml, by, cw, 5.5, 'F'); doc.setTextColor(...P.white); doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.text(title, ml + 2, by + 3.8); return by + 5.5; }
-  function footer(left: string) { doc.setTextColor(...P.muted); doc.setFontSize(5); doc.setFont('helvetica', 'normal'); doc.text(left, ml, ph - 5); doc.text(`Downloaded: ${now}`, pw - mr, ph - 5, {align: 'right'}); }
 
-  // ── Page 1: Delivery Ticket ──
+  function drawFooter(leftLine: string) {
+    doc.setFillColor(...P.redBar); doc.rect(0, ph - 6, pw, 0.8, 'F');
+    doc.setFillColor(...P.blueBar); doc.rect(0, ph - 5.2, pw, 5.2, 'F');
+    doc.setTextColor(...P.white); doc.setFontSize(6); doc.setFont('helvetica', 'normal');
+    doc.text(leftLine, ml, ph - 1.8);
+    doc.text(`Downloaded: ${now}`, pw - mr, ph - 1.8, {align: 'right'});
+  }
+
+  function drawHeader(subtitle: string) {
+    try { doc.addImage(TRUCKAST_GREEN_LOGO, 'PNG', ml, 4, 38, 14); } catch {
+      doc.setTextColor(...P.dark); doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.text('TRUCKAST', ml + 2, 12);
+    }
+    doc.setTextColor(...P.dark); doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+    doc.text(company, pw / 2, 10, {align: 'center'});
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...P.lbl);
+    doc.text(subtitle, pw / 2, 14, {align: 'center'});
+    const qrSize = 16, qrX = pw - mr - qrSize, qrY = 3;
+    if (qrDataUrl) { try { doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize); } catch {} }
+    else { doc.setDrawColor(...P.bdr); doc.setLineWidth(0.3); doc.rect(qrX, qrY, qrSize, qrSize, 'S'); }
+    doc.setTextColor(...P.dark); doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+    doc.text(ticket.ticket_code, qrX + qrSize / 2, qrY + qrSize + 4, {align: 'center'});
+    doc.setDrawColor(...P.bdr); doc.setLineWidth(0.3); doc.line(ml, 25, pw - mr, 25);
+  }
+
   let y = 0;
-  doc.setFillColor(120, 184, 41); doc.rect(0, 0, pw, 22, 'F');
-  try { doc.addImage(TRUCKAST_GREEN_LOGO, 'PNG', ml + 1, 3, 40, 13); } catch { doc.setTextColor(...P.white); doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.text('TRUCKAST', ml + 2, 12); }
-  doc.setTextColor(...P.white); doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.text('DOLESE BROS. CO.', pw / 2, 9, {align: 'center'}); doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.text('Concrete Delivery Ticket', pw / 2, 14, {align: 'center'});
-  doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont('helvetica', 'normal'); doc.text('Ticket #', pw - mr - 2, 6, {align: 'right'}); doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.text(ticket.ticket_code, pw - mr - 2, 15, {align: 'right'});
-  doc.setFillColor(88, 145, 25); doc.rect(0, 22, pw, 1.5, 'F');
-  y = 25;
 
-  // Caution box
-  doc.setFillColor(...P.cautionBg); doc.rect(ml, y, cw, 8, 'F'); doc.setDrawColor(...P.cautionBdr); doc.setLineWidth(0.3); doc.rect(ml, y, cw, 8, 'S'); doc.setTextColor(...P.cautionTxt); doc.setFontSize(5.5); doc.setFont('helvetica', 'bold'); doc.text('CAUTION', ml + 2, y + 3); doc.setFontSize(3.5); doc.setFont('helvetica', 'normal'); doc.text('READY MIXED CONCRETE \u2014 AVOID CONTACT WITH EYES OR SKIN. Freshly mixed cement, mortar, concrete or grout forms a caustic solution. Wear protective clothing. If wet concrete gets into your eyes, flush immediately for 15 minutes. If discomfort persists, seek medical attention.', ml + 2, y + 5.5, {maxWidth: cw - 4});
-  y += 9;
+  // ── PAGE 1 ──
+  drawHeader('Concrete Delivery Ticket');
+  y = 28;
 
-  // QR code + Ticket/Order/Date row
-  const qrSize = 22; const qrX = pw - mr - qrSize - 1; const qrY = y;
-  if (qrDataUrl) { try { doc.addImage(qrDataUrl, 'GIF', qrX, qrY, qrSize, qrSize); } catch { doc.setDrawColor(120, 184, 41); doc.setLineWidth(0.5); doc.rect(qrX, qrY, qrSize, qrSize, 'S'); doc.setTextColor(120, 184, 41); doc.setFontSize(5); doc.setFont('helvetica', 'bold'); doc.text('SCAN QR', qrX + qrSize / 2, qrY + qrSize / 2 - 1, {align: 'center'}); } } else { doc.setDrawColor(120, 184, 41); doc.setLineWidth(0.5); doc.rect(qrX, qrY, qrSize, qrSize, 'S'); doc.setTextColor(120, 184, 41); doc.setFontSize(5); doc.setFont('helvetica', 'bold'); doc.text('SCAN QR', qrX + qrSize / 2, qrY + qrSize / 2 - 1, {align: 'center'}); doc.setFontSize(3.5); doc.setFont('helvetica', 'normal'); doc.text('for live tracking', qrX + qrSize / 2, qrY + qrSize / 2 + 2, {align: 'center'}); }
-  const subText = qrSubtitle && qrSubtitle.length > 45 ? qrSubtitle.substring(0, 42) + '...' : (qrSubtitle || 'Scan to verify ticket');
-  doc.setTextColor(...P.muted); doc.setFontSize(3); doc.setFont('helvetica', 'normal'); doc.text(subText, qrX + qrSize / 2, qrY + qrSize + 2.5, {align: 'center'});
-  const formW = cw - qrSize - 6; const triW = formW / 3;
-  autoTable(doc, {startY: y, margin: {left: ml, right: pw - ml - formW}, ...tbl, body: [[{content: 'Ticket', styles: lblS}, {content: 'Order', styles: lblS}, {content: 'Date', styles: lblS}], [{content: ticket.ticket_code, styles: valS}, {content: f(oCode) || '\u2014', styles: valS}, {content: fmtDate(ticket.order_date), styles: valS}]] as RowInput[], columnStyles: {0: {cellWidth: triW}, 1: {cellWidth: triW}, 2: {cellWidth: triW}}});
-  y = Math.max(lastY(), qrY + qrSize + 4);
+  // CAUTION
+  doc.setTextColor(...P.caution); doc.setFontSize(7.5); doc.setFont('helvetica', 'bold');
+  doc.text('CAUTION', pw / 2, y + 1, {align: 'center'});
+  doc.setFontSize(4.8); doc.setFont('helvetica', 'normal');
+  const cautionText = 'CEMENT POWDER OR FRESHLY MIXED CONCRETE, GROUT OR MORTAR IS CAUSTIC AND CORROSIVE, AND CAN DESTROY SKIN AND TISSUE. FRESH CONCRETE CAN WET AND PENETRATE CLOTHING. WATERPROOF CLOTHING SHOULD BE USED, AND IF ANY CLOTHING GETS WET, THE SKIN MUST BE PROMPTLY WASHED WITH WATER. IF ANY CEMENT MIXTURE GETS INTO EYES, RINSE IMMEDIATELY AND REPEATEDLY WITH WATER AND GET PROMPT MEDICAL ATTENTION. KEEP OUT OF REACH OF CHILDREN.';
+  const cLines = doc.splitTextToSize(cautionText, cw - 6);
+  doc.text(cLines, pw / 2, y + 4, {align: 'center'});
+  y += 4 + cLines.length * 1.8 + 2;
 
-  // Customer / Project / Address / etc.
-  const fwFields: [string, string][] = []; fwFields.push(['Customer', f(ticket.customer_name) || '\u2014']); if (f(ticket.project_name)) fwFields.push(['Project', f(ticket.project_name)]); fwFields.push(['Delivery Address', f(address) || '\u2014']); if (f(ticket.lot_block_number)) fwFields.push(['LotBlock', f(ticket.lot_block_number)]); if (f(ticket.customer_job)) fwFields.push(['Customer Job Name', f(ticket.customer_job)]); if (f(ticket.job_number)) fwFields.push(['Customer Job Number', f(ticket.job_number)]); if (f(ticket.purchase_order)) fwFields.push(['Purchase Order Number', f(ticket.purchase_order)]); if (f(ticket.special_instructions)) fwFields.push(['Special Instructions', f(ticket.special_instructions)]);
-  const fwBody: RowInput[] = []; fwFields.forEach(([label, value]) => { fwBody.push([{content: label, styles: lblS}]); fwBody.push([{content: value, styles: valS}]); });
-  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, body: fwBody, columnStyles: {0: {cellWidth: cw}}});
+  // Info table — Ticket / Order / Date
+  const labelW = cw * 0.28, valueW = cw - labelW;
+  const triLblW = cw / 6, triValW = cw / 3 - triLblW;
+  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, body: [
+    [{content: 'Ticket:', styles: lbl}, {content: ticket.ticket_code, styles: val}, {content: 'Order:', styles: lbl}, {content: f(oCode) || '\u2014', styles: val}, {content: 'Date:', styles: lbl}, {content: fmtDate(ticket.order_date), styles: val}],
+  ] as RowInput[], columnStyles: {0: {cellWidth: triLblW}, 1: {cellWidth: triValW}, 2: {cellWidth: triLblW}, 3: {cellWidth: triValW}, 4: {cellWidth: triLblW}, 5: {cellWidth: triValW}}});
   y = lastY();
 
-  // Order By row
-  const orderByName = f(ticket.ordered_by_name); const orderByPhone = f(ticket.ordered_by_phone);
-  if (orderByName || orderByPhone) { autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, body: [[{content: 'Order By', styles: lblS}, {content: 'Order By Phone', styles: lblS}], [{content: orderByName || '\u2014', styles: valS}, {content: orderByPhone || '\u2014', styles: valS}]] as RowInput[], columnStyles: {0: {cellWidth: cw * 0.52}, 1: {cellWidth: cw * 0.48}}}); y = lastY(); }
-
-  // Driver / Truck / Plant / Load / Usage / Status pairs
-  const pairs: [string, string, string, string][] = []; pairs.push(['Driver', f(ticket.driver_name) || '\u2014', 'Truck', f(ticket.truck_code) || '\u2014']); pairs.push(['Plant', f(ticket.plant_name || ticket.plant_code) || '\u2014', 'Plant Address', f(ticket.plant_address) || '\u2014']); if (f(ticket.truck_ahead)) pairs.push(['Producer', '\u2014', 'Truck Ahead', f(ticket.truck_ahead)]); pairs.push(['Load', qi.load, 'Slump', f(ticket.slump) || '\u2014']); pairs.push(['Usage', f(mix?.description) || '\u2014', 'Total Quantity', qi.total]); if (weatherStr) pairs.push(['Weather', weatherStr, 'Status', ticket.current_status || 'Pending']); else pairs.push(['Status', ticket.current_status || 'Pending', 'Order Date', fmtDate(ticket.order_date)]);
-  const pairBody: RowInput[] = []; pairs.forEach(([lL, lV, rL, rV]) => { pairBody.push([{content: lL, styles: lblS}, {content: rL, styles: lblS}]); pairBody.push([{content: lV, styles: valS}, {content: rV, styles: valS}]); });
-  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, body: pairBody, columnStyles: {0: {cellWidth: cw * 0.52}, 1: {cellWidth: cw * 0.48}}});
-  y = lastY() + 1;
-
-  // Products table
-  y = banner('PRODUCTS', y);
-  const prodRows: RowInput[] = products.length > 0 ? products.map(p => [p.load_qty != null ? p.load_qty.toFixed(2) : '\u2014', f(p.item_code) || '\u2014', f(p.description) || '\u2014', f(p.ticket_qty_unit || p.order_qty_unit) || '\u2014', '\u2014', 'ON ACCOUNT']) : [[{content: 'No products recorded', colSpan: 6, styles: {halign: 'center' as const, fontStyle: 'italic' as const, textColor: P.muted}}]];
-  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, head: [['Load Qty', 'Product Code', 'Product Description', 'Unit', 'Unit Price', 'Amount']], body: prodRows, headStyles: {fillColor: P.bg, textColor: P.lbl, fontStyle: 'bold', fontSize: 5}, styles: {...tbl.styles, fontSize: 6}, columnStyles: {0: {halign: 'center', cellWidth: 18}, 1: {halign: 'center', cellWidth: 20}, 2: {cellWidth: 'auto'}, 3: {halign: 'center', cellWidth: 14}, 4: {halign: 'right', cellWidth: 18}, 5: {halign: 'right', cellWidth: 22}}});
+  // Full-width label/value rows
+  const fullRows: [string, string][] = [['Load:', '1'], ['Customer:', f(ticket.customer_name) || '\u2014']];
+  if (f(ticket.project_name)) fullRows.push(['Project:', f(ticket.project_name)]);
+  fullRows.push(['Delivery Address:', f(address) || '\u2014']);
+  fullRows.push(['Lot Block:', f(ticket.lot_block_number) || 'N/A']);
+  if (f(ticket.customer_job)) fullRows.push(['Customer Job Name:', f(ticket.customer_job)]);
+  if (f(ticket.purchase_order)) fullRows.push(['Purchase Order:', f(ticket.purchase_order)]);
+  if (f(ticket.special_instructions)) fullRows.push(['Special Instructions:', f(ticket.special_instructions)]);
+  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, body: fullRows.map(([l, v]) => [{content: l, styles: lbl}, {content: v, styles: val}]) as RowInput[], columnStyles: {0: {cellWidth: labelW}, 1: {cellWidth: valueW}}});
   y = lastY();
 
-  // Subtotal
-  autoTable(doc, {startY: y, margin: {left: ml + cw * 0.62, right: mr}, ...tbl, body: [['Sub Total', 'ON ACCOUNT'], ['Gst/Hst', ''], ['Total', 'ON ACCOUNT']] as RowInput[], styles: {...tbl.styles, fontSize: 5, cellPadding: 1}, columnStyles: {0: {fontStyle: 'bold', textColor: P.lbl, cellWidth: (cw * 0.38) / 2}, 1: {halign: 'right', fontStyle: 'bold', textColor: P.dark, cellWidth: (cw * 0.38) / 2}}});
+  // Order By
+  const obyName = f(ticket.ordered_by_name), obyPhone = f(ticket.ordered_by_phone);
+  if (obyName || obyPhone) {
+    autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, body: [
+      [{content: 'Order By:', styles: lbl}, {content: obyName || '\u2014', styles: val}, {content: 'Order By Phone:', styles: lbl}, {content: obyPhone || '\u2014', styles: val}],
+    ] as RowInput[], columnStyles: {0: {cellWidth: labelW}, 1: {cellWidth: cw / 2 - labelW}, 2: {cellWidth: cw * 0.22}, 3: {cellWidth: cw / 2 - cw * 0.22}}});
+    y = lastY();
+  }
+  y += 2;
+
+  // Driver / Truck / Plant / Load / Slump pairs
+  const pairs: [string, string, string, string][] = [
+    ['Driver', f(ticket.driver_name) || '\u2014', 'Truck', f(ticket.truck_code) || '\u2014'],
+    ['Plant', f(ticket.plant_name || ticket.plant_code) || '\u2014', 'Plant Address', f(ticket.plant_address) || '\u2014'],
+    ['Load', qi.load, 'Slump', f(ticket.slump) || '\u2014'],
+    ['Usage', f(mix?.description) || '\u2014', 'Total Quantity', qi.total],
+    ['Weather', weatherStr || '\u2014', 'Status', ticket.current_status || 'Pending'],
+  ];
+  const pairBody: RowInput[] = pairs.map(([lL, lV, rL, rV]) => [{content: lL, styles: lbl}, {content: lV, styles: val}, {content: rL, styles: lbl}, {content: rV, styles: val}]);
+  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, body: pairBody, columnStyles: {0: {cellWidth: cw * 0.18}, 1: {cellWidth: cw * 0.32}, 2: {cellWidth: cw * 0.18}, 3: {cellWidth: cw * 0.32}}});
+  y = lastY() + 2;
+
+  // Products table (dark red header)
+  const prodRows: RowInput[] = products.length > 0 ? products.map(p => [p.load_qty != null ? Number(p.load_qty).toFixed(2) : '\u2014', f(p.item_code) || '\u2014', f(p.description) || '\u2014', (f(p.ticket_qty_unit || p.order_qty_unit) || '\u2014').toLowerCase(), '', 'ON ACCOUNT']) : [[{content: 'No products recorded', colSpan: 6, styles: {halign: 'center' as const, fontStyle: 'italic' as const, textColor: P.muted}}]];
+  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, head: [['Load Quantity', 'Product Code', 'Product Description', 'Unit Of Measure', 'Unit Price', 'Amount']], body: prodRows, headStyles: {fillColor: P.prodHead, textColor: P.white, fontStyle: 'bold', fontSize: 6.5, halign: 'center'}, alternateRowStyles: {fillColor: P.rowAlt}, bodyStyles: {fillColor: P.rowWhite}, styles: {...tbl.styles, fontSize: 6.8}, columnStyles: {0: {halign: 'center', cellWidth: 22}, 1: {halign: 'center', cellWidth: 26}, 2: {cellWidth: 'auto'}, 3: {halign: 'center', cellWidth: 22}, 4: {halign: 'right', cellWidth: 18}, 5: {halign: 'right', cellWidth: 24}}});
   y = lastY() + 1;
+
+  // Totals
+  const totW = cw * 0.34;
+  autoTable(doc, {startY: y, margin: {left: pw - mr - totW, right: mr}, ...tbl, body: [
+    [{content: 'Sub Total:', styles: {...lbl, halign: 'right' as const}}, {content: '', styles: val}],
+    [{content: 'Tax:', styles: {...lbl, halign: 'right' as const}}, {content: '', styles: val}],
+    [{content: 'Total:', styles: {...lbl, halign: 'right' as const, fontStyle: 'bold' as const}}, {content: 'ON ACCOUNT', styles: {...val, halign: 'left' as const}}],
+  ] as RowInput[], styles: {...tbl.styles, fontSize: 7, cellPadding: 1.2}, columnStyles: {0: {cellWidth: totW * 0.5}, 1: {cellWidth: totW * 0.5}}});
+  y = lastY() + 2;
 
   // Delivery Timeline
-  y = banner('DELIVERY TIMELINE', y);
-  const tPrinted = fmtTime(ticket.printed_time) || '\u2014'; const tLoading = fmtTime(ticket.load_time) || '\u2014'; const tLoaded = fmtTime(ticket.loaded_time) || '\u2014'; const tToJob = fmtTime(ticket.to_job_time) || '\u2014'; const tOnJob = fmtTime(ticket.on_job_time) || '\u2014'; const tPour = fmtTime(ticket.unload_time) || '\u2014'; const tWash = fmtTime(ticket.wash_time) || '\u2014'; const tToPlant = fmtTime(ticket.to_plant_time) || '\u2014'; const tAtPlant = fmtTime(ticket.at_plant_time) || '\u2014';
-  const ctr = {halign: 'center' as const}; const bld = {halign: 'center' as const, fontStyle: 'bold' as const};
-  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, head: [[{content: 'Ticketed', styles: ctr}, {content: 'Loading', styles: ctr}, {content: 'Loaded', styles: ctr}, {content: 'To Job', styles: ctr}, {content: 'On Job', styles: ctr}, {content: 'Pouring', styles: ctr}, {content: 'Washing', styles: ctr}, {content: 'To Plant', styles: ctr}, {content: 'At Plant', styles: ctr}]], body: [[{content: tPrinted, styles: bld}, {content: tLoading, styles: bld}, {content: tLoaded, styles: bld}, {content: tToJob, styles: bld}, {content: tOnJob, styles: bld}, {content: tPour, styles: bld}, {content: tWash, styles: bld}, {content: tToPlant, styles: bld}, {content: tAtPlant, styles: bld}]] as RowInput[], headStyles: {fillColor: P.bg, textColor: [120, 184, 41] as [number, number, number], fontStyle: 'bold', fontSize: 5, halign: 'center'}, styles: {...tbl.styles, fontSize: 6.5}});
-  y = lastY();
-
-  // Customer water / returned concrete
-  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, body: [['Customer added water ______ Litres', 'Estimated Returned Concrete ______ m3']] as RowInput[], styles: {...tbl.styles, fontSize: 5.5, textColor: P.lbl}, columnStyles: {0: {cellWidth: cw / 2}, 1: {cellWidth: cw / 2}}});
-  y = lastY();
+  const tEndLoad = fmtTime(ticket.loaded_time) || '\u2014';
+  const tToJob = fmtTime(ticket.to_job_time) || '\u2014';
+  const tOnJob = fmtTime(ticket.on_job_time) || '\u2014';
+  const tPour = fmtTime(ticket.unload_time) || '\u2014';
+  const tWash = fmtTime(ticket.wash_time) || '\u2014';
+  const tToPlant = fmtTime(ticket.to_plant_time) || '\u2014';
+  const tAtPlant = fmtTime(ticket.at_plant_time) || '\u2014';
+  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, body: [
+    [{content: 'End Load', styles: lbl}, {content: tEndLoad, styles: val}, {content: 'To Job:', styles: lbl}, {content: tToJob, styles: val}, {content: 'On Job:', styles: lbl}, {content: tOnJob, styles: val}, {content: 'Pouring:', styles: lbl}, {content: tPour, styles: val}],
+    [{content: 'Washing:', styles: lbl}, {content: tWash, styles: val}, {content: 'To Plant:', styles: lbl}, {content: tToPlant, styles: val}, {content: 'At Plant:', styles: lbl}, {content: tAtPlant, styles: val}, {content: '', styles: lbl}, {content: '', styles: val}],
+  ] as RowInput[], columnStyles: {0: {cellWidth: cw * 0.12}, 1: {cellWidth: cw * 0.13}, 2: {cellWidth: cw * 0.12}, 3: {cellWidth: cw * 0.13}, 4: {cellWidth: cw * 0.12}, 5: {cellWidth: cw * 0.13}, 6: {cellWidth: cw * 0.12}, 7: {cellWidth: cw * 0.13}}});
+  y = lastY() + 2;
 
   // Customer Notes
-  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, body: [[{content: 'Customer Notes:\n_________________________________________________________________________________\n_________________________________________________________________________________', styles: {fontSize: 5.5, fontStyle: 'bold' as const, textColor: P.dark, minCellHeight: 10}}]] as RowInput[], columnStyles: {0: {cellWidth: cw}}});
-  footer('Dolese Bros. Co. \u2014 Concrete Delivery Ticket');
+  doc.setTextColor(...P.body); doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
+  doc.text('Customer Notes:', ml, y + 2);
+  doc.setFillColor(...P.noteBg); doc.setDrawColor(...P.bdr); doc.setLineWidth(0.2);
+  doc.rect(ml, y + 3, cw, 12, 'FD');
+  y += 22;
 
-  // ── Page 2: Terms & Conditions ──
+  // Terms
+  doc.setTextColor(...P.body); doc.setFontSize(5.5); doc.setFont('helvetica', 'normal');
+  const t1 = `${company} IS PLEASED TO DELIVER THE CONCRETE OR CONCRETE PRODUCTS ("PRODUCT") DESCRIBED ON THIS DELIVERY TICKET. THE UNDERSIGNED ACKNOWLEDGES THAT ALL PRODUCTS AND SERVICES HAVE BEEN RECEIVED IN GOOD ORDER AND CONDITION. PLEASE BE ADVISED THAT THE PRODUCTS AND SERVICES ARE SUBJECT TO ${company}'S TERMS AND CONDITIONS OF SALE - CONCRETE (AVAILABLE ON REQUEST). ANY PROPOSAL OR ATTEMPT TO MODIFY THESE TERMS, INCLUDING BY ANNOTATION ON THIS DELIVERY TICKET, IS EXPRESSLY REJECTED. ANY DISAGREEMENTS WITH THE INFORMATION CONTAINED ON THIS TICKET MUST BE REPORTED WITHIN 24 HOURS OF DELIVERY, OTHERWISE ALL INFORMATION WILL BE DEEMED FINAL.`;
+  const t1Lines = doc.splitTextToSize(t1, cw);
+  doc.text(t1Lines, ml, y);
+
+  drawFooter(`${company} \u2014 Concrete Delivery Ticket`);
+
+  // ── PAGE 2 — Terms & Signature ──
   doc.addPage();
-  doc.setFillColor(120, 184, 41); doc.rect(0, 0, pw, 22, 'F');
-  try { doc.addImage(TRUCKAST_GREEN_LOGO, 'PNG', ml + 1, 3, 40, 13); } catch { doc.setTextColor(...P.white); doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.text('TRUCKAST', ml + 2, 12); }
-  doc.setTextColor(...P.white); doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.text('DOLESE BROS. CO.', pw / 2, 9, {align: 'center'}); doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.text('Terms & Conditions', pw / 2, 14, {align: 'center'});
-  doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont('helvetica', 'normal'); doc.text('Ticket #', pw - mr - 2, 6, {align: 'right'}); doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.text(ticket.ticket_code, pw - mr - 2, 15, {align: 'right'});
-  doc.setFillColor(88, 145, 25); doc.rect(0, 22, pw, 1.5, 'F');
-  y = 27;
-  doc.setTextColor(...P.lbl); doc.setFontSize(5); doc.setFont('helvetica', 'normal'); doc.text('Dolese Bros. Co. | P.O. Box 1247, Oklahoma City, OK 73101 | dolese.com | dolese.truckast.ai', ml, y); doc.text(`Downloaded: ${now}`, pw - mr, y, {align: 'right'});
-  y += 5;
-  doc.setTextColor(71, 85, 105); doc.setFontSize(6); doc.setFont('helvetica', 'normal');
-  const terms = ['DOLESE BROS. CO. IS PLEASED TO DELIVER THE CONCRETE OR CONCRETE PRODUCTS ("PRODUCT") DESCRIBED ON THIS DELIVERY TICKET. PLEASE BE ADVISED THAT THE PRODUCT IS SUBJECT TO OUR TERMS AND CONDITIONS OF SALE \u2014 CONCRETE (AVAILABLE ON REQUEST). ANY PROPOSAL OR ATTEMPT TO MODIFY THESE TERMS, INCLUDING BY ANNOTATION ON THE FACE OF THIS DELIVERY TICKET, IS EXPRESSLY REJECTED. ANY DISAGREEMENTS WITH THE INFORMATION CONTAINED ON THIS TICKET MUST BE REPORTED WITHIN 24 HOURS OF DELIVERY, OTHERWISE ALL INFORMATION WILL BE DEEMED FINAL.', 'CUSTOMER ACKNOWLEDGES RECEIPT OF THE PRODUCT IN GOOD CONDITION AND AGREES TO THE TERMS AND CONDITIONS OF SALE. THE CUSTOMER WILL NOT HOLD THE PRODUCER LIABLE FOR ANY DAMAGES RESULTING FROM IMPROPER USE, PLACEMENT, OR FINISHING OF THE CONCRETE PRODUCT.', 'CUSTOMER IS RESPONSIBLE FOR ENSURING ADEQUATE ACCESS TO THE DELIVERY SITE AND THAT THE SITE IS SAFE FOR DELIVERY OPERATIONS. ANY ADDITIONAL TIME REQUIRED DUE TO SITE CONDITIONS WILL BE CHARGED AT THE PREVAILING RATE.', "ALL CLAIMS FOR DEFECTIVE PRODUCT MUST BE MADE IN WRITING WITHIN 72 HOURS OF DELIVERY. PRODUCER'S LIABILITY SHALL NOT EXCEED THE PURCHASE PRICE OF THE PRODUCT DELIVERED."];
-  terms.forEach(para => { const lines = doc.splitTextToSize(para, cw); doc.text(lines, ml, y); y += lines.length * 2.8 + 2; });
-  doc.setTextColor(...P.red); doc.setFontSize(5); doc.setFont('helvetica', 'bold');
-  const redLines = doc.splitTextToSize('ANY DISAGREEMENTS WITH THE INFORMATION CONTAINED ON THIS TICKET MUST BE REPORTED WITHIN 24 HOURS OF DELIVERY, OTHERWISE ALL INFORMATION WILL BE DEEMED FINAL.', cw);
-  doc.text(redLines, ml, y); y += redLines.length * 2.5 + 6;
+  drawHeader('Terms & Conditions');
+  y = 28;
 
-  // Signature section
-  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, head: [[{content: 'Received By:', styles: {halign: 'left' as const}}, {content: 'Signature:', styles: {halign: 'left' as const}}, {content: 'Time Signed:', styles: {halign: 'left' as const}}]], body: [[{content: 'Unsigned\n__________________________', styles: {minCellHeight: 12}}, {content: 'Unsigned\n__________________________', styles: {minCellHeight: 12}}, {content: 'Unsigned\n__________________________', styles: {minCellHeight: 12}}]] as RowInput[], headStyles: {fillColor: P.bg, textColor: P.lbl, fontStyle: 'bold', fontSize: 5.5}, styles: {...tbl.styles, fontSize: 7.5}, columnStyles: {0: {cellWidth: cw / 3}, 1: {cellWidth: cw / 3}, 2: {cellWidth: cw / 3}}});
+  doc.setTextColor(...P.body); doc.setFontSize(6); doc.setFont('helvetica', 'normal');
+  const terms2 = 'CUSTOMER ACKNOWLEDGES RECEIPT OF THE PRODUCT IN GOOD CONDITION AND AGREES TO THE TERMS AND CONDITIONS OF SALE. THE CUSTOMER WILL NOT HOLD THE PRODUCER LIABLE FOR ANY DAMAGES RESULTING FROM IMPROPER USE, PLACEMENT, OR FINISHING OF THE CONCRETE PRODUCT. CUSTOMER IS RESPONSIBLE FOR ENSURING ADEQUATE ACCESS TO THE DELIVERY SITE AND THAT THE SITE IS SAFE FOR DELIVERY OPERATIONS. ANY ADDITIONAL TIME REQUIRED DUE TO SITE CONDITIONS WILL BE CHARGED AT THE PREVAILING RATE. ALL CLAIMS FOR DEFECTIVE PRODUCT MUST BE MADE IN WRITING WITHIN 72 HOURS OF DELIVERY. PRODUCER\'S LIABILITY SHALL NOT EXCEED THE PURCHASE PRICE OF THE PRODUCT DELIVERED.';
+  const t2Lines = doc.splitTextToSize(terms2, cw);
+  doc.text(t2Lines, ml, y);
+  y += t2Lines.length * 2.6 + 4;
+
+  doc.setTextColor(...P.caution); doc.setFontSize(5); doc.setFont('helvetica', 'bold');
+  const redLines = doc.splitTextToSize('ANY DISAGREEMENTS WITH THE INFORMATION CONTAINED ON THIS TICKET MUST BE REPORTED WITHIN 24 HOURS OF DELIVERY, OTHERWISE ALL INFORMATION WILL BE DEEMED FINAL.', cw);
+  doc.text(redLines, ml, y);
+  y += redLines.length * 2.5 + 6;
+
+  // Signature block
+  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, body: [
+    [{content: 'Received By:', styles: lbl}, {content: 'Unsigned', styles: val}, {content: 'Signature:', styles: lbl}, {content: 'Unsigned', styles: val}, {content: 'Time Signed:', styles: lbl}, {content: 'Unsigned', styles: val}],
+  ] as RowInput[], columnStyles: {0: {cellWidth: cw * 0.13}, 1: {cellWidth: cw * 0.20}, 2: {cellWidth: cw * 0.13}, 3: {cellWidth: cw * 0.20}, 4: {cellWidth: cw * 0.13}, 5: {cellWidth: cw * 0.21}}});
+
+  drawFooter(`${company} \u2014 Concrete Delivery Ticket`);
+
+  // ── PAGE 3 — Concrete Test Results ──
+  doc.addPage();
+  drawHeader('Concrete Test Results');
+  y = 28;
+
+  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, head: [['Material', 'Description', 'Type', 'Design Qty', 'Required', '% VAR', '% Moisture', 'Actual Water', 'Total Water']], body: [[{content: `Test results not submitted for ticket: ${ticket.ticket_code}`, colSpan: 9, styles: {halign: 'center' as const, fontStyle: 'italic' as const, textColor: P.muted}}]] as RowInput[], headStyles: {fillColor: P.prodHead, textColor: P.white, fontStyle: 'bold', fontSize: 6.5, halign: 'center'}, alternateRowStyles: {fillColor: P.rowAlt}, styles: {...tbl.styles, fontSize: 6.5, halign: 'center'}});
   y = lastY() + 4;
 
-  // Concrete Test Results
-  y = banner('CONCRETE TEST RESULTS', y);
-  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, head: [['Status', 'User Type', 'Name', 'Air', 'Slump(mm)', 'Amb/Conc (C)', 'Wgt', 'AirEnt', 'Super', 'Water', 'Cast', 'Test', 'Time']], body: [[{content: `Test results not submitted for ticket: ${ticket.ticket_code}`, colSpan: 13, styles: {halign: 'left' as const, fontStyle: 'italic' as const, textColor: P.muted}}]] as RowInput[], headStyles: {fillColor: P.bg, textColor: P.lbl, fontStyle: 'bold', fontSize: 4.5}, styles: {...tbl.styles, fontSize: 5, cellPadding: 1.2}});
-  footer('Dolese Bros. Co. \u2014 dolese.truckast.ai');
+  const slumpStr = f(ticket.slump) ? `${f(ticket.slump)}` : '\u2014';
+  autoTable(doc, {startY: y, margin: {left: ml, right: mr}, ...tbl, body: [
+    [{content: 'Actual Load:', styles: lbl}, {content: qi.load, styles: val}, {content: 'Design W/C:', styles: lbl}, {content: '\u2014', styles: val}, {content: 'Water/Cement:', styles: lbl}, {content: '\u2014', styles: val}],
+    [{content: 'Design:', styles: lbl}, {content: '\u2014', styles: val}, {content: 'Actual Water W/C:', styles: lbl}, {content: '\u2014', styles: val}, {content: 'Water To Add:', styles: lbl}, {content: '\u2014', styles: val}],
+    [{content: 'Slump:', styles: lbl}, {content: slumpStr, styles: val}, {content: 'Water in Truck:', styles: lbl}, {content: '\u2014', styles: val}, {content: 'Adjust Water:', styles: lbl}, {content: '\u2014', styles: val}],
+    [{content: 'Trim Water:', styles: lbl}, {content: '\u2014', styles: val}, {content: 'Total Load Weights:', styles: lbl}, {content: qi.total, styles: val, colSpan: 3}],
+  ] as RowInput[], columnStyles: {0: {cellWidth: cw / 6}, 1: {cellWidth: cw / 6}, 2: {cellWidth: cw / 6}, 3: {cellWidth: cw / 6}, 4: {cellWidth: cw / 6}, 5: {cellWidth: cw / 6}}});
+
+  drawFooter(`${company} \u2014 Concrete Delivery Ticket`);
 
   return doc;
 }
@@ -323,10 +411,7 @@ export async function buildLocalPdf(scan: ScanRecord, ticketCode: string): Promi
 
   if (ticket) {
     const qrDataUrl = generateQrDataUrl(scan.data);
-    const qrSubtitle = tkTicketData?.tenantSubdomain
-      ? `https://${tkTicketData.tenantSubdomain}.truckast.ai/t/${ticket.ticket_code}`
-      : null;
-    const doc = buildJsPdf(ticket, orderCode, qrDataUrl, qrSubtitle);
+    const doc = buildJsPdf(ticket, orderCode, qrDataUrl, tkTicketData?.tenantName, tkTicketData?.tenantSubdomain);
     const arrayBuffer = doc.output('arraybuffer');
     const BufferClass = getBuffer();
     const base64 = BufferClass.from(arrayBuffer).toString('base64');

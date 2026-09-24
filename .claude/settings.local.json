@@ -84,7 +84,32 @@
       "Bash(adb connect:*)",
       "Bash(adb pair:*)",
       "Bash(PGPASSWORD='RCT18SvgiisQQybwI3wGzK21' psql -h 127.0.0.1 -p 5434 -U truckast_dev_rw -d dolese -c \"\nSELECT LEFT\\(device_token, 40\\) as token, device_type, is_active, created_at \nFROM user_devices \nWHERE user_id = '1188e9c5-9d45-45ee-baa0-ee38b1e6f46a' AND is_active = true \nORDER BY created_at DESC LIMIT 5;\n\" 2>&1)",
-      "Bash(PGPASSWORD='RCT18SvgiisQQybwI3wGzK21' psql -h 127.0.0.1 -p 5434 -U truckast_dev_rw -d dolese -c \"\nINSERT INTO chat_messages \\(order_id, chat_id, sender_id, sender_name, sender_role, message_text, attachments, is_deleted, timeline_visible, created_at, updated_at\\)\nVALUES \\(405588, 448, '41f7ae25-485d-4127-be4d-3967725c20ef', 'Hardik', 'admin', 'Hey! Can you check order 40501? 🔔', '[]'::jsonb, false, true, NOW\\(\\), NOW\\(\\)\\)\nRETURNING id;\n\" 2>&1)"
+      "Bash(PGPASSWORD='RCT18SvgiisQQybwI3wGzK21' psql -h 127.0.0.1 -p 5434 -U truckast_dev_rw -d dolese -c \"\nINSERT INTO chat_messages \\(order_id, chat_id, sender_id, sender_name, sender_role, message_text, attachments, is_deleted, timeline_visible, created_at, updated_at\\)\nVALUES \\(405588, 448, '41f7ae25-485d-4127-be4d-3967725c20ef', 'Hardik', 'admin', 'Hey! Can you check order 40501? 🔔', '[]'::jsonb, false, true, NOW\\(\\), NOW\\(\\)\\)\nRETURNING id;\n\" 2>&1)",
+      "Bash(echo \"========== $f ==========\")",
+      "Read(//Users/admin/Desktop/karl-truck-mobile-app/Truckast-python-scrapper-api/**)",
+      "Bash(npm ls:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''parsed''''\\)\")",
+      "Bash(rm -rf app/build/tmp/sentry-cli*)",
+      "Bash(./gradlew clean:*)",
+      "Bash(ping:*)",
+      "Bash(adb kill-server:*)",
+      "Bash(adb start-server:*)",
+      "Bash(launchctl list:*)",
+      "Bash(crontab -l)",
+      "Bash(shasum -a 256 /Users/admin/Desktop/karl-truck-mobile-app/android/gradle/wrapper/gradle-wrapper.jar)",
+      "Bash(cd:*)",
+      "Bash(lsof -ti:8081)",
+      "Bash(adb -s adb-ZN5223WQ9F-SHea7m._adb-tls-connect._tcp shell pm list packages)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:d.get\\(k\\) for k in [''''success'''',''''message'''']}, indent=2\\)\\); print\\(''''backend_url:'''', d.get\\(''''data'''',{}\\).get\\(''''tenant'''',{}\\).get\\(''''backend_url'''',''''N/A''''\\)\\)\")",
+      "Bash(curl -s -X POST http://localhost:5000/api/auth/mobile/login -H 'Content-Type: application/json' -d '{\"\"\"\"email\"\"\"\": \"\"\"\"cbm@yopmail.com\"\"\"\", \"\"\"\"password\"\"\"\": \"\"\"\"12345678\"\"\"\"}')",
+      "Bash(kubectl config:*)",
+      "Bash(PGPASSWORD='cbmapp_2f9a7c4e1b8d6035a1c9e7' psql -h localhost -p 5434 -U cbm_app -d vcna_cbm -c \"\\\\dt *chat*\")",
+      "Bash(D3_QR_PASSPHRASE=\"59817a6a-92b8-4046-8601-b8c1c3dc84f8\" node -e \"\nconst crypto = require\\('crypto'\\);\nconst V = Buffer.from\\([0x01,0x00,0x00,0x00]\\), M = Buffer.from\\([0x0d,0xf0,0xad,0xba]\\);\nconst p = process.env.D3_QR_PASSPHRASE;\nconsole.log\\('pass:', JSON.stringify\\(p\\), 'len:', p.length\\);\nfunction k\\(p\\){const k16=crypto.createHash\\('sha1'\\).update\\(Buffer.from\\(p,'utf16le'\\)\\).digest\\(\\).subarray\\(0,16\\);return Buffer.concat\\([k16,k16.subarray\\(0,8\\)]\\)}\nfunction d\\(hex\\){const b=Buffer.from\\(hex,'hex'\\);const iv=b.subarray\\(4,12\\),ct=b.subarray\\(12\\);const c=crypto.createDecipheriv\\('des-ede3-cbc',k\\(p\\),iv\\);const pl=Buffer.concat\\([c.update\\(ct\\),c.final\\(\\)]\\);if\\(!pl.subarray\\(0,4\\).equals\\(M\\)\\)return'MAG';const l=pl.readUInt16LE\\(6\\);const pay=pl.subarray\\(8,8+l\\);return pay.length%2===0?pay.toString\\('utf16le'\\):pay.toString\\('latin1'\\)}\ntry{console.log\\('one:', JSON.stringify\\(d\\('01000000A5B2253B8EFC224958042168ACE6F3DDBEB75E10542DAD7A'\\)\\)\\)}catch\\(e\\){console.log\\('ERR:',e.message\\)}\ntry{console.log\\('real:', JSON.stringify\\(d\\('010000007650F8DBBD7B9BEA4A41FB745D120A82D6458DA5219597CEB5507A1D741D2E65E5142393D68C3435C2D08FB71B7841335EEF59EDF2AE58B6108ED9EFB181EF7E0EFEC61CFA908AA7922C64D082011D9E7E56AB1971FDBCA4970F2F1460573CD6B21068EA80F4422FCCD728672333A12DF590C1C27274DBC57983FA63B2B1F281E396C37930A6743C1177056E52178434'\\)\\)\\)}catch\\(e\\){console.log\\('ERR:',e.message\\)}\n\")",
+      "Bash(pg_isready -h localhost -p 5433 2>&1)",
+      "Bash(pg_isready -h localhost -p 5434 2>&1)",
+      "Bash(PGPASSWORD='5BzwPzaedI8FrJpJA7HXSz2P022dXa2dgngPlfHllIuIRgeWEON1hWFs6xaQloMP' psql -h localhost -p 5433 -U auth_app -d central_auth -c \"SELECT code, consumed_at, expires_at, created_at FROM auth_codes WHERE email='cbm@yopmail.com' ORDER BY created_at DESC LIMIT 5;\" 2>&1)",
+      "Bash(kubectl exec:*)",
+      "Bash(adb reverse:*)"
     ]
   }
 }

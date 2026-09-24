@@ -907,6 +907,8 @@
     "etaAtJob": "ETA en Obra",
     "timeline": "Cronología",
     "viewTicket": "Ver Boleto",
+    "downloadPdf": "Descargar PDF",
+    "pdfDownloaded": "PDF descargado exitosamente",
     "share": "Compartir",
     "sharing": "Compartiendo...",
     "copy": "Copiar",
@@ -990,6 +992,8 @@
     "notAuthorizedMsg": "No estás autorizado para ver este boleto",
     "somethingWentWrong": "Algo salió mal",
     "unableToScan": "No se puede escanear",
+    "d3TicketTitle": "Boleto de Plataforma D3",
+    "d3TicketMsg": "Este código QR pertenece a la plataforma D3. Abriendo en el navegador...",
     "scanQR": "Escanear QR",
     "scanQRCode": "Escanear Código QR"
   },

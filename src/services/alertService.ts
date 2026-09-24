@@ -207,17 +207,12 @@ class AlertService {
       },
     });
 
-    // Only capture server errors (5xx) and network/timeout errors to Sentry.
-    // Client errors (400, 422, 403, 404, 429) are user mistakes or expected
-    // conditions — they flood Sentry with non-actionable noise.
-    if (!status || status >= 500) {
-      captureException(error instanceof Error ? error : new Error(`${title}: ${message}`), {
-        apiUrl: error?.config?.url,
-        apiMethod: error?.config?.method,
-        apiStatus: status,
-        apiResponseData: JSON.stringify(error?.response?.data),
-      });
-    }
+    captureException(error instanceof Error ? error : new Error(`${title}: ${message}`), {
+      apiUrl: error?.config?.url,
+      apiMethod: error?.config?.method,
+      apiStatus: status,
+      apiResponseData: JSON.stringify(error?.response?.data),
+    });
 
     Toast.show({
       type: 'error',

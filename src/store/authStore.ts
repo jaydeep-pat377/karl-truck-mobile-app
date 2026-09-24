@@ -148,6 +148,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
       if (accessToken && refreshToken) {
+        // Restore cached user first so verifyAuth can preserve tenant metadata
+        const savedUser = await AsyncStorage.getItem(STORAGE_KEYS.USER);
+        if (savedUser) {
+          try { set({ user: JSON.parse(savedUser) }); } catch {}
+        }
+
         const isValid = await get().verifyAuth();
         if (!isValid) {
           await get().logout();
@@ -166,7 +172,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const response = await authService.getMe();
 
       if (response.success && response.data?.user) {
-        const user = normaliseUserRole(response.data.user) as User;
+        const freshUser = normaliseUserRole(response.data.user) as User;
+        const currentUser = get().user;
+
+        // Preserve tenant metadata from login if /me returns empty metadata
+        if (currentUser?.metadata?.tenant && !freshUser.metadata?.tenant) {
+          freshUser.metadata = { ...freshUser.metadata, tenant: currentUser.metadata.tenant };
+        }
+
+        const user = freshUser;
         const accessToken = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
         const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 

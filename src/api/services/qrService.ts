@@ -17,6 +17,7 @@ import type {
 interface QrDecryptResponse {
   ok: boolean;
   kind?: string;
+  format?: string;
   ticket?: FullTicket;
   orderCode?: string;
   tenant?: {
@@ -27,13 +28,17 @@ interface QrDecryptResponse {
     name: string | null;
   };
   meta?: {
-    orderId: string | number;
-    truckCode: string;
-    truckId: string | number;
-    issuedAt: number;
+    orderId?: string | number;
+    truckCode?: string;
+    truckId?: string | number;
+    issuedAt?: number;
+    url?: string;
+    trackingUrl?: string;
+    pdfUrl?: string | null;
   };
   truck?: { code: string };
   error?: string;
+  url?: string; // D3 external URL
 }
 
 interface QrVerifyResponse {
@@ -46,6 +51,11 @@ interface QrVerifyResponse {
     security_mode?: {
       mode: string;
       scannable_statuses: string[];
+    } | null;
+    d3Meta?: {
+      url: string;
+      sig?: string;
+      format: string;
     } | null;
     details: {
       ticket?: APITicketDetails;
@@ -87,6 +97,9 @@ export type VerifyResult = {
   apiData?: APIDetails;
   orderCode?: string;
   message?: string;
+  pdfUrl?: string;
+  trackingUrl?: string;
+  d3Url?: string; // D3 external URL (not our platform)
 };
 
 // ── QR Verification ──
@@ -122,7 +135,7 @@ async function tryVerifyEndpoint(
     const data = response.data;
 
     if (data.success && data.data) {
-      const { kind, qrData, details, security_mode } = data.data;
+      const { kind, qrData, details, security_mode, d3Meta } = data.data;
 
       // Security mode checks
       if (security_mode?.mode === 'qr_login_required') {
@@ -167,7 +180,26 @@ async function tryVerifyEndpoint(
           ordered_by_phone: t.ordered_by_phone ?? o?.ordered_by_phone ?? undefined,
           progress_display: details.summary?.progress_display,
         };
-        return { status: 'verified', qrData, apiData: enrichedTicket };
+
+        // Build pdfUrl/trackingUrl from d3Meta
+        let pdfUrl: string | undefined;
+        let trackingUrl: string | undefined;
+        if (d3Meta?.pdfUrl) {
+          // D3 external — pdfUrl is the D3 download URL itself
+          pdfUrl = d3Meta.pdfUrl;
+          trackingUrl = d3Meta.url;
+        } else if (d3Meta?.url) {
+          trackingUrl = d3Meta.url;
+          const ticketCode = t.ticket_code || (qrData as TKTicketData)?.ticketCode;
+          if (ticketCode && d3Meta.sig) {
+            try {
+              const urlMatch = d3Meta.url.match(/^(https?:\/\/[^/]+)/);
+              if (urlMatch) pdfUrl = `${urlMatch[1]}/api/t/${ticketCode}/pdf?sig=${d3Meta.sig}`;
+            } catch {}
+          }
+        }
+
+        return { status: 'verified', qrData, apiData: enrichedTicket, pdfUrl, trackingUrl };
       }
 
       if (kind === 'truck' && details.truck) {
@@ -179,6 +211,9 @@ async function tryVerifyEndpoint(
     const errorCode = data.error_code;
     if (errorCode === 'NOT_FOUND') {
       return { status: 'not_found', message: data.message || 'Ticket not found' };
+    }
+    if (errorCode === 'D3_EXTERNAL') {
+      return { status: 'error', message: data.message || 'This QR code belongs to the D3 platform.', d3Url: (data as any).d3Url || (data as any).url };
     }
     if (errorCode === 'DECRYPT_FAILED' || errorCode === 'INVALID_FORMAT' || errorCode === 'UNKNOWN_FORMAT') {
       return { status: 'error', message: data.message || 'Invalid QR code' };
@@ -240,7 +275,7 @@ async function tryDecryptEndpoint(
         orderCode: data.orderCode || ticket.order_code || '',
         orderId: String(data.meta?.orderId || ''),
         ticketCode: ticket.ticket_code,
-        ticketId: String(ticket.ticket_id),
+        ticketId: String(ticket.ticket_id || ''),
         truckCode: ticket.truck_code || String(data.meta?.truckCode || ''),
         truckId: String(data.meta?.truckId || ''),
         tenantId: String(data.tenant?.id || ''),
@@ -309,6 +344,8 @@ async function tryDecryptEndpoint(
         qrData,
         apiData,
         orderCode: data.orderCode,
+        pdfUrl: data.meta?.pdfUrl || undefined,
+        trackingUrl: data.meta?.trackingUrl || undefined,
       };
     }
 

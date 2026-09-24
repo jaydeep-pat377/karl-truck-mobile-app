@@ -177,6 +177,6 @@ export interface SwitchTenantResponseData {
     id: number;
     name: string;
     subdomain: string;
-    backend_url: string;
+    backend_url: string | null;
   };
 }

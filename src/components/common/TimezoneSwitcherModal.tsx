@@ -75,7 +75,7 @@ export const TimezoneSwitcherModal: React.FC<TimezoneSwitcherModalProps> = ({
       title={t('settings.timezone')}
       subtitle={t('settings.selectTimezone')}
       headerIcon="clock-outline"
-      height={Math.min(timezones.length * vs(56) + vs(160), screenHeight * 0.85)}
+      height={Math.min(Math.max(timezones.length, 6) * vs(56) + vs(160), screenHeight * 0.85)}
       disableScroll
     >
       {isLoading ? (
