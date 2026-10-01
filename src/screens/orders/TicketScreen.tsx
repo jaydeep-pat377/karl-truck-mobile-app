@@ -770,28 +770,24 @@ const TicketDeliveryProgressBar: React.FC<TicketDeliveryProgressBarProps> = ({
         </Pressable>
         <View style={styles.ticketSegmentBarsRow}>
           {PROGRESS_STATUS_KEYS.map((status, index) => (
-            <React.Fragment key={`bar-${status.key}`}>
-              <Pressable
-                style={styles.ticketSegmentBarWrapper}
-                onPress={() => handleSegmentPress(status.key)}
-              >
-                <View style={[styles.ticketSegmentTrack, { backgroundColor: segmentColors[index] + '40' }]}>
-                  <SegmentStripes color={segmentColors[index]} patternId={`ticket-stripe-${status.key}`} />
-                  <View
-                    style={[
-                      styles.ticketSegmentFillOverlay,
-                      {
-                        width: `${progressFills[index]}%`,
-                        backgroundColor: segmentColors[index],
-                      },
-                    ]}
-                  />
-                </View>
-              </Pressable>
-              {index < PROGRESS_STATUS_KEYS.length - 1 && (
-                <View style={[styles.ticketSegmentDividerDotted, { borderColor: themeColors.text.hint }]} />
-              )}
-            </React.Fragment>
+            <Pressable
+              key={`bar-${status.key}`}
+              style={styles.ticketSegmentBarWrapper}
+              onPress={() => handleSegmentPress(status.key)}
+            >
+              <View style={[styles.ticketSegmentTrack, { backgroundColor: segmentColors[index] + '40' }]}>
+                <SegmentStripes color={segmentColors[index]} patternId={`ticket-stripe-${status.key}`} />
+                <View
+                  style={[
+                    styles.ticketSegmentFillOverlay,
+                    {
+                      width: `${progressFills[index]}%`,
+                      backgroundColor: segmentColors[index],
+                    },
+                  ]}
+                />
+              </View>
+            </Pressable>
           ))}
         </View>
         <Text
@@ -2035,6 +2031,7 @@ const styles = StyleSheet.create({
     height: ms(6),
     flexGrow: 1,
     flexShrink: 1,
+    gap: ms(3),
   },
   ticketSegmentBarWrapper: {
     flex: 1,

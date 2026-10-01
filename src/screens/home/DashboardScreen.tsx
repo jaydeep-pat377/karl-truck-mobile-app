@@ -767,25 +767,20 @@ const DashboardScreen: React.FC = () => {
               <Icon name="information-outline" size={ms(12)} color={themeColors.text.hint} />
               <View style={styles.deliverySegmentBarsRow}>
                 {PROGRESS_STATUSES.map((status, index) => (
-                  <React.Fragment key={`bar-${status.key}`}>
-                    <View style={styles.deliverySegmentBarWrapper}>
-                      <View style={[styles.deliverySegmentTrack, { backgroundColor: segmentColors[index] + '40' }]}>
-                        <SegmentStripes color={segmentColors[index]} patternId={`dash-stripe-${status.key}`} />
-                        <View
-                          style={[
-                            styles.deliverySegmentFillOverlay,
-                            {
-                              width: `${progressFills[index]}%`,
-                              backgroundColor: segmentColors[index],
-                            },
-                          ]}
-                        />
-                      </View>
+                  <View key={`bar-${status.key}`} style={styles.deliverySegmentBarWrapper}>
+                    <View style={[styles.deliverySegmentTrack, { backgroundColor: segmentColors[index] + '40' }]}>
+                      <SegmentStripes color={segmentColors[index]} patternId={`dash-stripe-${status.key}`} />
+                      <View
+                        style={[
+                          styles.deliverySegmentFillOverlay,
+                          {
+                            width: `${progressFills[index]}%`,
+                            backgroundColor: segmentColors[index],
+                          },
+                        ]}
+                      />
                     </View>
-                    {index < PROGRESS_STATUSES.length - 1 && (
-                      <View style={[styles.deliverySegmentDivider, { borderColor: themeColors.text.hint }]} />
-                    )}
-                  </React.Fragment>
+                  </View>
                 ))}
               </View>
               <Text
@@ -1449,6 +1444,7 @@ const createStyles = (
       height: ms(6),
       flexGrow: 1,
       flexShrink: 1,
+      gap: ms(3),
     },
     deliverySegmentBarWrapper: {
       flex: 1,

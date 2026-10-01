@@ -612,28 +612,24 @@ export const OrderCard: React.FC<OrderCardProps> = React.memo(({
                   </Pressable>
                   <View style={styles.segmentBarsRow}>
                     {PROGRESS_STATUSES.map((status, index) => (
-                      <React.Fragment key={`bar-${status.key}`}>
-                        <Pressable
-                          style={styles.segmentBarWrapper}
-                          onPress={() => handleSegmentPress(status.key)}
-                        >
-                          <View style={[styles.segmentTrack, { backgroundColor: segmentColors[index] + '40' }]}>
-                            <SegmentStripes color={segmentColors[index]} patternId={`stripe-${order.id}-${status.key}`} />
-                            <View
-                              style={[
-                                styles.segmentFillOverlay,
-                                {
-                                  width: `${progressFills[index]}%`,
-                                  backgroundColor: segmentColors[index],
-                                },
-                              ]}
-                            />
-                          </View>
-                        </Pressable>
-                        {index < PROGRESS_STATUSES.length - 1 && (
-                          <View style={[styles.segmentDividerDotted, { borderColor: themeColors.text.hint }]} />
-                        )}
-                      </React.Fragment>
+                      <Pressable
+                        key={`bar-${status.key}`}
+                        style={styles.segmentBarWrapper}
+                        onPress={() => handleSegmentPress(status.key)}
+                      >
+                        <View style={[styles.segmentTrack, { backgroundColor: segmentColors[index] + '40' }]}>
+                          <SegmentStripes color={segmentColors[index]} patternId={`stripe-${order.id}-${status.key}`} />
+                          <View
+                            style={[
+                              styles.segmentFillOverlay,
+                              {
+                                width: `${progressFills[index]}%`,
+                                backgroundColor: segmentColors[index],
+                              },
+                            ]}
+                          />
+                        </View>
+                      </Pressable>
                     ))}
                   </View>
                   <Text
@@ -960,6 +956,7 @@ const styles = StyleSheet.create({
     height: ms(6),
     flexGrow: 1,
     flexShrink: 1,
+    gap: ms(3),
   },
   segmentBarWrapper: {
     flex: 1,

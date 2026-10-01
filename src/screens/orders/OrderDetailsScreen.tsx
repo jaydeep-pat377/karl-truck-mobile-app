@@ -747,28 +747,24 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
         </Pressable>
         <View style={styles.deliverySegmentBarsRow}>
           {PROGRESS_STATUSES.map((status, index) => (
-            <React.Fragment key={`bar-${status.key}`}>
-              <Pressable
-                style={styles.deliverySegmentBarWrapper}
-                onPress={() => handleSegmentPress(status.key)}
-              >
-                <View style={[styles.deliverySegmentTrack, { backgroundColor: segmentColors[index] + '40' }]}>
-                  <SegmentStripes color={segmentColors[index]} patternId={`detail-stripe-${status.key}`} />
-                  <View
-                    style={[
-                      styles.deliverySegmentFillOverlay,
-                      {
-                        width: `${progressFills[index]}%`,
-                        backgroundColor: segmentColors[index],
-                      },
-                    ]}
-                  />
-                </View>
-              </Pressable>
-              {index < PROGRESS_STATUSES.length - 1 && (
-                <View style={[styles.deliverySegmentDividerDotted, { borderColor: themeColors.text.hint }]} />
-              )}
-            </React.Fragment>
+            <Pressable
+              key={`bar-${status.key}`}
+              style={styles.deliverySegmentBarWrapper}
+              onPress={() => handleSegmentPress(status.key)}
+            >
+              <View style={[styles.deliverySegmentTrack, { backgroundColor: segmentColors[index] + '40' }]}>
+                <SegmentStripes color={segmentColors[index]} patternId={`detail-stripe-${status.key}`} />
+                <View
+                  style={[
+                    styles.deliverySegmentFillOverlay,
+                    {
+                      width: `${progressFills[index]}%`,
+                      backgroundColor: segmentColors[index],
+                    },
+                  ]}
+                />
+              </View>
+            </Pressable>
           ))}
         </View>
         <Text
@@ -3421,6 +3417,7 @@ const styles = StyleSheet.create({
     height: ms(6),
     flexGrow: 1,
     flexShrink: 1,
+    gap: ms(3),
   },
   deliverySegmentBarWrapper: {
     flex: 1,
