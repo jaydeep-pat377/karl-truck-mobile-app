@@ -4,7 +4,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  useWindowDimensions,
 } from 'react-native';
 import { Icon } from './Icon';
 import { Text } from './Text';
@@ -32,7 +31,6 @@ export const TimezoneSwitcherModal: React.FC<TimezoneSwitcherModalProps> = ({
   const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
 
-  const { height: screenHeight } = useWindowDimensions();
   const { timezone: currentTimezone, companyTimezone, setTimezone } = useTimezoneStore();
   const [timezones, setTimezones] = useState<TimezoneInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,7 +73,7 @@ export const TimezoneSwitcherModal: React.FC<TimezoneSwitcherModalProps> = ({
       title={t('settings.timezone')}
       subtitle={t('settings.selectTimezone')}
       headerIcon="clock-outline"
-      height={Math.min(Math.max(timezones.length, 6) * vs(56) + vs(160), screenHeight * 0.85)}
+      height="content"
       disableScroll
     >
       {isLoading ? (
