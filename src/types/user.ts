@@ -172,7 +172,10 @@ export interface TenantListItem {
 
 export interface SwitchTenantResponseData {
   code: string;
-  client_secret: string;
+  // Nullable on purpose: a tenant API that still resolves client_secret from its
+  // local tenantClients.js file returns 200 with this unset for any tenant missing
+  // from that file. workspaceStore.switchTenant guards on it.
+  client_secret: string | null;
   tenant: {
     id: number;
     name: string;

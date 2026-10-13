@@ -154,6 +154,20 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
 
       const { code, client_secret, tenant } = switchResponse.data;
 
+      // Older tenant APIs look the target tenant's client_secret up in a local file
+      // rather than the database, and reply 200 with client_secret: null when the
+      // tenant is missing from it. Forwarding that null to the target tenant's
+      // /exchange-code comes back as "Client secret is required" from a different
+      // host, which reads as a generic switch failure. Stop here instead and name
+      // the real cause.
+      if (!code || !client_secret) {
+        throw new Error(
+          `${workspace.name} did not return switch credentials (missing ` +
+            `${!code ? 'code' : 'client_secret'}). The ${workspace.subdomain} API ` +
+            `needs the tenant client_secret fix deployed.`,
+        );
+      }
+
       // Priority: FORCE_BACKEND_URL override > tenant's backend_url > local dev fallback
       const forced = FORCE_BACKEND_URL && FORCE_BACKEND_URL.trim().length > 0
         ? `${normalizeBackendUrl(FORCE_BACKEND_URL)}/api`
