@@ -144,6 +144,14 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   switchTenant: async (workspace: Workspace) => {
     const { useAuthStore } = require('./authStore');
 
+    // Capture where we are BEFORE anything is overwritten. The catch block used to
+    // "restore the previous backend URL" by re-reading STORAGE_KEYS.BACKEND_URL --
+    // but step 2 below has already written the target's URL to that same key, so a
+    // failed switch restored the URL that had just failed. The app stayed pinned to
+    // the dead host and every later request 404'd, including the next switch
+    // attempt, which is why one bad tenant made every tenant look broken.
+    const previousBackendUrl = await AsyncStorage.getItem(STORAGE_KEYS.BACKEND_URL);
+
     set({ isSwitching: true });
     try {
       // Step 1: Get auth code for target tenant
@@ -235,10 +243,16 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       console.log(`[workspaceStore] Switched to tenant: ${workspace.name}`);
     } catch (err) {
       console.error('[workspaceStore] switchTenant failed:', err);
-      // Restore previous backend URL
-      const savedBackendUrl = await AsyncStorage.getItem(STORAGE_KEYS.BACKEND_URL);
-      if (savedBackendUrl) {
-        setDynamicBaseUrl(savedBackendUrl);
+      // Put the tenant we came from back, in storage as well as in memory, so a
+      // failed switch leaves the app exactly where it started instead of stranded
+      // on the target's host.
+      if (previousBackendUrl) {
+        try {
+          await AsyncStorage.setItem(STORAGE_KEYS.BACKEND_URL, previousBackendUrl);
+        } catch (storageErr) {
+          console.warn('[workspaceStore] could not persist previous backend URL:', storageErr);
+        }
+        setDynamicBaseUrl(previousBackendUrl);
       }
       throw err;
     } finally {
