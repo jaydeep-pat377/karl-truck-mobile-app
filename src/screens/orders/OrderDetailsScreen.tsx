@@ -672,6 +672,13 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
   const { t } = useTranslation();
   const themeColors = isDark ? colors.dark : colors.light;
 
+  // Tooltip state. Declared before the early return below: segments arrive
+  // empty on first render and fill in once tracking data loads, and a hook
+  // count that changes between renders crashes with "Rendered more hooks".
+  const [tooltipKey, setTooltipKey] = useState<string | null>(null);
+  const [tooltipY, setTooltipY] = useState(0);
+  const progressBarRef = useRef<View>(null);
+
   if (!segments || segments.length === 0) {
     return null;
   }
@@ -688,11 +695,6 @@ const DeliveryProgressBar: React.FC<DeliveryProgressBarProps> = ({
     const apiSeg = segments.find((s: any) => s.status === status.key);
     return apiSeg?.color || TRACKING_STATUS_COLORS[status.colorKey] || FALLBACK_SEGMENT_COLOR;
   });
-
-  // Tooltip state
-  const [tooltipKey, setTooltipKey] = useState<string | null>(null);
-  const [tooltipY, setTooltipY] = useState(0);
-  const progressBarRef = useRef<View>(null);
 
   const showTooltip = (key: string) => {
     if (tooltipKey === key) {
@@ -1941,7 +1943,7 @@ export const OrderDetailsScreen: React.FC = () => {
         ),
       },
 
-      pourSpeedData: mockJobData.pourSpeedData,
+      pourSpeedData: [] as typeof mockJobData.pourSpeedData,
 
       trucksOnJobRaw: {
         timePoints: orderDetails.graphs?.trucks_on_job?.time_points || [],
@@ -1953,8 +1955,8 @@ export const OrderDetailsScreen: React.FC = () => {
         hasData: !!(orderDetails.graphs?.trucks_on_job?.time_points?.length),
       },
 
-      trucksOnJobData: mockJobData.trucksOnJobData,
-      avgSpacing: '45 min',
+      trucksOnJobData: [] as typeof mockJobData.trucksOnJobData,
+      avgSpacing: '',
       products: orderDetails.products?.map(p => ({
         productId: p.product_id || p.order_product_id,
         itemCode: p.item_code || '',

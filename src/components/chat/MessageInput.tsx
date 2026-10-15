@@ -15,8 +15,7 @@ import {
   NativeModules,
 } from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
-// TEMP: pointed at local no-op stub while Nitro autolink is broken — see _stubs/audioRecorderPlayer.ts
-import AudioRecorderPlayer from '../../_stubs/audioRecorderPlayer';
+import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
 
 // The native Voice module is not present in every runtime (web, or a build

@@ -9,6 +9,7 @@ import { setDynamicBaseUrl, normalizeBackendUrl } from '../api/axiosInstance';
 import { notificationService } from '../services/notificationService';
 import { connectSocket } from '../services/socketClient';
 import { queryClient } from '../lib/queryClient';
+import { redactJson } from '../utils/redact';
 import { FORCE_BACKEND_URL } from '@env';
 
 const PALETTE = [
@@ -107,7 +108,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
     set({ isLoadingTenants: true });
     try {
       const response = await authService.getTenantList();
-      console.log('[workspaceStore] /api/auth/mobile/tenants response:', JSON.stringify(response, null, 2));
+      console.log('[workspaceStore] /api/auth/mobile/tenants response:', redactJson(response, 2));
       if (response.success && response.data) {
         const workspaces = mapTenantsToWorkspaces(response.data);
         set({ workspaces });

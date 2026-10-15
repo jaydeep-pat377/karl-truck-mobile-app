@@ -10,6 +10,7 @@ import { STORAGE_KEYS } from '../utils/storage';
 import { DeviceInfo, LoginRequest, LoginResponse } from '../types/user';
 import { AxiosError } from 'axios';
 import { connectSocket } from '../services/socketClient';
+import { redactJson } from '../utils/redact';
 import { FORCE_BACKEND_URL } from '@env';
 
 interface LoginParams {
@@ -45,7 +46,7 @@ export const useLogin = () => {
       console.log('[useLogin] ====== FEDERATED LOGIN START ======');
       console.log('[useLogin] Step 1 — federatedLogin params:', JSON.stringify({ email, password: '***' }));
       const federatedResponse = await authService.federatedLogin(email, password);
-      console.log('[useLogin] Step 1 — federatedLogin response:', JSON.stringify(federatedResponse, null, 2));
+      console.log('[useLogin] Step 1 — federatedLogin response:', redactJson(federatedResponse, 2));
       if (!federatedResponse.success || !federatedResponse.data?.tenant?.backend_url) {
         throw new Error(federatedResponse.message || 'Federated login failed');
       }
@@ -74,7 +75,7 @@ export const useLogin = () => {
         device_info: getDeviceInfo(deviceToken),
       };
       console.log('[useLogin] Step 2 — exchange-code params:', JSON.stringify({
-        code: federatedResponse.data.code,
+        code: federatedResponse.data.code ? '***' : undefined,
         client_secret: federatedResponse.data.client_secret ? '***' : undefined,
         device_info: credentials.device_info,
       }));

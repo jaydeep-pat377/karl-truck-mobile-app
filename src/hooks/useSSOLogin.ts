@@ -31,6 +31,7 @@ import { STORAGE_KEYS } from '../utils/storage';
 import { DeviceInfo } from '../types/user';
 import { connectSocket } from '../services/socketClient';
 import { notificationService } from '../services/notificationService';
+import { redactJson } from '../utils/redact';
 import {
   FEDERATED_AUTH_URL,
   FORCE_BACKEND_URL,
@@ -178,7 +179,7 @@ export const useSSOLogin = () => {
 
       console.log('[SSO Google] ====== REQUEST ======');
       console.log('[SSO Google] URL:', url);
-      console.log('[SSO Google] Body:', JSON.stringify({ id_token: idToken?.substring(0, 30) + '...', device_info }, null, 2));
+      console.log('[SSO Google] Body:', JSON.stringify({ id_token: idToken ? '***' : undefined, device_info }, null, 2));
 
       const response = await axios.post(url, body, {
         headers: { 'Content-Type': 'application/json' }, timeout: 30000,
@@ -189,11 +190,11 @@ export const useSSOLogin = () => {
       console.log('[SSO Google] Status:', response.status);
       console.log('[SSO Google] Success:', data.success);
       console.log('[SSO Google] User:', data.data?.user?.email);
-      console.log('[SSO Google] AccessToken:', data.data?.accessToken?.substring(0, 30) + '...');
-      console.log('[SSO Google] RefreshToken:', data.data?.refreshToken?.substring(0, 30) + '...');
-      console.log('[SSO Google] Tenant:', JSON.stringify(data.data?.tenant, null, 2));
+      console.log('[SSO Google] AccessToken:', data.data?.accessToken ? '***' : 'none');
+      console.log('[SSO Google] RefreshToken:', data.data?.refreshToken ? '***' : 'none');
+      console.log('[SSO Google] Tenant:', redactJson(data.data?.tenant, 2));
       console.log('[SSO Google] Backend URL:', data.data?.tenant?.backend_url);
-      console.log('[SSO Google] Full Response:', JSON.stringify(data, null, 2));
+      console.log('[SSO Google] Full Response:', redactJson(data, 2));
 
       if (!data.success || !data.data) throw new Error(data.message || 'Google login failed');
       await setupSessionFromResponse(data.data, setAuth);
@@ -246,7 +247,7 @@ export const useSSOLogin = () => {
       console.log('[SSO Microsoft] ====== REQUEST ======');
       console.log('[SSO Microsoft] URL:', url);
       console.log('[SSO Microsoft] Base URL (FEDERATED_URL):', FEDERATED_URL);
-      console.log('[SSO Microsoft] Body:', JSON.stringify({ access_token: accessToken?.substring(0, 30) + '...', device_info }, null, 2));
+      console.log('[SSO Microsoft] Body:', JSON.stringify({ access_token: accessToken ? '***' : undefined, device_info }, null, 2));
 
       const response = await axios.post(url, { access_token: accessToken, device_info }, {
         headers: { 'Content-Type': 'application/json' }, timeout: 30000,
@@ -257,11 +258,11 @@ export const useSSOLogin = () => {
       console.log('[SSO Microsoft] Status:', response.status);
       console.log('[SSO Microsoft] Success:', data.success);
       console.log('[SSO Microsoft] User:', data.data?.user?.email);
-      console.log('[SSO Microsoft] AccessToken:', data.data?.accessToken?.substring(0, 30) + '...');
-      console.log('[SSO Microsoft] RefreshToken:', data.data?.refreshToken?.substring(0, 30) + '...');
-      console.log('[SSO Microsoft] Tenant:', JSON.stringify(data.data?.tenant, null, 2));
+      console.log('[SSO Microsoft] AccessToken:', data.data?.accessToken ? '***' : 'none');
+      console.log('[SSO Microsoft] RefreshToken:', data.data?.refreshToken ? '***' : 'none');
+      console.log('[SSO Microsoft] Tenant:', redactJson(data.data?.tenant, 2));
       console.log('[SSO Microsoft] Backend URL:', data.data?.tenant?.backend_url);
-      console.log('[SSO Microsoft] Full Response:', JSON.stringify(data, null, 2));
+      console.log('[SSO Microsoft] Full Response:', redactJson(data, 2));
 
       if (!data.success || !data.data) throw new Error(data.message || 'Microsoft login failed');
       await setupSessionFromResponse(data.data, setAuth);
@@ -316,7 +317,7 @@ export const useSSOLogin = () => {
 
       console.log('[SSO Token Exchange] ====== REQUEST ======');
       console.log('[SSO Token Exchange] URL:', MS_TOKEN_URL);
-      console.log('[SSO Token Exchange] Auth Code:', code?.substring(0, 20) + '...');
+      console.log('[SSO Token Exchange] Auth Code:', code ? '***' : 'none');
       console.log('[SSO Token Exchange] Redirect URI:', MS_REDIRECT_URI);
 
       // Exchange code for access_token using PKCE
@@ -339,8 +340,8 @@ export const useSSOLogin = () => {
         tokenData = tokenResponse.data;
 
         console.log('[SSO Token Exchange] ====== RESPONSE ======');
-        console.log('[SSO Token Exchange] Access Token:', tokenData.access_token?.substring(0, 30) + '...');
-        console.log('[SSO Token Exchange] ID Token:', tokenData.id_token ? tokenData.id_token.substring(0, 30) + '...' : 'none');
+        console.log('[SSO Token Exchange] Access Token:', tokenData.access_token ? '***' : 'none');
+        console.log('[SSO Token Exchange] ID Token:', tokenData.id_token ? '***' : 'none');
         console.log('[SSO Token Exchange] Token Type:', tokenData.token_type);
         console.log('[SSO Token Exchange] Expires In:', tokenData.expires_in);
         console.log('[SSO Token Exchange] Scope:', tokenData.scope);
