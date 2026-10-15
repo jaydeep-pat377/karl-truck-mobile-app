@@ -57,7 +57,7 @@ export const authService = {
    * Federated login — calls admin server to get tenant backend_url.
    */
   federatedLogin: async (email: string, password: string): Promise<FederatedLoginResponse> => {
-    const url = `${FEDERATED_URL}/federated-auth/login`;
+    const url = `${FEDERATED_URL}${API_ENDPOINTS.FEDERATED.LOGIN}`;
     const body = { email: email.trim().toLowerCase(), password };
     console.log(`[API Request] POST ${url}`);
     console.log('[API Request] Body:', JSON.stringify({ email: body.email, password: '***' }, null, 2));
@@ -139,8 +139,28 @@ export const authService = {
     return apiClient.get(API_ENDPOINTS.AUTH.ME);
   },
 
+  /**
+   * Forgot password — goes to the admin server, like federatedLogin. The user
+   * isn't logged in, so there is no tenant backend yet: the default baseURL
+   * (API_BASE_URL) doesn't resolve, and after a logout it still points at the
+   * last tenant's backend.
+   */
   forgotPassword: async (data: ForgotPasswordRequest): Promise<ForgotPasswordResponse> => {
-    return apiClient.post<ForgotPasswordResponse>(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, data);
+    const url = `${FEDERATED_URL}${API_ENDPOINTS.FEDERATED.FORGOT_PASSWORD}`;
+    console.log(`[API Request] POST ${url}`);
+    try {
+      const response = await axios.post<ForgotPasswordResponse>(
+        url,
+        { email: data.email.trim().toLowerCase() },
+        { headers: { 'Content-Type': 'application/json' } },
+      );
+      console.log(`[API Response] POST ${url} — Status: ${response.status}`);
+      return response.data;
+    } catch (error: any) {
+      console.error(`[API Error] POST ${url} — Status: ${error?.response?.status}`);
+      console.error('[API Error] Message:', error?.message);
+      throw error;
+    }
   },
 
   changePassword: async (data: ChangePasswordRequest): Promise<ChangePasswordResponse> => {

@@ -27,6 +27,7 @@ import { useAuthStore } from '../store/authStore';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { useTimezoneStore } from '../store/timezoneStore';
 import { setDynamicBaseUrl, normalizeBackendUrl } from '../api/axiosInstance';
+import { API_ENDPOINTS } from '../api/endpoints';
 import { STORAGE_KEYS } from '../utils/storage';
 import { DeviceInfo } from '../types/user';
 import { connectSocket } from '../services/socketClient';
@@ -174,7 +175,7 @@ export const useSSOLogin = () => {
     try {
       const deviceToken = await notificationService.getToken();
       const device_info = getDeviceInfo(deviceToken || undefined);
-      const url = `${FEDERATED_URL}/federated-auth/google-login`;
+      const url = `${FEDERATED_URL}${API_ENDPOINTS.FEDERATED.GOOGLE_LOGIN}`;
       const body = { id_token: idToken, device_info };
 
       console.log('[SSO Google] ====== REQUEST ======');
@@ -242,7 +243,7 @@ export const useSSOLogin = () => {
     try {
       const deviceToken = await notificationService.getToken();
       const device_info = getDeviceInfo(deviceToken || undefined);
-      const url = `${FEDERATED_URL}/federated-auth/microsoft-login`;
+      const url = `${FEDERATED_URL}${API_ENDPOINTS.FEDERATED.MICROSOFT_LOGIN}`;
 
       console.log('[SSO Microsoft] ====== REQUEST ======');
       console.log('[SSO Microsoft] URL:', url);

@@ -11,6 +11,14 @@ export const API_ENDPOINTS = {
     MOBILE_TENANTS: '/auth/mobile/tenants',
     MOBILE_SWITCH_TENANT: '/auth/mobile/switch-tenant',
   },
+  // Central admin server (FEDERATED_AUTH_URL), not the tenant backend — used
+  // before login, when there is no tenant backend yet.
+  FEDERATED: {
+    LOGIN: '/federated-auth/login',
+    FORGOT_PASSWORD: '/federated-auth/forgot-password',
+    GOOGLE_LOGIN: '/federated-auth/google-login',
+    MICROSOFT_LOGIN: '/federated-auth/microsoft-login',
+  },
   USER: {
     PROFILE: '/users/profile',
     UPDATE_PROFILE: '/users/profile',
